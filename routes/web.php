@@ -23,30 +23,26 @@ Route::get('login',function() {
 
 Route::group(['prefix' => 'administrations'], function() {
     //
-    Route::get('/', function() {
-        return view('admins.index');
-    });
-    Route::get('/add', function() {
-        return view('admins.add');
-    });
-    Route::get('/add/manager', function() {
-        return view('admins.add_manager');
-    });
+    Route::get('/', function() {return view('admins.index');});
+    Route::get('/add', function() {return view('admins.add');});
+    Route::get('/add/manager', function() {return view('admins.add_manager');});
+    Route::get('/view/{id}', function() {return view('admins.show');});
+    Route::get('/edit/{id}', function() {return view('admins.edit');});
+    Route::get('/edit/manager/{id}', function() {return view('admins.edit_manager');});
+    Route::get('/edit/api/{id}', function() {return view('admins.edit_api');});
+});
 
-    Route::get('/view/{id}', function() {
-        return view('admins.show');
-    });
+Route::group(['prefix' => 'entities'], function() {
+    //
+    Route::get('/', function() {return view('entities.index');});
+    Route::get('/add', function() {return view('entities.add');});
+    Route::get('/add/information', function() {return view('entities.add_information');});
+    Route::get('/add/manager', function() {return view('entities.add_manager');});
 
-    Route::get('/edit/{id}', function() {
-        return view('admins.edit');
-    });
-
-    Route::get('/edit/manager/{id}', function() {
-        return view('admins.edit_manager');
-    });
-    Route::get('/edit/api/{id}', function() {
-        return view('admins.edit_api');
-    });
+    Route::get('/view/{id}', function() {return view('entities.show');});
+    Route::get('/edit/{id}', function() {return view('entities.edit');});
+    Route::get('/edit/manager/{id}', function() {return view('entities.edit_manager');});
+    
 });
 
 Route::get('entities',function() {

@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Administraciones')
+@section('title','Entidades')
 
 @section('content')
 
@@ -12,12 +12,11 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Administraciones</a></li>
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Administración</a></li>
-                        <li class="breadcrumb-item active">Editar</li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Entidades</a></li>
+                        <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Administraciones</h4>
+                <h4 class="page-title">Entidades</h4>
             </div>
         </div>
     </div>     
@@ -29,7 +28,7 @@
 
             		<h4 class="header-title">
 
-                    	Datos Gestor
+                    	Datos Entidad
 
                     </h4>
 
@@ -49,7 +48,7 @@
                     				<img src="{{url('assets/admin.svg')}}" alt="">
 
                     				<label>
-                    					Datos administración
+                    					Selec. Administración
                     				</label>
 
                     			</div>
@@ -60,10 +59,10 @@
                     					2
                     				</span>
 
-                    				<img src="{{url('assets/gestor.svg')}}" alt="">
+                    				<img src="{{url('assets/entidad.svg')}}" alt="">
 
                     				<label>
-                    					Datos Gestor
+                    					Datos Entidad
                     				</label>
 
                     			</div>
@@ -74,10 +73,10 @@
                     					3
                     				</span>
 
-                    				<img src="{{url('assets/api.svg')}}" alt="">
+                    				<img src="{{url('assets/gestor.svg')}}" alt="">
 
                     				<label>
-                    					Configuración API
+                    					Datos Gestor
                     				</label>
 
                     			</div>
@@ -85,143 +84,146 @@
                     		</div>
 
                     		<div class="form-card">
-                    			<h4 class="mb-0 mt-1">
-                    				Página web
-                    			</h4>
-                    			<small><i>Este campo no es obligatorio</i></small>
+                    			
+                    			<div class="row">
+                					<div class="col-4">
+                						
+	                    				<div class="photo-preview-3">
+	                    					
+	                    					<i class="ri-account-circle-fill"></i>
 
-                    			<div class="form-group mt-2">
-	                    			<label class="label-control">Web</label>
+	                    				</div>
+	                    				
+	                    				<div style="clear: both;"></div>
+                					</div>
 
-	                    			<div class="input-group input-group-merge group-form">
+                					<div class="col-8 text-center mt-2">
 
-	                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-	                                        <img src="{{url('assets/form-groups/admin/0.svg')}}" alt="">
-	                                    </div>
+                						<h4 class="mt-0 mb-0">El Buho Lotero</h4>
 
-	                                    <input class="form-control" type="text" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
-	                                </div>
-                    			</div>
+                						<small>Jorge Ruíz Ortega</small> <br>
+
+                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
+                						
+                					</div>
+                				</div>
+
                     		</div>
 
-                    		<div class="form-card show-content bs">
-                    			<h4 class="mb-0 mt-1">
-                    				Estado Administración
-                    			</h4>
-                    			<small><i>Bloquea o desbloquea la administración</i></small>
-
-                    			<div class="form-group mt-2">
-	                    			<label class="">Estado Actual</label> <label class="badge badge-lg bg-success float-end">Activo</label>
-	                    			<div style="clear: both;"></div>
-                    			</div>
-                    		</div>
-
-                    		<a href="{{url('administrations/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    		<a href="{{url('entities/add')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
                     			<h4 class="mb-0 mt-1">
-                    				Datos de contacto
+                    				Datos legales de la entidad
                     			</h4>
                     			<small><i>Todos los campos son obligatorios</i></small>
 
-                    			<div class="form-group mt-2 mb-3 admin-box">
+                    			<div class="form-group mt-2 mb-3">
 
-                    				<div class="row">
-                    					<div class="col-1">
-                    						
-		                    				<div class="photo-preview-2">
-		                    					
-		                    					<i class="ri-account-circle-fill"></i>
+                    				<div class="photo-preview">
+                    					
+                    					<i class="ri-image-add-line"></i>
 
-		                    				</div>
-		                    				
-		                    				<div style="clear: both;"></div>
-                    					</div>
-
-                    					<div class="col-4 text-center">
-
-                    						<h4 class="mt-0 mb-0">El Buho Lotero</h4>
-
-                    						<small>Jorge Ruíz Ortega</small> <br>
-
-                    						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 05716
-                    						
-                    					</div>
-
-                    					<div class="col-4">
-
-                    						<div class="mt-2">
-                    							Provincia: La Rioja <br>
-                    							Dirección: Avd. Club Deportivo 28
-                    						</div>
-                    						
-                    					</div>
-
-                    					<div class="col-3">
-
-                    						<div class="mt-2">
-                    							Ciudad: Logroño <br>
-                    							Tel: 941 900 900
-                    						</div>
-                    						
-                    					</div>
                     				</div>
+
+                    				<div>
+                    					
+                    					<small><i>Imágen entidad</i></small>
+                    					 <br>
+                    					<b>Logotipo</b>
+                    					<br>
+
+                    					<label style="border-radius: 30px; width: 150px; background-color: #333;" class="btn btn-md btn-dark mt-2"><small>Subir Imágen</small></label>
+                    					<label style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2"><small>Eliminar Imágen</small></label>
+
+                    				</div>
+                    				
+                    				<div style="clear: both;"></div>
                     			</div>
 
-                    			
                     			<br>
 
                     			<div>
-
                     				<div class="row">
-			                    					
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Nombre</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input value="Jorge" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Primer Apellido</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input value="Ruiz" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Segundo Apellido</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input value="Ortega" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
                     					
+                    					<div class="col-6">
+                    						<div class="form-group mt-2 mb-3">
+                    							<label class="label-control">Nombre comercial</label>
+
+				                    			<div class="input-group input-group-merge group-form">
+
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
+				                                    </div>
+
+				                                    <input class="form-control" type="text" placeholder="Nombre Entidad" style="border-radius: 0 30px 30px 0;">
+				                                </div>
+			                    			</div>
+                    					</div>
+
+                    					<div class="col-3">
+                    						<div class="form-group mt-2 mb-3">
+                    							<label class="label-control">Provincia</label>
+
+				                    			<div class="input-group input-group-merge group-form">
+
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
+				                                    </div>
+
+				                                    <input class="form-control" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+				                                </div>
+			                    			</div>
+                    					</div>
+
+                    					<div class="col-3">
+                    						<div class="form-group mt-2 mb-3">
+                    							<label class="label-control">Localidad</label>
+
+				                    			<div class="input-group input-group-merge group-form">
+
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
+				                                    </div>
+
+				                                    <input class="form-control" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+				                                </div>
+			                    			</div>
+                    					</div>
+
                     					<div class="col-2">
+                    						<div class="form-group mt-2 mb-3">
+                    							<label class="label-control">Código Postal</label>
+
+				                    			<div class="input-group input-group-merge group-form">
+
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
+				                                    </div>
+
+				                                    <input class="form-control" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+				                                </div>
+			                    			</div>
+                    					</div>
+
+                    					<div class="col-4">
+                    						<div class="form-group mt-2 mb-3">
+                    							<label class="label-control">Dirección</label>
+
+				                    			<div class="input-group input-group-merge group-form">
+
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
+				                                    </div>
+
+				                                    <input class="form-control" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+				                                </div>
+			                    			</div>
+                    					</div>
+
+                    					<div class="col-3">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">NIF/CIF</label>
 
@@ -231,37 +233,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="16600600A" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-
-                    					<div class="col-3">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">F. Nacimiento</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input value="1975-01-01" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Email</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input value="administracion@ejemplo.es" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -276,14 +248,29 @@
 				                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="941 900 900" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+				                                </div>
+			                    			</div>
+                    					</div>
+
+                    					<div class="col-4">
+                    						<div class="form-group mt-2 mb-3">
+                    							<label class="label-control">Email</label>
+
+				                    			<div class="input-group input-group-merge group-form">
+
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
+				                                    </div>
+
+				                                    <input class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
 
                     				</div>
-                    				
                     			</div>
+
 
                     			<h4 class="mb-0 mt-1">
                     				Comentarios
@@ -305,9 +292,9 @@
 
                     				</div>
 
-                    				<div class="col-4 text-end">
-                    					<a href="{{url('administrations/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
+                    				<div class="col-12 text-end">
+                    					<a href="{{url('entities/add/manager')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
                     				</div>
 
                     			</div>
@@ -330,8 +317,6 @@
 
 @section('scripts')
 
-<script>
 
-</script>
 
 @endsection

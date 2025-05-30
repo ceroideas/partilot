@@ -1,8 +1,18 @@
 @extends('layouts.layout')
 
-@section('title','Administraciones')
+@section('title','Entidades')
 
 @section('content')
+
+<style>
+	
+	.form-wizard-element, .form-wizard-element label {
+		cursor: pointer;
+	}
+	.form-check-input:checked {
+		border-color: #333;
+	}
+</style>
 
 <!-- Start Content-->
 <div class="container-fluid">
@@ -12,12 +22,12 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Administraciones</a></li>
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Administración</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Entidades</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Entidad</a></li>
                         <li class="breadcrumb-item active">Editar</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Administraciones</h4>
+                <h4 class="page-title">Entidades</h4>
             </div>
         </div>
     </div>     
@@ -29,7 +39,7 @@
 
             		<h4 class="header-title">
 
-                    	Datos Gestor
+                    	Datos Entidad
 
                     </h4>
 
@@ -38,18 +48,18 @@
                     <div class="row">
                     	
                     	<div class="col-md-3" style="position: relative;">
-                    		<div class="form-card bs mb-3">
 
+                    		<div class="form-card bs mb-3">
                     			<div class="form-wizard-element">
                     				
                     				<span>
-                    					1
+                    					&nbsp;&nbsp;
                     				</span>
 
-                    				<img src="{{url('assets/admin.svg')}}" alt="">
+                    				<img src="{{url('assets/entidad.svg')}}" alt="">
 
                     				<label>
-                    					Datos administración
+                    					Datos Entidad
                     				</label>
 
                     			</div>
@@ -57,7 +67,7 @@
                     			<div class="form-wizard-element active">
                     				
                     				<span>
-                    					2
+                    					&nbsp;&nbsp;
                     				</span>
 
                     				<img src="{{url('assets/gestor.svg')}}" alt="">
@@ -67,48 +77,14 @@
                     				</label>
 
                     			</div>
-
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					3
-                    				</span>
-
-                    				<img src="{{url('assets/api.svg')}}" alt="">
-
-                    				<label>
-                    					Configuración API
-                    				</label>
-
-                    			</div>
                     			
                     		</div>
 
-                    		<div class="form-card">
+                    		<div class="form-card show-content mb-3 bs">
                     			<h4 class="mb-0 mt-1">
-                    				Página web
+                    				Estado Entidad
                     			</h4>
-                    			<small><i>Este campo no es obligatorio</i></small>
-
-                    			<div class="form-group mt-2">
-	                    			<label class="label-control">Web</label>
-
-	                    			<div class="input-group input-group-merge group-form">
-
-	                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-	                                        <img src="{{url('assets/form-groups/admin/0.svg')}}" alt="">
-	                                    </div>
-
-	                                    <input class="form-control" type="text" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
-	                                </div>
-                    			</div>
-                    		</div>
-
-                    		<div class="form-card show-content bs">
-                    			<h4 class="mb-0 mt-1">
-                    				Estado Administración
-                    			</h4>
-                    			<small><i>Bloquea o desbloquea la administración</i></small>
+                    			<small><i>Bloquea o desbloquea la entidad</i></small>
 
                     			<div class="form-group mt-2">
 	                    			<label class="">Estado Actual</label> <label class="badge badge-lg bg-success float-end">Activo</label>
@@ -116,15 +92,31 @@
                     			</div>
                     		</div>
 
-                    		<a href="{{url('administrations/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    		<div class="form-card mb-3 bs">
+                    			
+                    			<div class="form-check form-switch mt-2 mb-2">
+									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="fin" checked>
+									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="fin"><b>Entidad sin fin lucrativo</b></label>
+								</div>
+
+								<div class="form-check form-switch mt-2 mb-2">
+									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="coste" checked>
+									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="coste"><b>Coste gestión</b></label>
+								</div>
+
+                    		</div>
+
+                    		<a href="{{url('entities?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
-                    		<div class="form-card bs" style="min-height: 658px;">
+
+        					<div class="form-card bs" style="min-height: 658px;">
                     			<h4 class="mb-0 mt-1">
-                    				Datos de contacto
+                    				Datos de gestor
                     			</h4>
                     			<small><i>Todos los campos son obligatorios</i></small>
+                    			<div style="clear: both;"></div>
 
                     			<div class="form-group mt-2 mb-3 admin-box">
 
@@ -144,7 +136,7 @@
 
                     						<h4 class="mt-0 mb-0">El Buho Lotero</h4>
 
-                    						<small>Jorge Ruíz Ortega</small> <br>
+                    						<small>Jorge Ruiz Ortega</small> <br>
 
                     						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 05716
                     						
@@ -176,7 +168,7 @@
                     			<div>
 
                     				<div class="row">
-			                    					
+                    					
                     					<div class="col-4">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Nombre</label>
@@ -297,7 +289,7 @@
                     					<div class="form-group mt-2">
 			                    			<label class="label-control">Comentario</label>
 
-			                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form" style="border: none">
 
 			                                    <textarea class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6"></textarea>
 			                                </div>
@@ -306,7 +298,7 @@
                     				</div>
 
                     				<div class="col-4 text-end">
-                    					<a href="{{url('administrations/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
+                    					<a href="{{url('entities/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
                     						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
                     				</div>
 
@@ -329,9 +321,5 @@
 @endsection
 
 @section('scripts')
-
-<script>
-
-</script>
 
 @endsection

@@ -93,7 +93,7 @@
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
-                    		<div class="form-card bs">
+                    		<div class="form-card bs" style="min-height: 658px;">
                     			<h4 class="mb-0 mt-1">
                     				Datos legales de la administración
                     			</h4>

@@ -5834,6 +5834,10 @@ span.flatpickr-weekday {
     box-shadow: 0 0 5px silver;
 }
 
+.bs{
+    box-shadow: 0 0 5px silver;
+}
+
 .form-wizard-element {
     color: #333;
     display: block;
@@ -5988,4 +5992,8 @@ span.flatpickr-weekday {
 
 .nav-item {
     width: 100%;
+}
+
+td {
+    vertical-align: middle;
 }

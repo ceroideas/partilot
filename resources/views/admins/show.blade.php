@@ -102,7 +102,7 @@
                     			
                     		</ul>
 
-                    		<div class="form-card show-content mb-3">
+                    		<div class="form-card show-content bs mb-3">
                     			<h4 class="mb-0 mt-1">
                     				Página web
                     			</h4>
