@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Administraciones')
+@section('title','Sorteos')
 
 @section('content')
 
@@ -12,10 +12,11 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Administraciones</li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Sorteos</a></li>
+                        <li class="breadcrumb-item active">Resultados</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Administraciones</h4>
+                <h4 class="page-title">Selección Administración</h4>
             </div>
         </div>
     </div>     
@@ -25,14 +26,14 @@
             <div class="card">
                 <div class="card-body">
 
-                	<div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                	<div>
 	                    <h4 class="header-title">
 
-	                    	<div class="float-start d-flex align-items-start">
+	                    	{{-- <div class="float-start d-flex align-items-start">
 	                    		<input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Provincia">
 	                    		<input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Localidad">
 	                    		<input type="text" class="form-control" placeholder="Status">
-	                    	</div>
+	                    	</div> --}}
 
 	                    	<a href="{{url('administrations/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
 
@@ -50,59 +51,47 @@
 	                                <th>Nº Receptor</th>
 	                                <th>Provincia</th>
 	                                <th>Localidad</th>
-	                                <th>Gestor</th>
-	                                <th>Teléfono</th>
-	                                <th>Email</th>
 	                                <th>Status</th>
-	                                <th class="no-filter"></th>
 	                            </tr>
 	                        </thead>
 	                    
 	                    
 	                        <tbody>
 	                            <tr>
-	                                <td><a href="{{url('administrations/view',1)}}">#AD9801</a></td>
+	                                <td>#AD9801</td>
 	                                <td>El Buho Lotero</td>
 	                                <td>06716</td>
 	                                <td>La Rioja</td>
 	                                <td>Logroño</td>
-	                                <td>Jorge Ruíz Ortega</td>
-	                                <td>600 600 600</td>
-	                                <td>info@elbuholotero.es</td>
 	                                <td><label class="badge bg-success">Activo</label></td>
-	                                <td>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/entidades.svg')}}" alt="" width="12"></a>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/sorteos.svg')}}" alt="" width="12"></a>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/reservas.svg')}}" alt="" width="12"></a>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/participaciones.svg')}}" alt="" width="12"></a>
-	                                	<a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
-	                                </td>
+	                            </tr>
+
+	                            <tr>
+	                                <td>#AD9801</td>
+	                                <td>El Gato Nego</td>
+	                                <td>06425</td>
+	                                <td>Madrid</td>
+	                                <td>Madrid</td>
+	                                <td><label class="badge bg-success">Activo</label></td>
 	                            </tr>
 	                        </tbody>
 	                    </table>
 
-                    </div>
+	                    <br>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
-                        
-                        <div class="d-flex align-items-center gap-1">
-                        	
-                        	<div class="empty-tables">
+	                    <div class="row">
 
-                        		<div>
-                        			<img src="{{url('icons/administraciones.svg')}}" alt="" width="80px">
-                        		</div>
+            				<div class="col-6 text-start">
+            					<a href="{{url('lottery?table=1')}}" style="border-radius: 30px; width: 200px; padding: 8px; font-weight: bolder; position: relative; background-color: #333; color: #fff;" class="btn btn-md btn-dark mt-2"><i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+            				</div>
 
-                        		<h3 class="mb-0">No hay Administraciones</h3>
+            				<div class="col-6 text-end">
+            					<a href="{{url('lottery/results')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+            						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+            				</div>
 
-                        		<small>Añade Administraciones</small>
+            			</div>
 
-                        		<br>
-
-                        		<a href="{{url('administrations/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
-                        	</div>
-
-                        </div>
                     </div>
                     
                 </div> <!-- end card body-->
@@ -122,6 +111,8 @@
   function initDatatable() 
   {
     $("#example2").DataTable({
+
+      "select":{style:"single"},
 
       "ordering": false,
       "sorting": false,

@@ -54,9 +54,24 @@ Route::get('sellers',function() {
 Route::get('users',function() {
     return view('users.index');
 });
-Route::get('lottery',function() {
-    return view('lottery.index');
+
+Route::group(['prefix' => 'lottery'], function() {
+    //
+    Route::get('/', function() {return view('lottery.index');});
+    Route::get('/add', function() {return view('lottery.add');});
+    Route::get('/edit/{id}', function() {return view('lottery.edit');});
+    Route::get('/administrations', function() {return view('lottery.administrations');});
+    Route::get('/results', function() {return view('lottery.lottery_results');});
+    Route::get('/scrutiny', function() {return view('lottery.scrutiny');});
 });
+
+Route::group(['prefix' => 'lottery_types'], function() {
+    //
+    Route::get('/', function() {return view('lottery_types.index');});
+    Route::get('/add', function() {return view('lottery_types.add');});
+    Route::get('/edit/{id}', function() {return view('lottery_types.edit');});
+});
+
 Route::get('reserves',function() {
     return view('reserves.index');
 });

@@ -12,7 +12,8 @@
             <div class="page-title-box">
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Sorteos</li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Sorteos</a></li>
+                        <li class="breadcrumb-item active">Resultados</li>
                     </ol>
                 </div>
                 <h4 class="page-title">Sorteos</h4>
@@ -25,13 +26,56 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    <div>
+                    	<div class="form-group mt-2 mb-3 admin-box bs">
+
+            				<div class="row">
+            					<div class="col-1">
+            						
+                    				<div class="photo-preview-2">
+                    					
+                    					<i class="ri-account-circle-fill"></i>
+
+                    				</div>
+                    				
+                    				<div style="clear: both;"></div>
+            					</div>
+
+            					<div class="col-4 text-center">
+
+            						<h4 class="mt-0 mb-0">El Buho Lotero</h4>
+
+            						<small>Jorge Ruiz Ortega</small> <br>
+
+            						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 05716
+            						
+            					</div>
+
+            					<div class="col-4">
+
+            						<div class="mt-2">
+            							Provincia: La Rioja <br>
+            							Dirección: Avd. Club Deportivo 28
+            						</div>
+            						
+            					</div>
+
+            					<div class="col-3">
+
+            						<div class="mt-2">
+            							Ciudad: Logroño <br>
+            							Tel: 941 900 900
+            						</div>
+            						
+            					</div>
+            				</div>
+            			</div>
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
                                 <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Número">
                                 <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Tipo de Sorteo">
-                                <input type="text" class="form-control" placeholder="Precio">
+                                <input type="text" class="form-control" placeholder="Escrutado">
                             </div>
 
                             <a href="{{url('lottery/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
@@ -45,14 +89,16 @@
                         <table id="example2" class="table table-striped nowrap w-100">
                             <thead class="filters">
                                 <tr>
-                                    <th>Order ID</th>
                                     <th>Número</th>
-                                    <th>Nombre del Sorteo</th>
-                                    <th>Tipo de Sorteo</th>
                                     <th>Fecha Sorteo</th>
-                                    <th>Fecha Límite</th>
-                                    <th>Hora Límite</th>
-                                    <th>Precio Décimo</th>
+                                    <th>1º</th>
+                                    <th>2º</th>
+                                    <th>3º</th>
+                                    <th>Fracción</th>
+                                    <th>Serie</th>
+                                    <th>Reintegro</th>
+                                    <th>Escrutado</th>
+                                    <th>Tipo de Sorteo</th>
                                     <th class="no-filter"></th>
                                 </tr>
                             </thead>
@@ -60,16 +106,53 @@
                         
                             <tbody>
                                 <tr>
-                                    <td><a href="{{url('lottery/view',1)}}">#SR9801</a></td>
                                     <td>46/25</td>
-                                    <td>Sorteo Extraordinario Asociación Española Contra El Cáncer</td>
-                                    <td>Sorteo Extraordinario 15€ Especial</td>
                                     <td>07/06/2025</td>
-                                    <td>06/06/2025</td>
-                                    <td>10:00h</td>
-                                    <td><b>15.00€</b></td>
-                                    <td>
-                                        <a href="{{url('lottery/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                    <td>18025</td>
+                                    <td>71634</td>
+                                    <td></td>
+                                    <td>7</td>
+                                    <td>9</td>
+                                    <td>6-7</td>
+                                    <td><label class="badge bg-danger">NO</label></td>
+                                    <td>Sorteo Extraordinario 15€ Especial</td>
+                                    <td class="text-end">
+                                        <a href="{{url('lottery/scrutiny')}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/escrutinio.svg')}}" alt="" width="12"></a>
+                                        <a href="#" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>45/25</td>
+                                    <td>07/06/2025</td>
+                                    <td>88905</td>
+                                    <td>30316</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>6-8</td>
+                                    <td><label class="badge bg-success">SI</label></td>
+                                    <td>Sorteo Jueves</td>
+                                    <td class="text-end">
+                                        <a href="#" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>44/25</td>
+                                    <td>07/06/2025</td>
+                                    <td>81322</td>
+                                    <td>94836</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>4-8</td>
+                                    <td><label class="badge bg-success">SI</label></td>
+                                    <td>Sorteo Sábado</td>
+                                    <td class="text-end">
+                                        <a href="#" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                     </td>
                                 </tr>
@@ -86,33 +169,6 @@
                             <img src="{{url('assets/form-groups/results.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Lista Resultados</a>
 
-                    </div>
-
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
-                        
-                        <a href="{{url('lottery_types')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark float-start">
-                            <img src="{{url('icons/tipos_sorteos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
-                         Tipos de Sorteo</a>
-                         <div style="clear: both;"></div>
-                        <div class="d-flex align-items-center gap-1">
-
-                            
-                            <div class="empty-tables">
-
-                                <div>
-                                    <img src="{{url('icons/sorteos.svg')}}" alt="" width="80px">
-                                </div>
-
-                                <h3 class="mb-0">No hay Sorteos</h3>
-
-                                <small>Añade Sorteos</small>
-
-                                <br>
-
-                                <a href="{{url('lottery/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
-                            </div>
-
-                        </div>
                     </div>
                     
                 </div> <!-- end card body-->

@@ -5824,6 +5824,24 @@ span.flatpickr-weekday {
     background-color: #f0f0f0;
 }
 
+.empty-prizes {
+    text-align: center;
+    margin:auto;
+    margin-top: 40%;
+    margin-bottom: 10%;
+}
+
+.empty-prizes div {
+    border-radius: 100px;
+    box-shadow: 0 5px 10px silver;
+    padding: 22px;
+    text-align: center;
+    width: 80px;
+    height: 80px;
+    margin: auto;
+    background-color: #f0f0f0;
+}
+
 .form-card {
     border-radius: 18px;
     background-color: #f1f1f1;

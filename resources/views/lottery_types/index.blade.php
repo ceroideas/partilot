@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Entidades')
+@section('title','Tipos de Sorteo')
 
 @section('content')
 
@@ -12,10 +12,11 @@
             <div class="page-title-box">
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Entidades</li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Sorteos</a></li>
+                        <li class="breadcrumb-item active">Tipos de Sorteo</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Entidades</h4>
+                <h4 class="page-title">Tipos de Sorteo</h4>
             </div>
         </div>
     </div>     
@@ -29,12 +30,10 @@
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Provincia">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Localidad">
-                                <input type="text" class="form-control" placeholder="Status">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Precio">
                             </div>
 
-                            <a href="{{url('entities/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            <a href="{{url('lottery_types/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
 
                         </h4>
 
@@ -46,14 +45,9 @@
                             <thead class="filters">
                                 <tr>
                                     <th>Order ID</th>
-                                    <th>Entidad</th>
-                                    <th>Provincia</th>
-                                    <th>Localidad</th>
-                                    <th>Gestor</th>
-                                    <th>Teléfono</th>
-                                    <th>Email</th>
-                                    <th>Administración</th>
-                                    <th>Status</th>
+                                    <th>Nombre del Sorteo</th>
+                                    
+                                    <th>Precio Décimo</th>
                                     <th class="no-filter"></th>
                                 </tr>
                             </thead>
@@ -61,45 +55,58 @@
                         
                             <tbody>
                                 <tr>
-                                    <td><a href="{{url('entities/view',1)}}">#EN9801</a></td>
-                                    <td>El Buho Lotero</td>
-                                    <td>La Rioja</td>
-                                    <td>Logroño</td>
-                                    <td>Jorge Ruíz Ortega</td>
-                                    <td>600 600 600</td>
-                                    <td>info@elbuholotero.es</td>
-                                    <td>El Buho Lotero</td>
-                                    <td><label class="badge bg-success">Activo</label></td>
-                                    <td>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/persons.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/design.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/participations.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/returns.svg')}}" alt="" width="12"></a>
+                                    <td>#TS9801</td>
+                                    <td>Sorteo Sábado</td>
+                                    <td>6.00€</td>
+                                    
+                                    <td class="text-end">
+                                        <a href="{{url('lottery_types/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#TS9802</td>
+                                    <td>Sorteo Jueves</td>
+                                    <td>8.00€</td>
+                                    
+                                    <td class="text-end">
+                                        <a href="{{url('lottery_types/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
 
+                        <br>
+
+                        <a href="{{url('lottery?table=1')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark">
+                            <img src="{{url('icons/sorteos_selected.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                         Sorteos</a>
+
                     </div>
 
                     <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
                         
+                        <a href="{{url('lottery')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark float-start">
+                            <img src="{{url('icons/sorteos_selected.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                         Sorteos</a>
+                         <div style="clear: both;"></div>
                         <div class="d-flex align-items-center gap-1">
+
                             
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/entidades.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons/sorteos.svg')}}" alt="" width="80px">
                                 </div>
 
-                                <h3 class="mb-0">No hay Entidades</h3>
+                                <h3 class="mb-0">No hay Tipos de Sorteos</h3>
 
-                                <small>Añade Entidades</small>
+                                <small>Añade Tipos de Sorteos</small>
 
                                 <br>
 
-                                <a href="{{url('entities/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                                <a href="{{url('lottery_types/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
                             </div>
 
                         </div>

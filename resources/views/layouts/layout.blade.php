@@ -171,7 +171,7 @@
                             </a>
                         </li>
 
-                        <li class="menu-item @if (Request::is('lottery/*') || Request::is('lottery')) menuitem-active @php $selected = 1; @endphp @endif">
+                        <li class="menu-item @if (Request::is('lottery/*') || Request::is('lottery') || Request::is('lottery_types/*') || Request::is('lottery_types')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/lottery')}}" class="menu-link">
                                 <span class="menu-icon">
                                     <img src="{{url('icons')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
