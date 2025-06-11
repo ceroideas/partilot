@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Participaciones')
+@section('title','Set Participaciones')
 
 @section('content')
 
@@ -12,11 +12,11 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Participaciones</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Set Participaciones</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Participaciones</h4>
+                <h4 class="page-title">Set Participaciones</h4>
             </div>
         </div>
     </div>     
@@ -28,7 +28,7 @@
 
             		<h4 class="header-title">
 
-                    	Selección Entidad
+                    	Selección Reserva
 
                     </h4>
 
@@ -39,29 +39,57 @@
                     	<div class="col-md-3" style="position: relative;">
                     		<div class="form-card bs mb-3">
 
-                    			<div class="form-wizard-element active">
+                    			<div class="form-wizard-element">
                     				
                     				<span>
                     					1
                     				</span>
 
-                    				<img src="{{url('assets/entidad.svg')}}" alt="">
+                    				<img src="{{url('assets/entidad.svg')}}" alt="" width="26px">
 
                     				<label>
                     					Selec. Entidad
                     				</label>
 
                     			</div>
+
+                    			<div class="form-wizard-element active">
+                    				
+                    				<span>
+                    					2
+                    				</span>
+
+                    				<img src="{{url('icons/reservas.svg')}}" alt="" width="18px" style="margin: 0 12px;">
+
+                    				<label>
+                    					Selec. Reserva
+                    				</label>
+
+                    			</div>
+
+                    			<div class="form-wizard-element">
+                    				
+                    				<span>
+                    					3
+                    				</span>
+
+                    				<img src="{{url('icons/sets.svg')}}" alt="" width="26px">
+
+                    				<label>
+                    					Config. Set
+                    				</label>
+
+                    			</div>
                     			
                     		</div>
 
-                    		{{-- <a href="{{url('participations')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a> --}}
+                    		<a href="{{url('sets/add')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
                     			<h4 class="mb-0 mt-1">
-                    				Entidad donde realizar la búsqueda
+                    				Entidad en la que generar el set
                     			</h4>
                     			<small><i>Selecciona la entidad</i></small>
 
@@ -72,27 +100,41 @@
 
 	                    			<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="filters">
-				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>Administración</th>
-				                                <th>Provincia</th>
-				                                <th>Localidad</th>
-				                                <th>Administración</th>
-				                                <th>Status</th>
-				                            </tr>
-				                        </thead>
-				                    
-				                    
-				                        <tbody>
-				                            <tr>
-				                                <td>#EN9801</td>
-				                                <td>El Buho Lotero</td>
-				                                <td>La Rioja</td>
-				                                <td>Logroño</td>
-				                                <td>El Búho Lotero</td>
-				                                <td><label class="badge bg-success">Activo</label></td>
-				                            </tr>
-				                        </tbody>
+			                                <tr>
+			                                    <th>Order ID</th>
+			                                    <th>N.Sorteo</th>
+			                                    <th>Fecha Sorteo</th>
+			                                    <th>Nombre Sorteo</th>
+			                                    <th>Números</th>
+			                                    <th>Importe (Números)</th>
+			                                    <th>Décimos (Números)</th>
+			                                    <th>Importe Total</th>
+			                                </tr>
+			                            </thead>
+			                        
+			                            <tbody>
+			                                <tr>
+			                                    <td>#RS9801</td>
+			                                    <td>46/25</td>
+			                                    <td>07/06/2025</td>
+			                                    <td>Sorteo Extraordinario Asociación <br> Española Contra El Cáncer</td>
+			                                    <td>05716 - 52468 - 51235 - 69584</td>
+			                                    <td>1.500 €</td>
+			                                    <td>100</td>
+			                                    <td>6.000 €</td>
+			                                </tr>
+
+			                                <tr>
+			                                    <td>#RS9802</td>
+			                                    <td>45/25</td>
+			                                    <td>05/06/2025</td>
+			                                    <td>Sorteo Lotería Nacional Jueves</td>
+			                                    <td>06425</td>
+			                                    <td>1.500 €</td>
+			                                    <td>100</td>
+			                                    <td>6.000 €</td>
+			                                </tr>
+			                            </tbody>
 			                        </table>
 
 		                        </div>
@@ -101,7 +143,7 @@
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('participations/add')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    					<a href="{{url('sets/add/information')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
                     						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
                     				</div>
 

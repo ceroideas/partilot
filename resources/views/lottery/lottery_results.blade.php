@@ -117,8 +117,8 @@
                                     <td><label class="badge bg-danger">NO</label></td>
                                     <td>Sorteo Extraordinario 15€ Especial</td>
                                     <td class="text-end">
-                                        <a href="{{url('lottery/scrutiny')}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/escrutinio.svg')}}" alt="" width="12"></a>
-                                        <a href="#" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a href="{{url('lottery/scrutiny',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/escrutinio.svg')}}" alt="" width="12"></a>
+                                        <a href="{{url('lottery/results/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                     </td>
                                 </tr>
@@ -135,7 +135,7 @@
                                     <td><label class="badge bg-success">SI</label></td>
                                     <td>Sorteo Jueves</td>
                                     <td class="text-end">
-                                        <a href="#" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a href="{{url('lottery/results/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                     </td>
                                 </tr>

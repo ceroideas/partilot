@@ -48,8 +48,12 @@ Route::group(['prefix' => 'entities'], function() {
 Route::get('entities',function() {
     return view('entities.index');
 });
-Route::get('sellers',function() {
-    return view('sellers.index');
+Route::group(['prefix' => 'sellers'], function() {
+    //
+    Route::get('/', function() {return view('sellers.index');});
+    Route::get('/add', function() {return view('sellers.add');});
+    Route::get('/add/information', function() {return view('sellers.add_information');});
+    Route::get('/edit/{id}', function() {return view('sellers.edit');});
 });
 Route::get('users',function() {
     return view('users.index');
@@ -62,7 +66,8 @@ Route::group(['prefix' => 'lottery'], function() {
     Route::get('/edit/{id}', function() {return view('lottery.edit');});
     Route::get('/administrations', function() {return view('lottery.administrations');});
     Route::get('/results', function() {return view('lottery.lottery_results');});
-    Route::get('/scrutiny', function() {return view('lottery.scrutiny');});
+    Route::get('/scrutiny/{id}', function() {return view('lottery.scrutiny');});
+    Route::get('/results/edit/{id}', function() {return view('lottery.edit_lottery_results');});
 });
 
 Route::group(['prefix' => 'lottery_types'], function() {
@@ -72,12 +77,30 @@ Route::group(['prefix' => 'lottery_types'], function() {
     Route::get('/edit/{id}', function() {return view('lottery_types.edit');});
 });
 
-Route::get('reserves',function() {
-    return view('reserves.index');
+Route::group(['prefix' => 'reserves'], function() {
+    //
+    Route::get('/', function() {return view('reserves.index');});
+    Route::get('/add', function() {return view('reserves.add');});
+    Route::get('/add/lottery', function() {return view('reserves.add_lottery');});
+    Route::get('/add/information', function() {return view('reserves.add_information');});
+    Route::get('/edit/{id}', function() {return view('reserves.edit');});
 });
-Route::get('participations',function() {
-    return view('participations.index');
+
+Route::group(['prefix' => 'sets'], function() {
+    //
+    Route::get('/', function() {return view('sets.index');});
+    Route::get('/add', function() {return view('sets.add');});
+    Route::get('/add/reserve', function() {return view('sets.add_reserve');});
+    Route::get('/add/information', function() {return view('sets.add_information');});
+    Route::get('/edit/{id}', function() {return view('sets.edit');});
 });
+
+Route::group(['prefix' => 'participations'], function() {
+    //
+    Route::get('/', function() {return view('participations.index');});
+    Route::get('/add', function() {return view('participations.add');});
+});
+
 Route::get('social',function() {
     return view('social.index');
 });

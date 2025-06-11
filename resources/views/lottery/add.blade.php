@@ -78,7 +78,7 @@
                                             <div class="input-group input-group-merge group-form">
 
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+                                                    <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
                                                 </div>
 
                                                 <input class="form-control" type="text" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
@@ -93,7 +93,7 @@
                                             <div class="input-group input-group-merge group-form">
 
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+                                                    <img src="{{url('assets/form-groups/admin/17.svg')}}" alt="">
                                                 </div>
 
                                                 <input class="form-control" type="text" placeholder="Nombre del Sorteo" style="border-radius: 0 30px 30px 0;">
@@ -112,7 +112,7 @@
                                             <div class="input-group input-group-merge group-form">
 
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                 </div>
 
                                                 <select class="form-control" name="" id="" style="border-radius: 0 30px 30px 0;">
@@ -131,7 +131,7 @@
                                             <div class="input-group input-group-merge group-form">
 
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                 </div>
 
                                                 <input class="form-control" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
@@ -146,7 +146,7 @@
                                             <div class="input-group input-group-merge group-form">
 
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+                                                    <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
 
                                                 <input class="form-control" type="date" placeholder="15/01/2025" style="border-radius: 0 30px 30px 0;">
@@ -161,7 +161,7 @@
                                             <div class="input-group input-group-merge group-form">
 
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+                                                    <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
 
                                                 <input class="form-control" type="date" placeholder="15/01/2025" style="border-radius: 0 30px 30px 0;">
@@ -176,7 +176,7 @@
                                             <div class="input-group input-group-merge group-form">
 
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+                                                    <img src="{{url('assets/form-groups/admin/18.svg')}}" alt="">
                                                 </div>
 
                                                 <input class="form-control" type="time" placeholder="19:00h" style="border-radius: 0 30px 30px 0;">

@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Participaciones')
+@section('title','Reservas')
 
 @section('content')
 
@@ -12,11 +12,11 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Participaciones</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Reservas</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Participaciones</h4>
+                <h4 class="page-title">Reservas</h4>
             </div>
         </div>
     </div>     
@@ -52,16 +52,44 @@
                     				</label>
 
                     			</div>
+
+                    			<div class="form-wizard-element">
+                    				
+                    				<span>
+                    					2
+                    				</span>
+
+                    				<img src="{{url('icons/sorteos.svg')}}" alt="">
+
+                    				<label>
+                    					Selec. Sorteo
+                    				</label>
+
+                    			</div>
+
+                    			<div class="form-wizard-element">
+                    				
+                    				<span>
+                    					3
+                    				</span>
+
+                    				<img src="{{url('icons/reservas.svg')}}" alt="">
+
+                    				<label>
+                    					Datos Reserva
+                    				</label>
+
+                    			</div>
                     			
                     		</div>
 
-                    		{{-- <a href="{{url('participations')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a> --}}
+                    		<a href="{{url('reserves')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
                     			<h4 class="mb-0 mt-1">
-                    				Entidad donde realizar la búsqueda
+                    				Entidad en la que realizar la reserva
                     			</h4>
                     			<small><i>Selecciona la entidad</i></small>
 
@@ -101,7 +129,7 @@
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('participations/add')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    					<a href="{{url('reserves/add/lottery')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
                     						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
                     				</div>
 

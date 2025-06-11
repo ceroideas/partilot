@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Participaciones')
+@section('title','Set Participaciones')
 
 @section('content')
 
@@ -12,11 +12,11 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Participaciones</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Set Participaciones</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Participaciones</h4>
+                <h4 class="page-title">Set Participaciones</h4>
             </div>
         </div>
     </div>     
@@ -45,23 +45,51 @@
                     					1
                     				</span>
 
-                    				<img src="{{url('assets/entidad.svg')}}" alt="">
+                    				<img src="{{url('assets/entidad.svg')}}" alt="" width="26px">
 
                     				<label>
                     					Selec. Entidad
                     				</label>
 
                     			</div>
+
+                    			<div class="form-wizard-element">
+                    				
+                    				<span>
+                    					2
+                    				</span>
+
+                    				<img src="{{url('icons/reservas.svg')}}" alt="" width="18px" style="margin: 0 12px;">
+
+                    				<label>
+                    					Selec. Reserva
+                    				</label>
+
+                    			</div>
+
+                    			<div class="form-wizard-element">
+                    				
+                    				<span>
+                    					3
+                    				</span>
+
+                    				<img src="{{url('icons/sets.svg')}}" alt="" width="26px">
+
+                    				<label>
+                    					Config. Set
+                    				</label>
+
+                    			</div>
                     			
                     		</div>
 
-                    		{{-- <a href="{{url('participations')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a> --}}
+                    		<a href="{{url('sets')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
                     			<h4 class="mb-0 mt-1">
-                    				Entidad donde realizar la búsqueda
+                    				Entidad en la que generar el set
                     			</h4>
                     			<small><i>Selecciona la entidad</i></small>
 
@@ -85,7 +113,7 @@
 				                    
 				                        <tbody>
 				                            <tr>
-				                                <td>#EN9801</td>
+				                                <td><a href="{{url('administrations/view',1)}}">#EN9801</a></td>
 				                                <td>El Buho Lotero</td>
 				                                <td>La Rioja</td>
 				                                <td>Logroño</td>
@@ -101,7 +129,7 @@
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('participations/add')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    					<a href="{{url('sets/add/reserve')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
                     						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
                     				</div>
 

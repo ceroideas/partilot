@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Vendedores/Asignación')
+@section('title','Set Participaciones')
 
 @section('content')
 
@@ -12,10 +12,10 @@
             <div class="page-title-box">
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Vendedores/Asignación</li>
+                        <li class="breadcrumb-item active">Set Participaciones</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Vendedores/Asignación</h4>
+                <h4 class="page-title">Set Participaciones</h4>
             </div>
         </div>
     </div>     
@@ -29,12 +29,12 @@
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Número">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Tipo de Sorteo">
-                                <input type="text" class="form-control" placeholder="Precio">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Provincia">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Localidad">
+                                <input type="text" class="form-control" placeholder="Status">
                             </div>
 
-                            <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            <a href="{{url('sets/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
 
                         </h4>
 
@@ -46,12 +46,15 @@
                             <thead class="filters">
                                 <tr>
                                     <th>Order ID</th>
-                                    <th>Nombre</th>
-                                    <th>Apellidos</th>
-                                    <th>F. Nacimiento</th>
-                                    <th>NIF/CIF</th>
-                                    <th>Email</th>
-                                    <th>Teléfono</th>
+                                    <th>Nombre Set</th>
+                                    <th>N.Sorteo</th>
+                                    <th>Número/s</th>
+                                    <th>Importe Jugado (por Número)</th>
+                                    <th>Importe Donativo</th>
+                                    <th>Importe Total</th>
+                                    <th>Participaciones TOTAL</th>
+                                    <th>Entidad</th>
+                                    <th>Provincia</th>
                                     <th class="no-filter"></th>
                                 </tr>
                             </thead>
@@ -59,42 +62,44 @@
                         
                             <tbody>
                                 <tr>
-                                    <td><a href="{{url('sellers/view',1)}}">#VN9801</a></td>
-                                    <td>Jorge</td>
-                                    <td>Solano Cardona</td>
-                                    <td>16600600A</td>
-                                    <td>01/01/1990</td>
-                                    <td>administracion@ejemplo.es</td>
-                                    <td>941 900 900</td>
+                                    <td><a href="{{url('sets/view',1)}}">#SP9801</a></td>
+                                    <td>Set de Pruebas</td>
+                                    <td>46/25</td>
+                                    <td>05716 - 52468 - 51235 - 69584</td>
+                                    <td>2,00€</td>
+                                    <td>2,00€</td>
+                                    <td>10,00€</td>
+                                    <td>750</td>
+                                    <td>El Búho Lotero</td>
+                                    <td>La Rioja</td>
                                     <td>
-                                        <a href="{{url('seller/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/diseno.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
 
-                        <br>
-
                     </div>
 
                     <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
+                        
                         <div class="d-flex align-items-center gap-1">
-
                             
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/vendedores.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons/sets.svg')}}" alt="" width="80px" style="margin-top: 10px;">
                                 </div>
 
-                                <h3 class="mb-0">No hay Vendedores</h3>
+                                <h3 class="mb-0">No hay Sets de Participaciones</h3>
 
-                                <small>Añade Vendedores</small>
+                                <small>Añade Sets</small>
 
                                 <br>
 
-                                <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                                <a href="{{url('sets/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
                             </div>
 
                         </div>

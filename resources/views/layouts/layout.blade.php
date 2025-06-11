@@ -191,17 +191,23 @@
                             </a>
                         </li>
 
-                        <li class="menu-item">
-                            <a href="apps-chat.html" class="menu-link">
-                                <span class="menu-icon"><i data-feather="message-square"></i></span>
+                        <li class="menu-item @if (Request::is('sets/*') || Request::is('sets')) menuitem-active @php $selected = 1; @endphp @endif">
+                            <a href="{{url('/sets')}}" class="menu-link">
+                                <span class="menu-icon">
+                                    <img style="width: 20px;" src="{{url('icons')}}/sets{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                </span>
                                 <span class="menu-text"> Set particip. </span>
+                                @php $selected = null; @endphp
                             </a>
                         </li>
 
                         <li class="menu-item">
                             <a href="apps-chat.html" class="menu-link">
-                                <span class="menu-icon"><i data-feather="message-square"></i></span>
+                                <span class="menu-icon">
+                                    <img style="width: 20px;" src="{{url('icons')}}/diseno{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                </span>
                                 <span class="menu-text"> Diseño e Impresión </span>
+                                @php $selected = null; @endphp
                             </a>
                         </li>
 
@@ -217,7 +223,9 @@
 
                         <li class="menu-item">
                             <a href="apps-chat.html" class="menu-link">
-                                <span class="menu-icon"><i data-feather="message-square"></i></span>
+                                <span class="menu-icon">
+                                    <img style="width: 19.5px;" src="{{url('icons')}}/devolucion{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                </span>
                                 <span class="menu-text"> Devolución </span>
                             </a>
                         </li>

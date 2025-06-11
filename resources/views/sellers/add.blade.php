@@ -10,9 +10,10 @@
     <div class="row">
         <div class="col-12">
             <div class="page-title-box">
-                <div class="page-title-right">
+            	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Vendedores/Asignación</li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Vendedores/Asignación</a></li>
+                        <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
                 <h4 class="page-title">Vendedores/Asignación</h4>
@@ -25,80 +26,106 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
-                        <h4 class="header-title">
+            		<h4 class="header-title">
 
-                            <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Número">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Tipo de Sorteo">
-                                <input type="text" class="form-control" placeholder="Precio">
-                            </div>
+                    	Selección Entidad
 
-                            <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                    </h4>
 
-                        </h4>
+                    <br>
 
-                        <div style="clear: both;"></div>
+                    <div class="row">
+                    	
+                    	<div class="col-md-3" style="position: relative;">
+                    		<div class="form-card bs mb-3">
 
-                        <br>
+                    			<div class="form-wizard-element active">
+                    				
+                    				<span>
+                    					1
+                    				</span>
 
-                        <table id="example2" class="table table-striped nowrap w-100">
-                            <thead class="filters">
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Nombre</th>
-                                    <th>Apellidos</th>
-                                    <th>F. Nacimiento</th>
-                                    <th>NIF/CIF</th>
-                                    <th>Email</th>
-                                    <th>Teléfono</th>
-                                    <th class="no-filter"></th>
-                                </tr>
-                            </thead>
-                        
-                        
-                            <tbody>
-                                <tr>
-                                    <td><a href="{{url('sellers/view',1)}}">#VN9801</a></td>
-                                    <td>Jorge</td>
-                                    <td>Solano Cardona</td>
-                                    <td>16600600A</td>
-                                    <td>01/01/1990</td>
-                                    <td>administracion@ejemplo.es</td>
-                                    <td>941 900 900</td>
-                                    <td>
-                                        <a href="{{url('seller/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    				<img src="{{url('assets/entidad.svg')}}" alt="">
 
-                        <br>
+                    				<label>
+                    					Selec. Entidad
+                    				</label>
+
+                    			</div>
+
+                    			<div class="form-wizard-element">
+                    				
+                    				<span>
+                    					2
+                    				</span>
+
+                    				<img src="{{url('icons/vendedores.svg')}}" alt="">
+
+                    				<label>
+                    					Dat. Vendedor
+                    				</label>
+
+                    			</div>
+                    			
+                    		</div>
+
+                    		<a href="{{url('sellers')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+                    	</div>
+                    	<div class="col-md-9">
+                    		<div class="form-card bs" style="min-height: 658px;">
+                    			<h4 class="mb-0 mt-1">
+                    				Entidad en la que realizar la búsqueda
+                    			</h4>
+                    			<small><i>Selecciona la entidad</i></small>
+
+                    			<br>
+                    			<br>
+
+                    			<div style="min-height: 656px;">
+
+	                    			<table id="example2" class="table table-striped nowrap w-100">
+			                            <thead class="filters">
+				                            <tr>
+				                                <th>Order ID</th>
+				                                <th>Administración</th>
+				                                <th>Provincia</th>
+				                                <th>Localidad</th>
+				                                <th>Administración</th>
+				                                <th>Status</th>
+				                            </tr>
+				                        </thead>
+				                    
+				                    
+				                        <tbody>
+				                            <tr>
+				                                <td>#EN9801</td>
+				                                <td>El Buho Lotero</td>
+				                                <td>La Rioja</td>
+				                                <td>Logroño</td>
+				                                <td>El Búho Lotero</td>
+				                                <td><label class="badge bg-success">Activo</label></td>
+				                            </tr>
+				                        </tbody>
+			                        </table>
+
+		                        </div>
+
+
+                    			<div class="row">
+
+                    				<div class="col-12 text-end">
+                    					<a href="{{url('sellers/add/information')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+                    				</div>
+
+                    			</div>
+
+                    		</div>
+                    	</div>
 
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
-                        <div class="d-flex align-items-center gap-1">
-
-                            
-                            <div class="empty-tables">
-
-                                <div>
-                                    <img src="{{url('icons/vendedores.svg')}}" alt="" width="80px">
-                                </div>
-
-                                <h3 class="mb-0">No hay Vendedores</h3>
-
-                                <small>Añade Vendedores</small>
-
-                                <br>
-
-                                <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
-                            </div>
-
-                        </div>
-                    </div>
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->
@@ -113,10 +140,12 @@
 @section('scripts')
 
 <script>
-    
-  function initDatatable() 
+
+function initDatatable() 
   {
     $("#example2").DataTable({
+
+      "select":{style:"single"},
 
       "ordering": false,
       "sorting": false,
