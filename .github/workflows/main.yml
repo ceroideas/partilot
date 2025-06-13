@@ -14,7 +14,7 @@ jobs:
         with:
           host: ${{secrets.IPSERVER}}
           username: ${{secrets.USER}}
-          password: ${{secrets.CLAVESSH}}
+          password: "mUpAK1H1YJJs5ETK"
           script: |
             cd /var/www/vhosts/ceroideas.es/httpdocs/partilot/
             git pull
