@@ -1193,12 +1193,12 @@
                 </div>
             </div>
 
-            <div class="offcanvas-footer border-top py-2 px-2 text-center">
+            {{-- <div class="offcanvas-footer border-top py-2 px-2 text-center">
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-light w-50" id="reset-layout">Reset</button>
                     <a href="https://1.envato.market/uboldadmin" class="btn btn-danger w-50" target="_blank"><i class="mdi mdi-basket me-1"></i> Buy</a>
                 </div>
-            </div>
+            </div> --}}
         </div>
         
         <!-- Vendor js -->
