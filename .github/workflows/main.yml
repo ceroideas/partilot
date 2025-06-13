@@ -1,4 +1,4 @@
-name: Angular CI/CD
+name: Laravel CI/CD
 
 on:
   push:
@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to DigitalOcean
-        uses: appleboy/ssh-action@master
+      - name: Deploy to Plesk
+        uses: appleboy/ssh-action@0.1.8
         with:
           host: ${{secrets.IPSERVER}}
           username: ${{secrets.USER}}
