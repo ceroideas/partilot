@@ -12,9 +12,9 @@ jobs:
       - name: Deploy to Plesk
         uses: appleboy/ssh-action@v0.1.8
         with:
-          host: '185.166.214.113'
-          username: 'root'
-          password: 'mUpAK1H1YJJs5ETK'
+          host: ${{secrets.IPSERVER}}
+          username: ${{secrets.USER}}
+          password: ${{secrets.CLAVESSH}}
           script: |
             cd /var/www/vhosts/ceroideas.es/httpdocs/partilot/
             git pull
