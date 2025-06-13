@@ -99,6 +99,8 @@ Route::group(['prefix' => 'participations'], function() {
     //
     Route::get('/', function() {return view('participations.index');});
     Route::get('/add', function() {return view('participations.add');});
+    Route::get('/view/{id}', function() {return view('participations.show');});
+    Route::get('/view/{id}/seller', function() {return view('participations.show_seller');});
 });
 
 Route::get('social',function() {

@@ -83,6 +83,31 @@
                     			
                     		</div>
 
+                    		<div class="form-card">
+                    			
+                    			<div class="row">
+                					<div class="col-4">
+                						
+	                    				<div class="photo-preview-3">
+	                    					
+	                    					<i class="ri-account-circle-fill"></i>
+
+	                    				</div>
+	                    				
+	                    				<div style="clear: both;"></div>
+                					</div>
+
+                					<div class="col-8 text-center mt-2">
+
+                						<h3 class="mt-2 mb-0">Fademur</h3>
+
+                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
+                						
+                					</div>
+                				</div>
+
+                    		</div>
+
                     		<a href="{{url('sets/add/reserve')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
