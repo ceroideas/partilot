@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Deploy to Plesk
-        uses: appleboy/ssh-action@0.1.8
+        uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{secrets.IPSERVER}}
           username: ${{secrets.USER}}
