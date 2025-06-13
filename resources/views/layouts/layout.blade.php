@@ -716,7 +716,7 @@
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col-md-6">
-                                <div><script>document.write(new Date().getFullYear())</script> © Ubold - <a href="https://coderthemes.com/" target="_blank">Coderthemes.com</a></div>
+                                <div><script>document.write(new Date().getFullYear())</script> © Partilot - <a href="https://ceroideas.es/" target="_blank">ceroideas.es</a></div>
                             </div>
                             <div class="col-md-6">
                                 <div class="d-none d-md-flex gap-4 align-item-center justify-content-md-end footer-links">
@@ -1006,7 +1006,7 @@
 
                     </div>
 
-                    <div class="tab-pane active" id="settings-tab" role="tabpanel">
+                    {{-- <div class="tab-pane active" id="settings-tab" role="tabpanel">
 
                         <div class="mt-n3">
                             <h6 class="fw-medium py-2 px-3 font-13 text-uppercase bg-light mx-n3 mt-n3 mb-3">
@@ -1189,7 +1189,7 @@
                             </div>
                         </div>
 
-                    </div>
+                    </div> --}}
                 </div>
             </div>
 
