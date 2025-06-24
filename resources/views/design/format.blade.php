@@ -957,17 +957,41 @@ function initDatatable()
       recalculateDesign();
   });
 
+  $('#orientation').change(function(event) {
+      recalculateDesign();
+  });
+
   function recalculateDesign()
   {
     let cols = $('#cols').val();
     let rows = $('#rows').val();
+    let orientation = $('#orientation').val();
+    let page = $('#page').val();
 
-    let h = 216 / rows;
+    if (orientation == 'h') {
+        $('.preview-design > div').css('width','100%');
+    }else{
+        $('.preview-design > div').css('width','60%');
+    }
 
-    let html = "";
+    {{-- if (page == 'a3') { --}}
 
-    let percent = 100 / cols;
-    let margin = 1 / cols;
+        let h = 216 / rows;
+
+        let html = "";
+
+        let percent = 100 / cols;
+        let margin = 1 / cols;
+    {{-- } --}}
+
+    {{-- else if (page == 'a4') {
+        if (orientation == 'h') {
+            $('.a4').css('width','100%');
+        }else{
+            $('.a4').css('width','60%');
+        }
+    } --}}
+
 
     for (var i = 0; i < cols*rows; i++) {
         html+=`<div style="height: ${h}px; width: ${percent-1}%; margin-left: ${margin}%"></div>`;
@@ -1087,8 +1111,10 @@ function initDatatable()
         }
         else if (format == 'a4-v-4x1') {
             w = 190;
-            h = 68.88;
+            h = 69.38;
         } else{
+
+            let page = $('#page').val();
 
             let cols = $('#cols').val();
             let rows = $('#rows').val();
@@ -1096,8 +1122,19 @@ function initDatatable()
             let percent = 100 / cols;
             let margin = 1 / cols;
 
-            w = 400 / cols;
-            h = 276 / rows;
+            if (page == 'a3') {
+                w = 400 / cols;
+                h = 276 / rows;
+            } else if (page == 'a4') {
+                w = 190 / cols;
+                h = 277 / rows;
+            }
+
+            if (orientation == 'v') {
+                let aux = w;
+                w = h;
+                h = aux;
+            }
 
         }
 
