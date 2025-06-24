@@ -18,7 +18,7 @@ jobs:
           script: |
             cd /var/www/vhosts/ceroideas.es/httpdocs/partilot/
             git pull
-            composer install
+            # composer install
             # php artisan cache:clear
             # php artisan config:clear
             # php artisan route:clear
