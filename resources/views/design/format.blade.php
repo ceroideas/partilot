@@ -882,7 +882,7 @@ function initDatatable()
         $('.elements.text').dblclick(editelements);
         $('.elements.context').dblclick(deleteElements);
         $('.elements.images').dblclick(changeImage);
-        $('.elements.qr').dblclick(setQRText);
+        $('.elements.qr').dblclick(setQRtext);
 
         if ($('#containment-wrapper'+step).length) {
             if(localStorage.getItem('bg-step'+step)){
@@ -924,7 +924,7 @@ function initDatatable()
           $('.elements.text').dblclick(editelements);
           $('.elements.context').dblclick(deleteElements);
           $('.elements.images').dblclick(changeImage);
-          $('.elements.qr').dblclick(setQRText);
+          $('.elements.qr').dblclick(setQRtext);
 
           if ($('#containment-wrapper'+step).length) {
               if(localStorage.getItem('bg-step'+step)){
