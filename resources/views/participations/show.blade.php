@@ -141,30 +141,188 @@
 			                    				Editar</a> --}}
 			                    			</h4>
 			                    			<small><i>Comprueba que el sorteo es el correcto</i></small>
-			                    			<div style="clear: both;"></div>
-
 			                    			
 			                    			<br>
 
-			                    			{{-- <div>
+			                    			<div>
 			                    				<div class="row">
+
+			                    					<div class="col-2">
+
+			                    						<img src="{{url('assets/participacion.png')}}" alt="" width="150px">
+			                    						
+			                    					</div>
 			                    					
-			                    					<div class="col-4">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Nombre comercial</label>
+			                    					<div class="col-2">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Número de Sorteo</label>
 
 							                    			<div class="input-group input-group-merge group-form">
 
 							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
+							                                        <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="El Búho Lotero" class="form-control" type="text" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="102/25" class="form-control" type="text" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
+							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-2">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Fecha Sorteo</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="2025-12-22" class="form-control" type="date" placeholder="01/01/2025" style="border-radius: 0 30px 30px 0;">
+							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-6">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Número/s Jugado/s</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="05716 - 52468 - 51235 - 69548" class="form-control" type="text" placeholder="0000" style="border-radius: 0 30px 30px 0;">
+							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-2">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Importe Jugado (por Número)</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="2,00" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
+							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-2">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Importe <br> Donativo</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="2,00" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
+							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-2">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Importe Total Participación</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="10,00" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
+							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-2">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Número <br> Participación</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/22.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="1/0001" class="form-control" type="text" placeholder="1/0001" style="border-radius: 0 30px 30px 0;">
+							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-4">
+			                    						<div class="form-group mt-3 mb-3">
+			                    							<label class="label-control">Número Seguridad <br> Participación</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/21.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="12345678901234567890" class="form-control" type="text" placeholder="12345678901234567890" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
 			                    				</div>
-			                    			</div> --}}
+			                    			</div>
+
+			                    			<h4 class="mb-0 mt-1">
+			                    				Historial Participación
+			                    			</h4>
+			                    			<small><i>Historial</i></small>
+
+			                    			<table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
+
+			                    				<thead>
+			                    					<tr>
+			                    						<th>Fecha Movimiento</th>
+			                    						<th>Hora Movimiento</th>
+			                    						<th>Concepto Movimiento</th>
+			                    						<th>Usuario</th>
+			                    						<th>Rol</th>
+			                    						<th>Status</th>
+			                    					</tr>
+			                    				</thead>
+
+			                    				<tbody>
+			                    					<tr>
+			                    						<td>01/09/2025</td>
+			                    						<td>10:30h</td>
+			                    						<td>Diseño Participación</td>
+			                    						<td>Jorge Ruíz Ortega</td>
+			                    						<td>Gestor Administración</td>
+			                    						<td><label class="badge bg-default">Disponible</label></td>
+			                    					</tr>
+
+			                    					<tr>
+			                    						<td>01/09/2025</td>
+			                    						<td>20:30h</td>
+			                    						<td>Entregada</td>
+			                    						<td>Manuel Martinez Garcia</td>
+			                    						<td>Gestor Entidad</td>
+			                    						<td><label class="badge bg-warning">Pendiente</label></td>
+			                    					</tr>
+
+			                    					<tr>
+			                    						<td>01/09/2025</td>
+			                    						<td>21:30h</td>
+			                    						<td>Confirmación Entrega</td>
+			                    						<td>Lorena Elias Terrazas</td>
+			                    						<td>Vendedor</td>
+			                    						<td><label class="badge bg-success">Entregada</label></td>
+			                    					</tr>
+			                    				</tbody>
+			                    				
+			                    			</table>
 
 			                    		</div>
                     				</div>

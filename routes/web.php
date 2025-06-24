@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\BackController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -101,6 +103,17 @@ Route::group(['prefix' => 'participations'], function() {
     Route::get('/add', function() {return view('participations.add');});
     Route::get('/view/{id}', function() {return view('participations.show');});
     Route::get('/view/{id}/seller', function() {return view('participations.show_seller');});
+});
+
+Route::group(['prefix' => 'design'], function() {
+    //
+    Route::get('/', function() {return view('design.index');});
+    Route::get('/add', function() {return view('design.add');});
+    Route::get('/add/lottery', function() {return view('design.add_lottery');});
+    Route::get('/add/set', function() {return view('design.add_set');});
+    Route::get('/add/select', function() {return view('design.add_design');});
+    Route::get('/add/format', function() {return view('design.format');});
+    Route::get('/add/draw', function() {return view('design.draw');});
 });
 
 Route::get('social',function() {

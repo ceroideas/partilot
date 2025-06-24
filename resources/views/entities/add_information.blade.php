@@ -83,7 +83,21 @@
                     			
                     		</div>
 
-                    		<div class="form-card">
+                    		<div class="form-card mb-3 bs">
+                    			
+                    			<div class="form-check form-switch mt-2 mb-2">
+									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="fin" checked>
+									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="fin"><b>Entidad sin fin lucrativo</b></label>
+								</div>
+
+								<div class="form-check form-switch mt-2 mb-2">
+									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="coste" checked>
+									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="coste"><b>Coste gestión</b></label>
+								</div>
+
+                    		</div>
+
+                    		<div class="form-card bs">
                     			
                     			<div class="row">
                 					<div class="col-4">

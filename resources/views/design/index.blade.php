@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Vendedores/Asignación')
+@section('title','Diseño e Impresión')
 
 @section('content')
 
@@ -12,10 +12,10 @@
             <div class="page-title-box">
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Vendedores/Asignación</li>
+                        <li class="breadcrumb-item active">Diseño e Impresión</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Vendedores/Asignación</h4>
+                <h4 class="page-title">Diseño e Impresión</h4>
             </div>
         </div>
     </div>     
@@ -29,12 +29,13 @@
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Número">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Tipo de Sorteo">
-                                <input type="text" class="form-control" placeholder="Precio">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Provincia">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Localidad">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Entidad">
+                                <input type="text" class="form-control" placeholder="Status">
                             </div>
 
-                            <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            <a href="{{url('design/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
 
                         </h4>
 
@@ -46,12 +47,15 @@
                             <thead class="filters">
                                 <tr>
                                     <th>Order ID</th>
-                                    <th>Nombre</th>
-                                    <th>Apellidos</th>
-                                    <th>F. Nacimiento</th>
-                                    <th>NIF/CIF</th>
-                                    <th>Email</th>
-                                    <th>Teléfono</th>
+                                    <th>N.Set</th>
+                                    <th>Nombre Set</th>
+                                    <th>N.Sorteo</th>
+                                    <th>Fecha Sorteo</th>
+                                    <th>Número/s</th>
+                                    <th>Nº Particip.</th>
+                                    <th>Provincia</th>
+                                    <th>Localidad</th>
+                                    <th>Status</th>
                                     <th class="no-filter"></th>
                                 </tr>
                             </thead>
@@ -59,15 +63,18 @@
                         
                             <tbody>
                                 <tr>
-                                    <td><a href="{{url('sellers/view',1)}}">#VN9801</a></td>
-                                    <td>Jorge</td>
-                                    <td>Solano Cardona</td>
-                                    <td>16600600A</td>
-                                    <td>01/01/1990</td>
-                                    <td>administracion@ejemplo.es</td>
-                                    <td>941 900 900</td>
+                                    <td><a href="{{url('design/view',1)}}">#DS9801</a></td>
+                                    <td>1/</td>
+                                    <td>Set primero FADEMUR</td>
+                                    <td>46/25</td>
+                                    <td>07/06/2025</td>
+                                    <td>05716 - 52468 <br> 51235 - 69584</td>
+                                    <td>600</td>
+                                    <td>La Rioja</td>
+                                    <td>Logroño</td>
+                                    <td><label class="badge bg-success">Pendiente</label></td>
                                     <td>
-                                        <a href="{{url('sellers/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a href="{{url('design/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                     </td>
                                 </tr>
@@ -85,16 +92,16 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/vendedores.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons/diseno.svg')}}" alt="" width="80px">
                                 </div>
 
-                                <h3 class="mb-0">No hay Vendedores</h3>
+                                <h3 class="mb-0">No hay Diseños</h3>
 
-                                <small>Añade Vendedores</small>
+                                <small>Añade Diseños</small>
 
                                 <br>
 
-                                <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                                <a href="{{url('design/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
                             </div>
 
                         </div>

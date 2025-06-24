@@ -205,7 +205,7 @@
 	                    									</div>
 
 	                    									<div class="col-6">
-	                    										<a href="{{url('entities?table=1')}}" style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3">Aceptar</a>
+	                    										<a href="{{url('sellers?table=1')}}" style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3">Aceptar</a>
 	                    									</div>
 	                    								</div>
                     								</div>

@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Entidades')
+@section('title','Diseño e Impresión')
 
 @section('content')
 
@@ -12,11 +12,11 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Reservas</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">Diseño e Impresión</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Reservas</h4>
+                <h4 class="page-title">Diseño e Impresión</h4>
             </div>
         </div>
     </div>     
@@ -28,7 +28,7 @@
 
             		<h4 class="header-title">
 
-                    	Selección Sorteo
+                    	Selección Entidad
 
                     </h4>
 
@@ -59,7 +59,7 @@
                     					2
                     				</span>
 
-                    				<img src="{{url('icons/sorteos.svg')}}" alt="">
+                    				<img width="26px" src="{{url('icons/selec_sorteo.svg')}}" alt="">
 
                     				<label>
                     					Selec. Sorteo
@@ -73,50 +73,39 @@
                     					3
                     				</span>
 
-                    				<img src="{{url('icons/reservas.svg')}}" alt="">
+                    				<img src="{{url('assets/entidad.svg')}}" alt="">
 
                     				<label>
-                    					Datos Reserva
+                    					Selec. Set
+                    				</label>
+
+                    			</div>
+
+                    			<div class="form-wizard-element">
+                    				
+                    				<span>
+                    					4
+                    				</span>
+
+                    				<img src="{{url('assets/entidad.svg')}}" alt="">
+
+                    				<label>
+                    					Diseño Particip.
                     				</label>
 
                     			</div>
                     			
                     		</div>
 
-                    		<div class="form-card">
-                    			
-                    			<div class="row">
-                					<div class="col-4">
-                						
-	                    				<div class="photo-preview-3">
-	                    					
-	                    					<i class="ri-account-circle-fill"></i>
-
-	                    				</div>
-	                    				
-	                    				<div style="clear: both;"></div>
-                					</div>
-
-                					<div class="col-8 text-center mt-2">
-
-                						<h3 class="mt-2 mb-0">Fademur</h3>
-
-                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
-                						
-                					</div>
-                				</div>
-
-                    		</div>
-
-                    		<a href="{{url('reserves/add')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    		<a href="{{url('design/add')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
                     			<h4 class="mb-0 mt-1">
-                    				Selecciona el sorteo para la reserva
+                    				Entidad
                     			</h4>
-                    			<small><i>Selecciona el Sorteo</i></small>
+                    			<small><i>Selecciona la entidad</i></small>
 
                     			<br>
                     			<br>
@@ -126,37 +115,39 @@
 	                    			<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="">
 				                            <tr>
-				                                <th>Número</th>
-				                                <th>Nombre Sorteo</th>
-				                                <th>Tipo de Sorteo</th>
+				                                <th>Order ID</th>
+				                                <th>N.Sorteo</th>
 				                                <th>Fecha Sorteo</th>
-				                                <th>Precio Décimo</th>
+				                                <th>Nombre Sorteo</th>
+				                                <th>Número/s</th>
+				                                <th>Importe <br> (Número)</th>
+				                                <th>Décimos <br> (Número)</th>
+				                                <th>Importe <br> TOTAL</th>
 				                            </tr>
 				                        </thead>
 				                    
 				                    
 				                        <tbody>
 				                            <tr>
+				                                <td>#RS9801</td>
 				                                <td>46/25</td>
-				                                <td>Sorteo Extraordinario Asociación <br> Española Contra El Cáncer</td>
-				                                <td>Sorteo Extraordinario 15€ Especial</td>
-				                                <td>07/05/2025</td>
-				                                <td><b>15.00€</b></td>
-				                            </tr>
-				                            <tr>
-				                                <td>45/25</td>
-				                                <td>Sorteo Loteria Nacional Jueves</td>
-				                                <td>Sorteo Jueves</td>
-				                                <td>05/06/2025</td>
-				                                <td><b>3.00€</b></td>
+				                                <td>07/06/2025</td>
+				                                <td>Sorteo Extraordinario Asociación Española Contra El Cáncer</td>
+				                                <td>05716 - 52468 <br> 51235 - 69584</td>
+				                                <td>1.500 €</td>
+				                                <td>100</td>
+				                                <td>6.000 €</td>
 				                            </tr>
 
 				                            <tr>
+				                                <td>#RS9801</td>
 				                                <td>45/25</td>
-				                                <td>Sorteo Loteria Nacional Sábado</td>
-				                                <td>Sorteo Sábado</td>
-				                                <td>31/05/2025</td>
-				                                <td><b>6.00€</b></td>
+				                                <td>05/06/2025</td>
+				                                <td>Sorteo Lotería Nacional Jueves</td>
+				                                <td>06425</td>
+				                                <td>1.500 €</td>
+				                                <td>100</td>
+				                                <td>6.000 €</td>
 				                            </tr>
 				                        </tbody>
 			                        </table>
@@ -167,7 +158,7 @@
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('reserves/add/information')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    					<a href="{{url('design/add/set')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
                     						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
                     				</div>
 

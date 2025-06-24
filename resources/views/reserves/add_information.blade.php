@@ -218,16 +218,30 @@
                     			<div style="min-height: 256px;">
 
                     				<div class="row">
-                    					<div class="col-3">
-	                                        <div class="form-group mt-2 mb-3">
-	                                            <label class="label-control">Número</label>
 
-	                                            <div class="input-group input-group-merge group-form">
+                                        <div class="col-1">
 
-	                                                <input class="form-control" type="number" placeholder="" style="border-radius: 30px;">
-	                                            </div>
-	                                        </div>
-	                                    </div>
+                                            <button style="border-radius: 30px; width: 46px; height: 46px; background-color: #333; color: #333; padding: 8px; font-weight: bolder;" class="btn btn-md btn-light mt-3 add-number">
+                                            <i style="top: 6px; font-size: 18px; color: #fff" class="ri-add-line"></i></button>
+                                            
+                                        </div>
+
+                                        <div class="col-11">
+                                            <div class="row" id="numbers">
+                                                <div class="col-3">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Número</label>
+
+                                                        <div class="input-group input-group-merge group-form">
+
+                                                            <input class="form-control" type="number" placeholder="" style="border-radius: 30px;">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>  
+
+                                        </div>
                     				</div>
 
                     				<div class="row">
@@ -380,6 +394,21 @@ function initDatatable()
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+
+  $('.add-number').click(function (e) {
+      e.preventDefault();
+
+      $('#numbers').append(`<div class="col-3">
+                                <div class="form-group mt-2 mb-3">
+                                    <label class="label-control">Número</label>
+
+                                    <div class="input-group input-group-merge group-form">
+
+                                        <input class="form-control" type="number" placeholder="" style="border-radius: 30px;">
+                                    </div>
+                                </div>
+                            </div>`);
+  });
 
 </script>
 

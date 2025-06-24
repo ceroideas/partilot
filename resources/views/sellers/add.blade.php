@@ -85,7 +85,7 @@
                     			<div style="min-height: 656px;">
 
 	                    			<table id="example2" class="table table-striped nowrap w-100">
-			                            <thead class="filters">
+			                            <thead class="">
 				                            <tr>
 				                                <th>Order ID</th>
 				                                <th>Administración</th>

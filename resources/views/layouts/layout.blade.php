@@ -34,6 +34,11 @@
         <!-- Icons css -->
         <link href="{{url('assets')}}/css/icons.min.css" rel="stylesheet" type="text/css" />
 
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
+
+        <link rel="stylesheet" href="{{url('style.css')}}">
+        <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/45.2.0/ckeditor5.css" crossorigin>
+
         <style>
             .inline-fields {
 
@@ -201,8 +206,8 @@
                             </a>
                         </li>
 
-                        <li class="menu-item">
-                            <a href="apps-chat.html" class="menu-link">
+                        <li class="menu-item @if (Request::is('design/*') || Request::is('design')) menuitem-active @php $selected = 1; @endphp @endif">
+                            <a href="{{url('/design')}}" class="menu-link">
                                 <span class="menu-icon">
                                     <img style="width: 20px;" src="{{url('icons')}}/diseno{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
@@ -1232,10 +1237,16 @@
         <script src="{{url('assets')}}/libs/datatables.net-select/js/dataTables.select.min.js"></script>
         <script src="{{url('assets')}}/libs/pdfmake/build/pdfmake.min.js"></script>
         <script src="{{url('assets')}}/libs/pdfmake/build/vfs_fonts.js"></script>
+
+        <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
         <!-- third party js ends -->
 
         <!-- Datatables init -->
         <script src="{{url('default')}}/assets/js/pages/datatables.init.js"></script>
+
+        <script src="https://cdn.ckeditor.com/ckeditor5/45.2.0/ckeditor5.umd.js" crossorigin></script>
+        <script src="https://cdn.ckeditor.com/ckeditor5/45.2.0/translations/es.umd.js" crossorigin></script>
+        <script src="{{url('main.js')}}"></script>
 
         @yield('scripts')
 
