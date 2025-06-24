@@ -4,6 +4,12 @@
 
 @section('content')
 
+<style>
+    input[disabled],select[disabled] {
+        background-color: #cfcfcf !important;
+    }
+</style>
+
 <!-- Start Content-->
 <div class="container-fluid">
     
@@ -134,6 +140,56 @@
 			                                            </div>
 			                                        </div>
 			                                    </div>
+
+                                                <div class="col-6">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Tamaño de la página</label>
+
+                                                        <div class="input-group input-group-merge group-form">
+
+                                                            <select class="form-control custom" disabled name="" id="page" style="border-radius: 30px;">
+                                                                <option selected value="a3">A3 (297x420)</option>
+                                                                <option value="a4">A4 (210x297)</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-3">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Número de filas</label>
+
+                                                        <div class="input-group input-group-merge group-form">
+
+                                                            <input class="form-control custom" value="3" disabled type="number" id="rows" min="1" max="5" style="border-radius: 30px;">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-3">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Número de columnas</label>
+
+                                                        <div class="input-group input-group-merge group-form">
+
+                                                            <input class="form-control custom" value="2" disabled type="number" id="cols" min="1" max="5" style="border-radius: 30px;">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-6">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Orientación</label>
+
+                                                        <div class="input-group input-group-merge group-form">
+
+                                                            <select class="form-control custom" disabled name="" id="orientation" style="border-radius: 30px;">
+                                                                <option selected value="h">Apaisado</option>
+                                                                <option value="v">Vertical</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
 	                    					</div>	
 
@@ -274,7 +330,9 @@
 
                                 <br>
 
-                                <div style="width: 200mm; height: 54px; margin: auto;">
+                                {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
+
+                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
 
                                     <br>
 
@@ -289,7 +347,7 @@
 
                                     <br>
                                     
-                                    <div style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                    <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
                                         <div class="margen-izquierdo" style="position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
@@ -347,6 +405,8 @@
 
                                     </div>
                                 </div>
+
+                                {{-- </div> --}}
                             </div>
 
                             <div class="form-card fade bs d-none" id="step-3" style="min-height: 658px;">
@@ -357,7 +417,9 @@
 
                                 <br>
 
-                                <div style="width: 200mm; height: 54px; margin: auto;">
+                                {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
+
+                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
 
                                     <br>
 
@@ -374,7 +436,7 @@
 
                                     <br>
                                     
-                                    <div style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                    <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
                                         <div class="margen-izquierdo" style="position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
@@ -399,6 +461,8 @@
 
                                     </div>
                                 </div>
+
+                                {{-- </div> --}}
                             </div>
 
                             <div class="form-card fade bs d-none" id="step-4" style="min-height: 658px;">
@@ -409,7 +473,9 @@
 
                                 <br>
 
-                                <div style="width: 200mm; height: 54px; margin: auto;">
+                                {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
+
+                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
 
                                     <br>
 
@@ -426,7 +492,7 @@
 
                                     <br>
                                     
-                                    <div style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                    <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
                                         <div class="margen-izquierdo" style="position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
@@ -439,13 +505,15 @@
 
                                         <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm);"> 
 
-                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 28.8096px; left: 56.8153px; width: 111px; height: 74px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750688309_logo.svg" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 544px; height: 172px; resize: both; overflow: hidden; position: absolute; top: 13.608px; left: 171.628px;">
+                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 28.8096px; left: 56.8154px; width: 111px; height: 74px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750688309_logo.svg" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 544px; height: 172px; resize: both; overflow: hidden; position: absolute; top: 13.608px; left: 171.628px;">
                                                 <span class="ui-draggable-handle"><h3><strong>Descargate la APP</strong><br><strong>PARTILOT</strong><br><strong>Y Comprueba tu Participación</strong></h3></span>
                                             </div>
                                         </div>
 
                                     </div>
                                 </div>
+
+                                {{-- </div> --}}
                             </div>
 
                             <div class="form-card fade bs d-none" id="step-5" style="min-height: 658px;">
@@ -809,7 +877,10 @@ function initDatatable()
 
   	let html = "";
 
+    restoreValues()
+
   	if($(this).val() == 'a3-h-3x2') {
+        $('.custom').prop('disabled', true);
 
   		html = `<div class="a3">
 					<div style="height: 72px;"></div>
@@ -821,19 +892,21 @@ function initDatatable()
 				</div>`;
 
   	} else if($(this).val() == 'a3-h-4x2') {
+        $('.custom').prop('disabled', true);
 
   		html = `<div class="a3">
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
 				</div>`;
 
   	} else if($(this).val() == 'a4-v-3x1') {
+        $('.custom').prop('disabled', true);
 
   		html = `<div class="a4">
 					<div style="height: 72px;"></div>
@@ -842,20 +915,74 @@ function initDatatable()
 				</div>`;
   		
   	} else if($(this).val() == 'a4-v-4x1') {
+        $('.custom').prop('disabled', true);
 
   		html = `<div class="a4">
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
-					<div style="height: 53px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
+					<div style="height: 54px;"></div>
 				</div>`;
   		
   	} else if($(this).val() == 'custom') {
-  		
+        $('.custom').prop('disabled', false);
+
+        html = `<div class="a3">
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                </div>`;
   	}
 
   	$('.preview-design').html(html);
   });
+
+  $('#cols,#rows').change(function (e) {
+      e.preventDefault();
+
+      recalculateDesign();
+  });
+
+  $('#page').change(function (e) {
+      e.preventDefault();
+
+      let clase = $(this).val();
+
+      $('.preview-design > div').removeClass('a3 a4');
+      $('.preview-design > div').addClass(clase);
+
+      recalculateDesign();
+  });
+
+  function recalculateDesign()
+  {
+    let cols = $('#cols').val();
+    let rows = $('#rows').val();
+
+    let h = 216 / rows;
+
+    let html = "";
+
+    let percent = 100 / cols;
+    let margin = 1 / cols;
+
+    for (var i = 0; i < cols*rows; i++) {
+        html+=`<div style="height: ${h}px; width: ${percent-1}%; margin-left: ${margin}%"></div>`;
+    }
+
+    $('.preview-design > div').html(html);
+  }
+
+  function restoreValues()
+  {
+    $('#page').prop('selectedIndex',0);
+    $('#rows').val(3);
+    $('#cols').val(2);
+    $('#orientation').prop('selectedIndex',0);
+  }
 
   var step = 1;
 
@@ -938,6 +1065,53 @@ function initDatatable()
           $('#bc-step-'+step).addClass('active');
 
           configMargins();
+      }
+
+      if (step == 2) {
+
+        let format = $('#format').val();
+        let w = 200;
+        let h = 92;
+
+        if (format == 'a3-h-3x2') {
+            w = 200;
+            h = 92;
+        }
+        else if (format == 'a3-h-4x2') {
+            w = 200;
+            h = 68.88;
+        }
+        else if (format == 'a4-v-3x1') {
+            w = 190;
+            h = 92;
+        }
+        else if (format == 'a4-v-4x1') {
+            w = 190;
+            h = 68.88;
+        } else{
+
+            let cols = $('#cols').val();
+            let rows = $('#rows').val();
+
+            let percent = 100 / cols;
+            let margin = 1 / cols;
+
+            w = 400 / cols;
+            h = 276 / rows;
+
+        }
+
+        console.log(w,h);
+
+        console.log($('[id*="containment-wrapper'),w,h)
+
+        $('[id*="containment-wrapper').parent().css({
+            width: w+'mm',
+            height: h+'mm'
+        });
+
+        $('.format-box-btn').css('width', w+'mm');
+
       }
 
   });
