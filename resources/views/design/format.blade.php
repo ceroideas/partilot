@@ -337,11 +337,15 @@
                                     <br>
 
                                     <div>
-                                        <button class="btn btn-info add-text" data-id="2">Texto</button>
-                                        <button class="btn btn-info add-image" data-id="2">Imagen</button>
-                                        <button class="btn btn-info add-qr" data-id="2">QR</button>
-                                        <label class="btn btn-info color" style="position: relative;" data-id="2">
+                                        <button class="btn btn-sm btn-info add-text" data-id="2">Texto</button>
+                                        <button class="btn btn-sm btn-info add-image" data-id="2">Imagen</button>
+                                        <button class="btn btn-sm btn-info add-qr" data-id="2">QR</button>
+                                        <label class="btn btn-sm btn-info color" style="position: relative;" data-id="2">
                                             Fondo<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                        </label>
+                                        <button class="btn btn-sm btn-info toggle-guide" data-id="2">Guias</button>
+                                        <label class="btn btn-sm btn-info color-guide" style="position: relative;" data-id="2">
+                                            Color Guias<input type="color" style="opacity: 0; position: absolute; top: 0;">
                                         </label>
                                     </div>
 
@@ -350,15 +354,15 @@
                                     <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
-                                        <div class="margen-izquierdo" style="position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
+                                        <div class="margen-izquierdo guide2" style="opacity: 1; z-index:1;position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
                                         {{-- margen arriba --}}
-                                        <div class="margen-arriba" style="position: absolute; width: 100%; border-top: 1px solid purple; top: 2.5mm;"></div>
+                                        <div class="margen-arriba guide2" style="opacity: 1; z-index:1;position: absolute; width: 100%; border-top: 1px solid purple; top: 2.5mm;"></div>
                                         {{-- margen derecho --}}
-                                        <div class="margen-derecho" style="position: absolute; height: 100%; border-right: 1px solid purple; right: 2.5mm;"></div>
+                                        <div class="margen-derecho guide2" style="opacity: 1; z-index:1;position: absolute; height: 100%; border-right: 1px solid purple; right: 2.5mm;"></div>
                                         {{-- margen abajo --}}
-                                        <div class="margen-abajo" style="position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
+                                        <div class="margen-abajo guide2" style="opacity: 1; z-index:1;position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
                                         {{-- caja matriz --}}
-                                        <div class="caja-matriz" style="position: absolute; width: 40mm; border-right: 1px solid purple; height: 100%; left: 2.5mm;"></div>
+                                        <div class="caja-matriz guide2" style="opacity: 1; z-index:1;position: absolute; width: 40mm; border-right: 1px solid purple; height: 100%; left: 2.5mm;"></div>
 
                                         <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm);"> 
 
@@ -384,7 +388,7 @@
                                                 <div class="elements text ui-draggable" style="padding: 10px; width: 120px; height: 90px; resize: both; overflow: hidden; position: absolute; top: 214px; left: 26px;">
                                                 <span class="ui-draggable-handle"><h4 style="text-align:center;"><span style="font-size:26px;" class="ui-draggable-handle"><strong>5,00€</strong></span><br><span style="font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="font-size:18px;" class="ui-draggable-handle"><strong>1,00€</strong></span></h4></span>
                                             </div>
-                                                <div class="elements text ui-draggable" style="padding: 10px; width: 90px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 300px; left: 94px;">
+                                                <div class="elements participation text ui-draggable" style="padding: 10px; width: 90px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 300px; left: 94px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div>
                                             <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 42px; top: -140px; height: 78px; width: 84px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/default.jpg" alt=""></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 170.909px; top: -263.091px; height: 144px; width: 170px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750719384_173289460408li94ujyym5uhx0jbpu.png" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 298px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 258.815px; left: 162.81px;">
@@ -393,7 +397,7 @@
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:6px;" class="ui-draggable-handle"><strong>Los premios superiores a 2500€ por décimo, tendrán una retención del 20% por encima del importe anterior, que será prorrateada en estas participaciones en la proporción correspondiente a su valor nominal.</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 220px; left: 332px;">
                                             <span class="ui-draggable-handle"><p style="text-align:center;"><span style="color:hsl(0, 0%, 0%);font-size:26px;" class="ui-draggable-handle"><strong>5,00€</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:18px;" class="ui-draggable-handle"><strong>1,00€</strong></span></p></span>
-                                            </div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 600px; top: -187px; width: 56px; height: 44px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750725951_156098571_1876771692487612_4648103175506295823_n.jpg" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
+                                            </div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 600px; top: -187px; width: 56px; height: 44px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750725951_156098571_1876771692487612_4648103175506295823_n.jpg" alt=""></span></div><div class="elements participation text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 92px; height: 36px; resize: both; overflow: hidden; position: absolute; top: 235.81px; left: 504.795px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>DEPOSITARIO</strong></span></p></span>
@@ -424,14 +428,18 @@
                                     <br>
 
                                     <div>
-                                        <button class="btn btn-info add-text" data-id="3">Texto</button>
-                                        <button class="btn btn-info add-image" data-id="3">Imagen</button>
-                                        <button class="btn btn-info add-qr" data-id="3">QR</button>
-                                        <label class="btn btn-info color" style="position: relative;" data-id="3">
+                                        <button class="btn btn-sm btn-info add-text" data-id="3">Texto</button>
+                                        <button class="btn btn-sm btn-info add-image" data-id="3">Imagen</button>
+                                        <button class="btn btn-sm btn-info add-qr" data-id="3">QR</button>
+                                        <label class="btn btn-sm btn-info color" style="position: relative;" data-id="3">
                                             Fondo<input type="color" style="opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-info add-top" data-id="3">Arriba</button>
-                                        <button class="btn btn-info add-bottom" data-id="3">Abajo</button>
+                                        <button class="btn btn-sm btn-info add-top" data-id="3">Arriba</button>
+                                        <button class="btn btn-sm btn-info add-bottom" data-id="3">Abajo</button>
+                                        <button class="btn btn-sm btn-info toggle-guide" data-id="2">Guias</button>
+                                        <label class="btn btn-sm btn-info color-guide" style="position: relative;" data-id="2">
+                                            Color Guias<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                        </label>
                                     </div>
 
                                     <br>
@@ -439,13 +447,13 @@
                                     <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
-                                        <div class="margen-izquierdo" style="position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
+                                        <div class="margen-izquierdo guide3" style="opacity: 1; z-index: 1; position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
                                         {{-- margen arriba --}}
-                                        <div class="margen-arriba" style="position: absolute; width: 100%; border-top: 1px solid purple; top: 2.5mm;"></div>
+                                        <div class="margen-arriba guide3" style="opacity: 1; z-index: 1; position: absolute; width: 100%; border-top: 1px solid purple; top: 2.5mm;"></div>
                                         {{-- margen derecho --}}
-                                        <div class="margen-derecho" style="position: absolute; height: 100%; border-right: 1px solid purple; right: 2.5mm;"></div>
+                                        <div class="margen-derecho guide3" style="opacity: 1; z-index: 1; position: absolute; height: 100%; border-right: 1px solid purple; right: 2.5mm;"></div>
                                         {{-- margen abajo --}}
-                                        <div class="margen-abajo" style="position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
+                                        <div class="margen-abajo guide3" style="opacity: 1; z-index: 1; position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
 
                                         <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm);"> 
 
@@ -480,14 +488,18 @@
                                     <br>
 
                                     <div>
-                                        <button class="btn btn-info add-text" data-id="4">Texto</button>
-                                        <button class="btn btn-info add-image" data-id="4">Imagen</button>
-                                        <button class="btn btn-info add-qr" data-id="4">QR</button>
-                                        <label class="btn btn-info color" style="position: relative;" data-id="4">
+                                        <button class="btn btn-sm btn-info add-text" data-id="4">Texto</button>
+                                        <button class="btn btn-sm btn-info add-image" data-id="4">Imagen</button>
+                                        <button class="btn btn-sm btn-info add-qr" data-id="4">QR</button>
+                                        <label class="btn btn-sm btn-info color" style="position: relative;" data-id="4">
                                             Fondo<input type="color" style="opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-info add-top" data-id="4">Arriba</button>
-                                        <button class="btn btn-info add-bottom" data-id="4">Abajo</button>
+                                        <button class="btn btn-sm btn-info add-top" data-id="4">Arriba</button>
+                                        <button class="btn btn-sm btn-info add-bottom" data-id="4">Abajo</button>
+                                        <button class="btn btn-sm btn-info toggle-guide" data-id="2">Guias</button>
+                                        <label class="btn btn-sm btn-info color-guide" style="position: relative;" data-id="2">
+                                            Color Guias<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                        </label>
                                     </div>
 
                                     <br>
@@ -495,13 +507,15 @@
                                     <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
-                                        <div class="margen-izquierdo" style="position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
+                                        <div class="margen-izquierdo guide4" style="opacity: 1; z-index: 1; position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
                                         {{-- margen arriba --}}
-                                        <div class="margen-arriba" style="position: absolute; width: 100%; border-top: 1px solid purple; top: 2.5mm;"></div>
+                                        <div class="margen-arriba guide4" style="opacity: 1; z-index: 1; position: absolute; width: 100%; border-top: 1px solid purple; top: 2.5mm;"></div>
                                         {{-- margen derecho --}}
-                                        <div class="margen-derecho" style="position: absolute; height: 100%; border-right: 1px solid purple; right: 2.5mm;"></div>
+                                        <div class="margen-derecho guide4" style="opacity: 1; z-index: 1; position: absolute; height: 100%; border-right: 1px solid purple; right: 2.5mm;"></div>
                                         {{-- margen abajo --}}
-                                        <div class="margen-abajo" style="position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
+                                        <div class="margen-abajo guide4" style="opacity: 1; z-index: 1; position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
+                                        {{-- caja matriz --}}
+                                        {{-- <div class="caja-matriz-2 guide4" style="opacity: 1; z-index:1;position: absolute; width: 40mm; border-left: 1px solid purple; height: 100%; right: 2.5mm;"></div> --}}
 
                                         <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm);"> 
 
@@ -709,9 +723,9 @@
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-danger deleteElements" data-bs-dismiss="modal">Eliminar elemento</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary accept-text">Aceptar</button>
+        <button type="button" class="btn btn-sm btn-danger deleteElements" data-bs-dismiss="modal">Eliminar elemento</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary accept-text">Aceptar</button>
       </div>
     </div>
   </div>
@@ -736,9 +750,9 @@
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-danger deleteElements" data-bs-dismiss="modal">Eliminar elemento</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary accept-image">Aceptar</button>
+        <button type="button" class="btn btn-sm btn-danger deleteElements" data-bs-dismiss="modal">Eliminar elemento</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary accept-image">Aceptar</button>
       </div>
     </div>
   </div>
@@ -763,9 +777,29 @@
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-danger deleteElements" data-bs-dismiss="modal">Eliminar elemento</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary accept-qr">Aceptar</button>
+        <button type="button" class="btn btn-sm btn-danger deleteElements" data-bs-dismiss="modal">Eliminar elemento</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary accept-qr">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="position-modal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Cambiar posición</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        
+            <button class="btn btn-sm btn-info up-z">Subir</button>
+            <button class="btn btn-sm btn-info dw-z">Bajar</button>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>
@@ -974,24 +1008,12 @@ function initDatatable()
         $('.preview-design > div').css('width','60%');
     }
 
-    {{-- if (page == 'a3') { --}}
+    let h = 216 / rows;
 
-        let h = 216 / rows;
+    let html = "";
 
-        let html = "";
-
-        let percent = 100 / cols;
-        let margin = 1 / cols;
-    {{-- } --}}
-
-    {{-- else if (page == 'a4') {
-        if (orientation == 'h') {
-            $('.a4').css('width','100%');
-        }else{
-            $('.a4').css('width','60%');
-        }
-    } --}}
-
+    let percent = 100 / cols;
+    let margin = 1 / cols;
 
     for (var i = 0; i < cols*rows; i++) {
         html+=`<div style="height: ${h}px; width: ${percent-1}%; margin-left: ${margin}%"></div>`;
@@ -1050,6 +1072,7 @@ function initDatatable()
         $('#bc-step-'+step).addClass('active');
 
         configMargins();
+        addEventsElement();
 
       }
   });
@@ -1083,12 +1106,19 @@ function initDatatable()
               }else{
                   $('#containment-wrapper'+step).css('background-color', '#dfdfdf');
               }
+
+              if(localStorage.getItem('guide-step'+step)){
+                  $('.guide'+step).css('border-color', localStorage.getItem('guide-step'+step));
+              }else{
+                  $('.guide'+step).css('border-color', 'purple');
+              }
           }
 
           $('.form-wizard-element').removeClass('active');
           $('#bc-step-'+step).addClass('active');
 
           configMargins();
+          addEventsElement();
       }
 
       if (step == 2) {
@@ -1146,6 +1176,10 @@ function initDatatable()
             width: w+'mm',
             height: h+'mm'
         });
+
+        let matrix = $('#matrix-box').val() ?? 40;
+
+        $('#containment-wrapper4').css('padding-right', matrix+'mm');
 
         $('.format-box-btn').css('width', w+'mm');
 
@@ -1296,6 +1330,7 @@ function initDatatable()
 
       $('.elements.text').unbind('dblclick',editelements);
       $('.elements.text').dblclick(editelements);
+      addEventsElement();
 
       $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
   });
@@ -1308,6 +1343,7 @@ function initDatatable()
 
       $('.elements.images').unbind('dblclick',changeImage);
       $('.elements.images').dblclick(changeImage);
+      addEventsElement();
   });
 
   $('.add-qr').click(function (e) {
@@ -1319,6 +1355,7 @@ function initDatatable()
 
       $('.elements.qr').unbind('dblclick',setQRtext);
       $('.elements.qr').dblclick(setQRtext);
+      addEventsElement();
   });
 
   $('.add-top').click(function (e) {
@@ -1328,6 +1365,7 @@ function initDatatable()
 
       $('.elements.context').unbind('dblclick',deleteElements);
       $('.elements.context').dblclick(deleteElements);
+      addEventsElement();
 
       $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
   });
@@ -1339,6 +1377,7 @@ function initDatatable()
 
       $('.elements.context').unbind('dblclick',deleteElements);
       $('.elements.context').dblclick(deleteElements);
+      addEventsElement();
 
       $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
   });
@@ -1350,6 +1389,21 @@ function initDatatable()
 
       $('#containment-wrapper'+step).css('background-color', $(this).val());
   });
+
+  function addEventsElement()
+  {
+    $('.elements').unbind('contextmenu',changePositionElement);
+    $('.elements').contextmenu(changePositionElement);
+  }
+
+  function changePositionElement(event)
+  {
+    event.preventDefault();
+
+    actualElement = $(this);
+
+    $('#position-modal').modal('show');
+  }
 
   $('#save-step').click(function(event) {
 
@@ -1369,14 +1423,44 @@ function initDatatable()
   function configMargins()
   {
     let identation = $('#identation').val() ?? 2.5;
-    let matrix = $('#matrix-box').val() ?? 2.5;
+    let matrix = $('#matrix-box').val() ?? 40;
     $('.margen-izquierdo').css('left',identation+'mm')
     $('.margen-arriba').css('top',identation+'mm')
     $('.margen-derecho').css('right',identation+'mm')
     $('.margen-abajo').css('bottom',identation+'mm')
     $('.caja-matriz').css('left',identation+'mm')
     $('.caja-matriz').css('width',matrix+'mm')
+    $('.caja-matriz-2').css('right',identation+'mm')
+    $('.caja-matriz-2').css('width',matrix+'mm')
   }
+
+  $('.up-z').click(function (e) {
+      e.preventDefault();
+      let zindex = $(actualElement).css('z-index');
+      zindex = parseInt(zindex)+1;
+      $(actualElement).css('z-index',zindex);
+  });
+  $('.dw-z').click(function (e) {
+      e.preventDefault();
+      let zindex = $(actualElement).css('z-index');
+      zindex = parseInt(zindex)-1;
+      $(actualElement).css('z-index',zindex);
+  });
+
+   $('.toggle-guide').click(function (e) {
+       e.preventDefault();
+
+       let opacity = $('.guide'+step).css('opacity');
+
+       $('.guide'+step).css('opacity', opacity == 1 ? 0 : 1);
+   });
+   $('.color-guide input').change(function (e) {
+      e.preventDefault();
+
+      localStorage.setItem('guide-step'+step,$(this).val());
+
+      let opacity = $('.guide'+step).css('border-color',$(this).val());
+  });
 
 </script>
 

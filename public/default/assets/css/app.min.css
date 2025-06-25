@@ -6070,9 +6070,15 @@ td {
     display: block;
 }
 
+[id*="containment-wrapper"] {
+    position: relative;
+}
+
 .elements {
     width: 200px;
     border: 1px solid transparent;
+    position: absolute !important;
+    z-index: 1000;
 }
 
 .ck.ck-balloon-panel.ck-balloon-panel_toolbar_west.ck-balloon-panel_visible.ck-toolbar-container
@@ -6082,4 +6088,10 @@ td {
 
 .elements.text:hover,.elements.text:focus {
     border: 1px dotted #c8c8c8;
+}
+
+.elements.qr {
+    padding: 3px;
+    border-radius: 8px;
+    background-color: #fff;
 }
