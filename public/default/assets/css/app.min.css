@@ -6095,3 +6095,7 @@ td {
     border-radius: 8px;
     background-color: #fff;
 }
+
+.elements.images, .elements.qr {
+    height: auto !important;
+}
