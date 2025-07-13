@@ -263,6 +263,67 @@ class SetController extends Controller
     }
 
     /**
+     * Descargar archivo XML con formato parts.xml
+     */
+    public function downloadXml(Set $set)
+    {
+        // Cargar las relaciones necesarias
+        $set->load(['entity.administration', 'reserve.lottery', 'reserve']);
+
+        // Obtener datos necesarios
+        $entity = $set->entity;
+        $administration = $entity->administration;
+        $reserve = $set->reserve;
+        $lottery = $reserve->lottery;
+
+        // Crear el contenido XML
+        $xmlContent = '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+        $xmlContent .= '<set>' . "\n";
+        $xmlContent .= '  <titulo><![CDATA[' . $entity->name . ']]></titulo>' . "\n";
+        $xmlContent .= '  <precio>' . number_format($set->played_amount, 2) . '</precio>' . "\n";
+        $xmlContent .= '  <donativo>' . number_format($set->donation_amount, 2) . '</donativo>' . "\n";
+        $xmlContent .= '  <fechasorteo>' . $lottery->draw_date->format('d/m/Y') . '</fechasorteo>' . "\n";
+
+        // Agregar números de reserva
+        if ($reserve->reservation_numbers && count($reserve->reservation_numbers) > 0) {
+            $xmlContent .= '  <numeros>';
+            foreach ($reserve->reservation_numbers as $number) {
+                $xmlContent .= '<numero><![CDATA[' . $number . ']]></numero>';
+            }
+            $xmlContent .= '<importe>' . number_format($reserve->total_amount, 2) . '</importe></numeros>' . "\n";
+        } else {
+            $xmlContent .= '  <numeros><importe>' . number_format($reserve->total_amount, 2) . '</importe></numeros>' . "\n";
+        }
+
+        $xmlContent .= '  <urlweb><![CDATA[' . ($administration->web ?? '') . ']]></urlweb>' . "\n";
+        $xmlContent .= '  <pagoweb>si</pagoweb>' . "\n";
+        $xmlContent .= '  <pagowebpage><![CDATA[loteria-empresas-parti.php?ref=]]></pagowebpage>' . "\n";
+        $xmlContent .= '  <participaciones>' . "\n";
+
+        // Generar participaciones
+        for ($i = 1; $i <= $set->total_participations; $i++) {
+            $xmlContent .= '   <p><s>' . $i . '</s><r>REF' . str_pad($i, 6, '0', STR_PAD_LEFT) . '</r></p>' . "\n";
+        }
+
+        $xmlContent .= '  </participaciones>' . "\n";
+        $xmlContent .= '</set>';
+
+        // Generar nombre del archivo
+        $entityName = str_replace(' ', '_', $entity->name);
+        $setName = str_replace(' ', '_', $set->set_name);
+        $lotteryName = str_replace(' ', '_', $lottery->name);
+        $drawDate = str_replace('/', '-', $lottery->draw_date->format('d-m-Y'));
+        
+        $filename = $entityName . '_' . $setName . '_' . $lotteryName . '_' . $drawDate . '.xml';
+
+        // Retornar respuesta de descarga
+        return response($xmlContent, 200, [
+            'Content-Type' => 'application/xml',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+        ]);
+    }
+
+    /**
      * Obtener reservas por entidad
      */
     public function getReservesByEntity(Request $request)

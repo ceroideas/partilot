@@ -156,6 +156,7 @@ Route::group(['prefix' => 'sets'], function() {
     Route::get('/delete/{set}', [SetController::class, 'destroy'])->name('sets.delete');
     Route::post('/change-status/{set}', [SetController::class, 'changeStatus'])->name('sets.change-status');
     Route::get('/reserves-by-entity', [SetController::class, 'getReservesByEntity'])->name('sets.reserves-by-entity');
+    Route::get('/download-xml/{set}', [SetController::class, 'downloadXml'])->name('sets.download-xml');
 });
 
 Route::group(['prefix' => 'participations'], function() {
