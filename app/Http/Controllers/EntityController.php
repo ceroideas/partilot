@@ -144,6 +144,135 @@ class EntityController extends Controller
     }
 
     /**
+     * Verificar si existe un gestor con el email proporcionado
+     */
+    public function check_manager_email(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $email = $request->email;
+        
+        // Buscar si existe un manager con ese email
+        $manager = Manager::where('email', $email)->first();
+        
+        return response()->json([
+            'exists' => $manager ? true : false,
+            'manager_id' => $manager ? $manager->id : null,
+            'manager_name' => $manager ? $manager->name . ' ' . $manager->last_name : null
+        ]);
+    }
+
+    /**
+     * Invitar gestor existente y crear entidad
+     */
+    public function invite_manager(Request $request)
+    {
+        $request->validate([
+            'manager_id' => 'required|integer|exists:managers,id',
+            'invite_email' => 'required|email'
+        ]);
+
+        // Obtener datos de sesión
+        $administration = $request->session()->get('selected_administration');
+        $entityInformation = $request->session()->get('entity_information');
+
+        if (!$administration || !$entityInformation) {
+            return redirect()->route('entities.create')
+                ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
+        }
+
+        // Crear entidad con el manager existente
+        $entityData = array_merge($entityInformation, [
+            'administration_id' => $administration->id,
+            'manager_id' => $request->manager_id
+        ]);
+
+        Entity::create($entityData);
+
+        // Limpiar sesión
+        $request->session()->forget(['selected_administration', 'entity_information']);
+
+        return redirect()->route('entities.index')
+            ->with('success', 'Entidad creada exitosamente con gestor invitado.');
+    }
+
+    /**
+     * Crear entidad con gestor pendiente de registro
+     */
+    public function create_pending_entity(Request $request)
+    {
+        $request->validate([
+            'invite_email' => 'required|email'
+        ]);
+
+        // Obtener datos de sesión
+        $administration = $request->session()->get('selected_administration');
+        $entityInformation = $request->session()->get('entity_information');
+
+        if (!$administration || !$entityInformation) {
+            return redirect()->route('entities.create')
+                ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
+        }
+
+        // Crear entidad sin manager (se asignará cuando se registre)
+        $entityData = array_merge($entityInformation, [
+            'administration_id' => $administration->id,
+            'manager_id' => null // Se asignará cuando el usuario se registre
+        ]);
+
+        $entity = Entity::create($entityData);
+
+        // Guardar el email de invitación en sesión para cuando se registre
+        $request->session()->put('pending_manager_email', $request->invite_email);
+        $request->session()->put('pending_entity_id', $entity->id);
+
+        // Limpiar sesión de datos de entidad
+        $request->session()->forget(['selected_administration', 'entity_information']);
+
+        return redirect()->route('entities.index')
+            ->with('success', 'Entidad creada. Se enviará una invitación al email proporcionado.');
+    }
+
+    /**
+     * Método temporal para crear un gestor de prueba
+     */
+    public function create_test_manager()
+    {
+        // Crear usuario de prueba
+        $user = User::firstOrCreate(
+            ['email' => 'test@manager.com'],
+            [
+                'name' => 'Test Manager',
+                'email' => 'test@manager.com',
+                'password' => bcrypt(12345678)
+            ]
+        );
+
+        // Crear manager de prueba
+        $manager = Manager::firstOrCreate(
+            ['email' => 'test@manager.com'],
+            [
+                'name' => 'Test',
+                'last_name' => 'Manager',
+                'last_name2' => 'Apellido2',
+                'nif_cif' => '12345678A',
+                'birthday' => '1990-01-01',
+                'email' => 'test@manager.com',
+                'phone' => '123456789',
+                'user_id' => $user->id
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Gestor de prueba creado exitosamente',
+            'manager_id' => $manager->id,
+            'email' => $manager->email
+        ]);
+    }
+
+    /**
      * Display the specified resource.
      */
     public function show(Entity $entity)

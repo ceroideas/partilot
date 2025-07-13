@@ -60,6 +60,14 @@ Route::group(['prefix' => 'entities'], function() {
     Route::post('/store-information', [EntityController::class, 'store_information']);
     Route::post('/store-manager', [EntityController::class, 'store_manager']);
 
+    // Nuevas rutas para invitación de gestores
+    Route::post('/check-manager-email', [EntityController::class, 'check_manager_email'])->name('entities.check-manager-email');
+    Route::post('/invite-manager', [EntityController::class, 'invite_manager'])->name('entities.invite-manager');
+    Route::post('/create-pending-entity', [EntityController::class, 'create_pending_entity'])->name('entities.create-pending-entity');
+    
+    // Ruta temporal para crear gestor de prueba
+    Route::get('/create-test-manager', [EntityController::class, 'create_test_manager'])->name('entities.create-test-manager');
+
     Route::get('/view/{id}', [EntityController::class, 'show']);
     Route::get('/edit/{id}', [EntityController::class, 'edit']);
     Route::put('/update/{id}', [EntityController::class, 'update']);

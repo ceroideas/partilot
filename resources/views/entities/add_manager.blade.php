@@ -292,7 +292,7 @@
 		                    								<h2>¡Hay 0 coincidencias!</h2>
 
 		                    								<p>
-		                    									No hemos encontrado un <b>usuario registrado con el email "tomasgarciamontes@example.com"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad una vez se que registre.</b>
+		                    									No hemos encontrado un <b>usuario registrado con el email "<span id="no-coincidence-email"></span>"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad una vez se registre.</b>
 		                    								</p>
                     									</div>
 
@@ -300,7 +300,7 @@
 		                    								<h2>¡Hay 1 coincidencia!</h2>
 
 		                    								<p>
-		                    									Hemos encontrado un <b>usuario registrado con el email "tomasgarciamontes@example.com"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad.</b>
+		                    									Hemos encontrado un <b>usuario registrado con el email "<span id="coincidence-email"></span>"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad.</b>
 		                    								</p>
                     									</div>
 
@@ -310,7 +310,7 @@
 	                    									</div>
 
 	                    									<div class="col-6">
-	                    										<a href="{{url('entities?table=1')}}" style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3">Aceptar</a>
+	                    										<button style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3" id="accept-invite-btn">Aceptar</button>
 	                    									</div>
 	                    								</div>
                     								</div>
@@ -318,6 +318,17 @@
                     							
                     						</div>
 
+                    						<!-- Formularios ocultos para manejar las invitaciones -->
+                    						<form id="invite-manager-form" action="{{url('entities/invite-manager')}}" method="POST" style="display: none;">
+                    							@csrf()
+                    							<input type="hidden" name="manager_id" id="manager-id-input">
+                    							<input type="hidden" name="invite_email" id="invite-email-input">
+                    						</form>
+
+                    						<form id="create-pending-entity-form" action="{{url('entities/create-pending-entity')}}" method="POST" style="display: none;">
+                    							@csrf()
+                    							<input type="hidden" name="invite_email" id="pending-invite-email-input">
+                    						</form>
 
                     					</div>
 
@@ -555,17 +566,54 @@ $('.invite-email').keyup(function(event) {
 $('#invite-button').click(function (e) {
 	e.preventDefault();
 
-	$('#invite-form').addClass('d-none');
-
-	$('#accept-invite').removeClass('d-none');
-
-	if ($('.invite-email').val() == 'admin@partilot.com') {
-		$('#coincidence').removeClass('d-none');
-		$('#no-coincidence').addClass('d-none');
-	}else{
-		$('#coincidence').addClass('d-none');
-		$('#no-coincidence').removeClass('d-none');
+	var email = $('.invite-email').val();
+	
+	if (!email) {
+		alert('Por favor, ingrese un email válido');
+		return;
 	}
+
+	// Mostrar loading
+	$('#invite-button').prop('disabled', true).text('Verificando...');
+
+	// Hacer petición AJAX para verificar el email
+	$.ajax({
+		url: '{{url("entities/check-manager-email")}}',
+		method: 'POST',
+		data: {
+			email: email,
+			_token: '{{csrf_token()}}'
+		},
+		success: function(response) {
+			$('#invite-form').addClass('d-none');
+			$('#accept-invite').removeClass('d-none');
+
+			if (response.exists) {
+				// Hay coincidencia
+				$('#coincidence').removeClass('d-none');
+				$('#no-coincidence').addClass('d-none');
+				$('#coincidence-email').text(email);
+				
+				// Guardar datos para el formulario
+				$('#manager-id-input').val(response.manager_id);
+				$('#invite-email-input').val(email);
+			} else {
+				// No hay coincidencia
+				$('#coincidence').addClass('d-none');
+				$('#no-coincidence').removeClass('d-none');
+				$('#no-coincidence-email').text(email);
+				
+				// Guardar email para el formulario de entidad pendiente
+				$('#pending-invite-email-input').val(email);
+			}
+		},
+		error: function() {
+			alert('Error al verificar el email. Por favor, intente nuevamente.');
+		},
+		complete: function() {
+			$('#invite-button').prop('disabled', false).text('Invitar');
+		}
+	});
 });
 
 $('#cancel-invite').click(function (e) {
@@ -584,6 +632,20 @@ $('#register-manager').click(function (e) {
 
 	$('#register-manager-selected').removeClass('d-none');
 
+});
+
+// Manejar el botón "Aceptar" para invitaciones
+$('#accept-invite-btn').click(function (e) {
+	e.preventDefault();
+	
+	// Determinar qué formulario enviar basado en si hay coincidencia o no
+	if ($('#coincidence').is(':visible')) {
+		// Hay coincidencia - enviar formulario de invitación
+		$('#invite-manager-form').submit();
+	} else {
+		// No hay coincidencia - enviar formulario de entidad pendiente
+		$('#create-pending-entity-form').submit();
+	}
 });
 	
 </script>

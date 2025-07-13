@@ -78,7 +78,11 @@ class AdministratorController extends Controller
 
         $data['user_id'] = $u->id;
 
-        $manager = Manager::create($data);
+        $manager = Manager::where('email',$request->validated()["email"])->first();
+
+        if (!$manager) {.
+            $manager = Manager::create($data);
+        }
 
         $administration = $request->session()->get("administration");
         $administration['manager_id'] = $manager->id;
