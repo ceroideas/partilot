@@ -20,7 +20,7 @@ class Administration extends Model
         "address",
         "email",
         "phone",
-        "account"
+        "account",
         "manager_id"
     ];
 
