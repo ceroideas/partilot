@@ -55,7 +55,7 @@
                             <tbody>
                                 @foreach($lotteryTypes as $type)
                                 <tr>
-                                    <td><a href="{{url('lottery_types/view', $type->id)}}">#{{$type->id}}</a></td>
+                                    <td><a href="{{url('lottery_types/view', $type->id)}}">#TS{{str_pad($type->id, 4, '0', STR_PAD_LEFT)}}</a></td>
                                     <td>{{$type->name}}</td>
                                     <td>{{number_format($type->ticket_price, 2)}}€</td>
                                     <td class="text-end">
@@ -82,7 +82,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/lottery.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons/sorteos.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Tipos de Sorteo</h3>
