@@ -54,7 +54,7 @@ Route::group(['prefix' => 'administrations'], function() {
 
 Route::group(['prefix' => 'entities'], function() {
     //
-    Route::get('/', [EntityController::class, 'index']);
+    Route::get('/', [EntityController::class, 'index'])->name('entities.index');
     Route::get('/add', [EntityController::class, 'create']);
     Route::post('/store-administration', [EntityController::class, 'store_administration']);
     Route::post('/store-information', [EntityController::class, 'store_information']);
