@@ -34,7 +34,7 @@
                                 <input type="text" class="form-control" placeholder="Estado">
                             </div>
 
-                            <a href="{{url('lottery-types/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            <a href="{{url('lottery_types/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
 
                         </h4>
 
@@ -55,11 +55,11 @@
                             <tbody>
                                 @foreach($lotteryTypes as $type)
                                 <tr>
-                                    <td><a href="{{url('lottery-types/view', $type->id)}}">#{{$type->id}}</a></td>
+                                    <td><a href="{{url('lottery_types/view', $type->id)}}">#{{$type->id}}</a></td>
                                     <td>{{$type->name}}</td>
                                     <td>{{number_format($type->ticket_price, 2)}}€</td>
                                     <td class="text-end">
-                                        <a href="{{url('lottery-types/edit', $type->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a href="{{url('lottery_types/edit', $type->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$type->id}}" data-name="{{$type->name}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
                                 </tr>
@@ -91,7 +91,7 @@
 
                                 <br>
 
-                                <a href="{{url('lottery-types/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                                <a href="{{url('lottery_types/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
                             </div>
 
                         </div>
@@ -209,7 +209,7 @@
     const name = $(this).data('name');
     
     if (confirm('¿Estás seguro de que quieres eliminar el tipo de sorteo "' + name + '"?')) {
-      window.location.href = '{{url("lottery-types/delete")}}/' + id;
+      window.location.href = '{{url("lottery_types/delete")}}/' + id;
     }
   });
 
