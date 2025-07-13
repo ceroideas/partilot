@@ -78,11 +78,12 @@ class AdministratorController extends Controller
 
         $data['user_id'] = $u->id;
 
+        $manager = Manager::create($data);
+
         $administration = $request->session()->get("administration");
-        $administration['manager_id'] = $u->id;
+        $administration['manager_id'] = $manager->id;
 
         Administration::create($administration);
-        Manager::create($data);
 
         $request->session()->forget('administration');
 
