@@ -213,7 +213,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="El Búho Lotero" class="form-control" type="text" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->name}}" class="form-control" type="text" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -227,7 +227,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="05716" class="form-control" type="number" placeholder="000000" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->receiving}}" class="form-control" type="number" placeholder="000000" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -241,7 +241,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/3.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Jorge Ruiz Ortega" class="form-control" type="text" placeholder="José Andrés / Administración S.L.U." style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->society}}" class="form-control" type="text" placeholder="José Andrés / Administración S.L.U." style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -256,7 +256,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="16600600A" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->nif_cif}}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -271,7 +271,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="La Rioja" class="form-control" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->province}}" class="form-control" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -286,7 +286,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Logroño" class="form-control" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->city}}" class="form-control" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -301,7 +301,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="26007" class="form-control" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->postal_code}}" class="form-control" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -316,7 +316,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Avd. Club Deportivo 28" class="form-control" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->address}}" class="form-control" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -331,7 +331,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="administracion@ejemplo.es" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->email}}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -346,7 +346,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="941 900 900" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->phone}}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -362,34 +362,38 @@
 			                    			<div class="row">
 			                    				
 			                    				<div class="col-8">
+
+			                    					@php
+			                    						$account = explode(' ', $administration->account);
+			                    					@endphp
 			                    					
 			                    					<div class="form-group mt-2">
 						                    			<div class="input-group input-group-merge group-account">
-						                                    <input readonly="" class="" type="number" value="1234" placeholder="1234" max="9999" min="1000">
+						                                    <input readonly="" class="" type="number" value="{{isset($account[0]) ? $account[0] : ''}}" placeholder="1234" max="9999" min="1000">
 
 						                                    <label>
 						                                    	-
 						                                    </label>
 
-						                                    <input readonly="" class="" type="number" value="1234" placeholder="1234" max="9999" min="1000">
+						                                    <input readonly="" class="" type="number" value="{{isset($account[1]) ? $account[1] : ''}}" placeholder="1234" max="9999" min="1000">
 
 						                                    <label>
 						                                    	-
 						                                    </label>
 
-						                                    <input readonly="" class="" type="number" value="1234" placeholder="1234" max="9999" min="1000">
+						                                    <input readonly="" class="" type="number" value="{{isset($account[2]) ? $account[2] : ''}}" placeholder="1234" max="9999" min="1000">
 
 						                                    <label>
 						                                    	-
 						                                    </label>
 
-						                                    <input readonly="" class="" type="number" value="12" placeholder="12" max="99" min="10">
+						                                    <input readonly="" class="" type="number" value="{{isset($account[3]) ? $account[3] : ''}}" placeholder="12" max="99" min="10">
 
 						                                    <label>
 						                                    	-
 						                                    </label>
 
-						                                    <input readonly="" class="" type="number" value="1234567890" placeholder="1234567890" max="9999999999" min="1000000000">
+						                                    <input readonly="" class="" type="number" value="{{isset($account[4]) ? $account[4] : ''}}" placeholder="1234567890" max="9999999999" min="1000000000">
 
 						                                </div>
 					                    			</div>
@@ -478,7 +482,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Jorge" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->name}}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -492,7 +496,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Ruiz" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->last_name}}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -507,7 +511,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Ortega" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->last_name2}}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -522,7 +526,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="16600600A" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->cif_nif}}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -537,7 +541,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="1975-01-01" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->birthday}}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -552,7 +556,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="administracion@ejemplo.es" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->email}}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -567,7 +571,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="941 900 900" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->phone}}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -590,7 +594,7 @@
 
 						                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6"></textarea>
+						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{$administration->manager->comment}}</textarea>
 						                                </div>
 					                    			</div>
 

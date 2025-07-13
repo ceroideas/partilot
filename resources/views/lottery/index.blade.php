@@ -25,13 +25,13 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    @if($lotteries->count() > 0)
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Número">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Tipo de Sorteo">
-                                <input type="text" class="form-control" placeholder="Precio">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Nombre">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Tipo">
+                                <input type="text" class="form-control" placeholder="Estado">
                             </div>
 
                             <a href="{{url('lottery/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
@@ -57,22 +57,23 @@
                                 </tr>
                             </thead>
                         
-                        
                             <tbody>
+                                @foreach($lotteries as $lottery)
                                 <tr>
-                                    <td><a href="{{url('lottery/view',1)}}">#SR9801</a></td>
-                                    <td>46/25</td>
-                                    <td>Sorteo Extraordinario Asociación Española Contra El Cáncer</td>
-                                    <td>Sorteo Extraordinario 15€ Especial</td>
-                                    <td>07/06/2025</td>
-                                    <td>06/06/2025</td>
-                                    <td>10:00h</td>
-                                    <td><b>15.00€</b></td>
-                                    <td>
-                                        <a href="{{url('lottery/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                    <td><a href="{{url('lottery/view', $lottery->id)}}">#SR{{str_pad($lottery->id, 4, '0', STR_PAD_LEFT)}}</a></td>
+                                    <td>{{$lottery->name}}</td>
+                                    <td>{{$lottery->description}}</td>
+                                    <td>{{$lottery->lotteryType->name ?? 'Sin tipo'}}</td>
+                                    <td>{{$lottery->draw_date ? \Carbon\Carbon::parse($lottery->draw_date)->format('d/m/Y') : 'No definida'}}</td>
+                                    <td>{{$lottery->deadline_date ? \Carbon\Carbon::parse($lottery->deadline_date)->format('d/m/Y') : 'No definida'}}</td>
+                                    <td>{{$lottery->draw_time ? \Carbon\Carbon::parse($lottery->draw_time)->format('H:i') : 'No definida'}}</td>
+                                    <td><b>{{number_format($lottery->ticket_price, 2)}}€</b></td>
+                                    <td class="text-end">
+                                        <a href="{{url('lottery/edit', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{$lottery->id}}" data-name="{{$lottery->name}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
                                 </tr>
+                                @endforeach
                             </tbody>
                         </table>
 
@@ -85,17 +86,12 @@
                          <a href="{{url('lottery/administrations')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative; background-color: #e78307;" class="btn btn-md btn-light">
                             <img src="{{url('assets/form-groups/results.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Lista Resultados</a>
-
-                    </div>
-
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
-                        
+                    @else
                         <a href="{{url('lottery_types')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark float-start">
                             <img src="{{url('icons/tipos_sorteos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Tipos de Sorteo</a>
                          <div style="clear: both;"></div>
                         <div class="d-flex align-items-center gap-1">
-
                             
                             <div class="empty-tables">
 
@@ -113,7 +109,7 @@
                             </div>
 
                         </div>
-                    </div>
+                    @endif
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->
@@ -220,6 +216,16 @@
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+
+  // Eliminar sorteo
+  $('.delete-btn').on('click', function() {
+    const id = $(this).data('id');
+    const name = $(this).data('name');
+    
+    if (confirm('¿Estás seguro de que quieres eliminar el sorteo "' + name + '"?')) {
+      window.location.href = '{{url("lottery/delete")}}/' + id;
+    }
+  });
 
 </script>
 

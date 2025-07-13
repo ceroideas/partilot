@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-topbar-color="light" data-layout-mode="detached" data-bs-theme="light">
+<html lang="es" data-topbar-color="light" data-layout-mode="detached" data-bs-theme="light">
 
     
 <!-- Mirrored from coderthemes.com/ubold/layouts/default/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 25 May 2025 15:56:35 GMT -->
 <head>
         <meta charset="utf-8" />
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>@yield('title') | PARTILOT</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description" />
@@ -86,38 +87,41 @@
 
                     <!-- User box -->
                     <div class="user-box text-center">
-                        <img src="{{url('default')}}/assets/images/users/user-1.jpg" alt="user-img" title="Mat Helme" class="rounded-circle avatar-md">
+                        <img src="{{url('default')}}/assets/images/users/user-1.jpg" alt="user-img" title="{{ Auth::user()->name ?? 'Usuario' }}" class="rounded-circle avatar-md">
                         <div class="dropdown">
-                            <a href="javascript: void(0);" class="dropdown-toggle h5 mb-1 d-block" data-bs-toggle="dropdown">Geneva Kennedy</a>
+                            <a href="javascript: void(0);" class="dropdown-toggle h5 mb-1 d-block" data-bs-toggle="dropdown">{{ Auth::user()->name ?? 'Usuario' }}</a>
                             <div class="dropdown-menu user-pro-dropdown">
 
                                 <!-- item-->
                                 <a href="javascript:void(0);" class="dropdown-item notify-item">
                                     <i class="fe-user me-1"></i>
-                                    <span>My Account</span>
+                                    <span>Mi Cuenta</span>
                                 </a>
 
                                 <!-- item-->
                                 <a href="javascript:void(0);" class="dropdown-item notify-item">
                                     <i class="fe-settings me-1"></i>
-                                    <span>Settings</span>
+                                    <span>Configuración</span>
                                 </a>
 
                                 <!-- item-->
                                 <a href="javascript:void(0);" class="dropdown-item notify-item">
                                     <i class="fe-lock me-1"></i>
-                                    <span>Lock Screen</span>
+                                    <span>Bloquear Pantalla</span>
                                 </a>
 
                                 <!-- item-->
-                                <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                    <i class="fe-log-out me-1"></i>
-                                    <span>Logout</span>
-                                </a>
+                                <form method="POST" action="{{ url('logout') }}" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item notify-item" style="background: none; border: none; width: 100%; text-align: left;">
+                                        <i class="fe-log-out me-1"></i>
+                                        <span>Cerrar Sesión</span>
+                                    </button>
+                                </form>
 
                             </div>
                         </div>
-                        <p class="text-muted mb-0">Admin Head</p>
+                        <p class="text-muted mb-0">{{ Auth::user()->email ?? 'admin@partilot.com' }}</p>
                     </div>
 
                     <!--- Menu -->
@@ -126,8 +130,8 @@
 
                         <li class="menu-title">Navigation</li>
 
-                        <li class="menu-item @if (Request::is('/')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/')}}" class="menu-link">
+                        <li class="menu-item @if (Request::is('dashboard') || Request::is('/')) menuitem-active @php $selected = 1; @endphp @endif">
+                            <a href="{{url('/dashboard')}}" class="menu-link">
                                 <span class="menu-icon">
                                     <img src="{{url('icons')}}/dashboard{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
@@ -668,7 +672,7 @@
                                 <a class="nav-link dropdown-toggle nav-user me-0 waves-effect waves-light" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                                     <img src="{{url('default')}}/assets/images/users/user-1.jpg" alt="user-image" class="rounded-circle">
                                     <span class="ms-1 d-none d-md-inline-block">
-                                        Geneva <i class="mdi mdi-chevron-down"></i>
+                                        {{ Auth::user()->name ?? 'Usuario' }} <i class="mdi mdi-chevron-down"></i>
                                     </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end profile-dropdown ">
@@ -680,28 +684,31 @@
                                     <!-- item-->
                                     <a href="javascript:void(0);" class="dropdown-item notify-item">
                                         <i class="fe-user"></i>
-                                        <span>My Account</span>
+                                        <span>Mi Cuenta</span>
                                     </a>
 
                                     <!-- item-->
                                     <a href="javascript:void(0);" class="dropdown-item notify-item">
                                         <i class="fe-settings"></i>
-                                        <span>Settings</span>
+                                        <span>Configuración</span>
                                     </a>
 
                                     <!-- item-->
                                     <a href="javascript:void(0);" class="dropdown-item notify-item">
                                         <i class="fe-lock"></i>
-                                        <span>Lock Screen</span>
+                                        <span>Bloquear Pantalla</span>
                                     </a>
 
                                     <div class="dropdown-divider"></div>
 
                                     <!-- item-->
-                                    <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                        <i class="fe-log-out"></i>
-                                        <span>Logout</span>
-                                    </a>
+                                    <form method="POST" action="{{ url('logout') }}" style="display: inline;">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item notify-item" style="background: none; border: none; width: 100%; text-align: left;">
+                                            <i class="fe-log-out me-1"></i>
+                                            <span>Cerrar Sesión</span>
+                                        </button>
+                                    </form>
 
                                 </div>
                             </li>
@@ -1011,7 +1018,7 @@
 
                     </div>
 
-                    {{-- <div class="tab-pane active" id="settings-tab" role="tabpanel">
+                    <div class="tab-pane active" id="settings-tab" role="tabpanel">
 
                         <div class="mt-n3">
                             <h6 class="fw-medium py-2 px-3 font-13 text-uppercase bg-light mx-n3 mt-n3 mb-3">
@@ -1194,16 +1201,16 @@
                             </div>
                         </div>
 
-                    </div> --}}
+                    </div>
                 </div>
             </div>
 
-            {{-- <div class="offcanvas-footer border-top py-2 px-2 text-center">
+            <div class="offcanvas-footer border-top py-2 px-2 text-center">
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-light w-50" id="reset-layout">Reset</button>
-                    <a href="https://1.envato.market/uboldadmin" class="btn btn-danger w-50" target="_blank"><i class="mdi mdi-basket me-1"></i> Buy</a>
+                    <button type="button" class="btn btn-light w-50" onclick="resetThemeSettings()">Reset</button>
+                    <button type="button" class="btn btn-primary w-50" onclick="location.reload()">Aplicar</button>
                 </div>
-            </div> --}}
+            </div>
         </div>
         
         <!-- Vendor js -->

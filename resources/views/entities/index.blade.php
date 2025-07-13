@@ -25,7 +25,7 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    @if($entities->count() > 0)
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
@@ -60,31 +60,29 @@
                         
                         
                             <tbody>
+                                @foreach($entities as $entity)
                                 <tr>
-                                    <td><a href="{{url('entities/view',1)}}">#EN9801</a></td>
-                                    <td>El Buho Lotero</td>
-                                    <td>La Rioja</td>
-                                    <td>Logroño</td>
-                                    <td>Jorge Ruíz Ortega</td>
-                                    <td>600 600 600</td>
-                                    <td>info@elbuholotero.es</td>
-                                    <td>El Buho Lotero</td>
+                                    <td><a href="{{url('entities/view', $entity->id)}}">#EN{{str_pad($entity->id, 4, '0', STR_PAD_LEFT)}}</a></td>
+                                    <td>{{$entity->name ?? 'Sin nombre'}}</td>
+                                    <td>{{$entity->province ?? 'Sin provincia'}}</td>
+                                    <td>{{$entity->city ?? 'Sin localidad'}}</td>
+                                    <td>{{$entity->manager ? $entity->manager->name . ' ' . $entity->manager->last_name : 'Sin gestor'}}</td>
+                                    <td>{{$entity->phone ?? 'Sin teléfono'}}</td>
+                                    <td>{{$entity->email ?? 'Sin email'}}</td>
+                                    <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
                                     <td><label class="badge bg-success">Activo</label></td>
                                     <td>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons/persons.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons/design.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons/participations.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons/returns.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{$entity->id}}" data-name="{{$entity->name}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
                                 </tr>
+                                @endforeach
                             </tbody>
                         </table>
-
-                    </div>
-
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
-                        
+                    @else
                         <div class="d-flex align-items-center gap-1">
                             
                             <div class="empty-tables">
@@ -103,7 +101,7 @@
                             </div>
 
                         </div>
-                    </div>
+                    @endif
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->
@@ -210,6 +208,16 @@
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+
+  // Eliminar entidad
+  $('.delete-btn').on('click', function() {
+    const id = $(this).data('id');
+    const name = $(this).data('name');
+    
+    if (confirm('¿Estás seguro de que quieres eliminar la entidad "' + name + '"?')) {
+      window.location.href = '{{url("entities/delete")}}/' + id;
+    }
+  });
 
 </script>
 

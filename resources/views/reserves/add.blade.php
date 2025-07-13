@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Reservas')
+@section('title','Añadir Reserva')
 
 @section('content')
 
@@ -10,13 +10,13 @@
     <div class="row">
         <div class="col-12">
             <div class="page-title-box">
-            	<div class="page-title-right">
+                <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Reservas</a></li>
+                        <li class="breadcrumb-item"><a href="{{url('reserves')}}">Reservas</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Reservas</h4>
+                <h4 class="page-title">Añadir Reserva</h4>
             </div>
         </div>
     </div>     
@@ -26,120 +26,129 @@
             <div class="card">
                 <div class="card-body">
 
-            		<h4 class="header-title">
+                    <h4 class="header-title">
 
-                    	Selección Entidad
+                        Selección Entidad
 
                     </h4>
 
                     <br>
 
                     <div class="row">
-                    	
-                    	<div class="col-md-3" style="position: relative;">
-                    		<div class="form-card bs mb-3">
 
-                    			<div class="form-wizard-element active">
-                    				
-                    				<span>
-                    					1
-                    				</span>
+                        <div class="col-md-3" style="position: relative;">
+                            <div class="form-card bs mb-3">
 
-                    				<img src="{{url('assets/entidad.svg')}}" alt="">
+                                <div class="form-wizard-element active">
+                                    
+                                    <span>
+                                        1
+                                    </span>
 
-                    				<label>
-                    					Selec. Entidad
-                    				</label>
+                                    <img src="{{url('assets/entidad.svg')}}" alt="">
 
-                    			</div>
+                                    <label>
+                                        Selec. Entidad
+                                    </label>
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					2
-                    				</span>
+                                </div>
 
-                    				<img src="{{url('icons/sorteos.svg')}}" alt="">
+                                <div class="form-wizard-element">
+                                    
+                                    <span>
+                                        2
+                                    </span>
 
-                    				<label>
-                    					Selec. Sorteo
-                    				</label>
+                                    <img src="{{url('icons/sorteos.svg')}}" alt="">
 
-                    			</div>
+                                    <label>
+                                        Selec. Sorteo
+                                    </label>
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					3
-                    				</span>
+                                </div>
 
-                    				<img src="{{url('icons/reservas.svg')}}" alt="">
+                                <div class="form-wizard-element">
+                                    
+                                    <span>
+                                        3
+                                    </span>
 
-                    				<label>
-                    					Datos Reserva
-                    				</label>
+                                    <img src="{{url('icons/reservas.svg')}}" alt="">
 
-                    			</div>
-                    			
-                    		</div>
+                                    <label>
+                                        Datos Reserva
+                                    </label>
 
-                    		<a href="{{url('reserves')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
-                    	</div>
-                    	<div class="col-md-9">
-                    		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Entidad en la que realizar la reserva
-                    			</h4>
-                    			<small><i>Selecciona la entidad</i></small>
+                                </div>
+                                
+                            </div>
 
-                    			<br>
-                    			<br>
+                            <a href="{{url('reserves')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                                <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="form-card bs" style="min-height: 658px;">
+                                <form action="{{url('reserves/store-entity')}}" method="POST">
+                                    @csrf
+                                <h4 class="mb-0 mt-1">
+                                    Entidad en la que realizar la reserva
+                                </h4>
+                                <small><i>Selecciona la entidad</i></small>
 
-                    			<div style="min-height: 656px;">
+                                <br>
+                                <br>
 
-	                    			<table id="example2" class="table table-striped nowrap w-100">
-			                            <thead class="">
-				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>Administración</th>
-				                                <th>Provincia</th>
-				                                <th>Localidad</th>
-				                                <th>Administración</th>
-				                                <th>Status</th>
-				                            </tr>
-				                        </thead>
-				                    
-				                    
-				                        <tbody>
-				                            <tr>
-				                                <td>#EN9801</td>
-				                                <td>El Buho Lotero</td>
-				                                <td>La Rioja</td>
-				                                <td>Logroño</td>
-				                                <td>El Búho Lotero</td>
-				                                <td><label class="badge bg-success">Activo</label></td>
-				                            </tr>
-				                        </tbody>
-			                        </table>
+                                <div style="min-height: 656px;">
 
-		                        </div>
+                                    <table id="example2" class="table table-striped nowrap w-100">
+                                        <thead class="">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Nombre Entidad</th>
+                                                <th>Provincia</th>
+                                                <th>Localidad</th>
+                                                <th>Administración</th>
+                                                <th>Estado</th>
+                                                <th>Seleccionar</th>
+                                            </tr>
+                                        </thead>
+                                    
+                                    
+                                        <tbody>
+                                            @foreach($entities as $entity)
+                                            <tr>
+                                                <td>#EN{{str_pad($entity->id, 4, '0', STR_PAD_LEFT)}}</td>
+                                                <td>{{$entity->name}}</td>
+                                                <td>{{$entity->province ?? 'Sin provincia'}}</td>
+                                                <td>{{$entity->city ?? 'Sin localidad'}}</td>
+                                                <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
+                                                <td><label class="badge bg-success">Activo</label></td>
+                                                <td>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="entity_id" value="{{$entity->id}}" id="entity_{{$entity->id}}" required>
+                                                        <label class="form-check-label" for="entity_{{$entity->id}}">
+                                                            Seleccionar
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
 
+                                </div>
 
-                    			<div class="row">
-
-                    				<div class="col-12 text-end">
-                    					<a href="{{url('reserves/add/lottery')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
-                    				</div>
-
-                    			</div>
-
-                    		</div>
-                    	</div>
+                                <div class="row">
+                                    <div class="col-12 text-end">
+                                        <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+                                    </div>
+                                </div>
+                                </form>
+                            </div>
+                        </div>
 
                     </div>
-
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->

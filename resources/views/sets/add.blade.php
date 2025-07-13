@@ -88,6 +88,8 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
+                    			<form action="{{url('sets/store-entity')}}" method="POST">
+                    				@csrf
                     			<h4 class="mb-0 mt-1">
                     				Entidad en la que generar el set
                     			</h4>
@@ -101,25 +103,36 @@
 	                    			<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="">
 				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>Administración</th>
+				                                <th>ID</th>
+				                                <th>Nombre Entidad</th>
 				                                <th>Provincia</th>
 				                                <th>Localidad</th>
 				                                <th>Administración</th>
-				                                <th>Status</th>
+				                                <th>Estado</th>
+				                                <th>Seleccionar</th>
 				                            </tr>
 				                        </thead>
 				                    
 				                    
 				                        <tbody>
+				                            @foreach($entities as $entity)
 				                            <tr>
-				                                <td><a href="{{url('administrations/view',1)}}">#EN9801</a></td>
-				                                <td>El Buho Lotero</td>
-				                                <td>La Rioja</td>
-				                                <td>Logroño</td>
-				                                <td>El Búho Lotero</td>
+				                                <td>#EN{{str_pad($entity->id, 4, '0', STR_PAD_LEFT)}}</td>
+				                                <td>{{$entity->name}}</td>
+				                                <td>{{$entity->province ?? 'Sin provincia'}}</td>
+				                                <td>{{$entity->city ?? 'Sin localidad'}}</td>
+				                                <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
 				                                <td><label class="badge bg-success">Activo</label></td>
+				                                <td>
+				                                    <div class="form-check">
+				                                        <input class="form-check-input" type="radio" name="entity_id" value="{{$entity->id}}" id="entity_{{$entity->id}}" required>
+				                                        <label class="form-check-label" for="entity_{{$entity->id}}">
+				                                            Seleccionar
+				                                        </label>
+				                                    </div>
+				                                </td>
 				                            </tr>
+				                            @endforeach
 				                        </tbody>
 			                        </table>
 
@@ -129,11 +142,12 @@
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('sets/add/reserve')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+                    					<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
                     				</div>
 
                     			</div>
+                    			</form>
 
                     		</div>
                     	</div>
@@ -214,7 +228,7 @@ function initDatatable()
 
                             // $.each(api
                             //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
+                            //         console.log(val)
                             // });
 
                             api

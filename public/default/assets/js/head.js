@@ -69,28 +69,46 @@
 
     window.defaultConfig = JSON.parse(JSON.stringify(config));
 
+    // Limpiar configuración guardada para usar valores del HTML
     if (savedConfig !== null) {
-        config = JSON.parse(savedConfig);
+        // Comentar esta línea para usar valores del HTML en lugar de sessionStorage
+        // config = JSON.parse(savedConfig);
+        sessionStorage.removeItem("__UBOLD_CONFIG__");
     }
 
     window.config = config;
 
     if (config) {
-        html.setAttribute("data-bs-theme", config.theme);
-        html.setAttribute("data-layout-mode", config.layout.mode);
-        html.setAttribute("data-layout-width", config.layout.width);
-        html.setAttribute("data-topbar-color", config.topbar.color);
-        html.setAttribute("data-menu-color", config.menu.color);
-        html.setAttribute("data-menu-icon", config.menu.icon);
-        html.setAttribute("data-sidenav-size", config.sidenav.size);
+        // Solo aplicar configuración si no hay valores ya establecidos en el HTML
+        if (!html.getAttribute("data-bs-theme")) {
+            html.setAttribute("data-bs-theme", config.theme);
+        }
+        if (!html.getAttribute("data-layout-mode")) {
+            html.setAttribute("data-layout-mode", config.layout.mode);
+        }
+        if (!html.getAttribute("data-layout-width")) {
+            html.setAttribute("data-layout-width", config.layout.width);
+        }
+        if (!html.getAttribute("data-topbar-color")) {
+            html.setAttribute("data-topbar-color", config.topbar.color);
+        }
+        if (!html.getAttribute("data-menu-color")) {
+            html.setAttribute("data-menu-color", config.menu.color);
+        }
+        if (!html.getAttribute("data-menu-icon")) {
+            html.setAttribute("data-menu-icon", config.menu.icon);
+        }
+        if (!html.getAttribute("data-sidenav-size")) {
+            html.setAttribute("data-sidenav-size", config.sidenav.size);
+        }
 
-        if (html.getAttribute("data-layout") === "two-column") {
+        if (html.getAttribute("data-layout") === "two-column" && !html.getAttribute("data-two-column-color")) {
             html.setAttribute("data-two-column-color", config.sidenav.twocolumn);
         }
 
-        if (config.sidenav.user && config.sidenav.user.toString() === "true") {
+        if (config.sidenav.user && config.sidenav.user.toString() === "true" && !html.getAttribute("data-sidenav-user")) {
             html.setAttribute("data-sidenav-user", true);
-        } else {
+        } else if (!config.sidenav.user || config.sidenav.user.toString() !== "true") {
             html.removeAttribute("data-sidenav-user");
         }
     }

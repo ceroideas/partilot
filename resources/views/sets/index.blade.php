@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Set Participaciones')
+@section('title','Sets de Participaciones')
 
 @section('content')
 
@@ -10,12 +10,12 @@
     <div class="row">
         <div class="col-12">
             <div class="page-title-box">
-                <div class="page-title-right">
+            	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Set Participaciones</li>
+                        <li class="breadcrumb-item active">Sets de Participaciones</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Set Participaciones</h4>
+                <h4 class="page-title">Sets de Participaciones</h4>
             </div>
         </div>
     </div>     
@@ -25,7 +25,7 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    <div class="{{$sets->count() > 0 ? '' : 'd-none'}}">
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
@@ -61,30 +61,39 @@
                         
                         
                             <tbody>
+                                @foreach($sets as $set)
                                 <tr>
-                                    <td><a href="{{url('sets/view',1)}}">#SP9801</a></td>
-                                    <td>Set de Pruebas</td>
-                                    <td>46/25</td>
-                                    <td>05716 - 52468 - 51235 - 69584</td>
-                                    <td>2,00€</td>
-                                    <td>2,00€</td>
-                                    <td>10,00€</td>
-                                    <td>750</td>
-                                    <td>El Búho Lotero</td>
-                                    <td>La Rioja</td>
+                                    <td><a href="{{url('sets/view', $set->id)}}">#SP{{str_pad($set->id, 4, '0', STR_PAD_LEFT)}}</a></td>
+                                    <td>{{$set->set_name}}</td>
+                                    <td>{{$set->reserve->lottery ? $set->reserve->lottery->lottery_number : 'Sin sorteo'}}</td>
+                                    <td>
+                                        @if($set->reserve->reservation_numbers)
+                                            @foreach($set->reserve->reservation_numbers as $number)
+                                                {{$number}}{{!$loop->last ? ' - ' : ''}}
+                                            @endforeach
+                                        @else
+                                            <span class="text-muted">Sin números</span>
+                                        @endif
+                                    </td>
+                                    <td>{{number_format($set->played_amount ?? 0, 2)}}€</td>
+                                    <td>{{number_format($set->donation_amount ?? 0, 2)}}€</td>
+                                    <td><b>{{number_format($set->total_amount, 2)}}€</b></td>
+                                    <td>{{$set->total_participations}}</td>
+                                    <td>{{$set->entity->name ?? 'Sin entidad'}}</td>
+                                    <td>{{$set->entity->province ?? 'Sin provincia'}}</td>
                                     <td>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons/diseno.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                        <a href="{{url('sets/edit', $set->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{$set->id}}" data-name="set #{{$set->id}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
                                 </tr>
+                                @endforeach
                             </tbody>
                         </table>
 
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
-                        
+                    <div class="{{$sets->count() > 0 ? 'd-none' : ''}}">
                         <div class="d-flex align-items-center gap-1">
                             
                             <div class="empty-tables">
@@ -176,7 +185,7 @@
 
                             // $.each(api
                             //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
+                            //         console.log(val)
                             // });
 
                             api

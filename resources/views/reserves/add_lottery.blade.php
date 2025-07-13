@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Entidades')
+@section('title','Añadir Reserva')
 
 @section('content')
 
@@ -10,13 +10,13 @@
     <div class="row">
         <div class="col-12">
             <div class="page-title-box">
-            	<div class="page-title-right">
+                <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Reservas</a></li>
+                        <li class="breadcrumb-item"><a href="{{url('reserves')}}">Reservas</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Reservas</h4>
+                <h4 class="page-title">Añadir Reserva</h4>
             </div>
         </div>
     </div>     
@@ -26,158 +26,152 @@
             <div class="card">
                 <div class="card-body">
 
-            		<h4 class="header-title">
+                    <h4 class="header-title">
 
-                    	Selección Sorteo
+                        Selección Sorteo
 
                     </h4>
 
                     <br>
 
                     <div class="row">
-                    	
-                    	<div class="col-md-3" style="position: relative;">
-                    		<div class="form-card bs mb-3">
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					1
-                    				</span>
+                        <div class="col-md-3" style="position: relative;">
+                            <div class="form-card bs mb-3">
 
-                    				<img src="{{url('assets/entidad.svg')}}" alt="">
+                                <div class="form-wizard-element">
+                                    
+                                    <span>
+                                        1
+                                    </span>
 
-                    				<label>
-                    					Selec. Entidad
-                    				</label>
+                                    <img src="{{url('assets/entidad.svg')}}" alt="">
 
-                    			</div>
+                                    <label>
+                                        Selec. Entidad
+                                    </label>
 
-                    			<div class="form-wizard-element active">
-                    				
-                    				<span>
-                    					2
-                    				</span>
+                                </div>
 
-                    				<img src="{{url('icons/sorteos.svg')}}" alt="">
+                                <div class="form-wizard-element active">
+                                    
+                                    <span>
+                                        2
+                                    </span>
 
-                    				<label>
-                    					Selec. Sorteo
-                    				</label>
+                                    <img src="{{url('icons/sorteos.svg')}}" alt="">
 
-                    			</div>
+                                    <label>
+                                        Selec. Sorteo
+                                    </label>
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					3
-                    				</span>
+                                </div>
 
-                    				<img src="{{url('icons/reservas.svg')}}" alt="">
+                                <div class="form-wizard-element">
+                                    
+                                    <span>
+                                        3
+                                    </span>
 
-                    				<label>
-                    					Datos Reserva
-                    				</label>
+                                    <img src="{{url('icons/reservas.svg')}}" alt="">
 
-                    			</div>
-                    			
-                    		</div>
+                                    <label>
+                                        Datos Reserva
+                                    </label>
 
-                    		<div class="form-card">
-                    			
-                    			<div class="row">
-                					<div class="col-4">
-                						
-	                    				<div class="photo-preview-3">
-	                    					
-	                    					<i class="ri-account-circle-fill"></i>
+                                </div>
+                                
+                            </div>
 
-	                    				</div>
-	                    				
-	                    				<div style="clear: both;"></div>
-                					</div>
+                            <div class="form-card">
+                                
+                                <div class="row">
+                                    <div class="col-4">
+                                        
+                                        <div class="photo-preview-3">
+                                            
+                                            <i class="ri-account-circle-fill"></i>
 
-                					<div class="col-8 text-center mt-2">
+                                        </div>
+                                        
+                                        <div style="clear: both;"></div>
+                                    </div>
 
-                						<h3 class="mt-2 mb-0">Fademur</h3>
+                                    <div class="col-8 text-center mt-2">
 
-                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
-                						
-                					</div>
-                				</div>
+                                        <h3 class="mt-2 mb-0">{{session('selected_entity')->name ?? 'Entidad'}}</h3>
 
-                    		</div>
+                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{session('selected_entity')->city ?? 'Sin localidad'}}
+                                        
+                                    </div>
+                                </div>
 
-                    		<a href="{{url('reserves/add')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
-                    	</div>
-                    	<div class="col-md-9">
-                    		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Selecciona el sorteo para la reserva
-                    			</h4>
-                    			<small><i>Selecciona el Sorteo</i></small>
+                            </div>
 
-                    			<br>
-                    			<br>
+                            <a href="{{url('reserves/add')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                                <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="form-card bs" style="min-height: 658px;">
+                                <form action="{{url('reserves/store-lottery')}}" method="POST">
+                                    @csrf
+                                <h4 class="mb-0 mt-1">
+                                    Selecciona el sorteo para la reserva
+                                </h4>
+                                <small><i>Selecciona el Sorteo</i></small>
 
-                    			<div style="min-height: 656px;">
+                                <br>
+                                <br>
 
-	                    			<table id="example2" class="table table-striped nowrap w-100">
-			                            <thead class="">
-				                            <tr>
-				                                <th>Número</th>
-				                                <th>Nombre Sorteo</th>
-				                                <th>Tipo de Sorteo</th>
-				                                <th>Fecha Sorteo</th>
-				                                <th>Precio Décimo</th>
-				                            </tr>
-				                        </thead>
-				                    
-				                    
-				                        <tbody>
-				                            <tr>
-				                                <td>46/25</td>
-				                                <td>Sorteo Extraordinario Asociación <br> Española Contra El Cáncer</td>
-				                                <td>Sorteo Extraordinario 15€ Especial</td>
-				                                <td>07/05/2025</td>
-				                                <td><b>15.00€</b></td>
-				                            </tr>
-				                            <tr>
-				                                <td>45/25</td>
-				                                <td>Sorteo Loteria Nacional Jueves</td>
-				                                <td>Sorteo Jueves</td>
-				                                <td>05/06/2025</td>
-				                                <td><b>3.00€</b></td>
-				                            </tr>
+                                <div style="min-height: 656px;">
 
-				                            <tr>
-				                                <td>45/25</td>
-				                                <td>Sorteo Loteria Nacional Sábado</td>
-				                                <td>Sorteo Sábado</td>
-				                                <td>31/05/2025</td>
-				                                <td><b>6.00€</b></td>
-				                            </tr>
-				                        </tbody>
-			                        </table>
+                                    <table id="example2" class="table table-striped nowrap w-100">
+                                        <thead class="">
+                                            <tr>
+                                                <th>Número</th>
+                                                <th>Nombre Sorteo</th>
+                                                <th>Tipo de Sorteo</th>
+                                                <th>Fecha Sorteo</th>
+                                                <th>Precio Décimo</th>
+                                                <th>Seleccionar</th>
+                                            </tr>
+                                        </thead>
+                                    
+                                    
+                                        <tbody>
+                                            @foreach($lotteries as $lottery)
+                                            <tr>
+                                                <td>{{$lottery->name}}</td>
+                                                <td>{{$lottery->description}}</td>
+                                                <td>{{$lottery->lotteryType->name ?? 'Sin tipo'}}</td>
+                                                <td>{{$lottery->draw_date ? \Carbon\Carbon::parse($lottery->draw_date)->format('d/m/Y') : 'No definida'}}</td>
+                                                <td><b>{{number_format($lottery->ticket_price, 2)}}€</b></td>
+                                                <td>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="lottery_id" value="{{$lottery->id}}" id="lottery_{{$lottery->id}}" required>
+                                                        <label class="form-check-label" for="lottery_{{$lottery->id}}">
+                                                            Seleccionar
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
 
-		                        </div>
+                                </div>
 
-
-                    			<div class="row">
-
-                    				<div class="col-12 text-end">
-                    					<a href="{{url('reserves/add/information')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
-                    				</div>
-
-                    			</div>
-
-                    		</div>
-                    	</div>
+                                <div class="row">
+                                    <div class="col-12 text-end">
+                                        <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+                                    </div>
+                                </div>
+                                </form>
+                            </div>
+                        </div>
 
                     </div>
-
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->

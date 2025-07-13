@@ -99,9 +99,9 @@
 
                 					<div class="col-8 text-center mt-2">
 
-                						<h3 class="mt-2 mb-0">Fademur</h3>
+                						<h3 class="mt-2 mb-0">{{$entity->name ?? 'Entidad'}}</h3>
 
-                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
+                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{$entity->province ?? 'Sin provincia'}}
                 						
                 					</div>
                 				</div>
@@ -113,13 +113,14 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs">
-
+                    			<form action="{{url('sets/store-information')}}" method="POST">
+                    				@csrf
                     			<div style="min-height: 658px;">
                     				
 	                    			<h4 class="mb-0 mt-1">
 	                    				Reserva en la que generar el Set
 	                    			</h4>
-	                    			<small><i>Revisa que los datos dela reserva sean los correctos</i></small>
+	                    			<small><i>Revisa que los datos de la reserva sean los correctos</i></small>
 
 	                    			<br>
 
@@ -135,7 +136,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" readonly type="text" value="46/25" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" readonly type="text" value="{{$reserve->lottery ? $reserve->lottery->lottery_number : 'Sin número'}}" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -150,7 +151,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/17.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" readonly type="text" value="Sorteo Extraordinario Asociación Española Contra El Cáncer" placeholder="Nombre del Sorteo" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" readonly type="text" value="{{$reserve->lottery ? $reserve->lottery->description : 'Sin nombre'}}" placeholder="Nombre del Sorteo" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -169,7 +170,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" readonly type="date" value="2025/07/06" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" readonly type="text" value="{{$reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : 'Sin fecha'}}" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -184,7 +185,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" readonly type="text" value="05716 - 52468 - 51235 - 69548" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" readonly type="text" value="{{implode(' - ', $reserve->reservation_numbers ?? [])}}" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -195,7 +196,7 @@
 
 	                                            <div class="input-group input-group-merge group-form">
 
-	                                                <input class="form-control" readonly type="number" value="400" style="border-radius: 30px;">
+	                                                <input class="form-control" readonly type="number" value="{{$reserve->reservation_tickets}}" style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -210,7 +211,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" readonly type="number" step="0.01" value="6000.00" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" readonly type="number" step="0.01" value="{{$reserve->reservation_amount}}" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -234,7 +235,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/19.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="text" placeholder="Set de ejemplo" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="set_name" type="text" placeholder="Set de ejemplo" style="border-radius: 0 30px 30px 0;" required>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -249,7 +250,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="played_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -264,7 +265,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="donation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -279,7 +280,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="total_participation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -294,7 +295,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="number" placeholder="0" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="total_participations" type="number" placeholder="0" style="border-radius: 0 30px 30px 0;" required>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -309,7 +310,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="total_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" required>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -324,7 +325,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="date" value="2025/07/06" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="deadline_date" type="date" value="2025/07/06" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -348,7 +349,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="number" placeholder="600" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="physical_participations" type="number" placeholder="600" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -363,24 +364,22 @@
 	                                                    <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" type="number" placeholder="150" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="digital_participations" type="number" placeholder="150" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
 	                    			</div>
                     			</div>
 
-
-
-
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('sets?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Guardar
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
+                    					<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Guardar
+                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
                     				</div>
 
                     			</div>
+                    			</form>
 
                     		</div>
                     	</div>

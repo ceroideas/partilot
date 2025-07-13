@@ -336,16 +336,16 @@
 
                                     <br>
 
-                                    <div>
-                                        <button class="btn btn-sm btn-info add-text" data-id="2">Texto</button>
-                                        <button class="btn btn-sm btn-info add-image" data-id="2">Imagen</button>
-                                        <button class="btn btn-sm btn-info add-qr" data-id="2">QR</button>
-                                        <label class="btn btn-sm btn-info color" style="position: relative;" data-id="2">
-                                            Fondo<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-dark add-text" data-id="2">Texto</button>
+                                        <button class="btn btn-sm btn-dark add-image" data-id="2">Imagen</button>
+                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="2">QR</button> --}}
+                                        <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2">
+                                            Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-sm btn-info toggle-guide" data-id="2">Guias</button>
-                                        <label class="btn btn-sm btn-info color-guide" style="position: relative;" data-id="2">
-                                            Color Guias<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
+                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2">
+                                            Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                     </div>
 
@@ -427,18 +427,18 @@
 
                                     <br>
 
-                                    <div>
-                                        <button class="btn btn-sm btn-info add-text" data-id="3">Texto</button>
-                                        <button class="btn btn-sm btn-info add-image" data-id="3">Imagen</button>
-                                        <button class="btn btn-sm btn-info add-qr" data-id="3">QR</button>
-                                        <label class="btn btn-sm btn-info color" style="position: relative;" data-id="3">
-                                            Fondo<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-dark add-text" data-id="3">Texto</button>
+                                        <button class="btn btn-sm btn-dark add-image" data-id="3">Imagen</button>
+                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3">QR</button> --}}
+                                        <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3">
+                                            Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-sm btn-info add-top" data-id="3">Arriba</button>
-                                        <button class="btn btn-sm btn-info add-bottom" data-id="3">Abajo</button>
-                                        <button class="btn btn-sm btn-info toggle-guide" data-id="2">Guias</button>
-                                        <label class="btn btn-sm btn-info color-guide" style="position: relative;" data-id="2">
-                                            Color Guias<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                        <button class="btn btn-sm btn-dark add-top" data-id="3">Arriba</button>
+                                        <button class="btn btn-sm btn-dark add-bottom" data-id="3">Abajo</button>
+                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
+                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2">
+                                            Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                     </div>
 
@@ -487,18 +487,18 @@
 
                                     <br>
 
-                                    <div>
-                                        <button class="btn btn-sm btn-info add-text" data-id="4">Texto</button>
-                                        <button class="btn btn-sm btn-info add-image" data-id="4">Imagen</button>
-                                        <button class="btn btn-sm btn-info add-qr" data-id="4">QR</button>
-                                        <label class="btn btn-sm btn-info color" style="position: relative;" data-id="4">
-                                            Fondo<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-dark add-text" data-id="4">Texto</button>
+                                        <button class="btn btn-sm btn-dark add-image" data-id="4">Imagen</button>
+                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="4">QR</button> --}}
+                                        <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4">
+                                            Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-sm btn-info add-top" data-id="4">Arriba</button>
-                                        <button class="btn btn-sm btn-info add-bottom" data-id="4">Abajo</button>
-                                        <button class="btn btn-sm btn-info toggle-guide" data-id="2">Guias</button>
-                                        <label class="btn btn-sm btn-info color-guide" style="position: relative;" data-id="2">
-                                            Color Guias<input type="color" style="opacity: 0; position: absolute; top: 0;">
+                                        <button class="btn btn-sm btn-dark add-top" data-id="4">Arriba</button>
+                                        <button class="btn btn-sm btn-dark add-bottom" data-id="4">Abajo</button>
+                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
+                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2">
+                                            Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                     </div>
 
@@ -1055,7 +1055,7 @@ function initDatatable()
         $('.elements.text').dblclick(editelements);
         $('.elements.context').dblclick(deleteElements);
         $('.elements.images').dblclick(changeImage);
-        $('.elements.qr').dblclick(setQRtext);
+        {{-- $('.elements.qr').dblclick(setQRtext); --}}
 
         if ($('#containment-wrapper'+step).length) {
             if(localStorage.getItem('bg-step'+step)){
@@ -1098,7 +1098,7 @@ function initDatatable()
           $('.elements.text').dblclick(editelements);
           $('.elements.context').dblclick(deleteElements);
           $('.elements.images').dblclick(changeImage);
-          $('.elements.qr').dblclick(setQRtext);
+          {{-- $('.elements.qr').dblclick(setQRtext); --}}
 
           if ($('#containment-wrapper'+step).length) {
               if(localStorage.getItem('bg-step'+step)){
@@ -1354,7 +1354,7 @@ function initDatatable()
       $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
 
       $('.elements.qr').unbind('dblclick',setQRtext);
-      $('.elements.qr').dblclick(setQRtext);
+      {{-- $('.elements.qr').dblclick(setQRtext); --}}
       addEventsElement();
   });
 

@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Entidades')
+@section('title','Añadir Reserva')
 
 @section('content')
 
@@ -10,13 +10,13 @@
     <div class="row">
         <div class="col-12">
             <div class="page-title-box">
-            	<div class="page-title-right">
+                <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Reservas</a></li>
+                        <li class="breadcrumb-item"><a href="{{url('reserves')}}">Reservas</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Reservas</h4>
+                <h4 class="page-title">Añadir Reserva</h4>
             </div>
         </div>
     </div>     
@@ -26,101 +26,101 @@
             <div class="card">
                 <div class="card-body">
 
-            		<h4 class="header-title">
+                    <h4 class="header-title">
 
-                    	Datos de la Reserva
+                        Datos de la Reserva
 
                     </h4>
 
                     <br>
 
                     <div class="row">
-                    	
-                    	<div class="col-md-3" style="position: relative;">
-                    		<div class="form-card bs mb-3">
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					1
-                    				</span>
+                        <div class="col-md-3" style="position: relative;">
+                            <div class="form-card bs mb-3">
 
-                    				<img src="{{url('assets/entidad.svg')}}" alt="">
+                                <div class="form-wizard-element">
+                                    
+                                    <span>
+                                        1
+                                    </span>
 
-                    				<label>
-                    					Selec. Entidad
-                    				</label>
+                                    <img src="{{url('assets/entidad.svg')}}" alt="">
 
-                    			</div>
+                                    <label>
+                                        Selec. Entidad
+                                    </label>
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					2
-                    				</span>
+                                </div>
 
-                    				<img src="{{url('icons/sorteos.svg')}}" alt="">
+                                <div class="form-wizard-element">
+                                    
+                                    <span>
+                                        2
+                                    </span>
 
-                    				<label>
-                    					Selec. Sorteo
-                    				</label>
+                                    <img src="{{url('icons/sorteos.svg')}}" alt="">
 
-                    			</div>
+                                    <label>
+                                        Selec. Sorteo
+                                    </label>
 
-                    			<div class="form-wizard-element active">
-                    				
-                    				<span>
-                    					3
-                    				</span>
+                                </div>
 
-                    				<img src="{{url('icons/reservas.svg')}}" alt="">
+                                <div class="form-wizard-element active">
+                                    
+                                    <span>
+                                        3
+                                    </span>
 
-                    				<label>
-                    					Datos Reserva
-                    				</label>
+                                    <img src="{{url('icons/reservas.svg')}}" alt="">
 
-                    			</div>
-                    			
-                    		</div>
+                                    <label>
+                                        Datos Reserva
+                                    </label>
 
-                    		<div class="form-card">
-                    			
-                    			<div class="row">
-                					<div class="col-4">
-                						
-	                    				<div class="photo-preview-3">
-	                    					
-	                    					<i class="ri-account-circle-fill"></i>
+                                </div>
+                                
+                            </div>
 
-	                    				</div>
-	                    				
-	                    				<div style="clear: both;"></div>
-                					</div>
+                            <div class="form-card">
+                                
+                                <div class="row">
+                                    <div class="col-4">
+                                        
+                                        <div class="photo-preview-3">
+                                            
+                                            <i class="ri-account-circle-fill"></i>
 
-                					<div class="col-8 text-center mt-2">
+                                        </div>
+                                        
+                                        <div style="clear: both;"></div>
+                                    </div>
 
-                						<h3 class="mt-2 mb-0">Fademur</h3>
+                                    <div class="col-8 text-center mt-2">
 
-                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
-                						
-                					</div>
-                				</div>
+                                        <h3 class="mt-2 mb-0">{{session('selected_entity')->name ?? 'Entidad'}}</h3>
 
-                    		</div>
+                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{session('selected_entity')->province ?? 'Sin provincia'}}
+                                        
+                                    </div>
+                                </div>
 
-                    		<a href="{{url('reserves/add/lottery')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                    						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
-                    	</div>
-                    	<div class="col-md-9">
-                    		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Datos del Sorteo
-                    			</h4>
-                    			<small><i>Comprueba que el sorteo es el correcto</i></small>
+                            </div>
 
-                    			<br>
+                            <a href="{{url('reserves/add/lottery')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                                <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="form-card bs" style="min-height: 658px;">
+                                <h4 class="mb-0 mt-1">
+                                    Datos del Sorteo
+                                </h4>
+                                <small><i>Comprueba que el sorteo es el correcto</i></small>
 
-                    			<div class="row show-content">
+                                <br>
+
+                                <div class="row show-content">
                                     
                                     <div class="col-3 offset-2">
                                         <div class="form-group mt-2 mb-3">
@@ -132,7 +132,7 @@
                                                     <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="text" value="46/25" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->name ?? ''}}" placeholder="Número" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -147,14 +147,13 @@
                                                     <img src="{{url('assets/form-groups/admin/17.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="text" value="Sorteo Extraordinario Asociación Española Contra El Cáncer" placeholder="Nombre del Sorteo" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->description ?? ''}}" placeholder="Nombre del Sorteo" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="row show-content">
-                                            
                                     
                                     <div class="col-4 offset-2">
                                         <div class="form-group mt-2 mb-3">
@@ -166,12 +165,7 @@
                                                     <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                 </div>
 
-                                                <select disabled class="form-control" name="" id="" style="border-radius: 0 30px 30px 0;">
-                                                	<option value="" disabled>Sorteo de Ejemplo</option>
-                                                	<option value="sabado" selected>Sorteo Extraordinario de 15€</option>
-                                                	<option value="sabado">Sorteo Sábado</option>
-                                                	<option value="jueves">Sorteo Jueves</option>
-                                                </select>
+                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->lotteryType->name ?? 'Sin tipo'}}" placeholder="Tipo de Sorteo" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -186,7 +180,7 @@
                                                     <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="number" value="15.00" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="number" value="{{session('selected_lottery')->ticket_price ?? 0}}" step="0.01" placeholder="0.00€" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -201,91 +195,106 @@
                                                     <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="date" value="2025-06-07" placeholder="15/01/2025" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->draw_date ? \Carbon\Carbon::parse(session('selected_lottery')->draw_date)->format('d/m/Y') : 'No definida'}}" placeholder="Fecha" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                    			<h4 class="mb-0 mt-1">
-                    				Configuración de la Reserva
-                    			</h4>
-                    			<small><i>Introduce los datos de la reserva</i></small>
+                                <h4 class="mb-0 mt-1">
+                                    Configuración de la Reserva
+                                </h4>
+                                <small><i>Introduce los datos de la reserva</i></small>
 
-                    			<br>
-                    			<br>
+                                <br>
+                                <br>
 
-                    			<div style="min-height: 256px;">
+                                <div style="min-height: 256px;">
 
-                    				<div class="row">
+                                    <form action="{{url('reserves/store-information')}}" method="POST">
+                                        @csrf
 
-                                        <div class="col-1">
 
-                                            <button style="border-radius: 30px; width: 46px; height: 46px; background-color: #333; color: #333; padding: 8px; font-weight: bolder;" class="btn btn-md btn-light mt-3 add-number">
-                                            <i style="top: 6px; font-size: 18px; color: #fff" class="ri-add-line"></i></button>
-                                            
-                                        </div>
 
-                                        <div class="col-11">
-                                            <div class="row" id="numbers">
-                                                <div class="col-3">
-                                                    <div class="form-group mt-2 mb-3">
-                                                        <label class="label-control">Número</label>
+                                        <div class="row">
 
-                                                        <div class="input-group input-group-merge group-form">
+                                            <div class="col-1">
 
-                                                            <input class="form-control" type="number" placeholder="" style="border-radius: 30px;">
+                                                <button type="button" style="border-radius: 30px; width: 46px; height: 46px; background-color: #333; color: #333; padding: 8px; font-weight: bolder;" class="btn btn-md btn-light mt-3 add-number">
+                                                <i style="top: 6px; font-size: 18px; color: #fff" class="ri-add-line"></i></button>
+                                                
+                                            </div>
+
+                                            <div class="col-11">
+                                                <div class="row" id="numbers">
+                                                    <div class="col-3">
+                                                        <div class="form-group mt-2 mb-3">
+                                                            <label class="label-control">Número</label>
+
+                                                            <div class="input-group input-group-merge group-form">
+
+                                                                <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px;" required>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                            </div>  
+                                                </div>  
+
+                                            </div>
 
                                         </div>
-                    				</div>
 
-                    				<div class="row">
-                    					<div class="col-3">
-	                                        <div class="form-group mt-2 mb-3">
-	                                            <label class="label-control">Importe a Reservar</label>
+                                        <div class="row">
 
-	                                            <div class="input-group input-group-merge group-form">
+                                            <div class="col-3">
+                                                <div class="form-group mt-2 mb-3">
+                                                    <label class="label-control">Importe a Reservar</label>
 
-	                                                <input class="form-control" type="number" step="0.01" placeholder="" style="border-radius: 30px;">
-	                                            </div>
-	                                        </div>
-	                                    </div>
+                                                    <div class="input-group input-group-merge group-form">
 
-	                                    <div class="col-3">
-	                                        <div class="form-group mt-2 mb-3">
-	                                            <label class="label-control">Cantidad de décimos</label>
+                                                        <input class="form-control @error('reservation_amount') is-invalid @enderror" type="number" step="0.01" name="reservation_amount" value="{{old('reservation_amount')}}" placeholder="0.00" style="border-radius: 30px;" required>
+                                                    </div>
+                                                    @error('reservation_amount')
+                                                        <div class="text-danger small">{{$message}}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
 
-	                                            <div class="input-group input-group-merge group-form">
+                                            <div class="col-3">
+                                                <div class="form-group mt-2 mb-3">
+                                                    <label class="label-control">Cantidad de décimos</label>
 
-	                                                <input class="form-control" type="number" placeholder="" style="border-radius: 30px;">
-	                                            </div>
-	                                        </div>
-	                                    </div>
-                    				</div>
-	                    			
+                                                    <div class="input-group input-group-merge group-form">
 
-		                        </div>
+                                                        <input class="form-control @error('reservation_tickets') is-invalid @enderror" type="number" name="reservation_tickets" value="{{old('reservation_tickets')}}" placeholder="0" style="border-radius: 30px;" required>
+                                                    </div>
+                                                    @error('reservation_tickets')
+                                                        <div class="text-danger small">{{$message}}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+
+                                        </div>
 
 
-                    			<div class="row">
 
-                    				<div class="col-12 text-end">
-                    					<a href="{{url('reserves?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-	                    					<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
-                    				</div>
+                                        <div class="row">
 
-                    			</div>
+                                            <div class="col-12 text-end">
+                                                <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
+                                                    <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+                                            </div>
 
-                    		</div>
-                    	</div>
+                                        </div>
+
+                                    </form>
+
+                                </div>
+
+                            </div>
+                        </div>
 
                     </div>
-
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->
@@ -301,114 +310,43 @@
 
 <script>
 
-function initDatatable() 
-  {
-    $("#example2").DataTable({
+$('.add-number').click(function (e) {
+    e.preventDefault();
 
-      "select":{style:"single"},
+    $('#numbers').append(`<div class="col-3">
+                            <div class="form-group mt-2 mb-3">
+                                <label class="label-control">Número</label>
 
-      "ordering": false,
-      "sorting": false,
+                                <div class="input-group input-group-merge group-form">
 
-      "scrollX": true, "scrollCollapse": true,
-        orderCellsTop: true,
-        fixedHeader: true,
-        initComplete: function () {
-            var api = this.api();
- 
-            // For each column
-            api
-                .columns()
-                .eq(0)
-                .each(function (colIdx) {
-                    // Set the header cell to contain the input element
-                    var cell = $('.filters th').eq(
-                        $(api.column(colIdx).header()).index()
-                    );
-                    var title = $(cell).text();
-                    if ($(cell).hasClass('no-filter')) {
-                      $(cell).addClass('sorting_disabled').html(title);
-                    }else{
-                      $(cell).addClass('sorting_disabled').html('<input type="text" class="inline-fields" placeholder="' + title + '" />');
-                    }
- 
-                    // On every keypress in this input
-                    $(
-                        'input',
-                        $('.filters th').eq($(api.column(colIdx).header()).index())
-                    )
-                        .off('keyup change')
-                        .on('keyup change', function (e) {
-                            e.stopPropagation();
- 
-                            // Get the search value
-                            $(this).attr('title', $(this).val());
-                            var regexr = '({search})'; //$(this).parents('th').find('select').val();
- 
-                            var cursorPosition = this.selectionStart;
-                            // Search the column for that value
-
-                            // console.log(val.replace(/<select[\s\S]*?<\/select>/,''));
-                            let wSelect = false;
-                            $.each(api.column(colIdx).data(), function(index, val) {
-                               if (val.indexOf('<select') == -1) {
-                                wSelect = false;
-                               }else{
-                                wSelect = true;
-                               }
-                            });
-
-                            // $.each(api
-                            //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
-                            // });
-
-                            api
-                                .column(colIdx)
-                                .search(
-
-                                  (wSelect ?
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((selected' + this.value + ')))')
-                                        : '')
-                                    :
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((' + this.value + ')))')
-                                        : '')),
-
-                                    this.value != '',
-                                    this.value == ''
-                                ).draw()
- 
-                            $(this)
-                                .focus()[0]
-                                .setSelectionRange(cursorPosition, cursorPosition);
-                        });
-                });
-        }
-    });
-  }
-
-  initDatatable();
-
-  setTimeout(()=>{
-    $('.filters .inline-fields:first').trigger('keyup');
-  },100);
-
-  $('.add-number').click(function (e) {
-      e.preventDefault();
-
-      $('#numbers').append(`<div class="col-3">
-                                <div class="form-group mt-2 mb-3">
-                                    <label class="label-control">Número</label>
-
-                                    <div class="input-group input-group-merge group-form">
-
-                                        <input class="form-control" type="number" placeholder="" style="border-radius: 30px;">
-                                    </div>
+                                    <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px;" required>
                                 </div>
-                            </div>`);
-  });
+                            </div>
+                        </div>`);
+});
+
+// Calcular total automáticamente
+$('.reservation-number').on('input', function() {
+    calculateTotal();
+});
+
+$(document).on('input', '.reservation-number', function() {
+    calculateTotal();
+});
+
+function calculateTotal() {
+    const numbers = $('.reservation-number').map(function() {
+        return $(this).val().trim();
+    }).get().filter(val => val !== '');
+
+    const ticketPrice = {{session('selected_lottery')->ticket_price ?? 0}};
+    const totalTickets = numbers.length;
+    const totalAmount = totalTickets * ticketPrice;
+
+    // Actualizar campos readonly
+    $('input[readonly]').eq(0).val(totalAmount.toFixed(2) + '€');
+    $('input[readonly]').eq(1).val(totalTickets);
+}
 
 </script>
 

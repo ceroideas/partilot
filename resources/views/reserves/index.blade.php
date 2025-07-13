@@ -25,7 +25,7 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    <div class="{{$reserves->count() > 0 ? '' : 'd-none'}}">
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
@@ -61,30 +61,39 @@
                         
                         
                             <tbody>
+                                @foreach($reserves as $reserve)
                                 <tr>
-                                    <td><a href="{{url('reserves/view',1)}}">#RS9801</a></td>
-                                    <td>El Buho Lotero</td>
-                                    <td>La Rioja</td>
-                                    <td>46/25</td>
-                                    <td>07/06/2025</td>
-                                    <td>Sorteo Extraordinario Asociación <br> Española Contra El Cáncer</td>
-                                    <td>05716 - 52468 - 51235 - 69584</td>
-                                    <td>1.500 €</td>
-                                    <td>100</td>
-                                    <td>6.000 €</td>
+                                    <td><a href="{{url('reserves/view', $reserve->id)}}">#RS{{str_pad($reserve->id, 4, '0', STR_PAD_LEFT)}}</a></td>
+                                    <td>{{$reserve->entity->name ?? 'Sin entidad'}}</td>
+                                    <td>{{$reserve->entity->province ?? 'Sin provincia'}}</td>
+                                    <td>{{$reserve->lottery->name ?? 'Sin sorteo'}}</td>
+                                    <td>{{$reserve->lottery->draw_date ? \Carbon\Carbon::parse($reserve->lottery->draw_date)->format('d/m/Y') : 'No definida'}}</td>
+                                    <td>{{$reserve->lottery->description ?? 'Sin descripción'}}</td>
+                                    <td>
+                                        @if($reserve->reservation_numbers)
+                                            @foreach($reserve->reservation_numbers as $number)
+                                                {{$number}}{{!$loop->last ? ' - ' : ''}}
+                                            @endforeach
+                                        @else
+                                            <span class="text-muted">Sin números</span>
+                                        @endif
+                                    </td>
+                                    <td>{{number_format($reserve->reservation_amount ?? 0, 2)}}€</td>
+                                    <td>{{$reserve->reservation_tickets ?? 0}}</td>
+                                    <td><b>{{number_format($reserve->total_amount, 2)}}€</b></td>
                                     <td>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons/participations.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                        <a href="{{url('reserves/edit', $reserve->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{$reserve->id}}" data-name="reserva #{{$reserve->id}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
                                 </tr>
+                                @endforeach
                             </tbody>
                         </table>
 
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
-                        
+                    <div class="{{$reserves->count() > 0 ? 'd-none' : ''}}">
                         <div class="d-flex align-items-center gap-1">
                             
                             <div class="empty-tables">
@@ -210,6 +219,16 @@
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+
+  // Eliminar reserva
+  $('.delete-btn').on('click', function() {
+    const id = $(this).data('id');
+    const name = $(this).data('name');
+    
+    if (confirm('¿Estás seguro de que quieres eliminar la reserva de "' + name + '"?')) {
+      window.location.href = '{{url("reserves/delete")}}/' + id;
+    }
+  });
 
 </script>
 

@@ -146,144 +146,150 @@
                     			
                     			<br>
 
-                    			<div>
+                    			<form action="{{url('administrations/store')}}" method="POST" enctype="multipart/form-data">
 
-                    				<div class="row">
-                    					
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Nombre</label>
+                    				@csrf()
+
+	                    			<div>
+
+	                    				<div class="row">
+	                    					
+	                    					<div class="col-4">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">Nombre</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+					                                    </div>
+
+					                                    <input class="form-control" type="text" name="name" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+	                    					<div class="col-4">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">Primer Apellido</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+					                                    </div>
+
+					                                    <input class="form-control" type="text" name="last_name" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+
+	                    					<div class="col-4">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">Segundo Apellido</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+					                                    </div>
+
+					                                    <input class="form-control" type="text" name="last_name2" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+	                    					
+	                    					<div class="col-2">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">NIF/CIF</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+					                                    </div>
+
+					                                    <input class="form-control" type="text" name="nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+
+	                    					<div class="col-3">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">F. Nacimiento</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
+					                                    </div>
+
+					                                    <input class="form-control" type="date" name="birthday" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+
+	                    					<div class="col-4">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">Email</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
+					                                    </div>
+
+					                                    <input class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+
+	                    					<div class="col-3">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">Teléfono</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
+					                                    </div>
+
+					                                    <input class="form-control" type="phone" name="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+
+	                    				</div>
+	                    				
+	                    			</div>
+
+	                    			<h4 class="mb-0 mt-1">
+	                    				Comentarios
+	                    			</h4>
+	                    			<small><i>Puedes añadir un comentario si necesitas añadir información adicional <br> sobre la entidad. Puedes añadir comentarios mas tarde.</i></small>
+
+	                    			<div class="row">
+	                    				
+	                    				<div class="col-8">
+	                    					
+	                    					<div class="form-group mt-2">
+				                    			<label class="label-control">Comentario</label>
 
 				                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+				                                    <textarea class="form-control" name="comment" placeholder="Añade tu comentario" id="" rows="6"></textarea>
 				                                </div>
 			                    			</div>
-                    					</div>
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Primer Apellido</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+	                    				</div>
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
+	                    				<div class="col-4 text-end">
+	                    					<button style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
+	                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+	                    				</div>
 
-				                                    <input class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
+	                    			</div>
 
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Segundo Apellido</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-                    					
-                    					<div class="col-2">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">NIF/CIF</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-
-                    					<div class="col-3">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">F. Nacimiento</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-
-                    					<div class="col-4">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Email</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-
-                    					<div class="col-3">
-                    						<div class="form-group mt-2 mb-3">
-                    							<label class="label-control">Teléfono</label>
-
-				                    			<div class="input-group input-group-merge group-form">
-
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
-				                                    </div>
-
-				                                    <input class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    					</div>
-
-                    				</div>
-                    				
-                    			</div>
-
-                    			<h4 class="mb-0 mt-1">
-                    				Comentarios
-                    			</h4>
-                    			<small><i>Puedes añadir un comentario si necesitas añadir información adicional <br> sobre la entidad. Puedes añadir comentarios mas tarde.</i></small>
-
-                    			<div class="row">
-                    				
-                    				<div class="col-8">
-                    					
-                    					<div class="form-group mt-2">
-			                    			<label class="label-control">Comentario</label>
-
-			                    			<div class="input-group input-group-merge group-form">
-
-			                                    <textarea class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6"></textarea>
-			                                </div>
-		                    			</div>
-
-                    				</div>
-
-                    				<div class="col-4 text-end">
-                    					<a href="{{url('administrations?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
-                    				</div>
-
-                    			</div>
+                    			</form>
 
                     		</div>
                     	</div>

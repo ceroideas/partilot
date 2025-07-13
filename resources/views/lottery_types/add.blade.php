@@ -35,7 +35,9 @@
 
                     <br>
 
-                    <div class="row">
+                    <form action="{{ route('lottery-types.store') }}" method="POST">
+                        @csrf
+                        <div class="row">
                     	
                     	<div class="col-md-9">
                     		
@@ -44,7 +46,7 @@
                     				<div class="form-card bs mb-3">
 
                                         <h4 class="mb-0 mt-1">
-                                            Editión tipos de Sorteo
+                                            Crear Tipo de Sorteo
                                         </h4>
                                         <small><i>Todos los campos son obligatorios</i></small>
 
@@ -62,8 +64,11 @@
                                                             <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                         </div>
 
-                                                        <input class="form-control" type="text" placeholder="Nombre del Tipo de Sorteo" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" type="text" name="name" placeholder="Nombre del Tipo de Sorteo" style="border-radius: 0 30px 30px 0;" value="{{ old('name') }}" required>
                                                     </div>
+                                                    @error('name')
+                                                        <small class="text-danger">{{ $message }}</small>
+                                                    @enderror
                                                 </div>
                                             </div>
                                             <div class="col-3">
@@ -76,8 +81,11 @@
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
 
-                                                        <input class="form-control" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" type="number" step="0.01" name="ticket_price" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" value="{{ old('ticket_price') }}" required>
                                                     </div>
+                                                    @error('ticket_price')
+                                                        <small class="text-danger">{{ $message }}</small>
+                                                    @enderror
                                                 </div>
                                             </div>
                                         </div>
@@ -99,59 +107,12 @@
                                                 <div class="form-group mt-2 mb-3">
 
                                                     <div class="input-group input-group-merge group-form">
-                                                        <input class="form-control" type="text" placeholder="Categoria de Premio" style="">
+                                                        <input class="form-control" type="text" id="prizeSearch" placeholder="Buscar categoría de premio" style="">
                                                     </div>
 
-                                                    <div class="bs p-2" style="height: 200px; overflow: auto; border-top: 1px solid silver;">
+                                                    <div class="bs p-2" style="height: 200px; overflow: auto; border-top: 1px solid silver;" id="availablePrizes">
 
-                                                        <li style="list-style: none;" class="mb-2">
-                                                            <label style="position: relative; top: 4px;">Primer premio</label>
-                                                            <div class="float-end">
-                                                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize">Añadir</button>
-                                                            </div>
-                                                            <div class="clearfix"></div>
-                                                        </li>
-
-                                                        <li style="list-style: none;" class="mb-2">
-                                                            <label style="position: relative; top: 4px;">Primer premio</label>
-                                                            <div class="float-end">
-                                                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize">Añadir</button>
-                                                            </div>
-                                                            <div class="clearfix"></div>
-                                                        </li>
-
-                                                        <li style="list-style: none;" class="mb-2">
-                                                            <label style="position: relative; top: 4px;">Primer premio</label>
-                                                            <div class="float-end">
-                                                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize">Añadir</button>
-                                                            </div>
-                                                            <div class="clearfix"></div>
-                                                        </li>
-
-                                                        <li style="list-style: none;" class="mb-2">
-                                                            <label style="position: relative; top: 4px;">Primer premio</label>
-                                                            <div class="float-end">
-                                                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize">Añadir</button>
-                                                            </div>
-                                                            <div class="clearfix"></div>
-                                                        </li>
-
-                                                        <li style="list-style: none;" class="mb-2">
-                                                            <label style="position: relative; top: 4px;">Primer premio</label>
-                                                            <div class="float-end">
-                                                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize">Añadir</button>
-                                                            </div>
-                                                            <div class="clearfix"></div>
-                                                        </li>
-
-                                                        <li style="list-style: none;" class="mb-2">
-                                                            <label style="position: relative; top: 4px;">Primer premio</label>
-                                                            <div class="float-end">
-                                                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize">Añadir</button>
-                                                            </div>
-                                                            <div class="clearfix"></div>
-                                                        </li>
-
+                                                        <!-- Las categorías se cargarán dinámicamente aquí -->
                                                         
                                                     </div>
                                                 </div>
@@ -197,6 +158,9 @@
                                         <div class="p-2" style="overflow: auto; border-top: 1px solid silver;" id="prizes-selected">
                                             
                                         </div>
+                                        
+                                        <!-- Campo oculto para enviar las categorías seleccionadas -->
+                                        <input type="hidden" name="prize_categories" id="prize_categories_input">
                                     </div>
                                     
                                 </div>
@@ -205,9 +169,10 @@
                     	</div>
 
                         <div class="col-12 text-end">
-                            <a href="{{url('lottery_types?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-                                <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
+                            <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
+                                <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
                         </div>
+                    </form>
 
                     </div>
 
@@ -225,40 +190,127 @@
 @section('scripts')
 
 <script>
+    let selectedPrizes = [];
+    let availablePrizes = [];
 
-    $('.add-prize').click(function (e) {
+    // Cargar categorías disponibles al cargar la página
+    $(document).ready(function() {
+        loadAvailablePrizes();
+    });
+
+    // Función para cargar las categorías disponibles
+    function loadAvailablePrizes() {
+        $.ajax({
+            url: '{{ route("lottery-types.available-categories") }}',
+            method: 'GET',
+            success: function(response) {
+                availablePrizes = response;
+                displayAvailablePrizes();
+            },
+            error: function() {
+                console.error('Error al cargar categorías');
+            }
+        });
+    }
+
+    // Función para mostrar las categorías disponibles
+    function displayAvailablePrizes() {
+        let html = '';
+        availablePrizes.forEach(function(prize) {
+            if (!selectedPrizes.includes(prize)) {
+                html += `<li style="list-style: none;" class="mb-2">
+                            <label style="position: relative; top: 4px;">${prize}</label>
+                            <div class="float-end">
+                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize" data-prize="${prize}">Añadir</button>
+                            </div>
+                            <div class="clearfix"></div>
+                        </li>`;
+            }
+        });
+        $('#availablePrizes').html(html);
+    }
+
+    // Función para agregar premio
+    $(document).on('click', '.add-prize', function(e) {
         e.preventDefault();
-
-        $(this).prop('disabled', true);
-
+        
+        let prize = $(this).data('prize');
+        selectedPrizes.push(prize);
+        
         $('#added-prizes').removeClass('d-none');
         $('#empty-prizes').addClass('d-none');
 
         let html = `<li style="list-style: none;" class="mb-2">
-                        <label style="position: relative; top: 4px;">Primer premio</label>
+                        <label style="position: relative; top: 4px;">${prize}</label>
                         <div class="float-end">
-                            <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize"><i class="ri-delete-bin-6-line"></i></button>
+                            <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize" data-prize="${prize}"><i class="ri-delete-bin-6-line"></i></button>
                         </div>
                         <div class="clearfix"></div>
                     </li>`;
 
         $('#prizes-selected').append(html);
-
-        $('.remove-prize').unbind('click',removePrize);
-        $('.remove-prize').bind('click',removePrize);
+        
+        // Actualizar el campo oculto
+        updateHiddenField();
+        
+        // Actualizar la lista de disponibles
+        displayAvailablePrizes();
     });
 
-    function removePrize()
-    {
+    // Función para remover premio
+    $(document).on('click', '.remove-prize', function() {
+        let prize = $(this).data('prize');
+        let index = selectedPrizes.indexOf(prize);
+        if (index > -1) {
+            selectedPrizes.splice(index, 1);
+        }
+        
         $(this).parents('li').remove();
 
-        $('.add-prize:disabled:last').prop('disabled',false);
-
-        if ($('.remove-prize').length == 0) {
+        if (selectedPrizes.length == 0) {
             $('#added-prizes').addClass('d-none');
             $('#empty-prizes').removeClass('d-none');
         }
+        
+        // Actualizar el campo oculto
+        updateHiddenField();
+        
+        // Actualizar la lista de disponibles
+        displayAvailablePrizes();
+    });
+
+    // Función para actualizar el campo oculto
+    function updateHiddenField() {
+        $('#prize_categories_input').val(JSON.stringify(selectedPrizes));
     }
+
+    // Búsqueda de categorías
+    $('#prizeSearch').on('input', function() {
+        let searchTerm = $(this).val().toLowerCase();
+        let html = '';
+        
+        availablePrizes.forEach(function(prize) {
+            if (!selectedPrizes.includes(prize) && prize.toLowerCase().includes(searchTerm)) {
+                html += `<li style="list-style: none;" class="mb-2">
+                            <label style="position: relative; top: 4px;">${prize}</label>
+                            <div class="float-end">
+                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize" data-prize="${prize}">Añadir</button>
+                            </div>
+                            <div class="clearfix"></div>
+                        </li>`;
+            }
+        });
+        $('#availablePrizes').html(html);
+    });
+
+    // Validación del formulario
+    $('form').on('submit', function(e) {
+        if (selectedPrizes.length === 0) {
+            e.preventDefault();
+            alert('Debe seleccionar al menos una categoría de premio');
+            return false;
+        }
+    });
 
 </script>
 

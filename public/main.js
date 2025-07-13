@@ -157,3 +157,48 @@ const editorConfig = {
 	licenseKey: LICENSE_KEY,
 	placeholder: 'Escribe aquí...'
 };
+
+// Script para limpiar la configuración del tema y respetar los valores del HTML
+document.addEventListener('DOMContentLoaded', function() {
+    // Limpiar sessionStorage para usar valores del HTML
+    if (sessionStorage.getItem("__UBOLD_CONFIG__")) {
+        sessionStorage.removeItem("__UBOLD_CONFIG__");
+        console.log("Configuración del tema limpiada. Usando valores del HTML.");
+    }
+    
+    // Forzar la aplicación de los valores del HTML
+    const html = document.documentElement;
+    
+    // Verificar y aplicar valores si no están establecidos
+    if (!html.getAttribute("data-bs-theme")) {
+        html.setAttribute("data-bs-theme", "light");
+    }
+    if (!html.getAttribute("data-layout-mode")) {
+        html.setAttribute("data-layout-mode", "detached");
+    }
+    if (!html.getAttribute("data-topbar-color")) {
+        html.setAttribute("data-topbar-color", "light");
+    }
+    if (!html.getAttribute("data-menu-color")) {
+        html.setAttribute("data-menu-color", "light");
+    }
+    if (!html.getAttribute("data-sidenav-size")) {
+        html.setAttribute("data-sidenav-size", "default");
+    }
+    
+    console.log("Valores del tema aplicados desde el HTML:");
+    console.log("data-bs-theme:", html.getAttribute("data-bs-theme"));
+    console.log("data-layout-mode:", html.getAttribute("data-layout-mode"));
+    console.log("data-topbar-color:", html.getAttribute("data-topbar-color"));
+    console.log("data-menu-color:", html.getAttribute("data-menu-color"));
+    console.log("data-sidenav-size:", html.getAttribute("data-sidenav-size"));
+});
+
+// Función para resetear la configuración del tema
+function resetThemeSettings() {
+    sessionStorage.removeItem("__UBOLD_CONFIG__");
+    location.reload();
+}
+
+// Agregar función global para resetear tema
+window.resetThemeSettings = resetThemeSettings;

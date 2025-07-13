@@ -70,7 +70,19 @@
                         <!-- title-->
 
                         <!-- form -->
-                        <form action="{{url('/')}}">
+                        <form action="{{url('/login')}}" method="POST">
+                            @csrf
+                            
+                            @if ($errors->any())
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                            
                             <div class="mb-3">
                                 {{-- <label for="emailaddress" class="form-label">Email</label> --}}
                                 <div class="input-group input-group-merge group-login">
@@ -79,7 +91,7 @@
                                         <span class="ri-mail-line"></span>
                                     </div>
 
-                                    <input class="form-control" type="email" id="emailaddress" placeholder="Ingresa tu email" style="border-radius: 0 30px 30px 0;">
+                                    <input class="form-control @error('email') is-invalid @enderror" type="email" name="email" id="emailaddress" placeholder="Ingresa tu email" value="{{ old('email') }}" style="border-radius: 0 30px 30px 0;" required>
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -92,7 +104,7 @@
                                         <span class="ri-lock-line"></span>
                                     </div>
 
-                                    <input type="password" id="password" class="form-control" placeholder="Ingresa tu contraseña">
+                                    <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" placeholder="Ingresa tu contraseña" required>
                                     <div class="input-group-text" data-password="false" style="border-radius: 0 30px 30px 0;">
                                         <span class="password-eye"></span>
                                     </div>
@@ -102,7 +114,7 @@
                             <div class="mb-3">
                                 <div class="form-check text-end">
                                     <label class="form-check-label float-end" for="checkbox-signin">Recordar contraseña</label>
-                                    <input type="checkbox" class="form-check-input float-end" id="checkbox-signin" style="margin-right: 8px;">
+                                    <input type="checkbox" name="remember" class="form-check-input float-end" id="checkbox-signin" style="margin-right: 8px;">
                                 </div>
                             </div>
                             <div style="clear: both"></div>

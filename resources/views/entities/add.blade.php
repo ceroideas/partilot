@@ -88,38 +88,51 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Administración a la que pertenece la entidad
-                    			</h4>
-                    			<small><i>Selecciona la administración</i></small>
+                    			<form action="{{url('entities/store-administration')}}" method="POST">
+                    				@csrf()
+                    				<h4 class="mb-0 mt-1">
+                    					Administración a la que pertenece la entidad
+                    				</h4>
+                    				<small><i>Selecciona la administración</i></small>
 
-                    			<br>
-                    			<br>
+                    				<br>
+                    				<br>
 
-                    			<div style="min-height: 656px;">
+                    				<div style="min-height: 656px;">
 
-	                    			<table id="example2" class="table table-striped nowrap w-100">
-			                            <thead class="filters">
-				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>Administración</th>
-				                                <th>Nº Receptor</th>
-				                                <th>Provincia</th>
-				                                <th>Localidad</th>
-				                                <th>Status</th>
-				                            </tr>
-				                        </thead>
+		                    			<table id="example2" class="table table-striped nowrap w-100">
+				                            <thead class="filters">
+					                            <tr>
+					                                <th>Order ID</th>
+					                                <th>Administración</th>
+					                                <th>Nº Receptor</th>
+					                                <th>Provincia</th>
+					                                <th>Localidad</th>
+					                                <th>Status</th>
+					                                <th>Seleccionar</th>
+					                            </tr>
+					                        </thead>
 				                    
 				                    
 				                        <tbody>
+				                            @foreach($administrations as $administration)
 				                            <tr>
-				                                <td><a href="{{url('administrations/view',1)}}">#AD9801</a></td>
-				                                <td>El Buho Lotero</td>
-				                                <td>06716</td>
-				                                <td>La Rioja</td>
-				                                <td>Logroño</td>
+				                                <td>#AD{{str_pad($administration->id, 4, '0', STR_PAD_LEFT)}}</td>
+				                                <td>{{$administration->name}}</td>
+				                                <td>{{$administration->receiving}}</td>
+				                                <td>{{$administration->province}}</td>
+				                                <td>{{$administration->city}}</td>
 				                                <td><label class="badge bg-success">Activo</label></td>
+				                                <td>
+				                                    <div class="form-check">
+				                                        <input class="form-check-input" type="radio" name="administration_id" value="{{$administration->id}}" id="admin_{{$administration->id}}" required>
+				                                        <label class="form-check-label" for="admin_{{$administration->id}}">
+				                                            Seleccionar
+				                                        </label>
+				                                    </div>
+				                                </td>
 				                            </tr>
+				                            @endforeach
 				                        </tbody>
 			                        </table>
 
@@ -129,11 +142,13 @@
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('entities/add/information')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+                    					<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 btn-next">Siguiente
+                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
                     				</div>
 
                     			</div>
+
+                    			</form>
 
                     		</div>
                     	</div>
@@ -159,7 +174,7 @@ function initDatatable()
   {
     $("#example2").DataTable({
 
-      "select":{style:"multi"},
+      "select":{style:"single"},
 
       "ordering": false,
       "sorting": false,
@@ -201,53 +216,29 @@ function initDatatable()
  
                             var cursorPosition = this.selectionStart;
                             // Search the column for that value
-
-                            // console.log(val.replace(/<select[\s\S]*?<\/select>/,''));
-                            let wSelect = false;
-                            $.each(api.column(colIdx).data(), function(index, val) {
-                               if (val.indexOf('<select') == -1) {
-                                wSelect = false;
-                               }else{
-                                wSelect = true;
-                               }
-                            });
-
-                            // $.each(api
-                            //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
-                            // });
-
                             api
                                 .column(colIdx)
                                 .search(
-
-                                  (wSelect ?
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((selected' + this.value + ')))')
-                                        : '')
-                                    :
-                                      (this.value != ''
+                                    this.value != ''
                                         ? regexr.replace('{search}', '(((' + this.value + ')))')
-                                        : '')),
-
+                                        : '',
                                     this.value != '',
                                     this.value == ''
-                                ).draw()
+                                )
+                                .draw();
  
                             $(this)
                                 .focus()[0]
                                 .setSelectionRange(cursorPosition, cursorPosition);
                         });
                 });
-        }
+        },
     });
   }
 
-  initDatatable();
-
-  setTimeout(()=>{
-    $('.filters .inline-fields:first').trigger('keyup');
-  },100);
+  $(document).ready(function() {
+    initDatatable();
+  });
 
 </script>
 

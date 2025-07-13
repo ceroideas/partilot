@@ -5891,6 +5891,8 @@ span.flatpickr-weekday {
 .photo-preview {
 
     background-color: #fff;
+    background-size: cover;
+    background-position: center;
     border-radius: 50px;
     width: 96px;
     height: 96px;
@@ -6098,4 +6100,12 @@ td {
 
 .elements.images, .elements.qr {
     height: auto !important;
+}
+
+a[disabled] {
+    color: currentColor;
+    cursor: not-allowed;
+    opacity: 0.5;
+    text-decoration: none;
+    pointer-events: none;
 }

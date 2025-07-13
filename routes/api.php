@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\BackController;
+use App\Http\Controllers\ApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,3 +44,5 @@ Route::post('upload-image', function(Request $request) {
 });
 
 Route::post('generarQr', [BackController::class,'generarQr']);
+
+Route::get('test', [ApiController::class,'test']);

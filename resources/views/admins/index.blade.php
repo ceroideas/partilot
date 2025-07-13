@@ -25,7 +25,11 @@
             <div class="card">
                 <div class="card-body">
 
-                	<div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    @php
+                        $administrations = App\Models\Administration::all();
+                    @endphp
+
+                	<div class="{{count($administrations) ? '' : 'd-none'}}">
 	                    <h4 class="header-title">
 
 	                    	<div class="float-start d-flex align-items-start">
@@ -60,16 +64,20 @@
 	                    
 	                    
 	                        <tbody>
+                                @foreach ($administrations as $admins)
 	                            <tr>
-	                                <td><a href="{{url('administrations/view',1)}}">#AD9801</a></td>
-	                                <td>El Buho Lotero</td>
-	                                <td>06716</td>
-	                                <td>La Rioja</td>
-	                                <td>Logroño</td>
-	                                <td>Jorge Ruíz Ortega</td>
-	                                <td>600 600 600</td>
-	                                <td>info@elbuholotero.es</td>
-	                                <td><label class="badge bg-success">Activo</label></td>
+	                                <td><a href="{{url('administrations/view',$admins->id)}}">#AD{{ str_pad($admins->id, 5,0, STR_PAD_LEFT) }}</a></td>
+	                                <td>{{$admins->name}}</td>
+	                                <td>{{$admins->receiving}}</td>
+	                                <td>{{$admins->province}}</td>
+	                                <td>{{$admins->city}}</td>
+	                                <td>{{$admins->manager->name.' '.$admins->manager->last_name}}</td>
+	                                <td>{{$admins->phone}}</td>
+	                                <td>{{$admins->email}}</td>
+	                                <td>
+                                        {!!$admins->status ? '<label class="badge bg-success">Activo</label>' : '<label class="badge bg-danger">Inactivo</label>' !!}
+                                        
+                                    </td>
 	                                <td>
 	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/entidades.svg')}}" alt="" width="12"></a>
 	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/sorteos.svg')}}" alt="" width="12"></a>
@@ -78,12 +86,13 @@
 	                                	<a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
 	                                </td>
 	                            </tr>
+                                @endforeach
 	                        </tbody>
 	                    </table>
 
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
+                    <div class="{{count($administrations) ? 'd-none' : ''}}">
                         
                         <div class="d-flex align-items-center gap-1">
                         	
