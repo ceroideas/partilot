@@ -21,6 +21,7 @@ class Administration extends Model
         "email",
         "phone",
         "account"
+        "manager_id"
     ];
 
     public function manager()
