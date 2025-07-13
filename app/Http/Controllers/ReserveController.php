@@ -127,7 +127,7 @@ class ReserveController extends Controller
             'lottery_id' => $lottery->id,
             'total_amount' => $totalAmount,
             'total_tickets' => $totalTickets,
-            'status' => 0, // pending
+            'status' => 1, // pending
             'reservation_date' => now(),
             'expiration_date' => now()->addDays(7) // 7 días por defecto
         ]);
