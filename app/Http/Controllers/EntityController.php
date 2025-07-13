@@ -87,7 +87,7 @@ class EntityController extends Controller
             'manager_birthday' => 'nullable|date',
             'manager_email' => 'required|email|max:255',
             'manager_phone' => 'nullable|string|max:20',
-            'manager_comment' => 'nullable|string|max:1000',
+            // 'manager_comment' => 'nullable|string|max:1000',
             'manager_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -110,7 +110,7 @@ class EntityController extends Controller
             'birthday' => $validated['manager_birthday'],
             'email' => $validated['manager_email'],
             'phone' => $validated['manager_phone'],
-            'comment' => $validated['manager_comment'],
+            // 'comment' => $validated['manager_comment'],
             'user_id' => $user->id
         ];
 
