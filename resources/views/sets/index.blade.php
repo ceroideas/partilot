@@ -65,7 +65,7 @@
                                 <tr>
                                     <td><a href="{{url('sets/view', $set->id)}}">#SP{{str_pad($set->id, 4, '0', STR_PAD_LEFT)}}</a></td>
                                     <td>{{$set->set_name}}</td>
-                                    <td>{{$set->reserve->lottery ? $set->reserve->lottery->lottery_number : 'Sin sorteo'}}</td>
+                                    <td>{{$set->reserve->lottery ? $set->reserve->lottery->name : 'Sin sorteo'}}</td>
                                     <td>
                                         @if($set->reserve->reservation_numbers)
                                             @foreach($set->reserve->reservation_numbers as $number)
