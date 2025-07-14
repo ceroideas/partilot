@@ -19,6 +19,62 @@ class AdministratorController extends Controller
 
     }
 
+    public function edit($id)
+    {
+        $administration = Administration::with('manager')->findOrFail($id);
+        return view('admins.edit', compact('administration'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $administration = Administration::findOrFail($id);
+        
+        $request->validate([
+            'web' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
+            'receiving' => 'required|string|max:255',
+            'society' => 'required|string|max:255',
+            'nif_cif' => 'required|string|max:255',
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:10',
+            'address' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:255',
+            /*'account' => 'required|array',
+            'account.*' => 'required|string|max:4',*/
+            'status' => 'nullable|boolean',
+        ]);
+
+        $data = [
+            "web" => $request->web ?? '',
+            "name" => $request->name,
+            "receiving" => $request->receiving,
+            "society" => $request->society,
+            "nif_cif" => $request->nif_cif,
+            "province" => $request->province,
+            "city" => $request->city,
+            "postal_code" => $request->postal_code,
+            "address" => $request->address,
+            "email" => $request->email,
+            "phone" => $request->phone,
+            "account" => implode(' ', $request->account),
+            "status" => $request->status ?? false,
+        ];
+
+        if ($request->file('image')) {
+            $file = $request->file('image');
+            $filename = $file->hashName();
+            $file->move(public_path('images'), $filename);
+            $data["image"] = $filename;
+        }
+
+        $administration->update($data);
+
+        return redirect()->route('administrations.show', $administration->id)
+                        ->with('success', 'Administración actualizada correctamente');
+    }
+
     public function store_information(CreateAdmin $request)
     {
         $data = [
@@ -80,7 +136,7 @@ class AdministratorController extends Controller
 
         $manager = Manager::where('email',$request->validated()["email"])->first();
 
-        if (!$manager) {.
+        if (!$manager) {
             $manager = Manager::create($data);
         }
 

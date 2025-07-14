@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('administrations', function (Blueprint $table) {
             $table->id();
+            $table->integer("manager_id")->nullable();
             $table->string("web")->nullable();
             $table->string("image")->nullable();
             $table->string("name")->nullable();
@@ -26,6 +27,7 @@ return new class extends Migration
             $table->string("email")->nullable();
             $table->string("phone")->nullable();
             $table->string("account")->nullable();
+            $table->boolean("status")->default(true);
             $table->timestamps();
         });
     }

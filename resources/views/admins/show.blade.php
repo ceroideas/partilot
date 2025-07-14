@@ -117,7 +117,7 @@
 	                                        <img src="{{url('assets/form-groups/admin/0.svg')}}" alt="">
 	                                    </div>
 
-	                                    <input readonly="" class="form-control" type="text" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
+	                                    <input readonly="" value="{{$administration->web ?? ''}}" class="form-control" type="text" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
 	                                </div>
                     			</div>
                     		</div>
@@ -129,7 +129,10 @@
                     			<small><i>Bloquea o desbloquea la administración</i></small>
 
                     			<div class="form-group mt-2">
-	                    			<label class="">Estado Actual</label> <label class="badge badge-lg bg-success float-end">Activo</label>
+	                    			<label class="">Estado Actual</label> 
+	                    			<label class="badge badge-lg {{$administration->status ? 'bg-success' : 'bg-danger'}} float-end">
+	                    				{{$administration->status ? 'Activo' : 'Inactivo'}}
+	                    			</label>
 	                    			<div style="clear: both;"></div>
                     			</div>
                     		</div>
@@ -148,7 +151,7 @@
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos legales de la administración
 
-			                    				<a href="{{url('administrations/edit/1')}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
+			                    				<a href="{{url('administrations/edit/'.$administration->id)}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    				Editar</a>
 			                    			</h4>
@@ -161,9 +164,13 @@
 			                    					
 				                    				<div class="col-1">
 				                    						
-					                    				<div class="photo-preview-3">
+					                    				<div class="photo-preview-3" style="background-image: url({{url('images/'.$administration->image)}});">
 					                    					
-					                    					<i class="ri-account-circle-fill"></i>
+					                    					@if($administration->image)
+
+					                    					@else
+					                    						<i class="ri-account-circle-fill"></i>
+					                    					@endif
 
 					                    				</div>
 					                    				
@@ -172,28 +179,13 @@
 
 			                    					<div class="col-4 text-center">
 
-			                    						<h4 class="mt-3 mb-0">El Buho Lotero</h4>
+			                    						<h4 class="mt-3 mb-0">{{$administration->name ?? 'Sin nombre'}}</h4>
 
-			                    						<small>Jorge Ruiz Ortega</small> <br>
+			                    						<small>{{$administration->manager->name ?? ''}} {{$administration->manager->last_name ?? ''}}</small> <br>
 			                    						
 			                    					</div>
 			                    				</div>
 
-			                    				{{-- <div class="photo-preview">
-			                    					
-			                    					<i class="ri-image-add-line"></i>
-
-			                    				</div>
-
-			                    				<div>
-			                    					
-			                    					<small><i>Imágen empresa</i></small>
-			                    					 <br>
-			                    					<b>Logotipo</b>
-			                    					<br>
-
-			                    				</div> --}}
-			                    				
 			                    				<div style="clear: both;"></div>
 			                    			</div>
 
@@ -213,7 +205,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->name}}" class="form-control" type="text" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->name ?? ''}}" class="form-control" type="text" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -227,10 +219,11 @@
 							                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->receiving}}" class="form-control" type="number" placeholder="000000" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->receiving ?? ''}}" class="form-control" type="number" placeholder="000000" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
-			                    					</div>
+						                    		</div>
+			                    					
 			                    					<div class="col-5">
 			                    						<div class="form-group mt-2 mb-3">
 			                    							<label class="label-control">Nombre Autónomo / Sociedad</label>
@@ -241,7 +234,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/3.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->society}}" class="form-control" type="text" placeholder="José Andrés / Administración S.L.U." style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->society ?? ''}}" class="form-control" type="text" placeholder="José Andrés / Administración S.L.U." style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -256,7 +249,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->nif_cif}}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->nif_cif ?? ''}}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -271,7 +264,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->province}}" class="form-control" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->province ?? ''}}" class="form-control" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -286,7 +279,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->city}}" class="form-control" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->city ?? ''}}" class="form-control" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -301,7 +294,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->postal_code}}" class="form-control" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->postal_code ?? ''}}" class="form-control" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -316,7 +309,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->address}}" class="form-control" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->address ?? ''}}" class="form-control" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -331,7 +324,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->email}}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->email ?? ''}}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -346,7 +339,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->phone}}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->phone ?? ''}}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -397,8 +390,7 @@
 
 						                                </div>
 					                    			</div>
-
-			                    				</div>
+					                    		</div>
 
 			                    				<div class="col-4 text-end">
 			                    					
@@ -414,7 +406,7 @@
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos de contacto
 
-			                    				<a href="{{url('administrations/edit/manager/1')}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
+			                    				<a href="{{ route('administrations.edit-manager', $administration->id) }}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    				Editar</a>
 			                    			</h4>
@@ -428,7 +420,11 @@
 			                    						
 					                    				<div class="photo-preview-2">
 					                    					
-					                    					<i class="ri-account-circle-fill"></i>
+					                    					@if($administration->manager && $administration->manager->image)
+					                    						<img src="{{url('manager/'.$administration->manager->image)}}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+					                    					@else
+					                    						<i class="ri-account-circle-fill"></i>
+					                    					@endif
 
 					                    				</div>
 					                    				
@@ -437,19 +433,19 @@
 
 			                    					<div class="col-4 text-center">
 
-			                    						<h4 class="mt-0 mb-0">El Buho Lotero</h4>
+			                    						<h4 class="mt-0 mb-0">{{$administration->name ?? 'Sin nombre'}}</h4>
 
-			                    						<small>Jorge Ruiz Ortega</small> <br>
+			                    						<small>{{$administration->manager->name ?? ''}} {{$administration->manager->last_name ?? ''}}</small> <br>
 
-			                    						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 05716
+			                    						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{$administration->receiving ?? ''}}
 			                    						
 			                    					</div>
 
 			                    					<div class="col-4">
 
 			                    						<div class="mt-2">
-			                    							Provincia: La Rioja <br>
-			                    							Dirección: Avd. Club Deportivo 28
+			                    							Provincia: {{$administration->province ?? ''}} <br>
+			                    							Dirección: {{$administration->address ?? ''}}
 			                    						</div>
 			                    						
 			                    					</div>
@@ -457,8 +453,8 @@
 			                    					<div class="col-3">
 
 			                    						<div class="mt-2">
-			                    							Ciudad: Logroño <br>
-			                    							Tel: 941 900 900
+			                    							Ciudad: {{$administration->city ?? ''}} <br>
+			                    							Tel: {{$administration->phone ?? ''}}
 			                    						</div>
 			                    						
 			                    					</div>
@@ -482,7 +478,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->name}}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->name ?? ''}}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -496,7 +492,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->last_name}}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->last_name ?? ''}}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -511,7 +507,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->last_name2}}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->last_name2 ?? ''}}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -526,22 +522,22 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->cif_nif}}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->nif_cif ?? ''}}" class="form-control" type="text" placeholder="12345678A" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
 
 			                    					<div class="col-3">
 			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">F. Nacimiento</label>
+			                    							<label class="label-control">Fecha de Nacimiento</label>
 
 							                    			<div class="input-group input-group-merge group-form">
 
 							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
+							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->birthday}}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->birthday ?? ''}}" class="form-control" type="text" placeholder="1985-03-15" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -556,7 +552,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->email}}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->email ?? ''}}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -571,7 +567,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->phone}}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{$administration->manager->phone ?? ''}}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -594,7 +590,7 @@
 
 						                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{$administration->manager->comment}}</textarea>
+						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{$administration->manager->comment ?? ''}}</textarea>
 						                                </div>
 					                    			</div>
 
@@ -614,7 +610,7 @@
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos generales API
 
-			                    				<a href="{{url('administrations/edit/api/1')}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
+			                    				<a href="{{url('administrations/edit/api/'.$administration->id)}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    				Editar</a>
 			                    			</h4>
@@ -622,16 +618,16 @@
 			                    			<div style="clear: both;"></div>
 
 			                    			<div class="row">
-			                    					
+			                    				
 		                    					<div class="col-7">
 		                    						<div class="form-group mt-2 mb-3">
 		                    							<label class="label-control">Nombre de la integración</label>
 
-						                    			<div class="input-group input-group-merge group-form">
+							                    			<div class="input-group input-group-merge group-form">
 
-						                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
 						                                      	<img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
-						                                    </div>
+							                                    </div>
 
 						                                    <input class="form-control" value="El Búho Lotero" type="text" readonly="" placeholder="Nombre Integración" style="border-radius: 0 30px 30px 0;">
 
@@ -659,7 +655,7 @@
 			                    			<small><i>Todos los campos son obligatorios</i></small>
 
 			                    			<div class="row">
-			                    					
+			                    				
 		                    					<div class="col-7">
 		                    						<div class="form-group mt-2 mb-3">
 		                    							<label class="label-control">URL Base de la API (Endpoint)</label>
@@ -708,7 +704,7 @@
 				                    			</h4>
 
 				                    			<div class="row">
-			                    					
+			                    				
 			                    					<div class="col-12">
 			                    						<div class="form-group mt-2 mb-3">
 			                    							<label class="label-control">API Key</label>
@@ -733,7 +729,7 @@
 				                    			</h4>
 
 				                    			<div class="row">
-			                    					
+			                    				
 			                    					<div class="col-12">
 			                    						<div class="form-group mt-2 mb-3">
 			                    							<label class="label-control">Token OAuth</label>
@@ -759,7 +755,7 @@
 				                    			</h4>
 
 				                    			<div class="row">
-			                    					
+			                    				
 			                    					<div class="col-12">
 			                    						<div class="form-group mt-2 mb-3">
 			                    							<label class="label-control">Bearer Token</label>
@@ -784,42 +780,42 @@
 				                    			</h4>
 
 				                    			<div class="row">
-			                    					
+			                    				
 			                    					<div class="col-7">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Usuario</label>
+		                    						<div class="form-group mt-2 mb-3">
+		                    							<label class="label-control">Usuario</label>
 
 							                    			<div class="input-group input-group-merge group-form">
 
 							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div> --}}
 
 							                                    <input class="form-control" value="elbuholotero@partilot.com" readonly="" type="text" placeholder="Usuario" style="border-radius: 0 30px 30px 0;">
 
 							                                </div>
 						                    			</div>
-			                    					</div>
+		                    					</div>
 
-			                    					<div class="col-5">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Contraseña</label>
+		                    					<div class="col-5">
+		                    						<div class="form-group mt-2 mb-3">
+		                    							<label class="label-control">Contraseña</label>
 
 							                    			<div class="input-group input-group-merge group-form">
 
 							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div> --}}
 
 							                                    <input class="form-control" value="12345678" readonly="" type="text" placeholder="Contraseña" style="border-radius: 0 30px 30px 0;">
 
 							                                </div>
 						                    			</div>
-			                    					</div>
-			                    					
-			                    					<div class="col-4">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Formato de Datos de Envío</label>
+		                    					</div>
+		                    					
+		                    					<div class="col-4">
+		                    						<div class="form-group mt-2 mb-3">
+		                    							<label class="label-control">Formato de Datos de Envío</label>
 
 							                    			<div class="input-group input-group-merge group-form">
 
@@ -836,16 +832,16 @@
 
 							                                </div>
 						                    			</div>
-			                    					</div>
+		                    					</div>
 
 			                    				</div>
-		                    				</div>
+
+			                    			</div>
 
 			                    		</div>
                     				</div>
 
                     			</div>
-
 
                     		</div>
 

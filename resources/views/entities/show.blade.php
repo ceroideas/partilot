@@ -156,7 +156,11 @@
 			                    						
 					                    				<div class="photo-preview-3">
 					                    					
-					                    					<i class="ri-account-circle-fill"></i>
+					                    					@if($entity->image)
+					                    						<img src="{{ url('uploads/' . $entity->image) }}" alt="Imagen de la entidad" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+					                    					@else
+					                    						<i class="ri-account-circle-fill"></i>
+					                    					@endif
 
 					                    				</div>
 					                    				
@@ -165,9 +169,9 @@
 
 			                    					<div class="col-4 text-center mt-3">
 
-			                    						<h4 class="mt-0 mb-0">FADEMUR</h4>
+			                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin nombre' }}</h4>
 
-			                    						<small>La Rioja</small> <br>
+			                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small> <br>
 			                    						
 			                    					</div>
 			                    				</div>
@@ -190,7 +194,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="FADEMUR" type="text" placeholder="Nombre Entidad" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->name ?? '' }}" type="text" placeholder="Nombre Entidad" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -205,7 +209,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="La Rioja" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->province ?? '' }}" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -220,7 +224,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="Logroño" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->city ?? '' }}" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -235,7 +239,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="26005" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->postal_code ?? '' }}" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -250,7 +254,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="Calle Milicias, 1, bis" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->address ?? '' }}" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -265,7 +269,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="G84095389" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->nif_cif ?? '' }}" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -280,7 +284,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="941 240 022" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->phone ?? '' }}" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -295,7 +299,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" readonly value="rioja.ruraltivity@fademur.es" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" readonly value="{{ $entity->email ?? '' }}" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -318,7 +322,7 @@
 
 						                    			<div class="input-group input-group-merge group-form">
 
-						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6"></textarea>
+						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{ $entity->comments ?? '' }}</textarea>
 						                                </div>
 					                    			</div>
 
@@ -340,7 +344,7 @@
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos de gestor
 
-			                    				<a href="{{url('entities/edit/manager/1')}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
+			                    				<a href="{{ route('entities.edit-manager', $entity->id) }}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    				Editar</a>
 			                    			</h4>
@@ -354,7 +358,11 @@
 			                    						
 					                    				<div class="photo-preview-2">
 					                    					
-					                    					<i class="ri-account-circle-fill"></i>
+					                    					@if($entity->manager && $entity->manager->image)
+					                    						<img src="{{ url('manager/' . $entity->manager->image) }}" alt="Imagen del gestor" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+					                    					@else
+					                    						<i class="ri-account-circle-fill"></i>
+					                    					@endif
 
 					                    				</div>
 					                    				
@@ -363,19 +371,25 @@
 
 			                    					<div class="col-4 text-center">
 
-			                    						<h4 class="mt-0 mb-0">El Buho Lotero</h4>
+			                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin gestor' }}</h4>
 
-			                    						<small>Jorge Ruiz Ortega</small> <br>
+			                    						<small>{{ $entity->manager ? $entity->manager->name . ' ' . $entity->manager->last_name : 'Sin gestor asignado' }}</small> <br>
 
-			                    						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 05716
+			                    						@if($entity->manager)
+			                    							<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $entity->administration->receiving ?? '' }}
+			                    						@endif
 			                    						
 			                    					</div>
 
 			                    					<div class="col-4">
 
 			                    						<div class="mt-2">
-			                    							Provincia: La Rioja <br>
-			                    							Dirección: Avd. Club Deportivo 28
+			                    							@if($entity->manager)
+			                    								Provincia: {{ $entity->province ?? 'No especificada' }} <br>
+			                    								Dirección: {{ $entity->address ?? 'No especificada' }}
+			                    							@else
+			                    								Sin gestor asignado
+			                    							@endif
 			                    						</div>
 			                    						
 			                    					</div>
@@ -383,8 +397,12 @@
 			                    					<div class="col-3">
 
 			                    						<div class="mt-2">
-			                    							Ciudad: Logroño <br>
-			                    							Tel: 941 900 900
+			                    							@if($entity->manager)
+			                    								Ciudad: {{ $entity->city ?? 'No especificada' }} <br>
+			                    								Tel: {{ $entity->phone ?? 'No especificado' }}
+			                    							@else
+			                    								Sin gestor asignado
+			                    							@endif
 			                    						</div>
 			                    						
 			                    					</div>
@@ -408,7 +426,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Jorge" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -422,7 +440,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Ruiz" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -437,7 +455,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Ortega" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -452,7 +470,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="16600600A" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -467,7 +485,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="1975-01-01" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->birthday ?? '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -482,7 +500,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="administracion@ejemplo.es" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -497,7 +515,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="941 900 900" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->phone ?? '' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -520,7 +538,7 @@
 
 						                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6"></textarea>
+						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{ $entity->manager->comment ?? '' }}</textarea>
 						                                </div>
 					                    			</div>
 
@@ -611,17 +629,17 @@
 
 				                    					<div class="col-4 text-center mt-3">
 
-				                    						<h4 class="mt-0 mb-0">FADEMUR</h4>
+				                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin nombre' }}</h4>
 
-				                    						<small>La Rioja</small> <br>
+				                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small> <br>
 				                    						
 				                    					</div>
 
 				                    					<div class="col-4">
 
 				                    						<div class="mt-3">
-				                    							Provincia: La Rioja <br>
-				                    							Dirección: Avd. Club Deportivo 28
+				                    							Provincia: {{ $entity->province ?? 'No especificada' }} <br>
+				                    							Dirección: {{ $entity->address ?? 'No especificada' }}
 				                    						</div>
 				                    						
 				                    					</div>
@@ -629,8 +647,8 @@
 				                    					<div class="col-3">
 
 				                    						<div class="mt-3">
-				                    							Ciudad: Logroño <br>
-				                    							Tel: 941 900 900
+				                    							Ciudad: {{ $entity->city ?? 'No especificada' }} <br>
+				                    							Tel: {{ $entity->phone ?? 'No especificado' }}
 				                    						</div>
 				                    						
 				                    					</div>

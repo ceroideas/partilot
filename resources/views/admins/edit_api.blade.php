@@ -132,9 +132,9 @@
                     			<h4 class="mb-0 mt-1">
                     				Datos generales API
 
-                    				<button class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
+                    				{{-- <button class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
                     				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
-                    				Editar</button>
+                    				Editar</button> --}}
                     			</h4>
                     			<small><i>Todos los campos son obligatorios</i></small>
                     			<div style="clear: both;"></div>

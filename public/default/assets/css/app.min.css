@@ -5989,6 +5989,8 @@ span.flatpickr-weekday {
 .photo-preview-3 {
 
     background-color: #fff;
+    background-size: cover;
+    background-position: center;
     border-radius: 50px;
     width: 96px;
     height: 96px;

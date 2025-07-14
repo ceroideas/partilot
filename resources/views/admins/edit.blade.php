@@ -12,8 +12,8 @@
             <div class="page-title-box">
             	<div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Administraciones</a></li>
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Administración</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('administrations.index') }}">Administraciones</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('administrations.show', $administration->id) }}">Administración</a></li>
                         <li class="breadcrumb-item active">Editar</li>
                     </ol>
                 </div>
@@ -35,7 +35,11 @@
 
                     <br>
 
-                    <div class="row">
+                    <form action="{{ route('administrations.update', $administration->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+                        
+                        <div class="row">
                     	
                     	<div class="col-md-3" style="position: relative;">
                     		<div class="form-card bs mb-3">
@@ -84,7 +88,7 @@
                     			
                     		</div>
 
-                    		<div class="form-card">
+                    		<div class="form-card bs mb-3">
                     			<h4 class="mb-0 mt-1">
                     				Página web
                     			</h4>
@@ -99,7 +103,7 @@
 	                                        <img src="{{url('assets/form-groups/admin/0.svg')}}" alt="">
 	                                    </div>
 
-	                                    <input class="form-control" type="text" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
+	                                    <input class="form-control" type="text" name="web" value="{{ old('web', $administration->web) }}" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
 	                                </div>
                     			</div>
                     		</div>
@@ -111,12 +115,22 @@
                     			<small><i>Bloquea o desbloquea la administración</i></small>
 
                     			<div class="form-group mt-2">
-	                    			<label class="">Estado Actual</label> <label class="badge badge-lg bg-success float-end">Activo</label>
+	                    			<label class="">Estado Actual</label> 
+                                    <label class="badge badge-lg {{ $administration->status ? 'bg-success' : 'bg-danger' }} float-end">
+                                        {{ $administration->status ? 'Activo' : 'Inactivo' }}
+                                    </label>
 	                    			<div style="clear: both;"></div>
+	                    			
+	                    			<div class="form-check mt-2">
+	                    				<input class="form-check-input" type="checkbox" name="status" value="1" {{ $administration->status ? 'checked' : '' }}>
+	                    				<label class="form-check-label">
+	                    					Activar administración
+	                    				</label>
+	                    			</div>
                     			</div>
                     		</div>
 
-                    		<a href="{{url('administrations/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    		<a href="{{ route('administrations.show', $administration->id) }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
@@ -128,10 +142,10 @@
 
                     			<div class="form-group mt-2 mb-3">
 
-                    				<div class="photo-preview">
-                    					
-                    					<i class="ri-image-add-line"></i>
-
+                    				<div class="photo-preview" @if($administration->image) style="background-image: url('{{ asset('images/' . $administration->image) }}');" @endif>
+                    					@if(!$administration->image)
+                    						<i class="ri-image-add-line"></i>
+                    					@endif
                     				</div>
 
                     				<div>
@@ -141,8 +155,15 @@
                     					<b>Logotipo</b>
                     					<br>
 
-                    					<label style="border-radius: 30px; width: 150px; background-color: #333;" class="btn btn-md btn-dark mt-2"><small>Subir Imágen</small></label>
-                    					<label style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2"><small>Eliminar Imágen</small></label>
+                    					<label style="border-radius: 30px; width: 150px; background-color: #333;" class="btn btn-md btn-dark mt-2">
+                    						<small>Subir Imágen</small>
+                    						<input type="file" id="imagenInput" name="image" style="display: none;" accept="image/*">
+                    					</label>
+                    					@if($administration->image)
+                    						<a href="#" style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2">
+                    							<small>Eliminar Imágen</small>
+                    						</a>
+                    					@endif
 
                     				</div>
                     				
@@ -164,7 +185,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="El Búho Lotero" class="form-control" type="text" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('name', $administration->name) }}" class="form-control" type="text" name="name" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -178,7 +199,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="05716" class="form-control" type="number" placeholder="000000" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('receiving', $administration->receiving) }}" class="form-control" type="number" name="receiving" placeholder="000000" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -192,7 +213,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/3.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="Jorge Ruiz Ortega" class="form-control" type="text" placeholder="José Andrés / Administración S.L.U." style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('society', $administration->society) }}" class="form-control" type="text" name="society" placeholder="José Andrés / Administración S.L.U." style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -207,7 +228,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="16600600A" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('nif_cif', $administration->nif_cif) }}" class="form-control" type="text" name="nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -222,7 +243,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="La Rioja" class="form-control" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('province', $administration->province) }}" class="form-control" type="text" name="province" placeholder="Provincia" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -237,7 +258,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="Logroño" class="form-control" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('city', $administration->city) }}" class="form-control" type="text" name="city" placeholder="Localidad" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -252,7 +273,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="26007" class="form-control" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('postal_code', $administration->postal_code) }}" class="form-control" type="number" name="postal_code" placeholder="C.P." style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -267,7 +288,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="Avd. Club Deportivo 28" class="form-control" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('address', $administration->address) }}" class="form-control" type="text" name="address" placeholder="Dirección" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -282,7 +303,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="administracion@ejemplo.es" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('email', $administration->email) }}" class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -297,7 +318,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="941 900 900" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('phone', $administration->phone) }}" class="form-control" type="phone" name="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -316,31 +337,35 @@
                     					
                     					<div class="form-group mt-2">
 			                    			<div class="input-group input-group-merge group-account">
-			                                    <input class="" type="number" placeholder="1234" max="9999" min="1000">
+			                    				@php
+			                    					$accountParts = explode(' ', $administration->account ?? '');
+			                    					$accountArray = array_pad($accountParts, 5, '');
+			                    				@endphp
+			                                    <input class="" type="number" name="account[0]" placeholder="1234" max="9999" min="1000" value="{{ old('account.0', $accountArray[0]) }}" required>
 
 			                                    <label>
 			                                    	-
 			                                    </label>
 
-			                                    <input class="" type="number" placeholder="1234" max="9999" min="1000">
+			                                    <input class="" type="number" name="account[1]" placeholder="1234" max="9999" min="1000" value="{{ old('account.1', $accountArray[1]) }}" required>
 
 			                                    <label>
 			                                    	-
 			                                    </label>
 
-			                                    <input class="" type="number" placeholder="1234" max="9999" min="1000">
+			                                    <input class="" type="number" name="account[2]" placeholder="1234" max="9999" min="1000" value="{{ old('account.2', $accountArray[2]) }}" required>
 
 			                                    <label>
 			                                    	-
 			                                    </label>
 
-			                                    <input class="" type="number" placeholder="12" max="99" min="10">
+			                                    <input class="" type="number" name="account[3]" placeholder="12" max="99" min="10" value="{{ old('account.3', $accountArray[3]) }}" required>
 
 			                                    <label>
 			                                    	-
 			                                    </label>
 
-			                                    <input class="" type="number" placeholder="1234567890" max="9999999999" min="1000000000">
+			                                    <input class="" type="number" name="account[4]" placeholder="1234567890" max="9999999999" min="1000000000" value="{{ old('account.4', $accountArray[4]) }}" required>
 
 			                                </div>
 		                    			</div>
@@ -348,8 +373,10 @@
                     				</div>
 
                     				<div class="col-4 text-end">
-                    					<a href="{{url('administrations/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; /*top: calc(100% - 51px);*/" class="btn btn-md btn-light mt-2">Guardar
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
+                    					<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">
+                    						Guardar
+                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i>
+                    					</button>
                     				</div>
 
                     			</div>
@@ -358,7 +385,8 @@
                     	</div>
 
                     </div>
-
+                    
+                    </form>
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->
@@ -373,6 +401,20 @@
 @section('scripts')
 
 <script>
+
+document.getElementById('imagenInput').addEventListener('change', function(event) {
+    const archivo = event.target.files[0];
+
+    if (archivo) {
+        const lector = new FileReader();
+        lector.onload = function(e) {
+        	$('.photo-preview').css('background-image', 'url('+e.target.result+')');
+        }
+        lector.readAsDataURL(archivo);
+    } else {
+        $('.photo-preview').css('background-image', 'none'); // Limpiar preview si se cancela la selección
+    }
+});
 
 </script>
 

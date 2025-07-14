@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BackController;
 use App\Http\Controllers\AdministratorController;
 use App\Http\Controllers\EntityController;
+use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\LotteryTypeController;
 use App\Http\Controllers\ReserveController;
@@ -41,14 +42,18 @@ Route::middleware(['auth'])->group(function () {
 
 Route::group(['prefix' => 'administrations'], function() {
     //
-    Route::get('/', function() {return view('admins.index');});
-    Route::get('/add', function() {return view('admins.add');});
+    Route::get('/', function() {return view('admins.index');})->name('administrations.index');
+    Route::get('/add', function() {return view('admins.add');})->name('administrations.create');
     Route::post('/add/manager', [AdministratorController::class, 'store_information']);
     Route::post('/store', [AdministratorController::class, 'store']);
 
-    Route::get('/view/{id}', function($id) { $administration = Administration::find($id); return view('admins.show', compact('administration'));});
-    Route::get('/edit/{id}', function() {return view('admins.edit');});
-    Route::get('/edit/manager/{id}', function() {return view('admins.edit_manager');});
+    Route::get('/view/{id}', function($id) { $administration = Administration::find($id); return view('admins.show', compact('administration'));})->name('administrations.show');
+    Route::get('/edit/{id}', [AdministratorController::class, 'edit'])->name('administrations.edit');
+    Route::put('/update/{id}', [AdministratorController::class, 'update'])->name('administrations.update');
+    Route::get('/edit/manager/{id}', function($id) { 
+        $administration = Administration::with('manager')->findOrFail($id); 
+        return view('admins.edit_manager', compact('administration')); 
+    })->name('administrations.edit-manager');
     Route::get('/edit/api/{id}', function() {return view('admins.edit_api');});
 });
 
@@ -68,12 +73,24 @@ Route::group(['prefix' => 'entities'], function() {
     // Ruta temporal para crear gestor de prueba
     Route::get('/create-test-manager', [EntityController::class, 'create_test_manager'])->name('entities.create-test-manager');
 
-    Route::get('/view/{id}', [EntityController::class, 'show']);
+    Route::get('/view/{id}', [EntityController::class, 'show'])->name('entities.show');
     Route::get('/edit/{id}', [EntityController::class, 'edit']);
     Route::put('/update/{id}', [EntityController::class, 'update']);
     Route::delete('/destroy/{id}', [EntityController::class, 'destroy']);
     Route::get('/delete/{id}', [EntityController::class, 'destroy']);
     
+    // Rutas para editar manager
+    Route::get('/edit/manager/{id}', [EntityController::class, 'edit_manager'])->name('entities.edit-manager');
+    Route::put('/update/manager/{id}', [EntityController::class, 'update_manager'])->name('entities.update-manager');
+    
+});
+
+Route::group(['prefix' => 'managers'], function() {
+    //
+    Route::get('/edit/{id}', [ManagerController::class, 'edit'])->name('managers.edit');
+    Route::put('/update/{id}', [ManagerController::class, 'update'])->name('managers.update');
+    Route::delete('/destroy/{id}', [ManagerController::class, 'destroy'])->name('managers.destroy');
+    Route::get('/delete/{id}', [ManagerController::class, 'destroy'])->name('managers.delete');
 });
 
 /*Route::get('entities',function() {

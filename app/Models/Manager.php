@@ -10,6 +10,7 @@ class Manager extends Model
     use HasFactory;
     protected $fillable = [
         "user_id",
+        "image",
         "name",
         "last_name",
         "last_name2",
@@ -19,4 +20,12 @@ class Manager extends Model
         "phone",
         "comment",
     ];
+
+    /**
+     * Relación con User
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

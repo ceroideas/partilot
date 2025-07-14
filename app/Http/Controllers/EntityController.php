@@ -275,8 +275,9 @@ class EntityController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Entity $entity)
+    public function show($id)
     {
+        $entity = Entity::find($id);
         $entity->load(['administration', 'manager']);
         return view('entities.show', compact('entity'));
     }
@@ -344,5 +345,85 @@ class EntityController extends Controller
 
         return redirect()->route('entities.index')
             ->with('success', 'Entidad eliminada exitosamente.');
+    }
+
+    /**
+     * Show the form for editing the manager of an entity.
+     */
+    public function edit_manager($id)
+    {
+        $entity = Entity::with(['administration', 'manager'])->findOrFail($id);
+        return view('entities.edit_manager', compact('entity'));
+    }
+
+    /**
+     * Update the manager of an entity.
+     */
+    public function update_manager(Request $request, $id)
+    {
+        $entity = Entity::with('manager')->findOrFail($id);
+        
+        $request->validate([
+            'manager_name' => 'required|string|max:255',
+            'manager_last_name' => 'required|string|max:255',
+            'manager_last_name2' => 'nullable|string|max:255',
+            'manager_nif_cif' => 'nullable|string|max:20',
+            'manager_birthday' => 'nullable|date',
+            'manager_email' => 'required|email|max:255',
+            'manager_phone' => 'nullable|string|max:20',
+            'manager_comment' => 'nullable|string|max:1000',
+            'manager_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        // Actualizar o crear usuario
+        $user = User::where('email', $request->manager_email)->first();
+        if (!$user) {
+            $user = new User;
+            $user->name = $request->manager_name . ' ' . $request->manager_last_name;
+            $user->email = $request->manager_email;
+            $user->password = bcrypt(12345678);
+            $user->save();
+        } else {
+            // Actualizar nombre del usuario si es diferente
+            $user->name = $request->manager_name . ' ' . $request->manager_last_name;
+            $user->save();
+        }
+
+        // Preparar datos del manager
+        $managerData = [
+            'name' => $request->manager_name,
+            'last_name' => $request->manager_last_name,
+            'last_name2' => $request->manager_last_name2,
+            'nif_cif' => $request->manager_nif_cif,
+            'birthday' => $request->manager_birthday,
+            'email' => $request->manager_email,
+            'phone' => $request->manager_phone,
+            'comment' => $request->manager_comment,
+            'user_id' => $user->id
+        ];
+
+        // Manejo de imagen del manager
+        if ($request->hasFile('manager_image')) {
+            // Eliminar imagen anterior si existe
+            if ($entity->manager && $entity->manager->image && file_exists(public_path('manager/' . $entity->manager->image))) {
+                unlink(public_path('manager/' . $entity->manager->image));
+            }
+            
+            $file = $request->file('manager_image');
+            $filename = $file->hashName();
+            $file->move(public_path('manager'), $filename);
+            $managerData['image'] = $filename;
+        }
+
+        // Actualizar o crear manager
+        if ($entity->manager) {
+            $entity->manager->update($managerData);
+        } else {
+            $manager = Manager::create($managerData);
+            $entity->update(['manager_id' => $manager->id]);
+        }
+
+        return redirect()->route('entities.show', $entity->id)
+            ->with('success', 'Gestor actualizado correctamente.');
     }
 } 
