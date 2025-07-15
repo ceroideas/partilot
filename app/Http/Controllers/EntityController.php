@@ -285,8 +285,9 @@ class EntityController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Entity $entity)
+    public function edit($id)
     {
+        $entity = Entity::findOrFail($id);
         $administrations = Administration::all();
         $managers = Manager::all();
         return view('entities.edit', compact('entity', 'administrations', 'managers'));
@@ -295,8 +296,10 @@ class EntityController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Entity $entity)
+    public function update(Request $request, $id)
     {
+        $entity = Entity::findOrFail($id);
+        
         $validated = $request->validate([
             'administration_id' => 'nullable|integer|exists:administrations,id',
             'manager_id' => 'nullable|integer|exists:managers,id',
@@ -327,7 +330,7 @@ class EntityController extends Controller
 
         $entity->update($validated);
 
-        return redirect()->route('entities.index')
+        return redirect()->route('entities.show', $entity->id)
             ->with('success', 'Entidad actualizada exitosamente.');
     }
 

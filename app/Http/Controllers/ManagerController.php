@@ -79,12 +79,21 @@ class ManagerController extends Controller
 
         $manager->update($managerData);
 
-        // Buscar la administración asociada a este manager
-        $administration = \App\Models\Administration::where('manager_id', $manager->id)->first();
-        
-        if ($administration) {
-            return redirect()->route('administrations.show', $administration->id)
-                ->with('success', 'Gestor actualizado correctamente.');
+        // Redirección según el origen
+        if ($request->has('origin') && $request->origin === 'entity') {
+            // Buscar la entidad asociada a este manager
+            $entity = \App\Models\Entity::where('manager_id', $manager->id)->first();
+            if ($entity) {
+                return redirect()->route('entities.show', $entity->id)
+                    ->with('success', 'Gestor actualizado correctamente.');
+            }
+        } else {
+            // Buscar la administración asociada a este manager
+            $administration = \App\Models\Administration::where('manager_id', $manager->id)->first();
+            if ($administration) {
+                return redirect()->route('administrations.show', $administration->id)
+                    ->with('success', 'Gestor actualizado correctamente.');
+            }
         }
         
         return redirect()->back()

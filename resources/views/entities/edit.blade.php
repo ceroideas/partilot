@@ -45,9 +45,11 @@
 
                     <br>
 
-                    <div class="row">
-                    	
-                    	<div class="col-md-3" style="position: relative;">
+                    <form action="{{ route('entities.update', $entity->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+                        <div class="row">
+                        <div class="col-md-3" style="position: relative;">
 
                     		<div class="form-card bs mb-3">
                     			<div class="form-wizard-element active">
@@ -106,7 +108,7 @@
 
                     		</div>
 
-                    		<a href="{{url('entities?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    		<a href="{{ route('entities.show', $entity->id) }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
@@ -135,9 +137,9 @@
 
 	                    					<div class="col-4 text-center mt-3">
 
-	                    						<h4 class="mt-0 mb-0">FADEMUR</h4>
+	                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? '' }}</h4>
 
-	                    						<small>La Rioja</small> <br>
+	                    						<small>{{ $entity->province ?? '' }}</small> <br>
 	                    						
 	                    					</div>
 	                    				</div>
@@ -160,7 +162,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="FADEMUR" type="text" placeholder="Nombre Entidad" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="name" value="{{ old('name', $entity->name) }}" type="text" placeholder="Nombre Entidad" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -175,7 +177,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="La Rioja" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="province" value="{{ old('province', $entity->province) }}" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -190,7 +192,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="Logroño" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="city" value="{{ old('city', $entity->city) }}" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -205,7 +207,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="26005" type="number" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="postal_code" value="{{ old('postal_code', $entity->postal_code) }}" type="text" placeholder="Código Postal" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -220,7 +222,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="Calle Milicias, 1, bis" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="address" value="{{ old('address', $entity->address) }}" type="text" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -235,7 +237,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="G84095389" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="nif_cif" value="{{ old('nif_cif', $entity->nif_cif) }}" type="text" placeholder="NIF/CIF" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -250,7 +252,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="941 240 022" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="phone" value="{{ old('phone', $entity->phone) }}" type="text" placeholder="Teléfono" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -265,7 +267,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" value="rioja.ruraltivity@fademur.es" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="email" value="{{ old('email', $entity->email) }}" type="email" placeholder="Email" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -288,15 +290,17 @@
 
 				                    			<div class="input-group input-group-merge group-form">
 
-				                                    <textarea class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6"></textarea>
+				                                    <textarea class="form-control" placeholder="Añade tu comentario" name="comments" id="" rows="6">{{ old('email', $entity->comments) }}</textarea>
 				                                </div>
 			                    			</div>
 
 	                    				</div>
 
 	                    				<div class="col-4 text-end">
-	                    					<a href="{{url('entities/view/1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-	                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+	                    					<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">
+	                    						Guardar
+	                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i>
+	                    					</button>
 	                    				</div>
 
 	                    			</div>
@@ -306,7 +310,7 @@
 	                    	</div>
                     	</div>
 
-                    </div>
+                    </form>
 
                     
                 </div> <!-- end card body-->

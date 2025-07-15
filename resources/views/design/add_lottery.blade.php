@@ -102,68 +102,56 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Entidad
-                    			</h4>
-                    			<small><i>Selecciona la entidad</i></small>
+                    			<form action="{{ route('design.selectSet', ['entity_id' => request('entity_id', isset($entity) ? $entity->id : null)]) }}" method="GET">
+                    				<h4 class="mb-0 mt-1">
+                    					Sorteo en el que generar el diseño
+                    				</h4>
+                    				<small><i>Selecciona el sorteo</i></small>
 
-                    			<br>
-                    			<br>
+                    				<br>
+                    				<br>
 
-                    			<div style="min-height: 656px;">
-
-	                    			<table id="example2" class="table table-striped nowrap w-100">
-			                            <thead class="">
-				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>N.Sorteo</th>
-				                                <th>Fecha Sorteo</th>
-				                                <th>Nombre Sorteo</th>
-				                                <th>Número/s</th>
-				                                <th>Importe <br> (Número)</th>
-				                                <th>Décimos <br> (Número)</th>
-				                                <th>Importe <br> TOTAL</th>
-				                            </tr>
-				                        </thead>
-				                    
-				                    
-				                        <tbody>
-				                            <tr>
-				                                <td>#RS9801</td>
-				                                <td>46/25</td>
-				                                <td>07/06/2025</td>
-				                                <td>Sorteo Extraordinario Asociación Española Contra El Cáncer</td>
-				                                <td>05716 - 52468 <br> 51235 - 69584</td>
-				                                <td>1.500 €</td>
-				                                <td>100</td>
-				                                <td>6.000 €</td>
-				                            </tr>
-
-				                            <tr>
-				                                <td>#RS9801</td>
-				                                <td>45/25</td>
-				                                <td>05/06/2025</td>
-				                                <td>Sorteo Lotería Nacional Jueves</td>
-				                                <td>06425</td>
-				                                <td>1.500 €</td>
-				                                <td>100</td>
-				                                <td>6.000 €</td>
-				                            </tr>
-				                        </tbody>
-			                        </table>
-
-		                        </div>
-
-
-                    			<div class="row">
-
-                    				<div class="col-12 text-end">
-                    					<a href="{{url('design/add/set')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+                    				<div style="min-height: 656px;">
+                    					<table id="example2" class="table table-striped nowrap w-100">
+                    						<thead class="">
+                    							<tr>
+                    								<th>ID</th>
+                    								<th>Nombre Sorteo</th>
+                    								<th>Fecha</th>
+                    								<th>Estado</th>
+                    								<th>Seleccionar</th>
+                    							</tr>
+                    						</thead>
+                    						<tbody>
+                    							@foreach($lotteries as $lottery)
+                    							<tr>
+                    								<td>#LO{{str_pad($lottery->id, 4, '0', STR_PAD_LEFT)}}</td>
+                    								<td>{{$lottery->name}}</td>
+                    								<td>{{$lottery->date ?? 'Sin fecha'}}</td>
+                    								<td><label class="badge bg-success">Activo</label></td>
+                    								<td>
+                    									<div class="form-check">
+                    										<input class="form-check-input" type="radio" name="lottery_id" value="{{$lottery->id}}" id="lottery_{{$lottery->id}}" required>
+                    										<label class="form-check-label" for="lottery_{{$lottery->id}}">
+                    											Seleccionar
+                    										</label>
+                    									</div>
+                    								</td>
+                    							</tr>
+                    							@endforeach
+                    						</tbody>
+                    					</table>
                     				</div>
 
-                    			</div>
+                    				<input type="hidden" name="entity_id" value="{{ request('entity_id', isset($entity) ? $entity->id : null) }}">
 
+                    				<div class="row">
+                    					<div class="col-12 text-end">
+                    						<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    							<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+                    					</div>
+                    				</div>
+                    			</form>
                     		</div>
                     	</div>
 
@@ -195,88 +183,13 @@ function initDatatable()
 
       "scrollX": true, "scrollCollapse": true,
         orderCellsTop: true,
-        fixedHeader: true,
-        initComplete: function () {
-            var api = this.api();
- 
-            // For each column
-            api
-                .columns()
-                .eq(0)
-                .each(function (colIdx) {
-                    // Set the header cell to contain the input element
-                    var cell = $('.filters th').eq(
-                        $(api.column(colIdx).header()).index()
-                    );
-                    var title = $(cell).text();
-                    if ($(cell).hasClass('no-filter')) {
-                      $(cell).addClass('sorting_disabled').html(title);
-                    }else{
-                      $(cell).addClass('sorting_disabled').html('<input type="text" class="inline-fields" placeholder="' + title + '" />');
-                    }
- 
-                    // On every keypress in this input
-                    $(
-                        'input',
-                        $('.filters th').eq($(api.column(colIdx).header()).index())
-                    )
-                        .off('keyup change')
-                        .on('keyup change', function (e) {
-                            e.stopPropagation();
- 
-                            // Get the search value
-                            $(this).attr('title', $(this).val());
-                            var regexr = '({search})'; //$(this).parents('th').find('select').val();
- 
-                            var cursorPosition = this.selectionStart;
-                            // Search the column for that value
-
-                            // console.log(val.replace(/<select[\s\S]*?<\/select>/,''));
-                            let wSelect = false;
-                            $.each(api.column(colIdx).data(), function(index, val) {
-                               if (val.indexOf('<select') == -1) {
-                                wSelect = false;
-                               }else{
-                                wSelect = true;
-                               }
-                            });
-
-                            // $.each(api
-                            //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
-                            // });
-
-                            api
-                                .column(colIdx)
-                                .search(
-
-                                  (wSelect ?
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((selected' + this.value + ')))')
-                                        : '')
-                                    :
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((' + this.value + ')))')
-                                        : '')),
-
-                                    this.value != '',
-                                    this.value == ''
-                                ).draw()
- 
-                            $(this)
-                                .focus()[0]
-                                .setSelectionRange(cursorPosition, cursorPosition);
-                        });
-                });
-        }
-    });
+        fixedHeader: true
+  });
   }
 
-  initDatatable();
-
-  setTimeout(()=>{
-    $('.filters .inline-fields:first').trigger('keyup');
-  },100);
+$(document).ready(function() {
+    initDatatable();
+});
 
 </script>
 

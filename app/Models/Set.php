@@ -23,6 +23,7 @@ class Set extends Model
         'physical_participations',
         'digital_participations',
         'deadline_date',
+        'tickets',
         'status',
         'created_at',
         'updated_at'
@@ -38,6 +39,7 @@ class Set extends Model
         'physical_participations' => 'integer',
         'digital_participations' => 'integer',
         'deadline_date' => 'date',
+        'tickets' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -114,5 +116,37 @@ class Set extends Model
             2 => 'bg-warning',
             default => 'bg-secondary'
         };
+    }
+
+    /**
+     * Genera el array de tickets con referencias únicas
+     *
+     * @param int $entityId
+     * @param int $reserveId
+     * @param \DateTime|string $createdAt
+     * @param int $totalParticipations
+     * @param array $oldTickets (opcional)
+     * @return array
+     */
+    public static function generateTickets($entityId, $reserveId, $createdAt, $totalParticipations, $oldTickets = [])
+    {
+        $tickets = [];
+        $created = is_string($createdAt) ? strtotime($createdAt) : ($createdAt instanceof \DateTime ? $createdAt->getTimestamp() : $createdAt);
+        $dateStr = $created; // Usar timestamp directamente
+
+        $input = (str_pad($entityId, 5, "0", STR_PAD_LEFT));
+        $entityId = $input;
+
+        $input = (str_pad($reserveId, 5, "0", STR_PAD_LEFT));
+        $reserveId = $input;
+
+        for ($i = 1; $i <= $totalParticipations; $i++) {
+            $referencia = ("{$entityId}{$reserveId}{$dateStr}{$i}");
+            $tickets[] = [
+                'n' => $i,
+                'r' => $referencia
+            ];
+        }
+        return $tickets;
     }
 }

@@ -12,7 +12,7 @@ class ApiController extends Controller
     //
     public function test()
     {
-        Schema::create('users', function (Blueprint $table) {
+        /*Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
@@ -161,6 +161,11 @@ class ApiController extends Controller
             $table->index(['entity_id', 'status']);
             $table->index(['reserve_id']);
             $table->index('status');
+        });*/
+
+        Schema::table('sets', function(Blueprint $table) {
+            //
+            $table->json('tickets')->nullable();
         });
 
     }

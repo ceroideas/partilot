@@ -75,7 +75,7 @@ Route::group(['prefix' => 'entities'], function() {
 
     Route::get('/view/{id}', [EntityController::class, 'show'])->name('entities.show');
     Route::get('/edit/{id}', [EntityController::class, 'edit']);
-    Route::put('/update/{id}', [EntityController::class, 'update']);
+    Route::put('/update/{id}', [EntityController::class, 'update'])->name('entities.update');
     Route::delete('/destroy/{id}', [EntityController::class, 'destroy']);
     Route::get('/delete/{id}', [EntityController::class, 'destroy']);
     
@@ -182,6 +182,7 @@ Route::group(['prefix' => 'sets'], function() {
     Route::post('/change-status/{set}', [SetController::class, 'changeStatus'])->name('sets.change-status');
     Route::get('/reserves-by-entity', [SetController::class, 'getReservesByEntity'])->name('sets.reserves-by-entity');
     Route::get('/download-xml/{set}', [SetController::class, 'downloadXml'])->name('sets.download-xml');
+    Route::post('sets/{set}/import-xml', [App\Http\Controllers\SetController::class, 'importXml'])->name('sets.importXml');
 });
 
 Route::group(['prefix' => 'participations'], function() {
@@ -195,12 +196,12 @@ Route::group(['prefix' => 'participations'], function() {
 Route::group(['prefix' => 'design'], function() {
     //
     Route::get('/', function() {return view('design.index');});
-    Route::get('/add', function() {return view('design.add');});
-    Route::get('/add/lottery', function() {return view('design.add_lottery');});
-    Route::get('/add/set', function() {return view('design.add_set');});
-    Route::get('/add/select', function() {return view('design.add_design');});
-    Route::get('/add/format', function() {return view('design.format');});
-    Route::get('/add/draw', function() {return view('design.draw');});
+    // Nuevo flujo con controlador
+    Route::get('/add', [\App\Http\Controllers\DesignController::class, 'selectEntity'])->name('design.selectEntity');
+    Route::post('/store-entity', [\App\Http\Controllers\DesignController::class, 'storeEntity'])->name('design.storeEntity');
+    Route::get('/add/lottery/{entity_id?}', [\App\Http\Controllers\DesignController::class, 'selectLottery'])->name('design.selectLottery');
+    Route::get('/add/set/{entity_id}/{lottery_id}', [\App\Http\Controllers\DesignController::class, 'selectSet'])->name('design.selectSet');
+    Route::get('/add/format/{entity_id}/{lottery_id}/{set_id}', [\App\Http\Controllers\DesignController::class, 'format'])->name('design.format');
 });
 
 Route::get('social',function() {

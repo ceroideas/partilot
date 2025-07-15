@@ -4,7 +4,7 @@
   <precio>5.00</precio>
   <donativo>1.00</donativo>
   <fechasorteo>22/12/2024</fechasorteo>
-  <numeros><numero><![CDATA[01864]]></numero><importe>4.00</importe></numeros>
+  <numeros><numero><![CDATA[45678]]></numero><importe>4.00</importe></numeros>
   <urlweb><![CDATA[http://web.elbuholotero.es]]></urlweb>
   <pagoweb>si</pagoweb>
   <pagowebpage><![CDATA[loteria-empresas-parti.php?ref=]]></pagowebpage>

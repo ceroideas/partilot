@@ -45,9 +45,10 @@
 
                     <br>
 
-                    <form action="{{ route('entities.update-manager', $entity->id) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('managers.update', $entity->manager->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
+                        <input type="hidden" name="origin" value="entity">
                         
                         <div class="row">
                     	
@@ -192,7 +193,7 @@
 				                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="manager_name" value="{{ $entity->manager->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input name="name" value="{{ $entity->manager->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -206,7 +207,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="manager_last_name" value="{{ $entity->manager->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input name="last_name" value="{{ $entity->manager->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -221,7 +222,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="manager_last_name2" value="{{ $entity->manager->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="last_name2" value="{{ $entity->manager->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -236,7 +237,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="manager_nif_cif" value="{{ $entity->manager->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="nif_cif" value="{{ $entity->manager->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -251,7 +252,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="manager_birthday" value="{{ $entity->manager->birthday ?? '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="birthday" value="{{ $entity->manager->birthday ?? '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -266,7 +267,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="manager_email" value="{{ $entity->manager->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input name="email" value="{{ $entity->manager->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -281,7 +282,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="manager_phone" value="{{ $entity->manager->phone ?? '' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="phone" value="{{ $entity->manager->phone ?? '' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -306,7 +307,7 @@
 
 			                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-			                                    <textarea name="manager_comment" class="form-control" placeholder="Añade tu comentario" rows="6">{{ $entity->manager->comment ?? '' }}</textarea>
+			                                    <textarea name="comment" class="form-control" placeholder="Añade tu comentario" rows="6">{{ $entity->manager->comment ?? '' }}</textarea>
 			                                </div>
 		                    			</div>
 

@@ -176,12 +176,16 @@ class SetController extends Controller
                 ->with('error', 'Error: No se encontraron los datos de entidad o reserva');
         }
 
+        $createdAt = now();
+        $tickets = \App\Models\Set::generateTickets($entity->id, $reserve->id, $createdAt, $validated['total_participations']);
+
         // Crear set
         $setData = array_merge($validated, [
             'entity_id' => $entity->id,
             'reserve_id' => $reserve->id,
             'status' => 1, // Activo por defecto
-            'created_at' => now()
+            'created_at' => $createdAt,
+            'tickets' => $tickets
         ]);
 
         Set::create($setData);
@@ -218,19 +222,25 @@ class SetController extends Controller
     public function update(Request $request, Set $set)
     {
         $validated = $request->validate([
-            'entity_id' => 'required|integer|exists:entities,id',
-            'reserve_id' => 'required|integer|exists:reserves,id',
             'set_name' => 'required|string|max:255',
-            'set_description' => 'nullable|string|max:1000',
+            'played_amount' => 'nullable|numeric|min:0',
+            'donation_amount' => 'nullable|numeric|min:0',
+            'total_participation_amount' => 'nullable|numeric|min:0',
             'total_participations' => 'required|integer|min:1',
-            'participation_price' => 'required|numeric|min:0',
             'total_amount' => 'required|numeric|min:0',
-            'status' => 'required|in:0,1,2'
+            'physical_participations' => 'nullable|integer|min:0',
+            'digital_participations' => 'nullable|integer|min:0',
+            'deadline_date' => 'nullable|date'
         ]);
 
-        $set->update($validated);
+        // Regenerar tickets manteniendo los existentes
+        $tickets = \App\Models\Set::generateTickets($set->entity_id, $set->reserve_id, $set->created_at, $validated['total_participations'], $set->tickets ?? []);
 
-        return redirect()->route('sets.index')
+        $set->update(array_merge($validated, [
+            'tickets' => $tickets
+        ]));
+
+        return redirect()->route('sets.show', $set->id)
             ->with('success', 'Set actualizado exitosamente');
     }
 
@@ -338,5 +348,58 @@ class SetController extends Controller
             ->get();
 
         return response()->json($reserves);
+    }
+
+    /**
+     * Importar participaciones desde un archivo XML y guardarlas en la columna tickets
+     */
+    public function importXml(Request $request, $id)
+    {
+        $request->validate([
+            'xml_file' => 'required|file|mimes:xml',
+        ]);
+
+        $set = Set::with('reserve.lottery')->findOrFail($id);
+
+        // Leer el archivo XML
+        $xml = simplexml_load_file($request->file('xml_file')->getPathname());
+
+        // Extraer los números de la reserva desde el XML
+        $numerosReservaXml = [];
+        if (isset($xml->numeros->numero)) {
+            foreach ($xml->numeros->numero as $numero) {
+                $numerosReservaXml[] = (string)$numero;
+            }
+        }
+
+        // Números de la reserva en la base de datos
+        $numerosReservaDB = is_array($set->reserve->reservation_numbers) ? $set->reserve->reservation_numbers : [];
+
+        // Validar que ambos arrays sean iguales (sin importar el orden)
+        if (count($numerosReservaXml) !== count($numerosReservaDB) || array_diff($numerosReservaXml, $numerosReservaDB)) {
+            return back()->withErrors(['error' => 'Los números de la reserva en el XML no coinciden con los de la base de datos.']);
+        }
+
+        // Extraer participaciones del XML
+        $participaciones = [];
+        if (isset($xml->participaciones)) {
+            foreach ($xml->participaciones->p as $p) {
+                $participaciones[] = [
+                    'n' => (string)($p->s ?? ''),
+                    'r' => (string)($p->r ?? ''),
+                ];
+            }
+        }
+
+        // Validar cantidad de participaciones
+        if (count($participaciones) != $set->total_participations) {
+            return back()->withErrors(['error' => 'La cantidad de participaciones no coincide con el total del set.']);
+        }
+
+        // Guardar las participaciones en la columna tickets
+        $set->tickets = $participaciones;
+        $set->save();
+
+        return redirect()->route('sets.edit', $set->id)->with('success', 'XML importado correctamente.');
     }
 } 
