@@ -112,7 +112,7 @@
                                 <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                         </div>
                         <div class="col-md-9">
-                            <div class="form-card bs" style="min-height: 658px;">
+                            <div class="form-card bs" style="min-height: 0px;">
                                 <h4 class="mb-0 mt-1">
                                     Datos del Sorteo
                                 </h4>
@@ -227,17 +227,17 @@
 
                                             <div class="col-11">
                                                 <div class="row" id="numbers">
-                                                    <div class="col-3">
+                                                    <div class="col-3 number-input-group">
                                                         <div class="form-group mt-2 mb-3">
                                                             <label class="label-control">Número</label>
-
                                                             <div class="input-group input-group-merge group-form">
-
-                                                                <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px;" required>
+                                                                <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px 0 0 30px;" required>
+                                                                <div class="input-group-text remove-number" style="border-radius: 0 30px 30px 0; cursor:pointer;">
+                                                                    <i class="ri-close-line"></i>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-
                                                 </div>  
 
                                             </div>
@@ -310,20 +310,37 @@
 
 <script>
 
+function addRemoveListeners() {
+    document.querySelectorAll('.remove-number').forEach(function(btn) {
+        btn.onclick = function() {
+            const numbersDiv = document.getElementById('numbers');
+            if(numbersDiv.querySelectorAll('.number-input-group').length > 1) {
+                const col = btn.closest('.number-input-group');
+                if(col) col.remove();
+            }
+        };
+    });
+}
+
 $('.add-number').click(function (e) {
     e.preventDefault();
-
-    $('#numbers').append(`<div class="col-3">
-                            <div class="form-group mt-2 mb-3">
-                                <label class="label-control">Número</label>
-
-                                <div class="input-group input-group-merge group-form">
-
-                                    <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px;" required>
-                                </div>
-                            </div>
-                        </div>`);
+    const numbersDiv = document.getElementById('numbers');
+    const newCol = document.createElement('div');
+    newCol.className = 'col-3 number-input-group';
+    newCol.innerHTML = `
+        <div class=\"form-group mt-2 mb-3\">
+            <label class=\"label-control\">Número</label>
+            <div class=\"input-group input-group-merge group-form\">
+                <input class=\"form-control reservation-number\" type=\"text\" name=\"reservation_numbers[]\" placeholder=\"Número\" style=\"border-radius: 30px 0 0 30px;\" required>
+                <div class=\"input-group-text remove-number\" style=\"border-radius: 0 30px 30px 0; cursor:pointer;\"><i class=\"ri-close-line\"></i></div>
+            </div>
+        </div>
+    `;
+    numbersDiv.appendChild(newCol);
+    addRemoveListeners();
 });
+
+addRemoveListeners();
 
 // Calcular total automáticamente
 $('.reservation-number').on('input', function() {

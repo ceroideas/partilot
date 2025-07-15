@@ -166,21 +166,15 @@ class ReserveController extends Controller
     public function update(Request $request, Reserve $reserve)
     {
         $validated = $request->validate([
-            'entity_id' => 'required|integer|exists:entities,id',
-            'lottery_id' => 'required|integer|exists:lotteries,id',
             'reservation_numbers' => 'required|array|min:1',
             'reservation_numbers.*' => 'required|string|max:10',
-            'total_amount' => 'required|numeric|min:0',
-            'total_tickets' => 'required|integer|min:1',
-            'status' => 'required|in:0,1,2,3',
-            'notes' => 'nullable|string|max:1000',
-            'reservation_date' => 'required|date',
-            'expiration_date' => 'nullable|date'
+            'reservation_amount' => 'required|numeric|min:0',
+            'reservation_tickets' => 'required|integer|min:1'
         ]);
 
         $reserve->update($validated);
 
-        return redirect()->route('reserves.index')
+        return redirect()->route('reserves.show',$reserve->id)
             ->with('success', 'Reserva actualizada exitosamente');
     }
 
