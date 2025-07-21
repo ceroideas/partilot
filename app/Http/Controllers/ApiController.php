@@ -169,4 +169,9 @@ class ApiController extends Controller
         });
 
     }
+
+    public function checkParticipation(Request $r)
+    {
+        return $r->all();
+    }
 }
