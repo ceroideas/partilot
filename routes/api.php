@@ -47,4 +47,4 @@ Route::post('generarQr', [BackController::class,'generarQr']);
 
 Route::get('test', [ApiController::class,'test']);
 
-Route::get('comprobar-participacion?ref=', [ApiController::class,'checkParticipation']);
+Route::get('comprobar-participacion', [ApiController::class,'checkParticipation']);
