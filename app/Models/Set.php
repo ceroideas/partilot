@@ -141,7 +141,7 @@ class Set extends Model
         $reserveId = $input;
 
         for ($i = 1; $i <= $totalParticipations; $i++) {
-            $referencia = ("{$entityId}{$reserveId}{$dateStr}{str_pad($i, 3, '0', STR_PAD_LEFT)}");
+            $referencia = ("{$entityId}{$reserveId}{$dateStr}".str_pad($i, 3, '0', STR_PAD_LEFT));
             $tickets[] = [
                 'n' => $i,
                 'r' => $referencia
