@@ -182,7 +182,7 @@ class ApiController extends Controller
         }
 
         // Buscar el set que contenga el ticket con la referencia 'r' igual a $ref
-        $set = \App\Models\Set::whereNotNull('tickets')->get()->first(function($set) use ($ref) {
+        $set = \App\Models\Set::whereNotNull('tickets')->with(['reserve.lottery'])->get()->first(function($set) use ($ref) {
             if (!is_array($set->tickets)) return false;
             foreach ($set->tickets as $ticket) {
                 if (isset($ticket['r']) && $ticket['r'] == $ref) {
@@ -199,10 +199,12 @@ class ApiController extends Controller
             ], 404);
         }
 
-        // Retornar todos los datos del set
+        // Retornar todos los datos del set, incluyendo reserve y reserve.lottery
         return response()->json([
             'success' => true,
-            'set' => $set
+            'set' => $set,
+            'reserve' => $set->reserve,
+            'lottery' => $set->reserve ? $set->reserve->lottery : null
         ]);
     }
 }
