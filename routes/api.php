@@ -46,5 +46,3 @@ Route::post('upload-image', function(Request $request) {
 Route::post('generarQr', [BackController::class,'generarQr']);
 
 Route::get('test', [ApiController::class,'test']);
-
-Route::get('comprobar-participacion', [ApiController::class,'checkParticipation']);

@@ -172,6 +172,37 @@ class ApiController extends Controller
 
     public function checkParticipation(Request $r)
     {
-        return $r->all();
+        // Validar que el parámetro 'ref' esté presente
+        $ref = $r->query('ref');
+        if (!$ref) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El parámetro ref es obligatorio.'
+            ], 400);
+        }
+
+        // Buscar el set que contenga el ticket con la referencia 'r' igual a $ref
+        $set = \App\Models\Set::whereNotNull('tickets')->get()->first(function($set) use ($ref) {
+            if (!is_array($set->tickets)) return false;
+            foreach ($set->tickets as $ticket) {
+                if (isset($ticket['r']) && $ticket['r'] == $ref) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!$set) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró ningún set con esa referencia.'
+            ], 404);
+        }
+
+        // Retornar todos los datos del set
+        return response()->json([
+            'success' => true,
+            'set' => $set
+        ]);
     }
 }

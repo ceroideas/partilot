@@ -23,6 +23,8 @@ use App\Models\Administration;
 |
 */
 
+Route::get('comprobar-participacion', [ApiController::class,'checkParticipation']);
+
 // Rutas de autenticación
 Route::get('/', function () {
     return redirect('/dashboard');
