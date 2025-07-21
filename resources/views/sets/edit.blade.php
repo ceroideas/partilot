@@ -46,7 +46,7 @@
                                             <label for="xml_file" class="form-label">Importar archivo XML de participaciones</label>
                                             <input type="file" name="xml_file" id="xml_file" class="form-control" accept=".xml" required>
                                         </div>
-                                        <button type="submit" class="btn btn-primary">Importar XML</button>
+                                        <button type="submit" class="btn btn-dark">Importar XML</button>
                                     </form>
                                     <h4 class="mb-0 mt-1">Reserva en la que se generó el Set</h4>
                                     <small><i>Datos de la reserva asociada</i></small>
