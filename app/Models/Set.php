@@ -134,14 +134,14 @@ class Set extends Model
         $created = is_string($createdAt) ? strtotime($createdAt) : ($createdAt instanceof \DateTime ? $createdAt->getTimestamp() : $createdAt);
         $dateStr = $created; // Usar timestamp directamente
 
-        $input = (str_pad($entityId, 5, "0", STR_PAD_LEFT));
+        $input = (str_pad($entityId, 4, "0", STR_PAD_LEFT));
         $entityId = $input;
 
-        $input = (str_pad($reserveId, 5, "0", STR_PAD_LEFT));
+        $input = (str_pad($reserveId, 4, "0", STR_PAD_LEFT));
         $reserveId = $input;
 
         for ($i = 1; $i <= $totalParticipations; $i++) {
-            $referencia = ("{$entityId}{$reserveId}{$dateStr}{$i}");
+            $referencia = ("{$entityId}{$reserveId}{$dateStr}{str_pad($i, 3, '0', STR_PAD_LEFT)}");
             $tickets[] = [
                 'n' => $i,
                 'r' => $referencia
