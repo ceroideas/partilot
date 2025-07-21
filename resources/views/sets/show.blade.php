@@ -80,7 +80,7 @@
                                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                     <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
                                                                 </div>
-                                                                <input class="form-control" readonly type="text" value="{{$set->reserve && $set->reserve->lottery ? $set->reserve->lottery->lottery_number : 'Sin número'}}" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
+                                                                <input class="form-control" readonly type="text" value="{{$set->reserve && $set->reserve->lottery ? $set->reserve->lottery->name : 'Sin número'}}" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
                                                             </div>
                                                         </div>
                                                     </div>

@@ -32,7 +32,7 @@
                                     <label>Config. Set</label>
                                 </div>
                             </div>
-                            <a href="{{url('sets')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                            <a href="{{url('sets/view',$set->id)}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                                 <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
                             </a>
                         </div>
@@ -59,7 +59,7 @@
                                                     <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                         <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
                                                     </div>
-                                                    <input class="form-control" readonly type="text" value="{{$set->reserve && $set->reserve->lottery ? $set->reserve->lottery->lottery_number : 'Sin número'}}" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
+                                                    <input class="form-control" readonly type="text" value="{{$set->reserve && $set->reserve->lottery ? $set->reserve->lottery->name : 'Sin número'}}" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
                                                 </div>
                                             </div>
                                         </div>
