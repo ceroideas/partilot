@@ -11,6 +11,7 @@ use App\Http\Controllers\LotteryTypeController;
 use App\Http\Controllers\ReserveController;
 use App\Http\Controllers\SetController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ApiController;
 use App\Models\Administration;
 /*
 |--------------------------------------------------------------------------
