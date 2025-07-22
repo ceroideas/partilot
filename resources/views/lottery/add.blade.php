@@ -216,7 +216,7 @@
                                 </div>
 
                                 <!-- Campos adicionales necesarios para el controlador -->
-                                <div class="row" style="display: none;">
+                                {{-- <div class="row" style="display: none;">
                                     <div class="col-4">
                                         <div class="form-group mt-2 mb-3">
                                             <label class="label-control">Total de boletos</label>
@@ -237,12 +237,7 @@
                                             <input class="form-control" type="number" step="0.01" name="prize_value" value="{{ old('prize_value', 1000.00) }}" required>
                                         </div>
                                     </div>
-                                </div>
-
-                                <br>
-                                <br>
-                                <br>
-                                <br>
+                                </div> --}}
 
 
                             </div>

@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Lottery;
 use App\Models\LotteryType;
-use App\Models\Administration;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 
 class LotteryController extends Controller
@@ -45,11 +44,11 @@ class LotteryController extends Controller
             'draw_time' => 'required',
             'deadline_date' => 'nullable|date|after:today',
             'ticket_price' => 'required|numeric|min:0',
-            'total_tickets' => 'required|integer|min:1',
-            'prize_description' => 'required|string',
-            'prize_value' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'lottery_type_id' => 'required|integer',
+            // 'total_tickets' => 'required|integer|min:1',
+            // 'prize_description' => 'required|string',
+            // 'prize_value' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -66,7 +65,7 @@ class LotteryController extends Controller
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '_' . $image->getClientOriginalName();
-            $image->storeAs('public/lotteries', $imageName);
+            $image->move(public_path('uploads'), $imageName);
             $data['image'] = $imageName;
         }
 
@@ -81,7 +80,7 @@ class LotteryController extends Controller
      */
     public function show(Lottery $lottery)
     {
-        $lottery->load(['administration', 'lotteryType', 'participations']);
+        $lottery->load(['lotteryType']);
         
         return view('lottery.show', compact('lottery'));
     }
@@ -92,9 +91,8 @@ class LotteryController extends Controller
     public function edit(Lottery $lottery)
     {
         $lotteryTypes = LotteryType::where('is_active', true)->get();
-        $administrations = Administration::all();
 
-        return view('lottery.edit', compact('lottery', 'lotteryTypes', 'administrations'));
+        return view('lottery.edit', compact('lottery', 'lotteryTypes'));
     }
 
     /**
@@ -109,12 +107,12 @@ class LotteryController extends Controller
             'draw_time' => 'required',
             'deadline_date' => 'nullable|date',
             'ticket_price' => 'required|numeric|min:0',
-            'total_tickets' => 'required|integer|min:1',
-            'prize_description' => 'required|string',
-            'prize_value' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'lottery_type_id' => 'required|integer',
-            'status' => 'required|integer|in:1,2,3,4', // 1=active, 2=inactive, 3=completed, 4=cancelled
+            'status' => 'nullable|integer|in:1,2,3,4', // 1=active, 2=inactive, 3=completed, 4=cancelled
+            // 'total_tickets' => 'required|integer|min:1',
+            // 'prize_description' => 'required|string',
+            // 'prize_value' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -128,13 +126,13 @@ class LotteryController extends Controller
         // Manejar la imagen si se subió
         if ($request->hasFile('image')) {
             // Eliminar imagen anterior si existe
-            if ($lottery->image) {
-                Storage::delete('public/lotteries/' . $lottery->image);
+            if ($lottery->image && File::exists(public_path('uploads/' . $lottery->image))) {
+                File::delete(public_path('uploads/' . $lottery->image));
             }
             
             $image = $request->file('image');
             $imageName = time() . '_' . $image->getClientOriginalName();
-            $image->storeAs('public/lotteries', $imageName);
+            $image->move(public_path('uploads'), $imageName);
             $data['image'] = $imageName;
         }
 
@@ -150,8 +148,8 @@ class LotteryController extends Controller
     public function destroy(Lottery $lottery)
     {
         // Eliminar imagen si existe
-        if ($lottery->image) {
-            Storage::delete('public/lotteries/' . $lottery->image);
+        if ($lottery->image && File::exists(public_path('uploads/' . $lottery->image))) {
+            File::delete(public_path('uploads/' . $lottery->image));
         }
 
         $lottery->delete();
@@ -180,9 +178,9 @@ class LotteryController extends Controller
      */
     public function deleteImage(Lottery $lottery)
     {
-        if ($lottery->image) {
+        if ($lottery->image && File::exists(public_path('uploads/' . $lottery->image))) {
             // Eliminar archivo físico
-            Storage::delete('public/lotteries/' . $lottery->image);
+            File::delete(public_path('uploads/' . $lottery->image));
             
             // Actualizar base de datos
             $lottery->update(['image' => null]);

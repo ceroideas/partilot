@@ -746,9 +746,13 @@
                             </div>
                         @endif
 
-                        @if ($errors->has('error'))
+                        @if ($errors->any())
                             <div class="alert alert-danger">
-                                {{ $errors->first('error') }}
+                                <ul class="mb-0">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
                             </div>
                         @endif
 

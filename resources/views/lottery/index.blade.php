@@ -69,6 +69,7 @@
                                     <td>{{$lottery->draw_time ? \Carbon\Carbon::parse($lottery->draw_time)->format('H:i') : 'No definida'}}</td>
                                     <td><b>{{number_format($lottery->ticket_price, 2)}}€</b></td>
                                     <td class="text-end">
+                                        <a href="{{route('lotteries.show', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('lottery/edit', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$lottery->id}}" data-name="{{$lottery->name}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
