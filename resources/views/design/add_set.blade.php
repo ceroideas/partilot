@@ -102,55 +102,57 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Set en el que asignar participaciones
-                    			</h4>
-                    			<small><i>Selecciona un set</i></small>
-
-                    			<br>
-                    			<br>
-
-                    			<div style="min-height: 656px;">
-
-	                    			<table id="example2" class="table table-striped nowrap w-100">
-			                            <thead class="">
-				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>Nombre Set</th>
-				                                <th>Importe Jugado <br> (por Número)</th>
-				                                <th>Importe Donativo</th>
-				                                <th>Importe TOTAL</th>
-				                                <th>Participaciones Físicas</th>
-				                                <th>Participaciones Disponibles</th>
-				                            </tr>
-				                        </thead>
-				                    
-				                    
-				                        <tbody>
-				                            <tr>
-				                                <td>#SP9801</td>
-				                                <td>Set de Pruebas</td>
-				                                <td>2,00€</td>
-				                                <td>2,00€</td>
-				                                <td>10,00€</td>
-				                                <td>600</td>
-				                                <td>120</td>
-				                            </tr>
-				                        </tbody>
-			                        </table>
-
-		                        </div>
-
-
-                    			<div class="row">
-
-                    				<div class="col-12 text-end">
-                    					<a href="{{url('design/add/select')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+                    			<form action="{{ route('design.format', ['entity_id' => $entity->id, 'lottery_id' => $lottery->id, 'set_id' => 'SET_ID']) }}" method="GET" id="setSelectForm">
+                    				<h4 class="mb-0 mt-1">
+                    					Set en el que asignar participaciones
+                    				</h4>
+                    				<small><i>Selecciona un set</i></small>
+                    				<br>
+                    				<br>
+                    				<div style="min-height: 656px;">
+                    					<table id="example2" class="table table-striped nowrap w-100">
+                    						<thead class="">
+                    							<tr>
+                    								<th>ID</th>
+                    								<th>Nombre Set</th>
+                    								<th>Importe Jugado <br> (por Número)</th>
+                    								<th>Importe Donativo</th>
+                    								<th>Importe TOTAL</th>
+                    								<th>Participaciones Físicas</th>
+                    								<th>Participaciones Disponibles</th>
+                    								<th>Seleccionar</th>
+                    							</tr>
+                    						</thead>
+                    						<tbody>
+                    							@foreach($sets as $set)
+                    							<tr>
+                    								<td>#SP{{str_pad($set->id, 4, '0', STR_PAD_LEFT)}}</td>
+                    								<td>{{$set->set_name}}</td>
+                    								<td>{{number_format($set->amount_played, 2)}}€</td>
+                    								<td>{{number_format($set->donation_amount, 2)}}€</td>
+                    								<td>{{number_format($set->total_amount, 2)}}€</td>
+                    								<td>{{$set->physical_participations}}</td>
+                    								<td>{{$set->total_participations}}</td>
+                    								<td>
+                    									<div class="form-check">
+                    										<input class="form-check-input" type="radio" name="set_id" value="{{$set->id}}" id="set_{{$set->id}}" required>
+                    										<label class="form-check-label" for="set_{{$set->id}}">
+                    											Seleccionar
+                    										</label>
+                    									</div>
+                    								</td>
+                    							</tr>
+                    							@endforeach
+                    						</tbody>
+                    					</table>
                     				</div>
-
-                    			</div>
-
+                    				<div class="row">
+                    					<div class="col-12 text-end">
+                    						<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    							<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+                    					</div>
+                    				</div>
+                    			</form>
                     		</div>
                     	</div>
 
@@ -265,6 +267,19 @@ function initDatatable()
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
+</script>
+
+<script>
+    // Cambia la acción del formulario al seleccionar un set
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('setSelectForm');
+        const radios = document.querySelectorAll('input[name="set_id"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                form.action = "{{ route('design.format', ['entity_id' => $entity->id, 'lottery_id' => $lottery->id, 'set_id' => 'SET_ID']) }}".replace('SET_ID', this.value);
+            });
+        });
+    });
 </script>
 
 @endsection

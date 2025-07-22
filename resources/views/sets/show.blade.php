@@ -281,7 +281,7 @@
                                                         @foreach($participaciones as $p)
                                                             <tr>
                                                                 <td>{{ $p['n'] }}</td>
-                                                                <td>{{ $p['r'] }}</td>
+                                                                <td><a target="_blank" href="{{ url('comprobar-participacion?ref='.$p['r']) }}" title="Ver ticket">{{$p['r']}}</a></td>
                                                             </tr>
                                                         @endforeach
                                                     </tbody>

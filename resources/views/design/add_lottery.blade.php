@@ -102,7 +102,8 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<form action="{{ route('design.selectSet', ['entity_id' => request('entity_id', isset($entity) ? $entity->id : null)]) }}" method="GET">
+                    			<form action="{{ route('design.storeLottery') }}" method="POST">
+                    				@csrf
                     				<h4 class="mb-0 mt-1">
                     					Sorteo en el que generar el diseño
                     				</h4>
@@ -127,7 +128,7 @@
                     							<tr>
                     								<td>#LO{{str_pad($lottery->id, 4, '0', STR_PAD_LEFT)}}</td>
                     								<td>{{$lottery->name}}</td>
-                    								<td>{{$lottery->date ?? 'Sin fecha'}}</td>
+                    								<td>{{$lottery->draw_date->format('d-m-Y') ?? 'Sin fecha'}}</td>
                     								<td><label class="badge bg-success">Activo</label></td>
                     								<td>
                     									<div class="form-check">

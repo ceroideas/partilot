@@ -206,6 +206,7 @@ Route::group(['prefix' => 'design'], function() {
     Route::get('/add/lottery/{entity_id?}', [\App\Http\Controllers\DesignController::class, 'selectLottery'])->name('design.selectLottery');
     Route::get('/add/set/{entity_id}/{lottery_id}', [\App\Http\Controllers\DesignController::class, 'selectSet'])->name('design.selectSet');
     Route::get('/add/format/{entity_id}/{lottery_id}/{set_id}', [\App\Http\Controllers\DesignController::class, 'format'])->name('design.format');
+    Route::post('design/add/lottery', [\App\Http\Controllers\DesignController::class, 'storeLottery'])->name('design.storeLottery');
 });
 
 Route::get('social',function() {

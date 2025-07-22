@@ -32,22 +32,22 @@ class DesignController extends Controller
     // Paso 3: Seleccionar set
     public function selectSet($entity_id = null, $lottery_id = null)
     {
-        // Recuperar entity_id de la sesión si no viene por parámetro
         if (!$entity_id) {
             $entity_id = session('design_entity_id');
         }
-        // Recuperar lottery_id del request si no viene por parámetro
         if (!$lottery_id) {
             $lottery_id = request('lottery_id');
         }
         $entity = \App\Models\Entity::findOrFail($entity_id);
         $lottery = \App\Models\Lottery::findOrFail($lottery_id);
-        // Buscar la reserva correspondiente
+        // Buscar todos los sets de la entidad y sorteo (a través de la reserva)
+        $sets = \App\Models\Set::where('entity_id', $entity_id)
+            ->whereHas('reserve', function($q) use ($lottery_id) {
+                $q->where('lottery_id', $lottery_id);
+            })
+            ->get();
+        // Obtener la reserva principal (opcional, para la vista)
         $reserve = \App\Models\Reserve::where('entity_id', $entity_id)->where('lottery_id', $lottery_id)->first();
-        $sets = [];
-        if ($reserve) {
-            $sets = \App\Models\Set::where('reserve_id', $reserve->id)->get();
-        }
         return view('design.add_set', compact('entity', 'lottery', 'sets', 'reserve'));
     }
 
@@ -69,5 +69,18 @@ class DesignController extends Controller
         $entity_id = $request->entity_id;
         session(['design_entity_id' => $entity_id]);
         return redirect()->route('design.selectLottery');
+    }
+
+    // Guardar selección de sorteo y redirigir a selección de set
+    public function storeLottery(Request $request)
+    {
+        $request->validate([
+            'entity_id' => 'required|integer|exists:entities,id',
+            'lottery_id' => 'required|integer|exists:lotteries,id'
+        ]);
+        return redirect()->route('design.selectSet', [
+            'entity_id' => $request->entity_id,
+            'lottery_id' => $request->lottery_id
+        ]);
     }
 } 
