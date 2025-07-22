@@ -204,7 +204,49 @@ class ApiController extends Controller
             'success' => true,
             'set' => $set,
             'reserve' => $set->reserve,
+            'entity' => $set->reserve ? $set->reserve->entity : null,
             'lottery' => $set->reserve ? $set->reserve->lottery : null
         ]);
+    }
+
+    /**
+     * Muestra la vista personalizada del ticket de participación.
+     */
+    public function showParticipationTicket(Request $request)
+    {
+        $ticket = null;
+        $error = null;
+        if ($request->has('ref')) {
+            $response = $this->checkParticipation($request);
+            $data = $response->getData(true); // array asociativo
+            if (empty($data['success'])) {
+                $error = $data['message'] ?? 'Error desconocido.';
+            } else {
+                $set = $data['set'];
+                $reserve = $data['reserve'];
+                $lottery = $data['lottery'];
+                $ref = $request->query('ref');
+                $ticketData = null;
+                if (isset($set['tickets']) && is_array($set['tickets'])) {
+                    foreach ($set['tickets'] as $t) {
+                        if (isset($t['r']) && $t['r'] == $ref) {
+                            $ticketData = $t;
+                            break;
+                        }
+                    }
+                }
+                $ticket = [
+                    'titulo' => $reserve['entity']['name'] ?? 'Participación',
+                    'sorteo' => $lottery['description'] ?? '',
+                    'numeros' => implode(' - ', $reserve['reservation_numbers']),
+                    'jugado' => $reserve['total_amount'],
+                    'serie' => $ticketData['n'] ?? '',
+                    'referencia' => $ticketData['r'] ?? $ref,
+                ];
+            }
+        } else {
+            $error = 'Referencia de ticket no proporcionada.';
+        }
+        return view('participation_ticket', compact('ticket', 'error'));
     }
 }

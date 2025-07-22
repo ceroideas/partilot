@@ -24,7 +24,8 @@ use App\Models\Administration;
 |
 */
 
-Route::get('comprobar-participacion', [ApiController::class,'checkParticipation']);
+Route::get('comprobar-participacion', [App\Http\Controllers\ApiController::class, 'showParticipationTicket']);
+Route::get('/participation-ticket', [ApiController::class, 'showParticipationTicket']);
 
 // Rutas de autenticación
 Route::get('/', function () {
