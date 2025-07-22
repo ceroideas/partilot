@@ -191,6 +191,14 @@
                                                     </div>
                                                 </div>
 
+                                                <div class="col-12">
+                                                    <div class="alert alert-info" id="ticket-info" style="margin-top: 10px;">
+                                                        <b>Medidas de la hoja:</b> <span id="sheet-size">-</span><br>
+                                                        <b>Medidas de cada ticket:</b> <span id="ticket-size">-</span><br>
+                                                        <b>Cantidad de tickets por hoja:</b> <span id="ticket-count">-</span>
+                                                    </div>
+                                                </div>
+
 	                    					</div>	
 
 	                    					<h4 class="mb-0 mt-1">
@@ -906,97 +914,28 @@ function initDatatable()
   },100);
 
 
-  $('#format').change(function (e) {
-  	e.preventDefault();
+  function getCustomDimensions() {
+    let page = $('#page').val();
+    let cols = parseInt($('#cols').val());
+    let rows = parseInt($('#rows').val());
+    let orientation = $('#orientation').val();
+    let w, h;
+    if (page == 'a3') {
+        w = 400 / cols;
+        h = 276 / rows;
+    } else if (page == 'a4') {
+        w = 190 / cols;
+        h = 277 / rows;
+    }
+    if (orientation == 'v') {
+        let aux = w;
+        w = h;
+        h = aux;
+    }
+    return {w, h};
+}
 
-  	let html = "";
-
-    restoreValues()
-
-  	if($(this).val() == 'a3-h-3x2') {
-        $('.custom').prop('disabled', true);
-
-  		html = `<div class="a3">
-					<div style="height: 72px;"></div>
-					<div style="height: 72px;"></div>
-					<div style="height: 72px;"></div>
-					<div style="height: 72px;"></div>
-					<div style="height: 72px;"></div>
-					<div style="height: 72px;"></div>
-				</div>`;
-
-  	} else if($(this).val() == 'a3-h-4x2') {
-        $('.custom').prop('disabled', true);
-
-  		html = `<div class="a3">
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-				</div>`;
-
-  	} else if($(this).val() == 'a4-v-3x1') {
-        $('.custom').prop('disabled', true);
-
-  		html = `<div class="a4">
-					<div style="height: 72px;"></div>
-					<div style="height: 72px;"></div>
-					<div style="height: 72px;"></div>
-				</div>`;
-  		
-  	} else if($(this).val() == 'a4-v-4x1') {
-        $('.custom').prop('disabled', true);
-
-  		html = `<div class="a4">
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-					<div style="height: 54px;"></div>
-				</div>`;
-  		
-  	} else if($(this).val() == 'custom') {
-        $('.custom').prop('disabled', false);
-
-        html = `<div class="a3">
-                    <div style="height: 72px;"></div>
-                    <div style="height: 72px;"></div>
-                    <div style="height: 72px;"></div>
-                    <div style="height: 72px;"></div>
-                    <div style="height: 72px;"></div>
-                    <div style="height: 72px;"></div>
-                </div>`;
-  	}
-
-  	$('.preview-design').html(html);
-  });
-
-  $('#cols,#rows').change(function (e) {
-      e.preventDefault();
-
-      recalculateDesign();
-  });
-
-  $('#page').change(function (e) {
-      e.preventDefault();
-
-      let clase = $(this).val();
-
-      $('.preview-design > div').removeClass('a3 a4');
-      $('.preview-design > div').addClass(clase);
-
-      recalculateDesign();
-  });
-
-  $('#orientation').change(function(event) {
-      recalculateDesign();
-  });
-
-  function recalculateDesign()
-  {
+function recalculateDesign() {
     let cols = $('#cols').val();
     let rows = $('#rows').val();
     let orientation = $('#orientation').val();
@@ -1009,18 +948,95 @@ function initDatatable()
     }
 
     let h = 216 / rows;
-
     let html = "";
-
     let percent = 100 / cols;
     let margin = 1 / cols;
-
     for (var i = 0; i < cols*rows; i++) {
         html+=`<div style="height: ${h}px; width: ${percent-1}%; margin-left: ${margin}%"></div>`;
     }
-
     $('.preview-design > div').html(html);
-  }
+
+    // Actualizar el tamaño del format-box en tiempo real para personalizado
+    if($('#format').val() === 'custom') {
+        const {w, h} = getCustomDimensions();
+        $('.format-box').css({width: w+'mm', height: h+'mm'});
+    }
+}
+
+$('#cols,#rows').change(function (e) {
+    e.preventDefault();
+    recalculateDesign();
+});
+
+$('#page').change(function (e) {
+    e.preventDefault();
+    let clase = $(this).val();
+    $('.preview-design > div').removeClass('a3 a4');
+    $('.preview-design > div').addClass(clase);
+    recalculateDesign();
+});
+
+$('#orientation').change(function(event) {
+    recalculateDesign();
+});
+
+$('#format').change(function (e) {
+    e.preventDefault();
+    let html = "";
+    restoreValues();
+    if($(this).val() == 'a3-h-3x2') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a3">
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+            </div>`;
+    } else if($(this).val() == 'a3-h-4x2') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a3">
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+            </div>`;
+    } else if($(this).val() == 'a4-v-3x1') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a4">
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+            </div>`;
+    } else if($(this).val() == 'a4-v-4x1') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a4">
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+            </div>`;
+    } else if($(this).val() == 'custom') {
+        $('.custom').prop('disabled', false);
+        html = `<div class="a3">
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                </div>`;
+        // Actualizar el tamaño del format-box en tiempo real para personalizado
+        const {w, h} = getCustomDimensions();
+        $('.format-box').css({width: w+'mm', height: h+'mm'});
+    }
+    $('.preview-design').html(html);
+});
 
   function restoreValues()
   {
@@ -1126,7 +1142,7 @@ function initDatatable()
         let format = $('#format').val();
         let w = 200;
         let h = 92;
-
+        let orientation = $('#orientation').val();
         if (format == 'a3-h-3x2') {
             w = 200;
             h = 92;
@@ -1143,44 +1159,17 @@ function initDatatable()
             w = 190;
             h = 69.38;
         } else{
-
-            let page = $('#page').val();
-
-            let cols = $('#cols').val();
-            let rows = $('#rows').val();
-
-            let percent = 100 / cols;
-            let margin = 1 / cols;
-
-            if (page == 'a3') {
-                w = 400 / cols;
-                h = 276 / rows;
-            } else if (page == 'a4') {
-                w = 190 / cols;
-                h = 277 / rows;
-            }
-
-            if (orientation == 'v') {
-                let aux = w;
-                w = h;
-                h = aux;
-            }
-
+            // Personalizado
+            const dims = getCustomDimensions();
+            w = dims.w;
+            h = dims.h;
         }
-
-        console.log(w,h);
-
-        console.log($('[id*="containment-wrapper'),w,h)
-
-        $('[id*="containment-wrapper').parent().css({
+        $('[id*="containment-wrapper"]').parent().css({
             width: w+'mm',
             height: h+'mm'
         });
-
         let matrix = $('#matrix-box').val() ?? 40;
-
         $('#containment-wrapper4').css('padding-right', matrix+'mm');
-
         $('.format-box-btn').css('width', w+'mm');
 
       }
@@ -1461,6 +1450,96 @@ function initDatatable()
 
       let opacity = $('.guide'+step).css('border-color',$(this).val());
   });
+
+  // === INICIO BLOQUE NUEVO ===
+  // Tabla de medidas de ticket para todas las combinaciones posibles
+  const ticketSizes = {
+    a3: {
+      h: {},
+      v: {}
+    },
+    a4: {
+      h: {},
+      v: {}
+    }
+  };
+  // Medidas útiles de hoja (márgenes de 10mm por lado)
+  const sheetUsable = {
+    a3: { h: { width: 400, height: 277 }, v: { width: 277, height: 400 } },
+    a4: { h: { width: 277, height: 190 }, v: { width: 190, height: 277 } }
+  };
+  // Generar todas las combinaciones
+  for (const page of ['a3', 'a4']) {
+    for (const orientation of ['h', 'v']) {
+      const usable = sheetUsable[page][orientation];
+      for (let rows = 1; rows <= 5; rows++) {
+        for (let cols = 1; cols <= 5; cols++) {
+          const w = (usable.width / cols).toFixed(2);
+          const h = (usable.height / rows).toFixed(2);
+          ticketSizes[page][orientation][`${cols}x${rows}`] = { w, h };
+        }
+      }
+    }
+  }
+  // === FIN BLOQUE NUEVO ===
+
+  function updateTicketInfo() {
+      // Definir plantillas rápidas
+      const quickTemplates = {
+          'a3-h-3x2': { page: 'a3', orientation: 'h', cols: 3, rows: 2, ticket: '200mm x 92mm' },
+          'a3-h-4x2': { page: 'a3', orientation: 'h', cols: 4, rows: 2, ticket: '200mm x 68.88mm' },
+          'a4-v-3x1': { page: 'a4', orientation: 'v', cols: 3, rows: 1, ticket: '190mm x 92mm' },
+          'a4-v-4x1': { page: 'a4', orientation: 'v', cols: 4, rows: 1, ticket: '190mm x 69.38mm' }
+      };
+      let page = $('#page').val();
+      let orientation = $('#orientation').val();
+      let cols = parseInt($('#cols').val());
+      let rows = parseInt($('#rows').val());
+      let format = $('#format').val();
+
+      // Medidas de hoja
+      const sheetSizes = {
+          'a3': { h: { width: 420, height: 297 }, v: { width: 297, height: 420 } },
+          'a4': { h: { width: 297, height: 210 }, v: { width: 210, height: 297 } }
+      };
+      let sheet = sheetSizes[page][orientation];
+      let sheetText = `${sheet.width}mm x ${sheet.height}mm`;
+
+      // Medidas de ticket: buscar en la tabla
+      let key = `${cols}x${rows}`;
+      let ticketObj = ticketSizes[page][orientation][key];
+      let ticketText = ticketObj ? `${ticketObj.w}mm x ${ticketObj.h}mm` : '-';
+
+      // Casos especiales de plantillas rápidas
+      if(format === 'a3-h-3x2') { ticketText = '200mm x 92mm'; }
+      else if(format === 'a3-h-4x2') { ticketText = '200mm x 68.88mm'; }
+      else if(format === 'a4-v-3x1') { ticketText = '190mm x 92mm'; }
+      else if(format === 'a4-v-4x1') { ticketText = '190mm x 69.38mm'; }
+      else if(format === 'custom') {
+          // Si la selección personalizada coincide con una plantilla rápida, usar la medida fija
+          for (const keyTpl in quickTemplates) {
+              const tpl = quickTemplates[keyTpl];
+              if (tpl.page === page && tpl.orientation === orientation && tpl.cols === cols && tpl.rows === rows) {
+                  ticketText = tpl.ticket;
+                  break;
+              }
+          }
+      }
+
+      // Cantidad de tickets
+      let ticketCount = cols * rows;
+
+      $('#sheet-size').text(sheetText);
+      $('#ticket-size').text(ticketText);
+      $('#ticket-count').text(ticketCount);
+  }
+
+  // Llamar al cargar y al cambiar cualquier campo relevante
+  $(document).ready(function() {
+      updateTicketInfo();
+      $('#format,#page,#rows,#cols,#orientation').on('change keyup', updateTicketInfo);
+  });
+  // === FIN BLOQUE NUEVO ===
 
 </script>
 
