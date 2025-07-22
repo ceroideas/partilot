@@ -1291,11 +1291,20 @@
         <!-- Datatables init -->
         <script src="{{url('default')}}/assets/js/pages/datatables.init.js"></script>
 
-        <script src="https://cdn.ckeditor.com/ckeditor5/45.2.0/ckeditor5.umd.js" crossorigin></script>
+        {{-- <script src="https://cdn.ckeditor.com/ckeditor5/45.2.0/ckeditor5.umd.js" crossorigin></script>
         <script src="https://cdn.ckeditor.com/ckeditor5/45.2.0/translations/es.umd.js" crossorigin></script>
-        <script src="{{url('main.js')}}"></script>
+        <script src="{{url('main.js')}}"></script> --}}
+
+        <script src="{{url('ckeditor/ckeditor.js')}}"></script>
+        <script src="{{url('ckeditor/adapters/jquery.js')}}"></script>
 
         @yield('scripts')
+
+        <script>
+            localStorage.removeItem('step2');
+            localStorage.removeItem('step3');
+            localStorage.removeItem('step4');
+        </script>
 
     </body>
 

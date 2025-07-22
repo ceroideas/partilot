@@ -348,9 +348,10 @@
                                         <button class="btn btn-sm btn-dark add-text" data-id="2">Texto</button>
                                         <button class="btn btn-sm btn-dark add-image" data-id="2">Imagen</button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="2">QR</button> --}}
-                                        <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2">
+                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
-                                        </label>
+                                        </label> --}}
+                                        <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
                                         <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
                                         <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2">
                                             Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
@@ -374,11 +375,13 @@
 
                                         <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm);"> 
 
-                                             <div class="elements text ui-draggable" style="padding: 10px; width: 340px; height: 120px; resize: both; overflow: hidden; position: relative; left: 414.009px; top: 7.90909px;">
-                                                <span class="ui-draggable-handle"><h1><span style="font-size:42px;" class="ui-draggable-handle"><strong>05.716-52.468</strong></span><br><span style="font-size:42px;" class="ui-draggable-handle"><strong>51.235-69.584</strong></span></h1></span>
+                                              
+
+                                             <div class="elements number ui-draggable" style="padding: 10px; width: 166px; height: 90px; resize: both; overflow: hidden; position: relative; left: 496px; top: 25.8906px;">
+                                                <span class="ui-draggable-handle"><h1><span style="color:hsl(0,0%,0%);font-size:72px;" class="ui-draggable-handle"><strong>00000</strong></span></h1></span>
                                             </div>
 
-                                            <div class="elements text ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 420px; top: -2px; width: 316px; height: 85px;">
+                                            <div class="elements text ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 418px; top: 122.011px; width: 316px; height: 85px;">
                                                 <span class="ui-draggable-handle"><h5 style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">El portador de la presente participación juega DOS EUROS&nbsp;</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">en cada número arriba indicado para el sorteo de Loteria Nacional&nbsp;</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">que se celebrará el 22 de Diciembre de 2025&nbsp;</span><br><span style="font-size:10px;" class="ui-draggable-handle">&nbsp;</span></h5></span>
                                                 
                                             </div>
@@ -388,31 +391,32 @@
                                             </div>
                                                 <div class="elements text ui-draggable" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 144px; left: 158px;">
                                                 <span class="ui-draggable-handle"><h5 style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">DATOS DE LA EMPRESA</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">NOMBRE</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">C/NOMBRE DE LA VIA</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">TELEFONO</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">DATOS</span></h5></span>
-                                            </div><div class="elements text ui-draggable" style="padding: 10px; width: 82px; height: 44px; resize: both; overflow: hidden; position: absolute; top: 134px; left: 42px;">
+                                            </div><div class="elements text ui-draggable" style="padding: 10px; width: 82px; height: 44px; resize: both; overflow: hidden; position: absolute; top: 144px; left: 42px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0, 0%, 0%);" class="ui-draggable-handle"><strong>22/07/25</strong></span></p></span>
-                                            </div><div class="elements text ui-draggable" style="padding: 10px; width: 120px; height: 61px; resize: both; overflow: hidden; position: absolute; top: 170.798px; left: 27.8096px;">
-                                                <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-family:Arial, Helvetica, sans-serif;font-size:14px;" class="ui-draggable-handle"><strong>05.716-52.468</strong></span><br><span style="color:hsl(0,0%,0%);font-family:Arial, Helvetica, sans-serif;font-size:14px;" class="ui-draggable-handle"><strong>51.235-69.584</strong></span></p></span>
+                                            </div><div class="elements text ui-draggable" style="padding: 10px; width: 74px; height: 43px; resize: both; overflow: hidden; position: absolute; top: 180.797px; left: 51.7969px; z-index: 1001;">
+                                                <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-family:Arial, Helvetica, sans-serif;font-size:14px;" class="ui-draggable-handle"><strong>00.000</strong></span></p></span>
                                             </div>
                                                 <div class="elements text ui-draggable" style="padding: 10px; width: 120px; height: 90px; resize: both; overflow: hidden; position: absolute; top: 214px; left: 26px;">
-                                                <span class="ui-draggable-handle"><h4 style="text-align:center;"><span style="font-size:26px;" class="ui-draggable-handle"><strong>5,00€</strong></span><br><span style="font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="font-size:18px;" class="ui-draggable-handle"><strong>1,00€</strong></span></h4></span>
+                                                <span class="ui-draggable-handle"><h4 style="text-align:center;"><span style="color:hsl(0, 0%, 0%);font-size:26px;" class="ui-draggable-handle"><strong>8,00€</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0, 0%, 0%);" class="ui-draggable-handle">2</span><span style="color:hsl(0, 0%, 0%);font-size:18px;" class="ui-draggable-handle"><strong>,00€</strong></span></h4></span>
                                             </div>
                                                 <div class="elements participation text ui-draggable" style="padding: 10px; width: 90px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 300px; left: 94px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div>
-                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 42px; top: -140px; height: 78px; width: 84px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/default.jpg" alt=""></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 170.909px; top: -263.091px; height: 144px; width: 170px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750719384_173289460408li94ujyym5uhx0jbpu.png" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 298px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 258.815px; left: 162.81px;">
+                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 44.9659px; top: 68.9773px; height: 78px; width: 76px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/default.jpg" alt=""></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 184.884px; top: 15.9091px; height: 84px; width: 137px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750719384_173289460408li94ujyym5uhx0jbpu.png" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 298px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 258.815px; left: 162.81px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Caduca a los 3 meses, Premios sujetos a la ley.</strong></span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nota: Todo talón roto o enmendado será nulo</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 602px; height: 46px; resize: both; overflow: hidden; position: absolute; top: 300.909px; left: 152.92px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:6px;" class="ui-draggable-handle"><strong>Los premios superiores a 2500€ por décimo, tendrán una retención del 20% por encima del importe anterior, que será prorrateada en estas participaciones en la proporción correspondiente a su valor nominal.</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 220px; left: 332px;">
-                                            <span class="ui-draggable-handle"><p style="text-align:center;"><span style="color:hsl(0, 0%, 0%);font-size:26px;" class="ui-draggable-handle"><strong>5,00€</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:18px;" class="ui-draggable-handle"><strong>1,00€</strong></span></p></span>
-                                            </div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 600px; top: -187px; width: 56px; height: 44px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750725951_156098571_1876771692487612_4648103175506295823_n.jpg" alt=""></span></div><div class="elements participation text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
+                                            <span class="ui-draggable-handle"><p style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:26px;" class="ui-draggable-handle"><strong>8,00€</strong></span><br><span style="color:hsl(0,0%,0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0,0%,0%);font-size:18px;" class="ui-draggable-handle"><strong>2,00€</strong></span></p></span>
+                                            </div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 603px; top: 244.011px; width: 56px; height: 44px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750725951_156098571_1876771692487612_4648103175506295823_n.jpg" alt=""></span></div><div class="elements participation text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
-                                            </div><div class="elements text ui-draggable" style="padding: 10px; width: 92px; height: 36px; resize: both; overflow: hidden; position: absolute; top: 235.81px; left: 504.795px;">
+                                            </div><div class="elements text ui-draggable" style="padding: 10px; width: 92px; height: 36px; resize: both; overflow: hidden; position: absolute; top: 247.797px; left: 490.781px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>DEPOSITARIO</strong></span></p></span>
-                                            </div><div class="elements text ui-draggable" style="padding: 10px; width: 227px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 280.699px; left: 461.707px;">
-                                                <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>Nº Ref: 88812543625849265321</strong></span></p></span>
+                                            </div><div class="elements reference ui-draggable" style="padding: 10px; width: 227px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 278.688px; left: 459.703px;">
+                                                <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;"><strong>Nº Ref: 00000000000000000000</strong></span></p></span>
                                             </div>
-                                        <div class="elements qr ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 249.616px; left: 667.622px; width: 59px; height: 60px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/qrcodes/6859f429e67ba.png" alt=""></span></div>
+                                        <div class="elements qr ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 253.562px; left: 666.588px; width: 60px; height: 60px;"><span class="ui-draggable-handle">{{-- <img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/qrcodes/6859f429e67ba.png" alt=""> --}}</span></div>
+                                        
                                         </div>
 
                                     </div>
@@ -439,9 +443,10 @@
                                         <button class="btn btn-sm btn-dark add-text" data-id="3">Texto</button>
                                         <button class="btn btn-sm btn-dark add-image" data-id="3">Imagen</button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3">QR</button> --}}
-                                        <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3">
+                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
-                                        </label>
+                                        </label> --}}
+                                        <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
                                         <button class="btn btn-sm btn-dark add-top" data-id="3">Arriba</button>
                                         <button class="btn btn-sm btn-dark add-bottom" data-id="3">Abajo</button>
                                         <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
@@ -499,9 +504,10 @@
                                         <button class="btn btn-sm btn-dark add-text" data-id="4">Texto</button>
                                         <button class="btn btn-sm btn-dark add-image" data-id="4">Imagen</button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="4">QR</button> --}}
-                                        <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4">
+                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
-                                        </label>
+                                        </label> --}}
+                                        <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
                                         <button class="btn btn-sm btn-dark add-top" data-id="4">Arriba</button>
                                         <button class="btn btn-sm btn-dark add-bottom" data-id="4">Abajo</button>
                                         <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
@@ -722,7 +728,6 @@
       </div>
       <div class="modal-body">
         
-        <div class="editor-container__toolbar" id="editor-toolbar"></div>
         <div class="editor-container__editor"><div id="editor" style="height: 200px;"></div></div>
         {{-- <div class="editor-container editor-container_document-editor" id="editor-container">
             <div class="editor-container__editor-wrapper">
@@ -813,9 +818,130 @@
   </div>
 </div>
 
+<!-- === MODAL FONDO DE TICKET === -->
+<div class="modal fade" id="background-modal" tabindex="-1" aria-labelledby="backgroundModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="backgroundModalLabel">Seleccionar fondo del ticket</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="background-color" class="form-label">Color de fondo</label>
+          <input type="color" class="form-control form-control-color" id="background-color" value="#dfdfdf" title="Elige un color">
+        </div>
+        <div class="mb-3">
+          <label for="background-image" class="form-label">Imagen de fondo</label>
+          <input class="form-control" type="file" id="background-image" accept="image/*">
+        </div>
+        <div class="mb-3">
+          <button class="btn btn-secondary" id="remove-bg-image">Quitar imagen de fondo</button>
+        </div>
+        <div id="bg-preview" style="width:100%;height:80px;border:1px solid #ccc;background-size:cover;background-position:center;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="apply-bg">Aplicar fondo</button>
+      </div>
+    </div>
+  </div>
+</div>
+{{-- // ... existing code ...
+// === BOTÓN PARA ABRIR EL MODAL DE FONDO ===
+// Puedes ponerlo junto al botón de color de fondo actual: --}}
+
 @endsection
 
 @section('scripts')
+
+<script>
+// ... existing code ...
+// === SCRIPTS PARA EL MODAL DE FONDO ===
+$(document).ready(function() {
+  // Botón para abrir el modal
+  $(document).on('click', '#open-bg-modal', function() {
+    // Cargar valores actuales
+    const color = localStorage.getItem('bg-step'+step) || '#dfdfdf';
+    const img = localStorage.getItem('bgimg-step'+step) || null;
+    $('#background-color').val(color);
+    $('#background-image').val('');
+    if(img) {
+      $('#bg-preview').css('background-image', 'url('+img+')');
+    } else {
+      $('#bg-preview').css('background-image', 'none');
+    }
+    $('#bg-preview').css('background-color', color);
+    $('#background-modal').modal('show');
+  });
+
+  // Previsualizar color
+  $('#background-color').on('input', function() {
+    $('#bg-preview').css('background-color', $(this).val());
+  });
+
+  // Previsualizar imagen
+  $('#background-image').on('change', function(e) {
+    if(this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        $('#bg-preview').css('background-image', 'url('+ev.target.result+')');
+      };
+      reader.readAsDataURL(this.files[0]);
+    }
+  });
+
+  // Quitar imagen de fondo
+  $('#remove-bg-image').on('click', function() {
+    $('#bg-preview').css('background-image', 'none');
+    $('#background-image').val('');
+    localStorage.removeItem('bgimg-step'+step);
+  });
+
+  // Aplicar fondo
+  $('#apply-bg').on('click', function() {
+    const color = $('#background-color').val();
+    let img = '';
+    if($('#background-image')[0].files && $('#background-image')[0].files[0]) {
+      // Subir imagen al servidor
+      const file = $('#background-image')[0].files[0];
+      const formData = new FormData();
+      formData.append('image', file);
+      fetch('{{url('api/upload-image')}}', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data.url) {
+          img = data.url;
+          localStorage.setItem('bgimg-step'+step, img);
+          setBgToContainment(color, img);
+          $('#background-modal').modal('hide');
+        }
+      });
+    } else {
+      img = localStorage.getItem('bgimg-step'+step) || '';
+      setBgToContainment(color, img);
+      $('#background-modal').modal('hide');
+    }
+    localStorage.setItem('bg-step'+step, color);
+  });
+
+  function setBgToContainment(color, img) {
+    const $cont = $('#containment-wrapper'+step);
+    $cont.css('background-color', color);
+    if(img) {
+      $cont.css('background-image', 'url('+img+')');
+      $cont.css('background-size', 'cover');
+      $cont.css('background-position', 'center');
+    } else {
+      $cont.css('background-image', 'none');
+    }
+  }
+});
+// ... existing code ...
+</script>
 
 <script>
 
@@ -956,11 +1082,11 @@ function recalculateDesign() {
     }
     $('.preview-design > div').html(html);
 
-    // Actualizar el tamaño del format-box en tiempo real para personalizado
-    if($('#format').val() === 'custom') {
-        const {w, h} = getCustomDimensions();
-        $('.format-box').css({width: w+'mm', height: h+'mm'});
-    }
+    // Eliminado: cambio de tamaño de .format-box aquí
+    // if($('#format').val() === 'custom') {
+    //     const {w, h} = getCustomDimensions();
+    //     $('.format-box').css({width: w+'mm', height: h+'mm'});
+    // }
 }
 
 $('#cols,#rows').change(function (e) {
@@ -1033,7 +1159,8 @@ $('#format').change(function (e) {
                 </div>`;
         // Actualizar el tamaño del format-box en tiempo real para personalizado
         const {w, h} = getCustomDimensions();
-        $('.format-box').css({width: w+'mm', height: h+'mm'});
+        console.log(w,h)
+        {{-- $('.format-box').css({width: w+'mm', height: h+'mm'}); --}}
     }
     $('.preview-design').html(html);
 });
@@ -1076,6 +1203,7 @@ $('#format').change(function (e) {
         if ($('#containment-wrapper'+step).length) {
             if(localStorage.getItem('bg-step'+step)){
                 $('#containment-wrapper'+step).css('background-color', localStorage.getItem('bg-step'+step));
+                $('#apply-bg').trigger('click');
             }else{
                 $('#containment-wrapper'+step).css('background-color', '#dfdfdf');
             }
@@ -1119,6 +1247,7 @@ $('#format').change(function (e) {
           if ($('#containment-wrapper'+step).length) {
               if(localStorage.getItem('bg-step'+step)){
                   $('#containment-wrapper'+step).css('background-color', localStorage.getItem('bg-step'+step));
+                  $('#apply-bg').trigger('click');
               }else{
                   $('#containment-wrapper'+step).css('background-color', '#dfdfdf');
               }
@@ -1143,34 +1272,37 @@ $('#format').change(function (e) {
         let w = 200;
         let h = 92;
         let orientation = $('#orientation').val();
-        if (format == 'a3-h-3x2') {
-            w = 200;
-            h = 92;
+        if (format != 'custom') {
+            if (format == 'a3-h-3x2') {
+                w = 200;
+                h = 92;
+            }
+            else if (format == 'a3-h-4x2') {
+                w = 200;
+                h = 68.88;
+            }
+            else if (format == 'a4-v-3x1') {
+                w = 190;
+                h = 92;
+            }
+            else if (format == 'a4-v-4x1') {
+                w = 190;
+                h = 69.38;
+            } else{
+                // Personalizado
+                {{-- const dims = getCustomDimensions();
+                w = dims.w;
+                h = dims.h; --}}
+            }
+
+            $('[id*="containment-wrapper"]').parent().css({
+                width: w+'mm',
+                height: h+'mm'
+            });
+            $('.format-box-btn').css('width', w+'mm');
         }
-        else if (format == 'a3-h-4x2') {
-            w = 200;
-            h = 68.88;
-        }
-        else if (format == 'a4-v-3x1') {
-            w = 190;
-            h = 92;
-        }
-        else if (format == 'a4-v-4x1') {
-            w = 190;
-            h = 69.38;
-        } else{
-            // Personalizado
-            const dims = getCustomDimensions();
-            w = dims.w;
-            h = dims.h;
-        }
-        $('[id*="containment-wrapper"]').parent().css({
-            width: w+'mm',
-            height: h+'mm'
-        });
         let matrix = $('#matrix-box').val() ?? 40;
         $('#containment-wrapper4').css('padding-right', matrix+'mm');
-        $('.format-box-btn').css('width', w+'mm');
 
       }
 
@@ -1180,24 +1312,21 @@ $('#format').change(function (e) {
   var actualElement;
 
   function editelements(event) {
-
     var contenidoHTML = $(this).html();
-
     actualElement = $(this);
 
-    if (editor) {
-        editor.destroy();
-        document.querySelector('#editor-toolbar').innerHTML = "";
+    // Destruir instancia previa si existe
+    if (editor && CKEDITOR.instances['editor']) {
+        CKEDITOR.instances['editor'].destroy(true);
     }
 
-    DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(neweditor => {
-        document.querySelector('#editor-toolbar').appendChild(neweditor.ui.view.toolbar.element);
+    // Setear el contenido en el textarea
+    $('#editor').html(contenidoHTML);
 
-        editor = neweditor;
-
-        neweditor.setData(contenidoHTML);
-
-        return neweditor;
+    // Inicializar CKEditor 4 sobre el textarea
+    editor = CKEDITOR.replace('editor', {
+        // Puedes agregar aquí tu configuración personalizada
+        // Por ejemplo: toolbar: 'Basic',
     });
 
     $('#ckeditor-modal').modal('show');
@@ -1242,11 +1371,13 @@ $('#format').change(function (e) {
   });
 
   $('.accept-text').click(function(event) {
-      /* Act on the event */
-    $(actualElement).find('span').html(editor.getData());
-
+    /* Act on the event */
+    if (editor && CKEDITOR.instances['editor']) {
+        var data = CKEDITOR.instances['editor'].getData();
+        $(actualElement).find('span').html(data);
+        CKEDITOR.instances['editor'].destroy(true);
+    }
     $('#ckeditor-modal').modal('hide');
-
     $('#step').addClass('d-none');
     $('#save-step').removeClass('d-none');
   });
@@ -1532,6 +1663,38 @@ $('#format').change(function (e) {
       $('#sheet-size').text(sheetText);
       $('#ticket-size').text(ticketText);
       $('#ticket-count').text(ticketCount);
+
+      // === NUEVO: Calcular y mostrar medidas reales según orientación ===
+      let key__ = `${cols}x${rows}`;
+      let ticketObj__ = ticketSizes[page][orientation][key__];
+      let ticketW = ticketObj__ ? parseFloat(ticketObj__.w) : null;
+      let ticketH = ticketObj__ ? parseFloat(ticketObj__.h) : null;
+      let ticketText__ = (ticketW && ticketH) ? `${ticketW}mm x ${ticketH}mm` : '-';
+
+      // Casos especiales de plantillas rápidas
+      if(format === 'a3-h-3x2') { ticketText__ = '200mm x 92mm'; ticketW = 200; ticketH = 92; }
+      else if(format === 'a3-h-4x2') { ticketText__ = '200mm x 68.88mm'; ticketW = 200; ticketH = 68.88; }
+      else if(format === 'a4-v-3x1') { ticketText__ = '190mm x 92mm'; ticketW = 190; ticketH = 92; }
+      else if(format === 'a4-v-4x1') { ticketText__ = '190mm x 69.38mm'; ticketW = 190; ticketH = 69.38; }
+      else if(format === 'custom') {
+          for (const keyTpl in quickTemplates) {
+              const tpl = quickTemplates[keyTpl];
+              if (tpl.page === page && tpl.orientation === orientation && tpl.cols === cols && tpl.rows === rows) {
+                  ticketText__ = tpl.ticket;
+                  [ticketW, ticketH] = tpl.ticket.split('x').map(v => parseFloat(v));
+                  break;
+              }
+          }
+      }
+
+      $('#ticket-size').text(ticketText__);
+
+      // Actualizar tamaño de la caja de diseño
+      console.log(ticketW,ticketH);
+      if (ticketW && ticketH) {
+          $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+          $('.format-box-btn').css({width: ticketW+'mm'});
+      }
   }
 
   // Llamar al cargar y al cambiar cualquier campo relevante

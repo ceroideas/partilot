@@ -6100,7 +6100,7 @@ td {
     background-color: #fff;
 }
 
-.elements.images, .elements.qr {
+.elements.images {
     height: auto !important;
 }
 
@@ -6110,4 +6110,8 @@ a[disabled] {
     opacity: 0.5;
     text-decoration: none;
     pointer-events: none;
+}
+
+.cke_notifications_area {
+    display: none !important;
 }
