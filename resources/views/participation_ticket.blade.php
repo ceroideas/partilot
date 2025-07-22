@@ -12,30 +12,39 @@
             font-family: 'Segoe UI', Arial, sans-serif;
         }
         .ticket-container {
-            max-width: 420px;
-            margin: 40px auto;
+            max-width: 520px;
+            margin: 48px auto;
             background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-            padding: 2.5rem 2rem 2rem 2rem;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            padding: 3.5rem 2.2rem 2.5rem 2.2rem;
         }
         .ticket-logo {
             display: block;
-            margin: 0 auto 1.5rem auto;
-            width: 90px;
+            margin: 0 auto 2rem auto;
+            width: 110px;
         }
         .ticket-title {
-            font-size: 1.3rem;
-            font-weight: 600;
+            font-size: 2.1rem;
+            font-weight: 700;
             color: #1a237e;
             text-align: center;
-            margin-bottom: 0.5rem;
-        }
-        .ticket-section {
             margin-bottom: 1.2rem;
         }
+        .ticket-numbers {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #1a237e;
+            margin-bottom: 2rem;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+        .ticket-section {
+            margin-bottom: 1.7rem;
+            font-size: 1.25rem;
+        }
         .ticket-label {
-            font-weight: 500;
+            font-weight: 600;
             color: #333;
         }
         .ticket-value {
@@ -43,18 +52,37 @@
             color: #444;
         }
         .ticket-ref {
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             color: #607d8b;
             text-align: right;
         }
         .ticket-footer {
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             color: #888;
             text-align: center;
-            margin-top: 2rem;
+            margin-top: 2.5rem;
         }
         .alert {
-            margin-bottom: 1.2rem;
+            margin-bottom: 1.7rem;
+            font-size: 1.15rem;
+        }
+        @media (max-width: 600px) {
+            .ticket-container {
+                max-width: 98vw;
+                padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+            }
+            .ticket-title {
+                font-size: 1.3rem;
+            }
+            .ticket-numbers {
+                font-size: 1.7rem;
+            }
+            .ticket-section {
+                font-size: 1rem;
+            }
+            .ticket-footer {
+                font-size: 0.95rem;
+            }
         }
     </style>
 </head>
@@ -72,7 +100,7 @@
         @endif
         @if(isset($ticket))
             <div class="ticket-title">{{ $ticket['titulo'] ?? 'Participación de Lotería' }}</div>
-            <div class="text-center" style="font-size:2.2rem; font-weight:700; color:#1a237e; margin-bottom:1.2rem; letter-spacing:2px;">
+            <div class="ticket-numbers">
                 {{ $ticket['numeros'] ?? '-' }}
             </div>
             <div class="ticket-section">
