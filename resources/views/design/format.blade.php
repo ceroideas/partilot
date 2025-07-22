@@ -927,11 +927,11 @@ function initDatatable()
         w = 190 / cols;
         h = 277 / rows;
     }
-    if (orientation == 'v') {
+    {{-- if (orientation == 'v') {
         let aux = w;
         w = h;
         h = aux;
-    }
+    } --}}
     return {w, h};
 }
 
