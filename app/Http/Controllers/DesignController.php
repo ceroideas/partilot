@@ -56,7 +56,8 @@ class DesignController extends Controller
         $entity = Entity::findOrFail(session('design_entity_id'));
         $lottery = Lottery::findOrFail(session('design_lottery_id'));
         $set = Set::findOrFail($request->set_id);
-        return view('design.format', compact('entity', 'lottery', 'set'));
+        $reservation_numbers = $set->reserve ? $set->reserve->reservation_numbers : [];
+        return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers'));
     }
 
     // Guardar selección de entidad en sesión y redirigir a selección de sorteo
@@ -171,7 +172,7 @@ class DesignController extends Controller
 
         $designFormat = DesignFormat::create($data);
 
-        // return response()->json(['success' => true, 'id' => $designFormat->id]);
+        return response()->json(['success' => true, 'id' => $designFormat->id]);
     }
 
     // PDF: Participación
@@ -248,17 +249,20 @@ class DesignController extends Controller
 
         // Reemplazar la URL base por la ruta absoluta del sistema de archivos
         $publicPath = public_path();
-        $participation_html = str_replace('http://127.0.0.1:8000', $publicPath, $participation_html);
+        $participation_html = str_replace(url('/'), $publicPath, $participation_html);
 
         // Ajustar widths para DomPDF
         $participation_html = $this->adjustWidthsForDomPdf($participation_html);
 
-        // return view('design.pdf_participation', ['participation_html' => $participation_html]);
+        // Determinar tamaño y orientación
+        $page = $design->page ?? 'a3';
+        $orientation = $design->orientation ?? 'h';
+        $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
 
         $pdf = Pdf::loadView('design.pdf_participation', [
             'participation_html' => $participation_html
         ]);
-        $pdf->setPaper('a3','landscape');
+        $pdf->setPaper($page, $pdfOrientation);
         return $pdf->stream('participacion.pdf');
     }
 
@@ -266,7 +270,11 @@ class DesignController extends Controller
     {
         $design = DesignFormat::findOrFail($id);
         $html = $design->cover_html;
+        $page = $design->page ?? 'a3';
+        $orientation = $design->orientation ?? 'h';
+        $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
         $pdf = Pdf::loadHTML($html);
+        $pdf->setPaper($page, $pdfOrientation);
         return $pdf->download('portada.pdf');
     }
 
@@ -274,7 +282,11 @@ class DesignController extends Controller
     {
         $design = DesignFormat::findOrFail($id);
         $html = $design->back_html;
+        $page = $design->page ?? 'a3';
+        $orientation = $design->orientation ?? 'h';
+        $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
         $pdf = Pdf::loadHTML($html);
+        $pdf->setPaper($page, $pdfOrientation);
         return $pdf->download('trasera.pdf');
     }
 
@@ -284,10 +296,9 @@ class DesignController extends Controller
     public function editFormat($id)
     {
         $format = DesignFormat::findOrFail($id);
-
-        // return $format;
-        // Puedes cargar relaciones si es necesario
-        return view('design.edit_format', compact('format'));
+        $set = $format->set_id ? Set::find($format->set_id) : null;
+        $reservation_numbers = $set && $set->reserve ? $set->reserve->reservation_numbers : [];
+        return view('design.edit_format', compact('format', 'reservation_numbers'));
     }
 
     /**

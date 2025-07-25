@@ -1304,6 +1304,19 @@
             localStorage.removeItem('step2');
             localStorage.removeItem('step3');
             localStorage.removeItem('step4');
+            localStorage.removeItem('step5');
+
+            localStorage.removeItem('bgimg-step2');
+            localStorage.removeItem('bgimg-step3');
+            localStorage.removeItem('bgimg-step4');
+
+            localStorage.removeItem('bg-step2');
+            localStorage.removeItem('bg-step3');
+            localStorage.removeItem('bg-step4');
+
+            localStorage.removeItem('guide-step2');
+            localStorage.removeItem('guide-step3');
+            localStorage.removeItem('guide-step4');
         </script>
 
     </body>

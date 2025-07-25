@@ -26,7 +26,7 @@
         }
         p {
             margin-top: 0;
-            margin-bottom: 1rem;
+            margin-bottom: 0;
         }
         [id*="containment-wrapper"] {
             position: relative;
@@ -96,5 +96,26 @@
     <div class="participation-box" style="width: 50%; float: left">
         {!! $participation_html !!}
     </div>
+    <div style="clear: both;"></div><div class="participation-box" style="width: 50%; float: left">
+        {!! $participation_html !!}
+    </div>
+    <div class="participation-box" style="width: 50%; float: left">
+        {!! $participation_html !!}
+    </div>
+    <div style="clear: both;"></div>
+    <div class="participation-box" style="width: 50%; float: left">
+        {!! $participation_html !!}
+    </div>
+    <div class="participation-box" style="width: 50%; float: left">
+        {!! $participation_html !!}
+    </div>
+    <div style="clear: both;"></div>
+    <div class="participation-box" style="width: 50%; float: left">
+        {!! $participation_html !!}
+    </div>
+    <div class="participation-box" style="width: 50%; float: left">
+        {!! $participation_html !!}
+    </div>
+    <div style="clear: both;"></div>
 </body>
 </html> 

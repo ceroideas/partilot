@@ -4,9 +4,44 @@
 
 @section('content')
 
+@php
+    if (!function_exists('getNumberFontSize')) {
+        function getNumberFontSize($numbers) {
+            $count = is_array($numbers) ? count($numbers) : 1;
+            $maxDigits = 0;
+            if(is_array($numbers)) {
+                foreach($numbers as $n) {
+                    $maxDigits = max($maxDigits, strlen($n));
+                }
+            } else {
+                $maxDigits = strlen($numbers);
+            }
+            if($count == 1 && $maxDigits <= 5) return '72px';
+            if($count == 2 || $maxDigits > 5) return '56px';
+            if($count >= 3 || $maxDigits > 8) return '40px';
+            return '32px';
+        }
+    }
+    if (!function_exists('formatMini')) {
+        function formatMini($numbers) {
+            if(is_array($numbers)) {
+                return implode(' - ', array_map(function($n) {
+                    return str_pad(number_format((int)$n, 0, '', '.'), 6, '0', STR_PAD_LEFT);
+                }, $numbers));
+            }
+            return str_pad(number_format((int)$numbers, 0, '', '.'), 6, '0', STR_PAD_LEFT);
+        }
+    }
+@endphp
+
 <style>
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
+    }
+    .qr span {
+        width: 100%;
+        height: 100%;
+        display: block;
     }
 </style>
 
@@ -944,5 +979,9 @@ function setBgToContainment(color, img) {
     $cont.css('background-image', 'none');
   }
 }
+
+$('.elements').each(function() {
+  $(this).css('resize', 'both');
+});
 </script>
 @endsection 
