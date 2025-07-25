@@ -120,7 +120,7 @@ class DesignController extends Controller
             $data['blocks'] = json_decode($data['blocks'], true);
         }
 
-        $designFormat = \App\Models\DesignFormat::create($data);
+        $designFormat = DesignFormat::create($data);
 
         return redirect()->back()->with('success', 'Formato guardado correctamente.');
     }*/
@@ -146,6 +146,7 @@ class DesignController extends Controller
             'output' => 'nullable|array',
         ]);
 
+
         $data['entity_id'] = session('design_entity_id') ?? 1;
         $data['lottery_id'] = session('design_lottery_id') ?? 1;
         $data['set_id'] = $request->input('set_id', 1);
@@ -166,15 +167,17 @@ class DesignController extends Controller
         $data['backgrounds'] = $data['blocks']['backgrounds'];
         $data['output'] = $data['blocks']['output'];
 
-        $designFormat = \App\Models\DesignFormat::create($data);
+        // return $data;
 
-        return response()->json(['success' => true, 'id' => $designFormat->id]);
+        $designFormat = DesignFormat::create($data);
+
+        // return response()->json(['success' => true, 'id' => $designFormat->id]);
     }
 
     // PDF: Participación
     public function generatePdfParticipation($id)
     {
-        $design = \App\Models\DesignFormat::findOrFail($id);
+        $design = DesignFormat::findOrFail($id);
         $html = $design->participation_html;
         return $this->renderPdfFromHtml($html, 'participation.pdf');
     }
@@ -182,7 +185,7 @@ class DesignController extends Controller
     // PDF: Portada
     public function generatePdfCover($id)
     {
-        $design = \App\Models\DesignFormat::findOrFail($id);
+        $design = DesignFormat::findOrFail($id);
         $html = $design->cover_html;
         return $this->renderPdfFromHtml($html, 'cover.pdf');
     }
@@ -190,7 +193,7 @@ class DesignController extends Controller
     // PDF: Trasera
     public function generatePdfBack($id)
     {
-        $design = \App\Models\DesignFormat::findOrFail($id);
+        $design = DesignFormat::findOrFail($id);
         $html = $design->back_html;
         return $this->renderPdfFromHtml($html, 'back.pdf');
     }
@@ -280,7 +283,9 @@ class DesignController extends Controller
      */
     public function editFormat($id)
     {
-        $format = \App\Models\DesignFormat::findOrFail($id);
+        $format = DesignFormat::findOrFail($id);
+
+        // return $format;
         // Puedes cargar relaciones si es necesario
         return view('design.edit_format', compact('format'));
     }
@@ -288,12 +293,15 @@ class DesignController extends Controller
     /**
      * Actualiza el formato en la base de datos.
      */
-    public function updateFormat(\Illuminate\Http\Request $request, $id)
+    public function updateFormat(Request $request, $id)
     {
-        $format = \App\Models\DesignFormat::findOrFail($id);
+        // return $request->all();
+
+        $format = DesignFormat::findOrFail($id);
         // Procesar el JSON enviado desde el frontend (campo 'data')
-        if ($request->has('data')) {
-            $data = json_decode($request->input('data'), true);
+        // if ($request->has('data')) {
+            // $data = json_decode($request->input('data'), true);
+            $data = $request->all();
             if (is_array($data)) {
                 // Asignar los campos principales
                 $format->format = $data['format'] ?? $format->format;
@@ -310,12 +318,12 @@ class DesignController extends Controller
                 $format->back_html = $data['back_html'] ?? $format->back_html;
                 // Guardar los campos JSON como string si corresponde
                 // if (isset($data['margins'])) $format->margins = json_encode($data['margins']);
-                if (isset($data['backgrounds'])) $format->backgrounds = json_encode($data['backgrounds']);
-                if (isset($data['output'])) $format->output = json_encode($data['output']);
+                if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
+                if (isset($data['output'])) $format->output = $data['output'];
                 $format->save();
                 return response()->json(['success' => true, 'redirect' => route('design.editFormat', $id)]);
             }
-        }
-        return response()->json(['success' => false], 200);
+        // }
+        // return response()->json(['success' => false], 200);
     }
 } 

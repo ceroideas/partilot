@@ -367,7 +367,7 @@
                             <div class="col-6 text-end">
                                 <button id="step" type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 next-step">Siguiente
                                     <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
-                                <button id="save-step" type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 d-none">Guardar
+                                <button id="save-step" type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 d-none">Guardar
                                     <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
                             </div>
                         </div>
@@ -533,8 +533,8 @@ function showStep(newStep) {
     $('.form-wizard-element').removeClass('active');
     $(`#bc-step-${newStep}`).addClass('active');
     if (newStep === 5) {
-        $('#step').addClass('d-none');
-        $('#save-step').removeClass('d-none');
+        {{-- $('#step').addClass('d-none');
+        $('#save-step').removeClass('d-none'); --}}
     } else {
         $('#step').removeClass('d-none');
         $('#save-step').addClass('d-none');
@@ -551,6 +551,21 @@ function changePositionElement(event) {
     actualElement = $(this);
     $('#position-modal').modal('show');
 }
+
+$('#save-step').click(function(event) {
+
+    if (step != 1) {
+
+      
+      let html = $('#containment-wrapper'+step).html();
+
+      localStorage.setItem('step'+step,html);
+
+      $('#step').removeClass('d-none');
+      $('#save-step').addClass('d-none');
+
+    }
+});
 
 // === FUNCIÓN PARA GUARDAR TODO EL DISEÑO ===
 function collectDesignData() {
@@ -653,7 +668,29 @@ $('#edit-format-form').on('submit', function(e) {
   const data = collectDesignData();
   // Puedes hacer un POST AJAX o poner los datos en un input hidden
   // Aquí ejemplo con AJAX:
-  $.ajax({
+
+  fetch($(this).attr('action'), {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if(result.success) {
+      alert('Diseño guardado correctamente.');
+      {{-- window.open('{{url('design?table=1')}}','_self'); --}}
+      // Puedes redirigir o mostrar un mensaje aquí
+    } else {
+      alert('Error al guardar el diseño.');
+    }
+  })
+  .catch(() => alert('Error al guardar el diseño.'));
+
+
+  {{-- $.ajax({
     url: $(this).attr('action'),
     method: 'POST',
     data: {
@@ -663,6 +700,7 @@ $('#edit-format-form').on('submit', function(e) {
     },
     success: function(resp) {
       // Redirigir o mostrar mensaje
+        alert('Diseño guardado correctamente');
       if(resp.success) {
         window.location.href = resp.redirect || window.location.href;
       } else {
@@ -672,7 +710,7 @@ $('#edit-format-form').on('submit', function(e) {
     error: function() {
       alert('Error al guardar el diseño.');
     }
-  });
+  }); --}}
 });
 
 $(document).ready(function() {
@@ -681,13 +719,15 @@ $(document).ready(function() {
     $('.next-step').attr('type', 'button');
     $('.prev-step').attr('type', 'button');
     $('#step').attr('type', 'button');
-    $('#save-step').attr('type', 'submit');
+    {{-- $('#save-step').attr('type', 'submit'); --}}
     $('.next-step').click(function(e) {
         e.preventDefault();
         if (step < 5) {
             step++;
             showStep(step);
             reapplyElementEvents();
+        }else{
+            $('#edit-format-form').submit();
         }
     });
     $('.prev-step').click(function(e) {
@@ -839,7 +879,7 @@ $(document).ready(function() {
 });
 
 function reapplyElementEvents() {
-    $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false });
+    $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });    
     $('.elements.text').unbind('dblclick',editelements).dblclick(editelements);
     $('.elements.context').unbind('dblclick',deleteElements).dblclick(deleteElements);
     $('.elements.images').unbind('dblclick',changeImage).dblclick(changeImage);
