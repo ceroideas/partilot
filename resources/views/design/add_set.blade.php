@@ -102,7 +102,8 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<form action="{{ route('design.format', ['entity_id' => $entity->id, 'lottery_id' => $lottery->id, 'set_id' => 'SET_ID']) }}" method="GET" id="setSelectForm">
+                    			<form action="{{ route('design.format') }}" method="POST" id="setSelectForm">
+                                    @csrf
                     				<h4 class="mb-0 mt-1">
                     					Set en el que asignar participaciones
                     				</h4>
@@ -267,19 +268,6 @@ function initDatatable()
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
-</script>
-
-<script>
-    // Cambia la acción del formulario al seleccionar un set
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('setSelectForm');
-        const radios = document.querySelectorAll('input[name="set_id"]');
-        radios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                form.action = "{{ route('design.format', ['entity_id' => $entity->id, 'lottery_id' => $lottery->id, 'set_id' => 'SET_ID']) }}".replace('SET_ID', this.value);
-            });
-        });
-    });
 </script>
 
 @endsection

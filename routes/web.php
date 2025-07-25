@@ -202,12 +202,24 @@ Route::group(['prefix' => 'design'], function() {
     Route::get('/', function() {return view('design.index');});
     // Nuevo flujo con controlador
     Route::get('/add', [\App\Http\Controllers\DesignController::class, 'selectEntity'])->name('design.selectEntity');
+    
     Route::post('/store-entity', [\App\Http\Controllers\DesignController::class, 'storeEntity'])->name('design.storeEntity');
-    Route::get('/add/lottery/{entity_id?}', [\App\Http\Controllers\DesignController::class, 'selectLottery'])->name('design.selectLottery');
-    Route::get('/add/set/{entity_id}/{lottery_id}', [\App\Http\Controllers\DesignController::class, 'selectSet'])->name('design.selectSet');
-    Route::get('/add/format/{entity_id}/{lottery_id}/{set_id}', [\App\Http\Controllers\DesignController::class, 'format'])->name('design.format');
     Route::post('design/add/lottery', [\App\Http\Controllers\DesignController::class, 'storeLottery'])->name('design.storeLottery');
+
+    Route::get('/add/lottery/{entity_id?}', [\App\Http\Controllers\DesignController::class, 'selectLottery'])->name('design.selectLottery');
+    Route::get('/add/set', [\App\Http\Controllers\DesignController::class, 'selectSet'])->name('design.selectSet');
+    
+    Route::post('/add/format', [\App\Http\Controllers\DesignController::class, 'format'])->name('design.format');
+    // Route::post('design/format', [App\Http\Controllers\DesignController::class, 'storeFormat'])->name('design.storeFormat');
+
 });
+
+Route::get('/design/pdf/participation/{id}', [App\Http\Controllers\DesignController::class, 'exportParticipationPdf']);
+Route::get('/design/pdf/cover/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverPdf']);
+Route::get('/design/pdf/back/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdf']);
+Route::post('/design/export-pdf', [App\Http\Controllers\DesignController::class, 'exportPdf']);
+Route::get('/design/format/edit/{id}', [App\Http\Controllers\DesignController::class, 'editFormat'])->name('design.editFormat');
+Route::put('/design/format/update/{id}', [App\Http\Controllers\DesignController::class, 'updateFormat'])->name('design.updateFormat');
 
 Route::get('social',function() {
     return view('social.index');

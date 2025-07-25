@@ -345,15 +345,15 @@
                                     <br>
 
                                     <div class="btn-group">
-                                        <button class="btn btn-sm btn-dark add-text" data-id="2">Texto</button>
-                                        <button class="btn btn-sm btn-dark add-image" data-id="2">Imagen</button>
-                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="2">QR</button> --}}
-                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2">
+                                        <button class="btn btn-sm btn-dark add-text" data-id="2" type="button">Texto</button>
+                                        <button class="btn btn-sm btn-dark add-image" data-id="2" type="button">Imagen</button>
+                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="2" type="button">QR</button> --}}
+                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
                                         <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
-                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
-                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2">
+                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
+                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
                                             Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                     </div>
@@ -373,11 +373,11 @@
                                         {{-- caja matriz --}}
                                         <div class="caja-matriz guide2" style="opacity: 1; z-index:1;position: absolute; width: 40mm; border-right: 1px solid purple; height: 100%; left: 2.5mm;"></div>
 
-                                        <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm);"> 
+                                        <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;"> 
 
                                               
 
-                                             <div class="elements number ui-draggable" style="padding: 10px; width: 166px; height: 90px; resize: both; overflow: hidden; position: relative; left: 496px; top: 25.8906px;">
+                                             <div class="elements number text ui-draggable" style="padding: 10px; width: 274px; height: 94px; resize: both; overflow: hidden; position: relative; left: 452px; top: 25.875px;">
                                                 <span class="ui-draggable-handle"><h1><span style="color:hsl(0,0%,0%);font-size:72px;" class="ui-draggable-handle"><strong>00000</strong></span></h1></span>
                                             </div>
 
@@ -412,10 +412,10 @@
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 92px; height: 36px; resize: both; overflow: hidden; position: absolute; top: 247.797px; left: 490.781px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>DEPOSITARIO</strong></span></p></span>
-                                            </div><div class="elements reference ui-draggable" style="padding: 10px; width: 227px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 278.688px; left: 459.703px;">
-                                                <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;"><strong>Nº Ref: 00000000000000000000</strong></span></p></span>
+                                            </div><div class="elements reference text ui-draggable" style="padding: 10px; width: 227px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 278.688px; left: 459.703px;">
+                                                <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>Nº Ref: 00000000000000000000</strong></span></p></span>
                                             </div>
-                                        <div class="elements qr ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 253.562px; left: 666.588px; width: 60px; height: 60px;"><span class="ui-draggable-handle">{{-- <img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/qrcodes/6859f429e67ba.png" alt=""> --}}</span></div>
+                                        <div class="elements qr ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 253.562px; left: 666.588px; width: 60px; height: 60px;"><span class="ui-draggable-handle"></span></div>
                                         
                                         </div>
 
@@ -440,17 +440,17 @@
                                     <br>
 
                                     <div class="btn-group">
-                                        <button class="btn btn-sm btn-dark add-text" data-id="3">Texto</button>
-                                        <button class="btn btn-sm btn-dark add-image" data-id="3">Imagen</button>
-                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3">QR</button> --}}
-                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3">
+                                        <button class="btn btn-sm btn-dark add-text" data-id="3" type="button">Texto</button>
+                                        <button class="btn btn-sm btn-dark add-image" data-id="3" type="button">Imagen</button>
+                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3" type="button">QR</button> --}}
+                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
                                         <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
-                                        <button class="btn btn-sm btn-dark add-top" data-id="3">Arriba</button>
-                                        <button class="btn btn-sm btn-dark add-bottom" data-id="3">Abajo</button>
-                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
-                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2">
+                                        <button class="btn btn-sm btn-dark add-top" data-id="3" type="button">Arriba</button>
+                                        <button class="btn btn-sm btn-dark add-bottom" data-id="3" type="button">Abajo</button>
+                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
+                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
                                             Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                     </div>
@@ -468,7 +468,7 @@
                                         {{-- margen abajo --}}
                                         <div class="margen-abajo guide3" style="opacity: 1; z-index: 1; position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
 
-                                        <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm);"> 
+                                        <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;"> 
 
                                             <div class="elements text ui-draggable" style="padding: 10px; width: 351px; height: 93px; resize: both; overflow: hidden; position: absolute; top: 59.8295px; left: 378.71px;">
                                                 <span class="ui-draggable-handle"><h4><span style="color:hsl(0,0%,0%);" class="ui-draggable-handle"><u>&nbsp; Nombre: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</u></span></h4></span>
@@ -501,17 +501,17 @@
                                     <br>
 
                                     <div class="btn-group">
-                                        <button class="btn btn-sm btn-dark add-text" data-id="4">Texto</button>
-                                        <button class="btn btn-sm btn-dark add-image" data-id="4">Imagen</button>
-                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="4">QR</button> --}}
-                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4">
+                                        <button class="btn btn-sm btn-dark add-text" data-id="4" type="button">Texto</button>
+                                        <button class="btn btn-sm btn-dark add-image" data-id="4" type="button">Imagen</button>
+                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="4" type="button">QR</button> --}}
+                                        {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
                                         <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
-                                        <button class="btn btn-sm btn-dark add-top" data-id="4">Arriba</button>
-                                        <button class="btn btn-sm btn-dark add-bottom" data-id="4">Abajo</button>
-                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2">Guias</button>
-                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2">
+                                        <button class="btn btn-sm btn-dark add-top" data-id="4" type="button">Arriba</button>
+                                        <button class="btn btn-sm btn-dark add-bottom" data-id="4" type="button">Abajo</button>
+                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
+                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
                                             Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                     </div>
@@ -531,7 +531,7 @@
                                         {{-- caja matriz --}}
                                         {{-- <div class="caja-matriz-2 guide4" style="opacity: 1; z-index:1;position: absolute; width: 40mm; border-left: 1px solid purple; height: 100%; right: 2.5mm;"></div> --}}
 
-                                        <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm);"> 
+                                        <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;"> 
 
                                             <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 28.8096px; left: 56.8154px; width: 111px; height: 74px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="http://127.0.0.1:8000/uploads/1750688309_logo.svg" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 544px; height: 172px; resize: both; overflow: hidden; position: absolute; top: 13.608px; left: 171.628px;">
                                                 <span class="ui-draggable-handle"><h3><strong>Descargate la APP</strong><br><strong>PARTILOT</strong><br><strong>Y Comprueba tu Participación</strong></h3></span>
@@ -644,7 +644,7 @@
                                         </div>
 
                                         <label class="col-form-label label-control col-3 text-start">
-                                            Generar de la participación:
+                                            Hasta la participación:
                                         </label>
                                         <div class="col-sm-1">
                                             <input class="form-control" type="number" value="600" id="participation_to" style="border-radius: 30px">
@@ -1179,20 +1179,17 @@ $('#format').change(function (e) {
       e.preventDefault();
 
       if (step == 1) {
-
         window.open('{{url('design/add/select')}}','_self');
-
       }else{
-
         step -=1;
 
-        $('.form-card[id*="step-').addClass('d-none').removeClass('show');
+        $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
         $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
 
         if (localStorage.getItem('step'+step)) {
             $('#containment-wrapper'+step).html(localStorage.getItem('step'+step));
         }
-        
+
         $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });    
 
         $('.elements.text').dblclick(editelements);
@@ -1203,7 +1200,7 @@ $('#format').change(function (e) {
         if ($('#containment-wrapper'+step).length) {
             if(localStorage.getItem('bg-step'+step)){
                 $('#containment-wrapper'+step).css('background-color', localStorage.getItem('bg-step'+step));
-                $('#apply-bg').trigger('click');
+                $('#containment-wrapper'+step).css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
             }else{
                 $('#containment-wrapper'+step).css('background-color', '#dfdfdf');
             }
@@ -1225,13 +1222,33 @@ $('#format').change(function (e) {
       e.preventDefault();
 
       if (step == 5) {
-
-        window.open('{{url('design?table=1')}}','_self');
+        e.preventDefault();
+          const data = collectDesignData();
+          console.log(data);
+          fetch('/api/design/save-format', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            body: JSON.stringify(data)
+          })
+          .then(response => response.json())
+          .then(result => {
+            if(result.success) {
+              alert('Diseño guardado correctamente.');
+              window.open('{{url('design?table=1')}}','_self');
+              // Puedes redirigir o mostrar un mensaje aquí
+            } else {
+              alert('Error al guardar el diseño.');
+            }
+          })
+          .catch(() => alert('Error al guardar el diseño.'));
 
       }else{
           step +=1;
 
-          $('.form-card[id*="step-').addClass('d-none').removeClass('show');
+          $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
           $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
 
           if (localStorage.getItem('step'+step)) {
@@ -1247,7 +1264,7 @@ $('#format').change(function (e) {
           if ($('#containment-wrapper'+step).length) {
               if(localStorage.getItem('bg-step'+step)){
                   $('#containment-wrapper'+step).css('background-color', localStorage.getItem('bg-step'+step));
-                  $('#apply-bg').trigger('click');
+                  $('#containment-wrapper'+step).css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
               }else{
                   $('#containment-wrapper'+step).css('background-color', '#dfdfdf');
               }
@@ -1704,6 +1721,100 @@ $('#format').change(function (e) {
   });
   // === FIN BLOQUE NUEVO ===
 
+  // ... existing code ...
+  // === FUNCIÓN PARA GUARDAR TODO EL DISEÑO ===
+  function collectDesignData() {
+    // Paso 1: Configuración de formato
+    const format = $('#format').val();
+    const page = $('#page').val();
+    const rows = parseInt($('#rows').val());
+    const cols = parseInt($('#cols').val());
+    const orientation = $('#orientation').val();
+    const margin_up = parseFloat($('#margin-up').val());
+    const margin_right = parseFloat($('#margin-right').val());
+    const margin_left = parseFloat($('#margin-left').val());
+    const margin_top = parseFloat($('#margin-top').val());
+    const identation = parseFloat($('#identation').val());
+    const matrix_box = parseFloat($('#matrix-box').val());
+    const horizontal_space = parseFloat($('#page-rigth').val());
+    const vertical_space = parseFloat($('#page-bottom').val());
+
+    // Quitar 'resize: both;' antes de guardar
+    $('#step-2 .format-box .elements').each(function() {
+      $(this).css('resize', '');
+    });
+    $('#step-3 .format-box .elements').each(function() {
+      $(this).css('resize', '');
+    });
+    $('#step-4 .format-box .elements').each(function() {
+      $(this).css('resize', '');
+    });
+
+    // Paso 2, 3, 4: HTML de los diseños (guardar el elemento .format-box completo)
+    const participation_html = $('#step-2 .format-box')[0]?.outerHTML || '';
+    const cover_html = $('#step-3 .format-box')[0]?.outerHTML || '';
+    const back_html = $('#step-4 .format-box')[0]?.outerHTML || '';
+
+    // Fondos y colores de cada paso
+    const backgrounds = {
+      step2: {
+        color: localStorage.getItem('bg-step2') || '#dfdfdf',
+        image: localStorage.getItem('bgimg-step2') || ''
+      },
+      step3: {
+        color: localStorage.getItem('bg-step3') || '#dfdfdf',
+        image: localStorage.getItem('bgimg-step3') || ''
+      },
+      step4: {
+        color: localStorage.getItem('bg-step4') || '#dfdfdf',
+        image: localStorage.getItem('bgimg-step4') || ''
+      }
+    };
+
+    // Paso 5: Configuración de salida
+    const draw_guides = $('#guides').is(':checked');
+    const guide_color = $('#guide_color').val();
+    const guide_weight = parseFloat($('#guide_weight').val());
+    const participations_per_book = parseInt($('#participation_number').val());
+    const generate_mode = $('input[name="generate"]:checked').val();
+    const participation_from = parseInt($('#participation_from').val());
+    const participation_to = parseInt($('#participation_to').val());
+    const documents_mode = $('input[name="documents"]:checked').val();
+    const pages_per_document = parseInt($('#participation_page').val());
+
+    return {
+      format,
+      page,
+      rows,
+      cols,
+      orientation,
+      margins: {
+        up: margin_up,
+        right: margin_right,
+        left: margin_left,
+        top: margin_top
+      },
+      identation,
+      matrix_box,
+      horizontal_space,
+      vertical_space,
+      participation_html,
+      cover_html,
+      back_html,
+      backgrounds,
+      output: {
+        draw_guides,
+        guide_color,
+        guide_weight,
+        participations_per_book,
+        generate_mode,
+        participation_from,
+        participation_to,
+        documents_mode,
+        pages_per_document
+      }
+    };
+  }
 </script>
 
 {{-- {{url('design/add/select')}} --}}
