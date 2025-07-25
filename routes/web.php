@@ -199,7 +199,7 @@ Route::group(['prefix' => 'participations'], function() {
 
 Route::group(['prefix' => 'design'], function() {
     //
-    Route::get('/', function() {return view('design.index');});
+    Route::get('/', [\App\Http\Controllers\DesignController::class, 'index'])->name('design.index');
     // Nuevo flujo con controlador
     Route::get('/add', [\App\Http\Controllers\DesignController::class, 'selectEntity'])->name('design.selectEntity');
     

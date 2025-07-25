@@ -771,6 +771,8 @@ $(document).ready(function() {
             step--;
             showStep(step);
             reapplyElementEvents();
+        }else{
+            window.open('{{url('design')}}','_self');
         }
     });
     $('.form-wizard-element').click(function() {

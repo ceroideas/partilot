@@ -25,7 +25,7 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    <div class="{{count($designs) ? '' : 'd-none'}}">
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
@@ -62,30 +62,38 @@
                         
                         
                             <tbody>
-                                <tr>
-                                    <td><a href="{{url('design/view',1)}}">#DS9801</a></td>
-                                    <td>1/</td>
-                                    <td>Set primero FADEMUR</td>
-                                    <td>46/25</td>
-                                    <td>07/06/2025</td>
-                                    <td>05716 - 52468 <br> 51235 - 69584</td>
-                                    <td>600</td>
-                                    <td>La Rioja</td>
-                                    <td>Logroño</td>
-                                    <td><label class="badge bg-success">Pendiente</label></td>
-                                    <td>
-                                        <a href="{{url('design/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
-                                    </td>
-                                </tr>
-                            </tbody>
+                            @foreach($designs as $design)
+                            <tr>
+                                <td><a href="{{ url('design/view', $design->id) }}">#DS{{ str_pad($design->id,5,'0',STR_PAD_LEFT) }}</a></td>
+                                <td>{{ $design->set ? $design->set->id : '-' }}</td>
+                                <td>{{ $design->set ? $design->set->set_name : '-' }}</td>
+                                <td>{{ $design->lottery ? $design->lottery->name : '-' }}</td>
+                                <td>{{ $design->lottery ? ($design->lottery->draw_date->format('d-m-Y') ?? $design->lottery->deadline_date) : '-' }}</td>
+                                <td>
+                                    @if($design->set && $design->set->reserve && $design->set->reserve->reservation_numbers)
+                                        {{ is_array($design->set->reserve->reservation_numbers) ? implode(' - ', $design->set->reserve->reservation_numbers) : $design->set->reserve->reservation_numbers }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td>{{ $design->set ? $design->set->total_participations : '-' }}</td>
+                                <td>{{ $design->entity ? $design->entity->province : '-' }}</td>
+                                <td>{{ $design->entity ? $design->entity->city : '-' }}</td>
+                                <td><label class="badge bg-success">Pendiente</label></td>
+                                <td>
+                                    <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a>
+                                    <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
                         </table>
 
                         <br>
 
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
+                    <div class="{{count($designs) ? 'd-none' : ''}}">
                         <div class="d-flex align-items-center gap-1">
 
                             

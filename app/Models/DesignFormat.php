@@ -49,4 +49,19 @@ class DesignFormat extends Model
         'backgrounds' => 'array',
         'output' => 'array',
     ];
+
+    public function entity()
+    {
+        return $this->belongsTo(Entity::class);
+    }
+
+    public function lottery()
+    {
+        return $this->belongsTo(Lottery::class);
+    }
+
+    public function set()
+    {
+        return $this->belongsTo(Set::class);
+    }
 }

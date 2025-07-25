@@ -274,9 +274,8 @@ class DesignController extends Controller
             $to = $total_participations;
         } else {
             $from = $design->output['participation_from'] ?? 1;
-            // $to = $design->output['participation_to'] ?? $total_participations;
+            $to = $design->output['participation_to'] ?? $total_participations;
         }
-            $to = 740;
         $tickets_to_print = array_slice($tickets, $from - 1, $to - $from + 1);
 
         // Calcular filas y columnas
@@ -380,5 +379,14 @@ class DesignController extends Controller
             }
         // }
         // return response()->json(['success' => false], 200);
+    }
+
+    /**
+     * Mostrar todos los formatos de diseño.
+     */
+    public function index()
+    {
+        $designs = DesignFormat::with(['entity', 'lottery', 'set'])->orderByDesc('created_at')->get();
+        return view('design.index', compact('designs'));
     }
 } 
