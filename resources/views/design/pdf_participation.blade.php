@@ -76,46 +76,23 @@
     </style>
 </head>
 <body>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
+@foreach($pages as $pageIndex => $page)
+    <div class="participation-page" style="@if($pageIndex < count($pages) - 1) page-break-after: always; @endif">
+        @for($i = 0; $i < count($page); $i++)
+            @php
+                $ticket = $page[$i];
+                // Reemplazar la referencia en el HTML base
+                $html = str_replace('00000000000000000000', $ticket['r'], $participation_html);
+                $html = str_replace('1/0001', '1/'.str_pad($ticket['n'], 4,'0',STR_PAD_LEFT), $html);
+            @endphp
+            <div class="participation-box" style="width: {{ 100/$cols }}%; float: left;">
+                {!! $html !!}
+            </div>
+            @if(($i+1) % $cols == 0)
+                <div style="clear: both;"></div>
+            @endif
+        @endfor
     </div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div style="clear: both;"></div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div style="clear: both;"></div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div style="clear: both;"></div><div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div style="clear: both;"></div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div style="clear: both;"></div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div class="participation-box" style="width: 50%; float: left">
-        {!! $participation_html !!}
-    </div>
-    <div style="clear: both;"></div>
+@endforeach
 </body>
 </html> 

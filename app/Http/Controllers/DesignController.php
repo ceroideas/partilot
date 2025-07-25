@@ -244,6 +244,9 @@ class DesignController extends Controller
 
     public function exportParticipationPdf($id)
     {
+        // Aumentar límites para PDFs grandes
+        ini_set('max_execution_time', 300); // 5 minutos
+        ini_set('memory_limit', '1024M');   // 1GB
         $design = DesignFormat::findOrFail($id);
         $participation_html = $design->participation_html;
 
@@ -259,11 +262,52 @@ class DesignController extends Controller
         $orientation = $design->orientation ?? 'h';
         $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
 
-        $pdf = Pdf::loadView('design.pdf_participation', [
-            'participation_html' => $participation_html
-        ]);
-        $pdf->setPaper($page, $pdfOrientation);
-        return $pdf->stream('participacion.pdf');
+        // Obtener tickets del set
+        $set = $design->set_id ? Set::find($design->set_id) : null;
+        $tickets = $set && $set->tickets ? $set->tickets : [];
+        $total_participations = $set->total_participations ?? 0;
+
+        // Determinar rango de tickets a imprimir
+        $generate_mode = $design->output['generate_mode'] ?? 1;
+        if ($generate_mode == 1) {
+            $from = 1;
+            $to = $total_participations;
+        } else {
+            $from = $design->output['participation_from'] ?? 1;
+            // $to = $design->output['participation_to'] ?? $total_participations;
+        }
+            $to = 740;
+        $tickets_to_print = array_slice($tickets, $from - 1, $to - $from + 1);
+
+        // Calcular filas y columnas
+        $rows = $design->rows ?? 1;
+        $cols = $design->cols ?? 1;
+        $per_page = $rows * $cols;
+        $total = count($tickets_to_print);
+        $total_pages = ceil($total / $per_page);
+
+        // Ordenar tickets en modo guillotina (correcto)
+        $pages = [];
+        for ($p = 0; $p < $total_pages; $p++) {
+            $pages[$p] = [];
+            for ($i = 0; $i < $per_page; $i++) {
+                $ticket_index = $p + ($i * $total_pages);
+                if (isset($tickets_to_print[$ticket_index])) {
+                    $pages[$p][$i] = $tickets_to_print[$ticket_index];
+                }
+            }
+        }
+
+        // return $pages;
+
+        // return view('design.pdf_participation', ['pages' => $pages,'participation_html' => $participation_html,'rows' => $rows,'cols' => $cols,]);
+
+        return Pdf::loadView('design.pdf_participation', [
+            'pages' => $pages,
+            'participation_html' => $participation_html,
+            'rows' => $rows,
+            'cols' => $cols,
+        ])->setPaper($page, $pdfOrientation)->stream('participacion.pdf');
     }
 
     public function exportCoverPdf($id)
