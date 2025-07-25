@@ -198,7 +198,7 @@
                                                         <div class="row mb-3">
                                                             <label class="col-form-label label-control col-4 text-end">Márgenes de la página (mm)</label>
                                                             <div class="col-sm-2">
-                                                                <input class="form-control" name="margin_custom" type="number" value="{{ old('margin_custom', $format->margin_custom ?? '') }}" step="0.1" placeholder="0.00" style="border-radius: 30px">
+                                                                <input class="form-control" id="margin-custom" name="margin_custom" type="number" value="{{ old('margin_custom', $format->margin_custom ?? '') }}" step="0.1" placeholder="0.00" style="border-radius: 30px">
                                                             </div>
                                                         </div>
                                                         <div class="row mb-3">
@@ -251,11 +251,11 @@
                                             </label>
                                         </div>
                                         <br>
-                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                        {!! $format->participation_html ?? '' !!}
+                                        {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
-                                                {!! $format->participation_html ?? '' !!}
                                             </div>
-                                        </div>
+                                        </div> --}}
                                     </div>
                                 </div>
                                 <div class="form-card fade bs d-none" id="step-3" style="min-height: 658px;">
@@ -276,11 +276,11 @@
                                             </label>
                                         </div>
                                         <br>
-                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                        {!! $format->cover_html ?? '' !!}
+                                        {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
-                                                {!! $format->cover_html ?? '' !!}
                                             </div>
-                                        </div>
+                                        </div> --}}
                                     </div>
                                 </div>
                                 <div class="form-card fade bs d-none" id="step-4" style="min-height: 658px;">
@@ -301,11 +301,11 @@
                                             </label>
                                         </div>
                                         <br>
-                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                        {!! $format->back_html ?? '' !!}
+                                        {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
-                                                {!! $format->back_html ?? '' !!}
                                             </div>
-                                        </div>
+                                        </div> --}}
                                     </div>
                                 </div>
                                 <div class="form-card fade bs d-none" id="step-5" style="min-height: 658px;">
@@ -558,6 +558,140 @@ function setQRtext(event) {
     $('#qr-modal').modal('show');
 }
 // --- Sincronizar step con la edición ---
+
+function getCustomDimensions() {
+    let page = $('#page').val();
+    let cols = parseInt($('#cols').val());
+    let rows = parseInt($('#rows').val());
+    let orientation = $('#orientation').val();
+    let w, h;
+    if (page == 'a3') {
+        w = 400 / cols;
+        h = 276 / rows;
+    } else if (page == 'a4') {
+        w = 190 / cols;
+        h = 277 / rows;
+    }
+    {{-- if (orientation == 'v') {
+        let aux = w;
+        w = h;
+        h = aux;
+    } --}}
+    return {w, h};
+}
+
+function recalculateDesign() {
+    let cols = $('#cols').val();
+    let rows = $('#rows').val();
+    let orientation = $('#orientation').val();
+    let page = $('#page').val();
+
+    if (orientation == 'h') {
+        $('.preview-design > div').css('width','100%');
+    }else{
+        $('.preview-design > div').css('width','60%');
+    }
+
+    let h = 216 / rows;
+    let html = "";
+    let percent = 100 / cols;
+    let margin = 1 / cols;
+    for (var i = 0; i < cols*rows; i++) {
+        html+=`<div style="height: ${h}px; width: ${percent-1}%; margin-left: ${margin}%"></div>`;
+    }
+    $('.preview-design > div').html(html);
+
+    // Eliminado: cambio de tamaño de .format-box aquí
+    // if($('#format').val() === 'custom') {
+    //     const {w, h} = getCustomDimensions();
+    //     $('.format-box').css({width: w+'mm', height: h+'mm'});
+    // }
+}
+
+$('#cols,#rows').change(function (e) {
+    e.preventDefault();
+    recalculateDesign();
+});
+
+$('#page').change(function (e) {
+    e.preventDefault();
+    let clase = $(this).val();
+    $('.preview-design > div').removeClass('a3 a4');
+    $('.preview-design > div').addClass(clase);
+    recalculateDesign();
+});
+
+$('#orientation').change(function(event) {
+    recalculateDesign();
+});
+
+$('#format').change(function (e) {
+    e.preventDefault();
+    let html = "";
+    restoreValues();
+    if($(this).val() == 'a3-h-3x2') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a3">
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+            </div>`;
+    } else if($(this).val() == 'a3-h-4x2') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a3">
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+            </div>`;
+    } else if($(this).val() == 'a4-v-3x1') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a4">
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+                <div style="height: 72px;"></div>
+            </div>`;
+    } else if($(this).val() == 'a4-v-4x1') {
+        $('.custom').prop('disabled', true);
+        html = `<div class="a4">
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+                <div style="height: 54px;"></div>
+            </div>`;
+    } else if($(this).val() == 'custom') {
+        $('.custom').prop('disabled', false);
+        html = `<div class="a3">
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                    <div style="height: 72px;"></div>
+                </div>`;
+        // Actualizar el tamaño del format-box en tiempo real para personalizado
+        const {w, h} = getCustomDimensions();
+        console.log(w,h)
+        {{-- $('.format-box').css({width: w+'mm', height: h+'mm'}); --}}
+    }
+    $('.preview-design').html(html);
+});
+
+  function restoreValues()
+  {
+    $('#page').prop('selectedIndex',0);
+    $('#rows').val(3);
+    $('#cols').val(2);
+    $('#orientation').prop('selectedIndex',0);
+  }
+
 var step = 1;
 var editor;
 var actualElement;
@@ -602,6 +736,172 @@ $('#save-step').click(function(event) {
     }
 });
 
+/**/
+
+function configMargins()
+  {
+    let identation = $('#identation').val() ?? 2.5;
+    let matrix = $('#matrix-box').val() ?? 40;
+    $('.margen-izquierdo').css('left',identation+'mm')
+    $('.margen-arriba').css('top',identation+'mm')
+    $('.margen-derecho').css('right',identation+'mm')
+    $('.margen-abajo').css('bottom',identation+'mm')
+    $('.caja-matriz').css('left',identation+'mm')
+    $('.caja-matriz').css('width',matrix+'mm')
+    $('.caja-matriz-2').css('right',identation+'mm')
+    $('.caja-matriz-2').css('width',matrix+'mm')
+  }
+
+  $('.up-z').click(function (e) {
+      e.preventDefault();
+      let zindex = $(actualElement).css('z-index');
+      zindex = parseInt(zindex)+1;
+      $(actualElement).css('z-index',zindex);
+  });
+  $('.dw-z').click(function (e) {
+      e.preventDefault();
+      let zindex = $(actualElement).css('z-index');
+      zindex = parseInt(zindex)-1;
+      $(actualElement).css('z-index',zindex);
+  });
+
+   $('.toggle-guide').click(function (e) {
+       e.preventDefault();
+
+       let opacity = $('.guide'+step).css('opacity');
+
+       $('.guide'+step).css('opacity', opacity == 1 ? 0 : 1);
+   });
+   $('.color-guide input').change(function (e) {
+      e.preventDefault();
+
+      localStorage.setItem('guide-step'+step,$(this).val());
+
+      let opacity = $('.guide'+step).css('border-color',$(this).val());
+  });
+
+  // === INICIO BLOQUE NUEVO ===
+  // Tabla de medidas de ticket para todas las combinaciones posibles
+  const ticketSizes = {
+    a3: {
+      h: {},
+      v: {}
+    },
+    a4: {
+      h: {},
+      v: {}
+    }
+  };
+  // Medidas útiles de hoja (márgenes de 10mm por lado)
+  const sheetUsable = {
+    a3: { h: { width: 400, height: 277 }, v: { width: 277, height: 400 } },
+    a4: { h: { width: 277, height: 190 }, v: { width: 190, height: 277 } }
+  };
+  // Generar todas las combinaciones
+  for (const page of ['a3', 'a4']) {
+    for (const orientation of ['h', 'v']) {
+      const usable = sheetUsable[page][orientation];
+      for (let rows = 1; rows <= 5; rows++) {
+        for (let cols = 1; cols <= 5; cols++) {
+          const w = (usable.width / cols).toFixed(2);
+          const h = (usable.height / rows).toFixed(2);
+          ticketSizes[page][orientation][`${cols}x${rows}`] = { w, h };
+        }
+      }
+    }
+  }
+  // === FIN BLOQUE NUEVO ===
+
+  function updateTicketInfo() {
+      // Definir plantillas rápidas
+      const quickTemplates = {
+          'a3-h-3x2': { page: 'a3', orientation: 'h', cols: 3, rows: 2, ticket: '200mm x 92mm' },
+          'a3-h-4x2': { page: 'a3', orientation: 'h', cols: 4, rows: 2, ticket: '200mm x 68.88mm' },
+          'a4-v-3x1': { page: 'a4', orientation: 'v', cols: 3, rows: 1, ticket: '190mm x 92mm' },
+          'a4-v-4x1': { page: 'a4', orientation: 'v', cols: 4, rows: 1, ticket: '190mm x 69.38mm' }
+      };
+      let page = $('#page').val();
+      let orientation = $('#orientation').val();
+      let cols = parseInt($('#cols').val());
+      let rows = parseInt($('#rows').val());
+      let format = $('#format').val();
+
+      // Medidas de hoja
+      const sheetSizes = {
+          'a3': { h: { width: 420, height: 297 }, v: { width: 297, height: 420 } },
+          'a4': { h: { width: 297, height: 210 }, v: { width: 210, height: 297 } }
+      };
+      let sheet = sheetSizes[page][orientation];
+      let sheetText = `${sheet.width}mm x ${sheet.height}mm`;
+
+      // Medidas de ticket: buscar en la tabla
+      let key = `${cols}x${rows}`;
+      let ticketObj = ticketSizes[page][orientation][key];
+      let ticketText = ticketObj ? `${ticketObj.w}mm x ${ticketObj.h}mm` : '-';
+
+      // Casos especiales de plantillas rápidas
+      if(format === 'a3-h-3x2') { ticketText = '200mm x 92mm'; }
+      else if(format === 'a3-h-4x2') { ticketText = '200mm x 68.88mm'; }
+      else if(format === 'a4-v-3x1') { ticketText = '190mm x 92mm'; }
+      else if(format === 'a4-v-4x1') { ticketText = '190mm x 69.38mm'; }
+      else if(format === 'custom') {
+          // Si la selección personalizada coincide con una plantilla rápida, usar la medida fija
+          for (const keyTpl in quickTemplates) {
+              const tpl = quickTemplates[keyTpl];
+              if (tpl.page === page && tpl.orientation === orientation && tpl.cols === cols && tpl.rows === rows) {
+                  ticketText = tpl.ticket;
+                  break;
+              }
+          }
+      }
+
+      // Cantidad de tickets
+      let ticketCount = cols * rows;
+
+      $('#sheet-size').text(sheetText);
+      $('#ticket-size').text(ticketText);
+      $('#ticket-count').text(ticketCount);
+
+      // === NUEVO: Calcular y mostrar medidas reales según orientación ===
+      let key__ = `${cols}x${rows}`;
+      let ticketObj__ = ticketSizes[page][orientation][key__];
+      let ticketW = ticketObj__ ? parseFloat(ticketObj__.w) : null;
+      let ticketH = ticketObj__ ? parseFloat(ticketObj__.h) : null;
+      let ticketText__ = (ticketW && ticketH) ? `${ticketW}mm x ${ticketH}mm` : '-';
+
+      // Casos especiales de plantillas rápidas
+      if(format === 'a3-h-3x2') { ticketText__ = '200mm x 92mm'; ticketW = 200; ticketH = 92; }
+      else if(format === 'a3-h-4x2') { ticketText__ = '200mm x 68.88mm'; ticketW = 200; ticketH = 68.88; }
+      else if(format === 'a4-v-3x1') { ticketText__ = '190mm x 92mm'; ticketW = 190; ticketH = 92; }
+      else if(format === 'a4-v-4x1') { ticketText__ = '190mm x 69.38mm'; ticketW = 190; ticketH = 69.38; }
+      else if(format === 'custom') {
+          for (const keyTpl in quickTemplates) {
+              const tpl = quickTemplates[keyTpl];
+              if (tpl.page === page && tpl.orientation === orientation && tpl.cols === cols && tpl.rows === rows) {
+                  ticketText__ = tpl.ticket;
+                  [ticketW, ticketH] = tpl.ticket.split('x').map(v => parseFloat(v));
+                  break;
+              }
+          }
+      }
+
+      $('#ticket-size').text(ticketText__);
+
+      // Actualizar tamaño de la caja de diseño
+      console.log(ticketW,ticketH);
+      if (ticketW && ticketH) {
+          $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+          $('.format-box-btn').css({width: ticketW+'mm'});
+      }
+  }
+
+  // Llamar al cargar y al cambiar cualquier campo relevante
+  $(document).ready(function() {
+      updateTicketInfo();
+      $('#format,#page,#rows,#cols,#orientation').on('change keyup', updateTicketInfo);
+  });
+  // === FIN BLOQUE NUEVO ===
+
 // === FUNCIÓN PARA GUARDAR TODO EL DISEÑO ===
 function collectDesignData() {
   // Paso 1: Configuración de formato
@@ -616,6 +916,7 @@ function collectDesignData() {
   const margin_top = parseFloat($('#margin-top').val());
   const identation = parseFloat($('#identation').val());
   const matrix_box = parseFloat($('#matrix-box').val());
+  const margin_custom = parseFloat($('#margin-custom').val());
   const horizontal_space = parseFloat($('#page-rigth').val());
   const vertical_space = parseFloat($('#page-bottom').val());
 
@@ -676,6 +977,7 @@ function collectDesignData() {
     },
     identation,
     matrix_box,
+    margin_custom,
     horizontal_space,
     vertical_space,
     participation_html,
@@ -922,6 +1224,7 @@ function reapplyElementEvents() {
     $('.elements.images').unbind('dblclick',changeImage).dblclick(changeImage);
     $('.elements.qr').unbind('dblclick',setQRtext).dblclick(setQRtext);
     addEventsElement();
+    configMargins();
 }
 
 // --- Funciones para el fondo de ticket (copiadas de format.blade.php) ---

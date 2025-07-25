@@ -136,6 +136,7 @@ class DesignController extends Controller
             'cols' => 'nullable|integer',
             'orientation' => 'nullable|string',
             'margins' => 'nullable|array',
+            'margin_custom' => 'nullable|numeric',
             'identation' => 'nullable|numeric',
             'matrix_box' => 'nullable|numeric',
             'horizontal_space' => 'nullable|numeric',
@@ -159,6 +160,7 @@ class DesignController extends Controller
             'back_html' => $data['back_html'] ?? '',
             'backgrounds' => $data['backgrounds'] ?? [],
             'output' => $data['output'] ?? [],
+            'margins' => $data['margins'] ?? [],
         ];
 
         // Guardar también en columnas explícitas
@@ -167,6 +169,7 @@ class DesignController extends Controller
         $data['back_html'] = $data['blocks']['back_html'];
         $data['backgrounds'] = $data['blocks']['backgrounds'];
         $data['output'] = $data['blocks']['output'];
+        $data['margins'] = $data['blocks']['margins'];
 
         // return $data;
 
@@ -365,13 +368,14 @@ class DesignController extends Controller
                 $format->orientation = $data['orientation'] ?? $format->orientation;
                 $format->identation = $data['identation'] ?? $format->identation;
                 $format->matrix_box = $data['matrix_box'] ?? $format->matrix_box;
-                // $format->horizontal_space = $data['horizontal_space'] ?? $format->horizontal_space;
-                // $format->vertical_space = $data['vertical_space'] ?? $format->vertical_space;
+                $format->horizontal_space = $data['horizontal_space'] ?? $format->horizontal_space;
+                $format->vertical_space = $data['vertical_space'] ?? $format->vertical_space;
+                $format->margin_custom = $data['margin_custom'] ?? $format->margin_custom;
                 $format->participation_html = $data['participation_html'] ?? $format->participation_html;
                 $format->cover_html = $data['cover_html'] ?? $format->cover_html;
                 $format->back_html = $data['back_html'] ?? $format->back_html;
                 // Guardar los campos JSON como string si corresponde
-                // if (isset($data['margins'])) $format->margins = json_encode($data['margins']);
+                if (isset($data['margins'])) $format->margins = $data['margins'];
                 if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
                 if (isset($data['output'])) $format->output = $data['output'];
                 $format->save();

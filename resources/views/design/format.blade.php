@@ -299,7 +299,7 @@
                                                         </label>
 
                                                         <div class="col-sm-2">
-                                                            <input class="form-control" type="number" value="12.50" step="0.1" placeholder="0.00" style="border-radius: 30px">
+                                                            <input class="form-control" type="number" id="margin-custom" value="12.50" step="0.1" placeholder="0.00" style="border-radius: 30px">
                                                         </div>
 
                                                     </div>
@@ -1769,6 +1769,7 @@ $('#format').change(function (e) {
     const margin_top = parseFloat($('#margin-top').val());
     const identation = parseFloat($('#identation').val());
     const matrix_box = parseFloat($('#matrix-box').val());
+    const margin_custom = parseFloat($('#margin-custom').val());
     const horizontal_space = parseFloat($('#page-rigth').val());
     const vertical_space = parseFloat($('#page-bottom').val());
 
@@ -1829,6 +1830,7 @@ $('#format').change(function (e) {
       },
       identation,
       matrix_box,
+      margin_custom,
       horizontal_space,
       vertical_space,
       participation_html,

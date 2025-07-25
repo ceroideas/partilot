@@ -168,7 +168,7 @@ class ApiController extends Controller
             $table->json('tickets')->nullable();
         });*/
 
-        Schema::dropIfExists('design_formats');
+        /*Schema::dropIfExists('design_formats');
         Schema::create('design_formats', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('entity_id');
@@ -196,6 +196,11 @@ class ApiController extends Controller
             $table->boolean('guides')->nullable();
             $table->string('generate', 10)->nullable();
             $table->string('documents', 10)->nullable();
+
+            $table->decimal('horizontal_space', 8,2)->nullable();
+            $table->decimal('vertical_space', 8,2)->nullable();
+            $table->decimal('margin_custom', 8,2)->nullable();
+
             $table->json('blocks')->nullable(); // HTML de los containment-wrapper
             $table->longText('participation_html')->nullable();
             $table->longText('cover_html')->nullable();
@@ -208,8 +213,15 @@ class ApiController extends Controller
             // $table->foreign('entity_id')->references('id')->on('entities');
             // $table->foreign('lottery_id')->references('id')->on('lotteries');
             // $table->foreign('set_id')->references('id')->on('sets');
-        });
+        });*/
 
+        Schema::table('design_formats', function(Blueprint $table) {
+            //
+            $table->decimal('horizontal_space', 8,2)->nullable();
+            $table->decimal('vertical_space', 8,2)->nullable();
+            $table->decimal('margin_custom', 8,2)->nullable();
+            $table->longText('margins')->nullable();
+        });
     }
 
     public function checkParticipation(Request $r)

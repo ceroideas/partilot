@@ -37,9 +37,13 @@ class DesignFormat extends Model
         'documents',
         'blocks',
         'participation_html',
+        'vertical_space',
+        'horizontal_space',
+        'margin_custom',
         'cover_html',
         'back_html',
         'backgrounds',
+        'margins',
         'output',
     ];
 
@@ -48,6 +52,7 @@ class DesignFormat extends Model
         'guides' => 'boolean',
         'backgrounds' => 'array',
         'output' => 'array',
+        'margins' => 'array',
     ];
 
     public function entity()
