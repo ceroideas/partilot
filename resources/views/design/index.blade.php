@@ -81,7 +81,9 @@
                                 <td>{{ $design->entity ? $design->entity->city : '-' }}</td>
                                 <td><label class="badge bg-success">Pendiente</label></td>
                                 <td>
-                                    <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a>
+                                    <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                    <a href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
+                                    {{-- <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a> --}}
                                     <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                 </td>
                             </tr>
