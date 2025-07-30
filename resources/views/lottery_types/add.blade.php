@@ -52,9 +52,9 @@
 
                                         <div class="row">
                                             
-                                            <div class="col-3">
+                                            <div class="col-2">
                                             </div>
-                                            <div class="col-6">
+                                            <div class="col-5">
                                                 <div class="form-group mt-2 mb-3">
                                                     <label class="label-control">Nombre del Tipo de Sorteo</label>
 
@@ -67,6 +67,23 @@
                                                         <input class="form-control" type="text" name="name" placeholder="Nombre del Tipo de Sorteo" style="border-radius: 0 30px 30px 0;" value="{{ old('name') }}" required>
                                                     </div>
                                                     @error('name')
+                                                        <small class="text-danger">{{ $message }}</small>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                            <div class="col-2">
+                                                <div class="form-group mt-2 mb-3">
+                                                    <label class="label-control">Identificador</label>
+
+                                                    <div class="input-group input-group-merge group-form">
+
+                                                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                            <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+                                                        </div>
+
+                                                        <input class="form-control" type="text" name="identificador" placeholder="ID" style="border-radius: 0 30px 30px 0;" value="{{ old('identificador') }}" maxlength="2" required>
+                                                    </div>
+                                                    @error('identificador')
                                                         <small class="text-danger">{{ $message }}</small>
                                                     @enderror
                                                 </div>

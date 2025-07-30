@@ -47,6 +47,7 @@
                                 <tr>
                                     <th>Order ID</th>
                                     <th>Nombre del Sorteo</th>
+                                    <th>Identificador</th>
                                     <th>Precio Décimo</th>
                                     <th class="no-filter"></th>
                                 </tr>
@@ -57,6 +58,7 @@
                                 <tr>
                                     <td><a href="{{url('lottery_types/view', $type->id)}}">#TS{{str_pad($type->id, 4, '0', STR_PAD_LEFT)}}</a></td>
                                     <td>{{$type->name}}</td>
+                                    <td>{{$type->identificador ?? '-'}}</td>
                                     <td>{{number_format($type->ticket_price, 2)}}€</td>
                                     <td class="text-end">
                                         <a href="{{url('lottery_types/edit', $type->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>

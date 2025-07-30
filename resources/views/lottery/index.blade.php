@@ -35,6 +35,7 @@
                             </div>
 
                             <a href="{{url('lottery/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            <button type="button" data-bs-toggle="modal" data-bs-target="#generateLotteriesModal" style="border-radius: 30px; width: 200px; margin-right: 10px;" class="btn btn-md btn-success float-end"><i style="position: relative; top: 2px;" class="ri-calendar-line"></i> Generar Sorteos</button>
 
                         </h4>
 
@@ -119,6 +120,41 @@
     <!-- end row-->
 
 </div> <!-- container -->
+
+<!-- Modal para Generar Sorteos -->
+<div class="modal fade" id="generateLotteriesModal" tabindex="-1" aria-labelledby="generateLotteriesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="generateLotteriesModalLabel">Generar Sorteos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('lotteries.generate') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-group mb-3">
+                                <label for="date_from" class="form-label">Fecha Desde</label>
+                                <input type="date" class="form-control" id="date_from" name="date_from" required>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group mb-3">
+                                <label for="date_to" class="form-label">Fecha Hasta</label>
+                                <input type="date" class="form-control" id="date_to" name="date_to" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Generar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @endsection
 

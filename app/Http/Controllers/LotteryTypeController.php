@@ -33,9 +33,9 @@ class LotteryTypeController extends Controller
         // return $request->all();
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'identificador' => 'required|string|max:2',
             'ticket_price' => 'required|numeric|min:0',
-            /*'prize_categories' => 'required|array|min:1',
-            'prize_categories.*' => 'required|string|max:255',*/
+            'prize_categories' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -46,6 +46,11 @@ class LotteryTypeController extends Controller
 
         $data = $request->all();
         $data['is_active'] = true;
+
+        // Convertir prize_categories de JSON string a array
+        if (isset($data['prize_categories'])) {
+            $data['prize_categories'] = json_decode($data['prize_categories'], true);
+        }
 
         LotteryType::create($data);
 
@@ -76,9 +81,9 @@ class LotteryTypeController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'identificador' => 'required|string|max:2',
             'ticket_price' => 'required|numeric|min:0',
-            'prize_categories' => 'required|array|min:1',
-            'prize_categories.*' => 'required|string|max:255',
+            'prize_categories' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -87,7 +92,14 @@ class LotteryTypeController extends Controller
                 ->withInput();
         }
 
-        $lotteryType->update($request->all());
+        $data = $request->all();
+
+        // Convertir prize_categories de JSON string a array
+        if (isset($data['prize_categories'])) {
+            $data['prize_categories'] = json_decode($data['prize_categories'], true);
+        }
+
+        $lotteryType->update($data);
 
         return redirect()->route('lottery-types.index')
             ->with('success', 'Tipo de lotería actualizado exitosamente');

@@ -1112,7 +1112,7 @@ function generateDays($rules,$max_places,$booking_ids,$parameters,$days)
         $to = substr($value->to, 0, 10);
         while ($start < $to) {
 
-            $booking_dates[$start] = $value->persons;
+            $booking_dates[$start] += $value->persons;
             $start = date("Y-m-d",strtotime($start."+ 1 days"));
 
         }
@@ -1189,10 +1189,10 @@ function make_prebooking($request) {
             array(
                 'id' => 0,
                 'title' => 'Nº de Persones',
-                'number' => $parameters['places']
+                'number' => strval($parameters['places'])
             )
         );
-        $serialized_data = serialize($data);
+        $serialized_data = $data;
         $from = $parameters['dateFrom'];
         $to = date('Y-m-d',strtotime($from.'+ '.$parameters['days'].' days'));
         $product_id = $parameters['refugeID'];
@@ -1290,6 +1290,15 @@ function make_customer($request) {
     if (email_exists($params['customer']['email'])) {
         $user = get_user_by('email', $params['customer']['email']);
         $user_id = $user->ID;
+        // Actualizar el display_name si es diferente
+        if ($user->display_name !== $full_name) {
+            wp_update_user(array(
+                'ID' => $user_id,
+                'display_name' => $full_name,
+                "user_login" => str_replace('-', '.', sanitize_title($full_name)),
+                "user_nicename" => sanitize_title($full_name),
+            ));
+        }
     }else{
         $userdata = [
             "user_login" => str_replace('-', '.', sanitize_title($full_name)),
@@ -1302,7 +1311,8 @@ function make_customer($request) {
         ];
         $user_id = wp_insert_user($userdata);
     }
-    // Guardar nombre y apellido como metadatos del usuario
+    
+    // Guardar todos los datos del cliente como metadatos del usuario
     if ($first_name) {
         update_user_meta($user_id, 'first_name', $first_name);
         update_user_meta($user_id, 'billing_first_name', $first_name);
@@ -1311,20 +1321,59 @@ function make_customer($request) {
         update_user_meta($user_id, 'last_name', $last_name);
         update_user_meta($user_id, 'billing_last_name', $last_name);
     }
-    // Guardar nombre y apellido como metadatos de la reserva
+    
+    // Guardar dirección y datos adicionales
+    if (!empty($params['customer']['address'])) {
+        update_user_meta($user_id, 'billing_address_1', $params['customer']['address']);
+    }
+    if (!empty($params['customer']['city'])) {
+        update_user_meta($user_id, 'billing_city', $params['customer']['city']);
+    }
+    if (!empty($params['customer']['postalCode'])) {
+        update_user_meta($user_id, 'billing_postcode', $params['customer']['postalCode']);
+    }
+    if (!empty($params['customer']['country'])) {
+        update_user_meta($user_id, 'billing_country', $params['customer']['country']);
+    }
+    if (!empty($params['customer']['phone'])) {
+        update_user_meta($user_id, 'billing_phone', $params['customer']['phone']);
+    }
+    if (!empty($params['customer']['email'])) {
+        update_user_meta($user_id, 'billing_email', $params['customer']['email']);
+    }
+    
+    // Guardar datos adicionales como customerID y userLang
+    if (!empty($params['customer']['customerID'])) {
+        update_user_meta($user_id, 'customer_id', $params['customer']['customerID']);
+    }
+    if (!empty($params['customer']['userLang'])) {
+        update_user_meta($user_id, 'user_language', $params['customer']['userLang']);
+    }
+    
+    // Guardar todos los datos como metadatos de la reserva también
     if ($first_name) {
         update_post_meta($post_id, '_billing_first_name', $first_name);
     }
     if ($last_name) {
         update_post_meta($post_id, '_billing_last_name', $last_name);
     }
-    // Guardar el teléfono como metadato del usuario
-    if (!empty($params['customer']['phone'])) {
-        update_user_meta($user_id, 'billing_phone', $params['customer']['phone']);
+    if (!empty($params['customer']['address'])) {
+        update_post_meta($post_id, '_billing_address_1', $params['customer']['address']);
     }
-    // Guardar el teléfono como metadato de la reserva
+    if (!empty($params['customer']['city'])) {
+        update_post_meta($post_id, '_billing_city', $params['customer']['city']);
+    }
+    if (!empty($params['customer']['postalCode'])) {
+        update_post_meta($post_id, '_billing_postcode', $params['customer']['postalCode']);
+    }
+    if (!empty($params['customer']['country'])) {
+        update_post_meta($post_id, '_billing_country', $params['customer']['country']);
+    }
     if (!empty($params['customer']['phone'])) {
         update_post_meta($post_id, '_billing_phone', $params['customer']['phone']);
+    }
+    if (!empty($params['customer']['email'])) {
+        update_post_meta($post_id, '_billing_email', $params['customer']['email']);
     }
     update_post_meta($post_id, '_user_id', $user_id);
     $result = $wpdb->get_results("UPDATE {$wpdb->prefix}yith_wcbk_booking_meta_lookup SET user_id = $user_id WHERE booking_id = $post_id");
@@ -1349,6 +1398,14 @@ function make_payment($request){
     if (!$post_id) {
         return ["response"=>["response"=>true]];
     }
+    
+    // Obtener el product_id (refugeID) desde la reserva
+    $product_id = get_post_meta($post_id, '_product_id', true);
+    if (!$product_id) {
+        // Si no está en postmeta, intentar obtenerlo desde la tabla de reservas
+        $product_id = $user[0]->product_id ?? 0;
+    }
+    
     $updated_post_principal = array(
        'ID'     => $post_id,
        'post_status'   => 'bk-paid'
@@ -1356,8 +1413,55 @@ function make_payment($request){
     wp_update_post($updated_post_principal);
     $date = date("Y-m-d H:i:s");
     $timestamp = strtotime($date);
-    $name = explode(" ", $user_info->data->display_name);
-    $product = wc_get_product($params['refugeID'] ?? 0);
+    
+    // Obtener los datos del cliente desde los metadatos del usuario
+    $billing_first_name = get_user_meta($user_id, 'billing_first_name', true);
+    $billing_last_name = get_user_meta($user_id, 'billing_last_name', true);
+    $billing_email = get_user_meta($user_id, 'billing_email', true);
+    $billing_phone = get_user_meta($user_id, 'billing_phone', true);
+    $billing_address_1 = get_user_meta($user_id, 'billing_address_1', true);
+    $billing_city = get_user_meta($user_id, 'billing_city', true);
+    $billing_postcode = get_user_meta($user_id, 'billing_postcode', true);
+    $billing_country = get_user_meta($user_id, 'billing_country', true);
+    
+    // Si no hay datos en los metadatos del usuario, usar los de la reserva
+    if (!$billing_first_name) {
+        $billing_first_name = get_post_meta($post_id, '_billing_first_name', true);
+    }
+    if (!$billing_last_name) {
+        $billing_last_name = get_post_meta($post_id, '_billing_last_name', true);
+    }
+    if (!$billing_email) {
+        $billing_email = get_post_meta($post_id, '_billing_email', true);
+    }
+    if (!$billing_phone) {
+        $billing_phone = get_post_meta($post_id, '_billing_phone', true);
+    }
+    if (!$billing_address_1) {
+        $billing_address_1 = get_post_meta($post_id, '_billing_address_1', true);
+    }
+    if (!$billing_city) {
+        $billing_city = get_post_meta($post_id, '_billing_city', true);
+    }
+    if (!$billing_postcode) {
+        $billing_postcode = get_post_meta($post_id, '_billing_postcode', true);
+    }
+    if (!$billing_country) {
+        $billing_country = get_post_meta($post_id, '_billing_country', true);
+    }
+    
+    // Fallback a datos del usuario si no hay nada
+    if (!$billing_first_name) {
+        $billing_first_name = $user_info->first_name ?: '';
+    }
+    if (!$billing_last_name) {
+        $billing_last_name = $user_info->last_name ?: '';
+    }
+    if (!$billing_email) {
+        $billing_email = $user_info->user_email;
+    }
+    
+    $product = wc_get_product($product_id);
     $user_display = get_user_by('display_name', $product ? $product->name : '');
     $user_display_id = $user_display ? $user_display->ID : 0;
     $data = [
@@ -1377,10 +1481,18 @@ function make_payment($request){
        "comment_count" => 0,
     ];
     $post_id_shop_1 = wp_insert_post($data);
-    $post_id_shop_2 = wp_insert_post($data);
+    
+    // Crear la orden hija con título que incluya el producto
+    $data_hija = $data;
+    $product_name = $product ? $product->get_name() : 'Refugi';
+    $data_hija["post_title"] = 'Order &ndash; ' . date('F j, Y @ h:i A', $timestamp) . ' ( en ' . $product_name . ' )';
+    $data_hija["post_name"] = sanitize_title('Order &ndash; ' . date('F j, Y @ h:i A', $timestamp) . ' en ' . $product_name);
+    $post_id_shop_2 = wp_insert_post($data_hija);
     $updated_post_shop_1 = array(
        'ID'     => $post_id_shop_1,
        'guid'   => $url.'?post_type=yith_booking&p='.$post_id_shop_1,
+       'post_title' => 'Order &ndash; ' . date('F j, Y @ h:i A', $timestamp) . ' ( en ' . $product_name . ' )',
+       'post_name' => sanitize_title('Order &ndash; ' . date('F j, Y @ h:i A', $timestamp) . ' en ' . $product_name),
     );
     wp_update_post($updated_post_shop_1); 
     $updated_post_shop_2 = array(
@@ -1391,11 +1503,35 @@ function make_payment($request){
     wp_update_post($updated_post_shop_2); 
     $wpdb->show_errors();
     $wpdb->insert('wpol_woocommerce_order_items', array(
-        'order_item_name' => $product ? $product->name : 'error',
+        'order_item_name' => $product ? $product->name : 'Refugi',
         'order_item_type' => 'line_item',
         'order_id'        => $post_id_shop_2,
     ), array('%s', '%s', '%d'));
     $new_order_id = $wpdb->insert_id;
+    
+    // Crear el item de impuestos
+    $wpdb->insert('wpol_woocommerce_order_items', array(
+        'order_item_name' => 'ES-10% IVA-1',
+        'order_item_type' => 'tax',
+        'order_id'        => $post_id_shop_2,
+    ), array('%s', '%s', '%d'));
+    $tax_order_item_id = $wpdb->insert_id;
+    
+    // Crear items en la orden padre (shop_1)
+    $wpdb->insert('wpol_woocommerce_order_items', array(
+        'order_item_name' => $product ? $product->name : 'Refugi',
+        'order_item_type' => 'line_item',
+        'order_id'        => $post_id_shop_1,
+    ), array('%s', '%s', '%d'));
+    $parent_order_item_id = $wpdb->insert_id;
+    
+    // Crear el item de impuestos en la orden padre
+    $wpdb->insert('wpol_woocommerce_order_items', array(
+        'order_item_name' => 'ES-10% IVA-1',
+        'order_item_type' => 'tax',
+        'order_id'        => $post_id_shop_1,
+    ), array('%s', '%s', '%d'));
+    $parent_tax_order_item_id = $wpdb->insert_id;
     $wpdb->insert(
        'wpol_wc_order_stats',
        array(
@@ -1415,8 +1551,125 @@ function make_payment($request){
     $wpdb->get_results("UPDATE {$wpdb->prefix}yith_wcbk_booking_meta_lookup SET status = 'bk-paid' WHERE booking_id = $post_id"); 
     $wpdb->get_results("UPDATE {$wpdb->prefix}postmeta SET meta_value = $post_id_shop_2 WHERE post_id = $post_id AND meta_key = '_order_id' "); 
     $wpdb->get_results("UPDATE {$wpdb->prefix}postmeta SET meta_value = $new_order_id  WHERE post_id = $post_id AND meta_key = '_order_item_id' "); 
-    wc_add_order_item_meta($new_order_id, '_deposit_value', $params['payment']['duplication']['currentAmount'] ?? 0 );
+    
+    // Obtener las fechas de la reserva
+    $from = get_post_meta($post_id, '_from', true);
+    $to = get_post_meta($post_id, '_to', true);
+    $duration = get_post_meta($post_id, '_duration', true);
+    $persons = get_post_meta($post_id, '_persons', true);
+    
+    // Convertir timestamps a fechas si es necesario
+    if (is_numeric($from)) {
+        $from = date('Y-m-d', $from);
+    }
+    if (is_numeric($to)) {
+        $to = date('Y-m-d', $to);
+    }
+    
+    // Agregar todos los metadatos del item de orden según la estructura de la base de datos
+    wc_add_order_item_meta($new_order_id, '_product_id', $product ? $product->get_id() : 0);
+    wc_add_order_item_meta($new_order_id, '_variation_id', 0);
+    wc_add_order_item_meta($new_order_id, '_qty', 1);
+    wc_add_order_item_meta($new_order_id, '_tax_class', '');
+    
+    // Calcular subtotales y totales
+    $amount = $params['payment']['duplication']['currentAmount'] ?? 0;
+    $tax_rate = 0.10; // 10% IVA
+    $subtotal = $amount / (1 + $tax_rate);
+    $tax_amount = $amount - $subtotal;
+    
+    wc_add_order_item_meta($new_order_id, '_line_subtotal', number_format($subtotal, 6));
+    wc_add_order_item_meta($new_order_id, '_line_subtotal_tax', number_format($tax_amount, 2));
+    wc_add_order_item_meta($new_order_id, '_line_total', number_format($subtotal, 6));
+    wc_add_order_item_meta($new_order_id, '_line_tax', number_format($tax_amount, 2));
+    
+    // Datos de impuestos serializados
+    $tax_data = array(
+        'total' => array(1 => number_format($tax_amount, 6)),
+        'subtotal' => array(1 => number_format($tax_amount, 6))
+    );
+    wc_add_order_item_meta($new_order_id, '_line_tax_data', $tax_data);
+    
+    // Datos de reserva serializados
+    $booking_data = array(
+        'from' => strtotime($from),
+        'to' => strtotime($to),
+        'duration' => $duration ?: 1,
+        'persons' => $persons ?: 1,
+        'person_types' => array(30748 => strval($persons ?: 1)),
+        'booking_services' => array(),
+        'booking_service_quantities' => array(),
+        'resource_ids' => array(),
+        '_added-to-cart-timestamp' => time()
+    );
+    wc_add_order_item_meta($new_order_id, 'yith_booking_data', $booking_data);
+    
+    // Datos de depósito
     wc_add_order_item_meta($new_order_id, '_deposit', 1);
+    wc_add_order_item_meta($new_order_id, '_deposit_type', 'rate');
+    wc_add_order_item_meta($new_order_id, '_deposit_amount', $amount);
+    wc_add_order_item_meta($new_order_id, '_deposit_rate', 100);
+    wc_add_order_item_meta($new_order_id, '_deposit_value', $amount);
+    wc_add_order_item_meta($new_order_id, '_deposit_balance', 0);
+    wc_add_order_item_meta($new_order_id, '_deposit_balance_shipping', '');
+    
+    // Datos del producto para YWPI
+    wc_add_order_item_meta($new_order_id, '_ywpi_product_regular_price', '');
+    wc_add_order_item_meta($new_order_id, '_ywpi_product_sku', $product ? $product->get_sku() : '');
+    wc_add_order_item_meta($new_order_id, '_ywpi_product_short_description', $product ? $product->get_short_description() : '');
+    
+    // ID de la reserva
+    wc_add_order_item_meta($new_order_id, '_booking_id', $post_id);
+    wc_add_order_item_meta($new_order_id, '_reduced_stock', '1');
+    
+    // Datos de comisión (si aplica)
+    wc_add_order_item_meta($new_order_id, '_commission_id', '');
+    wc_add_order_item_meta($new_order_id, '_commission_included_tax', 'vendor');
+    wc_add_order_item_meta($new_order_id, '_commission_included_coupon', 'yes');
+    
+    // Agregar metadatos del item de impuestos
+    wc_add_order_item_meta($tax_order_item_id, 'rate_id', '1');
+    wc_add_order_item_meta($tax_order_item_id, 'label', '10% IVA');
+    wc_add_order_item_meta($tax_order_item_id, 'compound', '');
+    wc_add_order_item_meta($tax_order_item_id, 'tax_amount', number_format($tax_amount, 2));
+    wc_add_order_item_meta($tax_order_item_id, 'shipping_tax_amount', '0');
+    wc_add_order_item_meta($tax_order_item_id, 'rate_percent', '10');
+    
+    // Agregar metadatos del item principal en la orden padre
+    wc_add_order_item_meta($parent_order_item_id, '_product_id', $product ? $product->get_id() : 0);
+    wc_add_order_item_meta($parent_order_item_id, '_variation_id', 0);
+    wc_add_order_item_meta($parent_order_item_id, '_qty', 1);
+    wc_add_order_item_meta($parent_order_item_id, '_tax_class', '');
+    wc_add_order_item_meta($parent_order_item_id, '_line_subtotal', number_format($subtotal, 6));
+    wc_add_order_item_meta($parent_order_item_id, '_line_subtotal_tax', number_format($tax_amount, 2));
+    wc_add_order_item_meta($parent_order_item_id, '_line_total', number_format($subtotal, 6));
+    wc_add_order_item_meta($parent_order_item_id, '_line_tax', number_format($tax_amount, 2));
+    wc_add_order_item_meta($parent_order_item_id, '_line_tax_data', $tax_data);
+    wc_add_order_item_meta($parent_order_item_id, '_parent_line_item_id', $new_order_id); // Referencia al item de la orden hija
+    wc_add_order_item_meta($parent_order_item_id, 'yith_booking_data', $booking_data);
+    wc_add_order_item_meta($parent_order_item_id, '_deposit', 1);
+    wc_add_order_item_meta($parent_order_item_id, '_deposit_type', 'rate');
+    wc_add_order_item_meta($parent_order_item_id, '_deposit_amount', $amount);
+    wc_add_order_item_meta($parent_order_item_id, '_deposit_rate', 100);
+    wc_add_order_item_meta($parent_order_item_id, '_deposit_value', $amount);
+    wc_add_order_item_meta($parent_order_item_id, '_deposit_balance', 0);
+    wc_add_order_item_meta($parent_order_item_id, '_deposit_balance_shipping', '');
+    wc_add_order_item_meta($parent_order_item_id, '_ywpi_product_regular_price', '');
+    wc_add_order_item_meta($parent_order_item_id, '_ywpi_product_sku', $product ? $product->get_sku() : '');
+    wc_add_order_item_meta($parent_order_item_id, '_ywpi_product_short_description', $product ? $product->get_short_description() : '');
+    wc_add_order_item_meta($parent_order_item_id, '_booking_id', $post_id);
+    wc_add_order_item_meta($parent_order_item_id, '_reduced_stock', '1');
+    wc_add_order_item_meta($parent_order_item_id, '_commission_id', '');
+    wc_add_order_item_meta($parent_order_item_id, '_commission_included_tax', 'vendor');
+    
+    // Agregar metadatos del item de impuestos en la orden padre
+    wc_add_order_item_meta($parent_tax_order_item_id, 'rate_id', '1');
+    wc_add_order_item_meta($parent_tax_order_item_id, 'label', '10% IVA');
+    wc_add_order_item_meta($parent_tax_order_item_id, 'compound', '');
+    wc_add_order_item_meta($parent_tax_order_item_id, 'tax_amount', number_format($tax_amount, 2));
+    wc_add_order_item_meta($parent_tax_order_item_id, 'shipping_tax_amount', '0');
+    wc_add_order_item_meta($parent_tax_order_item_id, 'rate_percent', '10');
+    
     update_post_meta($post_id_shop_2, '_order_key', 'wc_order_'.uniqid());
     update_post_meta($post_id_shop_2, '_customer_user', $user_id);
     update_post_meta($post_id_shop_2, '_payment_method', 'xsalto');
@@ -1429,41 +1682,122 @@ function make_payment($request){
     update_post_meta($post_id_shop_2, '_recorded_coupon_usage_counts', "no");
     update_post_meta($post_id_shop_2, '_new_order_email_sent', "no");
     update_post_meta($post_id_shop_2, '_order_stock_reduced', "yes");
-    update_post_meta($post_id_shop_2, '_billing_first_name',  $name[0]);
-    update_post_meta($post_id_shop_2, '_billing_last_name', implode(" ", array_slice($name, 1)));
-    update_post_meta($post_id_shop_2, '_billing_address_1', '');
-    update_post_meta($post_id_shop_2, '_billing_city', '');
+    update_post_meta($post_id_shop_2, '_billing_first_name', $billing_first_name);
+    update_post_meta($post_id_shop_2, '_billing_last_name', $billing_last_name);
+    update_post_meta($post_id_shop_2, '_billing_address_1', $billing_address_1 ?: '');
+    update_post_meta($post_id_shop_2, '_billing_city', $billing_city ?: '');
     update_post_meta($post_id_shop_2, '_billing_state', "");
-    update_post_meta($post_id_shop_2, '_billing_postcode', "");
-    update_post_meta($post_id_shop_2, '_billing_country', "ES"); 
-    update_post_meta($post_id_shop_2, '_billing_email', $user_info->data->user_email);
-    update_post_meta($post_id_shop_2, '_billing_phone', $user_info->data->user_phone); 
+    update_post_meta($post_id_shop_2, '_billing_postcode', $billing_postcode ?: '');
+    update_post_meta($post_id_shop_2, '_billing_country', $billing_country ?: 'ES'); 
+    update_post_meta($post_id_shop_2, '_billing_email', $billing_email);
+    update_post_meta($post_id_shop_2, '_billing_phone', $billing_phone ?: ''); 
+    
+    // Actualizar metadatos de la orden padre (necesario para el calendario)
+    update_post_meta($post_id_shop_1, '_billing_first_name', $billing_first_name);
+    update_post_meta($post_id_shop_1, '_billing_last_name', $billing_last_name);
+    update_post_meta($post_id_shop_1, '_billing_address_1', $billing_address_1 ?: '');
+    update_post_meta($post_id_shop_1, '_billing_city', $billing_city ?: '');
+    update_post_meta($post_id_shop_1, '_billing_state', "");
+    update_post_meta($post_id_shop_1, '_billing_postcode', $billing_postcode ?: '');
+    update_post_meta($post_id_shop_1, '_billing_country', $billing_country ?: 'ES');
+    update_post_meta($post_id_shop_1, '_billing_email', $billing_email);
+    update_post_meta($post_id_shop_1, '_billing_phone', $billing_phone ?: '');
+    
+    // Actualizar metadatos de la reserva principal para que aparezcan en el calendario
+    update_post_meta($post_id, '_billing_first_name', $billing_first_name);
+    update_post_meta($post_id, '_billing_last_name', $billing_last_name);
+    update_post_meta($post_id, '_billing_email', $billing_email);
+    update_post_meta($post_id, '_billing_phone', $billing_phone ?: '');
+    
     update_post_meta($post_id_shop_2, '_order_currency', "EUR");
     update_post_meta($post_id_shop_2, '_cart_discount', 0); 
     update_post_meta($post_id_shop_2, '_cart_discount_tax', "0");
     update_post_meta($post_id_shop_2, '_order_shipping', 0); 
     update_post_meta($post_id_shop_2, '_order_shipping_tax', 0); 
-    update_post_meta($post_id_shop_2, '_order_tax', 0); 
-    update_post_meta($post_id_shop_2, '_order_total', $params['payment']['duplication']['currentAmount'] ?? 0); 
-    update_post_meta($post_id_shop_2, '_order_version', "8.0.0"); 
-    update_post_meta($post_id_shop_2, '_prices_include_tax', "no"); 
-    update_post_meta($post_id_shop_2, '_billing_address_index', ""); 
-    update_post_meta($post_id_shop_2, '_shipping_address_index',""); 
-    update_post_meta($post_id_shop_2, 'vendor_id', $user_display_id); 
-    update_post_meta($post_id_shop_2, '_billing_Dni_·_Nie_·_Passaport', 0); 
-    update_post_meta($post_id_shop_2, 'is_vat_exempt', "no"); 
-    update_post_meta($post_id_shop_2, 'additional_Federació', ""); 
-    update_post_meta($post_id_shop_2, 'additional_sortidatravessa', ''); 
-    update_post_meta($post_id_shop_2, '_ywson_custom_number_order_complet', $params['payment']['duplication']['bk_transaction_id'] ?? ''); 
-    update_post_meta($post_id_shop_2, '_ywson_subnumber_created', "no"); 
-    update_post_meta($post_id_shop_2, '_commissions_processed', 'no'); 
-    update_post_meta($post_id_shop_2, 'yith_bookings', 'a:1:{i:0;i:'.$post_id.';}'); 
-    update_post_meta($post_id_shop_2, '_date_completed', 0); 
-    update_post_meta($post_id_shop_2, '_date_paid', 0); 
-    update_post_meta($post_id_shop_2, '_paid_date', $date); 
-    update_post_meta($post_id_shop_2, '_completed_date', $date);
+    update_post_meta($post_id_shop_2, '_order_tax', number_format($tax_amount, 2)); 
+    update_post_meta($post_id_shop_2, '_order_total', $params['payment']['duplication']['currentAmount'] ?? 0);
+    update_post_meta($post_id_shop_2, '_prices_include_tax', "yes");
+    update_post_meta($post_id_shop_2, '_billing_address_index', $billing_first_name . ' ' . $billing_last_name . ' ' . ($billing_address_1 ?: '') . ' ' . ($billing_city ?: '') . ' ' . ($billing_postcode ?: '') . ' ' . ($billing_country ?: 'ES') . ' ' . $billing_email . ' ' . ($billing_phone ?: ''));
+    update_post_meta($post_id_shop_2, '_shipping_address_index', '');
+    update_post_meta($post_id_shop_2, '_billing_Dni_·_Nie_·_Passaport', '');
+    update_post_meta($post_id_shop_2, '_billing_Província', '');
+    update_post_meta($post_id_shop_2, 'is_vat_exempt', "no");
+    update_post_meta($post_id_shop_2, 'additional_Federació', "");
+    update_post_meta($post_id_shop_2, 'additional_sortidatravessa', '');
+    update_post_meta($post_id_shop_2, '_ywson_custom_number_order_complete', 'CODI-' . ($params['payment']['duplication']['bk_transaction_id'] ?? uniqid()));
+    update_post_meta($post_id_shop_2, 'trp_language', 'ca');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_source_type', 'referral');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_device_type', 'Mobile');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_referrer', 'xSalto Payment System');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_utm_source', 'xSalto');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_utm_medium', 'referral');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_utm_content', 'payment');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_session_entry', 'xSalto Payment Gateway');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_session_start_time', $date);
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_session_pages', '1');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_session_count', '1');
+    update_post_meta($post_id_shop_2, '_wc_order_attribution_user_agent', 'xSalto Payment System');
     update_post_meta($post_id_shop_2, '_has_deposit', 1);
-    update_post_meta($post_id_shop_2, '_wc_order_attribution_device_type', 'xsalto');  
+    update_post_meta($post_id_shop_2, 'yith_bookings', 'a:1:{i:0;i:'.$post_id.';}');
+    update_post_meta($post_id_shop_2, '_ywson_subnumber_created', "yes");
+    update_post_meta($post_id_shop_2, '_commissions_processed', 'yes');
+    update_post_meta($post_id_shop_2, '_date_completed', strtotime($date));
+    update_post_meta($post_id_shop_2, '_date_paid', strtotime($date));
+    update_post_meta($post_id_shop_2, '_paid_date', $date);
+    update_post_meta($post_id_shop_2, '_completed_date', $date); 
+    update_post_meta($post_id_shop_2, '_order_version', "8.0.0"); 
+    update_post_meta($post_id_shop_2, 'vendor_id', $user_display_id); 
+    
+    // Agregar metadatos para la orden padre también
+    update_post_meta($post_id_shop_1, '_order_key', 'wc_order_'.uniqid());
+    update_post_meta($post_id_shop_1, '_customer_user', $user_id);
+    update_post_meta($post_id_shop_1, '_payment_method', 'xsalto');
+    update_post_meta($post_id_shop_1, '_payment_method_title', 'xSalto');
+    update_post_meta($post_id_shop_1, '_customer_ip_address', 0);
+    update_post_meta($post_id_shop_1, '_customer_user_agent', 'Mozilla/5.0');
+    update_post_meta($post_id_shop_1, '_created_via', "yith_wcmv_vendor_suborder");
+    update_post_meta($post_id_shop_1, '_download_permissions_granted', "yes");
+    update_post_meta($post_id_shop_1, '_recorded_sales', 'yes');
+    update_post_meta($post_id_shop_1, '_recorded_coupon_usage_counts', "no");
+    update_post_meta($post_id_shop_1, '_new_order_email_sent', "no");
+    update_post_meta($post_id_shop_1, '_order_stock_reduced', "yes");
+    update_post_meta($post_id_shop_1, '_order_currency', "EUR");
+    update_post_meta($post_id_shop_1, '_cart_discount', 0); 
+    update_post_meta($post_id_shop_1, '_cart_discount_tax', "0");
+    update_post_meta($post_id_shop_1, '_order_shipping', 0); 
+    update_post_meta($post_id_shop_1, '_order_shipping_tax', 0); 
+    update_post_meta($post_id_shop_1, '_order_tax', number_format($tax_amount, 2)); 
+    update_post_meta($post_id_shop_1, '_order_total', $params['payment']['duplication']['currentAmount'] ?? 0);
+    update_post_meta($post_id_shop_1, '_order_version', "8.0.0"); 
+    update_post_meta($post_id_shop_1, '_prices_include_tax', "yes");
+    update_post_meta($post_id_shop_1, '_billing_address_index', $billing_first_name . ' ' . $billing_last_name . ' ' . ($billing_address_1 ?: '') . ' ' . ($billing_city ?: '') . ' ' . ($billing_postcode ?: '') . ' ' . ($billing_country ?: 'ES') . ' ' . $billing_email . ' ' . ($billing_phone ?: ''));
+    update_post_meta($post_id_shop_1, '_shipping_address_index', '');
+    update_post_meta($post_id_shop_1, '_billing_Dni_·_Nie_·_Passaport', '');
+    update_post_meta($post_id_shop_1, '_billing_Província', '');
+    update_post_meta($post_id_shop_1, 'is_vat_exempt', "no");
+    update_post_meta($post_id_shop_1, 'additional_Federació', "");
+    update_post_meta($post_id_shop_1, 'additional_sortidatravessa', '');
+    update_post_meta($post_id_shop_1, '_ywson_custom_number_order_complete', 'CODI-' . ($params['payment']['duplication']['bk_transaction_id'] ?? uniqid()));
+    update_post_meta($post_id_shop_1, 'trp_language', 'ca');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_source_type', 'referral');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_device_type', 'Mobile');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_referrer', 'xSalto Payment System');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_utm_source', 'xSalto');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_utm_medium', 'referral');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_utm_content', 'payment');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_session_entry', 'xSalto Payment Gateway');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_session_start_time', $date);
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_session_pages', '1');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_session_count', '1');
+    update_post_meta($post_id_shop_1, '_wc_order_attribution_user_agent', 'xSalto Payment System');
+    update_post_meta($post_id_shop_1, '_has_deposit', 1);
+    update_post_meta($post_id_shop_1, 'yith_bookings', 'a:1:{i:0;i:'.$post_id.';}');
+    update_post_meta($post_id_shop_1, '_ywson_subnumber_created', "yes");
+    update_post_meta($post_id_shop_1, '_commissions_processed', 'yes');
+    update_post_meta($post_id_shop_1, '_date_completed', strtotime($date));
+    update_post_meta($post_id_shop_1, '_date_paid', strtotime($date));
+    update_post_meta($post_id_shop_1, '_paid_date', $date);
+    update_post_meta($post_id_shop_1, '_completed_date', $date);  
     return ["response"=>["response"=>true]];
 }
 
@@ -1517,6 +1851,82 @@ function make_services($request)
     }
 }
 
+function update_booking($request)
+{
+    global $wpdb;
+    $params = $request->get_json_params();
+    // 1. Buscar el booking por bookingID
+    $results = $wpdb->get_results($wpdb->prepare("SELECT post_id FROM {$wpdb->prefix}postmeta WHERE meta_key = %s AND meta_value = %s", '_xsalto_booking_id', $params['bookingID']));
+    if (empty($results) || empty($results[0]->post_id)) {
+        return new WP_Error('not_found', 'No se encontró la reserva con ese bookingID', array('status' => 404));
+    }
+    $post_id = $results[0]->post_id;
+    // 2. Obtener qty del primer producto del primer día
+    if (!isset($params['days'][0]['products'][0]['qty'])) {
+        return new WP_Error('invalid_request', 'No se encontró qty en el primer producto', array('status' => 400));
+    }
+    $qty = intval($params['days'][0]['products'][0]['qty']);
+    // 3. Actualizar persons en la tabla de reservas
+    $wpdb->update(
+        $wpdb->prefix . 'yith_wcbk_booking_meta_lookup',
+        array('persons' => $qty),
+        array('booking_id' => $post_id)
+    );
+    // 4. Actualizar metadato _persons en postmeta
+    update_post_meta($post_id, '_persons', $qty);
+    
+    // 4.1. Actualizar metadato _person_types con datos serializados
+    $data = array(
+        array(
+            'id' => 0,
+            'title' => 'Nº de Persones',
+            'number' => strval($qty)
+        )
+    );
+    $serialized_data = $data;
+    update_post_meta($post_id, '_person_types', $serialized_data);
+    
+    // 5. Actualizar los servicios asociados (igual que make_services)
+    $servicios = [];
+    foreach ($params['days'] as $day) {
+        if (isset($day['products']) && is_array($day['products'])) {
+            foreach ($day['products'] as $pr) {
+                $servicios[] = $pr;
+            }
+        }
+    }
+    $terminos = [];
+    foreach ($servicios as $servicio) {
+        $titulo = $servicio['title'];
+        $termino = get_term_by('name', $titulo, 'yith_booking_service');
+        if (!$termino) {
+            $nuevo_termino = wp_insert_term($titulo, 'yith_booking_service');
+            $id_termino = $nuevo_termino['term_id'];
+        } else {
+            $id_termino = $termino->term_id;
+        }
+        // Puedes personalizar los metadatos del servicio aquí si lo necesitas
+        update_term_meta($id_termino, "yith_shop_vendor", "243");
+        update_term_meta($id_termino, "price", "0");
+        update_term_meta($id_termino, "optional", "no");
+        update_term_meta($id_termino, "hidden", "no");
+        update_term_meta($id_termino, "hidden_in_search_forms", "no");
+        update_term_meta($id_termino, "multiply_per_blocks", "no");
+        update_term_meta($id_termino, "multiply_per_persons", "no");
+        update_term_meta($id_termino, "price_for_person_types", 'a:1:{i:30748;s:0:"";}');
+        update_term_meta($id_termino, "quantity_enabled", "no");
+        update_term_meta($id_termino, "min_quantity", "0");
+        update_term_meta($id_termino, "max_quantity", "0");
+        $terminos[] = $id_termino;
+    }
+    if (count($terminos)) {
+        wp_set_post_terms($post_id, $terminos, 'yith_booking_service');
+        return ["response" => ["response" => true]];
+    } else {
+        return ["response" => ["result" => [], "response" => false]];
+    }
+}
+
 // =========================
 // ENDPOINTS REST PERSONALIZADOS SIMPLES
 // =========================
@@ -1561,6 +1971,14 @@ add_action('rest_api_init', function () {
             'permission_callback' => '__return_true',
         )
     ));
+    // POST /wp-json/wp/v2/updateBooking
+    register_rest_route('wp/v2', '/updateBooking', array(
+        array(
+            'methods'  => WP_REST_Server::CREATABLE,
+            'callback' => 'update_booking',
+            'permission_callback' => '__return_true',
+        )
+    ));
     // DELETE /wp-json/wp/v2/deleteBooking
     register_rest_route('wp/v2', '/deleteBooking', array(
         array(
@@ -1579,6 +1997,7 @@ function delete_booking($request) {
     if (!$xsalto_booking_id) {
         return new WP_Error('missing_booking_id', 'Falta el parámetro bookingID', array('status' => 400));
     }
+    
     // Buscar el post_id de la reserva usando _xsalto_booking_id
     $results = $wpdb->get_results($wpdb->prepare("SELECT post_id FROM {$wpdb->prefix}postmeta WHERE meta_key = %s AND meta_value = %s", '_xsalto_booking_id', $xsalto_booking_id));
     if (empty($results) || empty($results[0]->post_id)) {
@@ -1592,27 +2011,68 @@ function delete_booking($request) {
     // 2. Buscar y eliminar órdenes relacionadas (shop_order)
     $order_id = get_post_meta($booking_id, '_order_id', true);
     if ($order_id) {
-        // Eliminar metadatos de la orden
-        $wpdb->delete($wpdb->prefix . 'postmeta', array('post_id' => $order_id));
-        // Eliminar la orden
-        wp_delete_post($order_id, true);
-        // Buscar subórdenes (si existen)
-        $suborders = $wpdb->get_col($wpdb->prepare("SELECT ID FROM {$wpdb->prefix}posts WHERE post_parent = %d AND post_type = 'shop_order'", $order_id));
-        foreach ($suborders as $suborder_id) {
-            $wpdb->delete($wpdb->prefix . 'postmeta', array('post_id' => $suborder_id));
-            wp_delete_post($suborder_id, true);
+        // Buscar órdenes padre e hija
+        $parent_order_id = $order_id;
+        $child_order_id = $order_id;
+        
+        // Verificar si es una orden hija (tiene padre)
+        $parent_check = $wpdb->get_var($wpdb->prepare("SELECT post_parent FROM {$wpdb->prefix}posts WHERE ID = %d", $order_id));
+        if ($parent_check > 0) {
+            // Es una orden hija, el padre es $parent_check
+            $parent_order_id = $parent_check;
+            $child_order_id = $order_id;
+        } else {
+            // Es una orden padre, buscar la hija
+            $child_order_id = $wpdb->get_var($wpdb->prepare("SELECT ID FROM {$wpdb->prefix}posts WHERE post_parent = %d AND post_type = 'shop_order'", $order_id));
+        }
+        
+        // Eliminar items de WooCommerce de ambas órdenes
+        if ($parent_order_id) {
+            $parent_items = $wpdb->get_col($wpdb->prepare("SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d", $parent_order_id));
+            foreach ($parent_items as $item_id) {
+                // Eliminar metadatos del item
+                $wpdb->delete($wpdb->prefix . 'woocommerce_order_itemmeta', array('order_item_id' => $item_id));
+            }
+            // Eliminar items
+            $wpdb->delete($wpdb->prefix . 'woocommerce_order_items', array('order_id' => $parent_order_id));
+            // Eliminar metadatos de la orden padre
+            $wpdb->delete($wpdb->prefix . 'postmeta', array('post_id' => $parent_order_id));
+            // Eliminar la orden padre
+            wp_delete_post($parent_order_id, true);
+        }
+        
+        if ($child_order_id && $child_order_id != $parent_order_id) {
+            $child_items = $wpdb->get_col($wpdb->prepare("SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d", $child_order_id));
+            foreach ($child_items as $item_id) {
+                // Eliminar metadatos del item
+                $wpdb->delete($wpdb->prefix . 'woocommerce_order_itemmeta', array('order_item_id' => $item_id));
+            }
+            // Eliminar items
+            $wpdb->delete($wpdb->prefix . 'woocommerce_order_items', array('order_id' => $child_order_id));
+            // Eliminar metadatos de la orden hija
+            $wpdb->delete($wpdb->prefix . 'postmeta', array('post_id' => $child_order_id));
+            // Eliminar la orden hija
+            wp_delete_post($child_order_id, true);
+        }
+        
+        // Eliminar estadísticas de WooCommerce
+        $wpdb->delete($wpdb->prefix . 'wc_order_stats', array('order_id' => $parent_order_id));
+        if ($child_order_id != $parent_order_id) {
+            $wpdb->delete($wpdb->prefix . 'wc_order_stats', array('order_id' => $child_order_id));
         }
     }
 
-    // 3. Eliminar post principal (reserva)
-    $deleted = wp_delete_post($booking_id, true);
-    // 4. Eliminar metadatos
+    // 3. Eliminar metadatos de la reserva
     $wpdb->delete($wpdb->prefix . 'postmeta', array('post_id' => $booking_id));
-    // 5. Eliminar de la tabla de reservas
+    
+    // 4. Eliminar de la tabla de reservas
     $wpdb->delete($wpdb->prefix . 'yith_wcbk_booking_meta_lookup', array('booking_id' => $booking_id));
+    
+    // 5. Eliminar post principal (reserva)
+    $deleted = wp_delete_post($booking_id, true);
 
     if ($deleted) {
-        return ['response' => true, 'message' => 'Reserva, servicios y órdenes eliminados correctamente'];
+        return ['response' => true];
     } else {
         return new WP_Error('delete_failed', 'No se pudo eliminar la reserva', array('status' => 500));
     }

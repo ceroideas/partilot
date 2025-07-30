@@ -11,6 +11,7 @@ class LotteryType extends Model
 
     protected $fillable = [
         'name',
+        'identificador',
         'ticket_price',
         'prize_categories',
         'is_active'

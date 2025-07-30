@@ -7,6 +7,7 @@ use App\Models\LotteryType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
 
 class LotteryController extends Controller
 {
@@ -189,5 +190,151 @@ class LotteryController extends Controller
         }
         
         return response()->json(['success' => false, 'message' => 'No hay imagen para eliminar']);
+    }
+
+    /**
+     * Generar sorteos basado en un rango de fechas
+     */
+    public function generate(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        try {
+            // Convertir fechas al formato requerido por la API (YYYYMMDD)
+            $dateFrom = date('Ymd', strtotime($request->date_from));
+            $dateTo = date('Ymd', strtotime($request->date_to));
+
+            // Construir URL de la API
+            $apiUrl = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva={$dateFrom}&fechaFinInclusiva={$dateTo}";
+
+            // Realizar petición HTTP usando Guzzle
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept' => 'application/json, text/plain, */*',
+                'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.8',
+                'Accept-Encoding' => 'gzip, deflate, br',
+                'Connection' => 'keep-alive',
+                'Upgrade-Insecure-Requests' => '1',
+            ])
+            ->timeout(30)
+            ->get($apiUrl);
+            
+            if (!$response->successful()) {
+                throw new \Exception('Error HTTP: ' . $response->status() . ' - Respuesta: ' . $response->body());
+            }
+            
+            $responseBody = $response->body();
+
+            // Log para debug
+            \Log::info('API Request', [
+                'url' => $apiUrl,
+                'http_code' => $response->status(),
+                'response_length' => strlen($responseBody)
+            ]);
+
+            $data = json_decode($responseBody, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception('Error al decodificar JSON de la API');
+            }
+
+            // Log para debug
+            \Log::info('API Response for dates ' . $dateFrom . ' to ' . $dateTo, [
+                'data_count' => is_array($data) ? count($data) : 'not array',
+                'first_item' => is_array($data) && count($data) > 0 ? $data[0] : 'no items',
+                'data_structure' => $data
+            ]);
+
+            $createdCount = 0;
+            $updatedCount = 0;
+
+            // Procesar cada sorteo del JSON (el JSON es un array directo)
+            if (is_array($data) && count($data) > 0) {
+                foreach ($data as $sorteo) {
+                    // Validar que el sorteo tenga los datos mínimos necesarios
+                    if (!isset($sorteo['fecha_sorteo']) || !isset($sorteo['id_sorteo'])) {
+                        continue; // Saltar si no tiene fecha o ID de sorteo
+                    }
+
+                    // Extraer fecha y hora del sorteo
+                    $fechaSorteo = $sorteo['fecha_sorteo'];
+                    $horaSorteo = null;
+                    
+                    // Extraer hora de la fecha_sorteo si contiene hora
+                    if (strpos($fechaSorteo, ' ') !== false) {
+                        $fechaHora = explode(' ', $fechaSorteo);
+                        $fechaSorteo = $fechaHora[0];
+                        $horaSorteo = $fechaHora[1];
+                    }
+
+                    // Convertir fecha y hora a formato datetime
+                    $drawDateTime = null;
+                    if ($horaSorteo) {
+                        $drawDateTime = $fechaSorteo . ' ' . $horaSorteo;
+                    } else {
+                        $drawDateTime = $fechaSorteo . ' 00:00:00';
+                    }
+
+                    // Preparar datos del sorteo
+                    $lotteryData = [
+                        'name' => '0' . ($sorteo['num_sorteo'] ?? ''),
+                        'description' => $sorteo['nombre'] ?? '', // Usar día de la semana como descripción
+                        'draw_date' => $fechaSorteo,
+                        'deadline_date' => $fechaSorteo,
+                        'draw_time' => $horaSorteo ? $horaSorteo : '00:00:00',
+                        'draw_time' => $horaSorteo ? $horaSorteo : '00:00:00',
+                        'ticket_price' => $sorteo['precioDecimo'], // Por defecto 0 ya que no veo precio en el JSON
+                        'status' => 1,
+                        'sold_tickets' => 0,
+                    ];
+
+                    // Buscar si ya existe un sorteo para esta fecha o con el mismo nombre
+                    $existingLottery = Lottery::where('draw_date', $fechaSorteo)
+                        ->orWhere('name', $lotteryData['name'])
+                        ->first();
+
+                    // Buscar tipo de sorteo por identificador (usar game_id si está disponible)
+                    if (isset($sorteo['game_id'])) {
+                        $lotteryType = LotteryType::where('identificador', $sorteo['tipoSorteo'])->first();
+                        if ($lotteryType) {
+                            $lotteryData['lottery_type_id'] = $lotteryType->id;
+                        }else{
+                            $lotteryData['lottery_type_id'] = 0;
+                        }
+                    }
+
+                    if ($existingLottery) {
+                        // Actualizar sorteo existente
+                        $existingLottery->update($lotteryData);
+                        $updatedCount++;
+                    } else {
+                        // Crear nuevo sorteo
+                        Lottery::create($lotteryData);
+                        $createdCount++;
+                    }
+                }
+            } else {
+                return redirect()->route('lotteries.index')
+                    ->with('warning', 'No se encontraron sorteos en el rango de fechas especificado.');
+            }
+
+            $message = "Proceso completado. Sorteos creados: {$createdCount}, Sorteos actualizados: {$updatedCount}";
+            return redirect()->route('lotteries.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error al generar sorteos: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 } 

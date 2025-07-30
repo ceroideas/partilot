@@ -215,13 +215,20 @@ class ApiController extends Controller
             // $table->foreign('set_id')->references('id')->on('sets');
         });*/
 
-        Schema::table('design_formats', function(Blueprint $table) {
+        /*Schema::table('design_formats', function(Blueprint $table) {
             //
             $table->decimal('horizontal_space', 8,2)->nullable();
             $table->decimal('vertical_space', 8,2)->nullable();
             $table->decimal('margin_custom', 8,2)->nullable();
             $table->longText('margins')->nullable();
+        });*/
+
+        Schema::table('lottery_types', function (Blueprint $table) {
+            $table->string('identificador', 2)->nullable()->after('name');
         });
+
+
+        // https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva=20250802&fechaFinInclusiva=20250802
     }
 
     public function checkParticipation(Request $r)

@@ -123,6 +123,7 @@ Route::group(['prefix' => 'lottery'], function() {
     Route::get('/delete/{lottery}', [LotteryController::class, 'destroy'])->name('lotteries.delete');
     Route::post('/change-status/{lottery}', [LotteryController::class, 'changeStatus'])->name('lotteries.change-status');
     Route::delete('/delete-image/{lottery}', [LotteryController::class, 'deleteImage'])->name('lotteries.delete-image');
+    Route::post('/generate', [LotteryController::class, 'generate'])->name('lotteries.generate');
     
     // Rutas adicionales para funcionalidades específicas
     Route::get('/administrations', function() {return view('lottery.administrations');});
