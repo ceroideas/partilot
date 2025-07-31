@@ -43,39 +43,53 @@
 
 	                    <br>
 
-	                    <table id="example2" class="table table-striped nowrap w-100">
-	                        <thead class="filters">
-	                            <tr>
-	                                <th>Order ID</th>
-	                                <th>Administración</th>
-	                                <th>Nº Receptor</th>
-	                                <th>Provincia</th>
-	                                <th>Localidad</th>
-	                                <th>Status</th>
-	                            </tr>
-	                        </thead>
-	                    
-	                    
-	                        <tbody>
-	                            <tr>
-	                                <td>#AD9801</td>
-	                                <td>El Buho Lotero</td>
-	                                <td>06716</td>
-	                                <td>La Rioja</td>
-	                                <td>Logroño</td>
-	                                <td><label class="badge bg-success">Activo</label></td>
-	                            </tr>
-
-	                            <tr>
-	                                <td>#AD9801</td>
-	                                <td>El Gato Nego</td>
-	                                <td>06425</td>
-	                                <td>Madrid</td>
-	                                <td>Madrid</td>
-	                                <td><label class="badge bg-success">Activo</label></td>
-	                            </tr>
-	                        </tbody>
-	                    </table>
+	                    <form id="administrationForm" action="{{ route('lottery.select-administration') }}" method="POST">
+                        @csrf
+                        <table id="example2" class="table table-striped nowrap w-100">
+                            <thead class="filters">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Administración</th>
+                                    <th>Nº Receptor</th>
+                                    <th>Provincia</th>
+                                    <th>Localidad</th>
+                                    <th>Status</th>
+                                    <th>Seleccionar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($administrations as $administration)
+                                    <tr class="administration-row" style="cursor: pointer;">
+                                        <td>#{{ str_pad($administration->id, 6, '0', STR_PAD_LEFT) }}</td>
+                                        <td>{{ $administration->name }}</td>
+                                        <td>{{ $administration->receiving }}</td>
+                                        <td>{{ $administration->province }}</td>
+                                        <td>{{ $administration->city }}</td>
+                                        <td>
+                                            @if($administration->status)
+                                            <label class="badge bg-success">Activo</label>
+                                            @else
+                                            <label class="badge bg-danger">Inactivo</label>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="administration_id" 
+                                                       id="admin_{{ $administration->id }}" value="{{ $administration->id }}" required>
+                                                <label class="form-check-label" for="admin_{{ $administration->id }}">
+                                                    Seleccionar
+                                                </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="text-center">No hay administraciones disponibles</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </form>
 
 	                    <br>
 
@@ -86,8 +100,8 @@
             				</div>
 
             				<div class="col-6 text-end">
-            					<a href="{{url('lottery/results')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-            						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+            					<button type="submit" form="administrationForm" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+            						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
             				</div>
 
             			</div>
@@ -102,6 +116,24 @@
 
 </div> <!-- container -->
 
+@endsection
+
+@section('styles')
+<style>
+    .administration-row:hover {
+        background-color: #f8f9fa !important;
+        transition: background-color 0.2s ease;
+    }
+    
+    .administration-row.selected {
+        background-color: #e3f2fd !important;
+    }
+    
+    .form-check-input:checked + .form-check-label {
+        font-weight: bold;
+        color: #007bff;
+    }
+</style>
 @endsection
 
 @section('scripts')
@@ -201,6 +233,37 @@
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+
+  // Validación del formulario
+  $('#administrationForm').on('submit', function(e) {
+    var selectedAdmin = $('input[name="administration_id"]:checked').val();
+    if (!selectedAdmin) {
+      e.preventDefault();
+      alert('Por favor, selecciona una administración antes de continuar.');
+      return false;
+    }
+  });
+
+  // Mejorar la experiencia de usuario al hacer clic en la fila
+  $('#example2 tbody tr').on('click', function(e) {
+    // No activar si se hace clic en el radio button directamente
+    if ($(e.target).is('input[type="radio"]') || $(e.target).is('label')) {
+      return;
+    }
+    
+    // Seleccionar el radio button de la fila
+    $(this).find('input[type="radio"]').prop('checked', true);
+    
+    // Actualizar clases visuales
+    $('.administration-row').removeClass('selected');
+    $(this).addClass('selected');
+  });
+
+  // Actualizar clases cuando se selecciona un radio button directamente
+  $('input[name="administration_id"]').on('change', function() {
+    $('.administration-row').removeClass('selected');
+    $(this).closest('tr').addClass('selected');
+  });
 
 </script>
 

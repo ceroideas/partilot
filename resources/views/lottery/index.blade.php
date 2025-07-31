@@ -71,6 +71,7 @@
                                     <td><b>{{number_format($lottery->ticket_price, 2)}}€</b></td>
                                     <td class="text-end">
                                         <a href="{{route('lotteries.show', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                                        <a href="{{route('lottery.show-results', $lottery->id)}}" class="btn btn-sm btn-light" title="Ver Resultados"><img src="{{url('assets/form-groups/results.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('lottery/edit', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$lottery->id}}" data-name="{{$lottery->name}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
@@ -88,6 +89,10 @@
                          <a href="{{url('lottery/administrations')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative; background-color: #e78307;" class="btn btn-md btn-light">
                             <img src="{{url('assets/form-groups/results.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Lista Resultados</a>
+
+                         {{-- <a href="{{route('lottery.results-table')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative; background-color: #28a745;" class="btn btn-md btn-light">
+                            <img src="{{url('assets/form-groups/results.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                         Tabla Resultados</a> --}}
                     @else
                         <a href="{{url('lottery_types')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark float-start">
                             <img src="{{url('icons/tipos_sorteos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">

@@ -50,4 +50,10 @@ class Lottery extends Model
     {
         return $this->hasMany(Reserve::class);
     }
+
+    // Relación con Resultados
+    public function result()
+    {
+        return $this->hasOne(LotteryResult::class);
+    }
 }

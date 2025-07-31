@@ -223,9 +223,46 @@ class ApiController extends Controller
             $table->longText('margins')->nullable();
         });*/
 
-        Schema::table('lottery_types', function (Blueprint $table) {
+        /*Schema::table('lottery_types', function (Blueprint $table) {
             $table->string('identificador', 2)->nullable()->after('name');
-        });
+        });*/
+
+        /*Schema::create('lottery_results', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('lottery_id')->constrained('lotteries')->onDelete('cascade');
+            
+            // Premio Especial
+            $table->json('premio_especial')->nullable();
+            
+            // Primer Premio
+            $table->json('primer_premio')->nullable();
+            
+            // Segundo Premio
+            $table->json('segundo_premio')->nullable();
+            
+            // Arrays de premios
+            $table->json('terceros_premios')->nullable();
+            $table->json('cuartos_premios')->nullable();
+            $table->json('quintos_premios')->nullable();
+            
+            // Arrays de extracciones
+            $table->json('extracciones_cinco_cifras')->nullable();
+            $table->json('extracciones_cuatro_cifras')->nullable();
+            $table->json('extracciones_tres_cifras')->nullable();
+            $table->json('extracciones_dos_cifras')->nullable();
+            
+            // Reintegros
+            $table->json('reintegros')->nullable();
+            
+            // Metadatos
+            $table->timestamp('results_date')->nullable();
+            $table->boolean('is_published')->default(false);
+            $table->timestamps();
+            
+            // Índices para optimizar consultas
+            $table->index(['lottery_id', 'results_date']);
+            $table->index('is_published');
+        });*/
 
 
         // https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva=20250802&fechaFinInclusiva=20250802

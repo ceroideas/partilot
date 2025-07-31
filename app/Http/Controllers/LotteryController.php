@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Lottery;
 use App\Models\LotteryType;
+use App\Models\Administration;
+use App\Models\LotteryResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
@@ -17,8 +19,10 @@ class LotteryController extends Controller
     public function index()
     {
         $lotteries = Lottery::with(['lotteryType'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->orderBy('id', 'desc')
+            ->get();
+
+        // return $lotteries;
 
         return view('lottery.index', compact('lotteries'));
     }
@@ -336,5 +340,286 @@ class LotteryController extends Controller
                 ->with('error', 'Error al generar sorteos: ' . $e->getMessage())
                 ->withInput();
         }
+    }
+
+    /**
+     * Mostrar lista de administraciones para selección
+     */
+    public function showAdministrations()
+    {
+        $administrations = Administration::where('status', 1)->get();
+        return view('lottery.administrations', compact('administrations'));
+    }
+
+    /**
+     * Procesar selección de administración
+     */
+    public function selectAdministration(Request $request)
+    {
+        $request->validate([
+            'administration_id' => 'required|integer|exists:administrations,id'
+        ]);
+
+        // Guardar la administración seleccionada en la sesión con su manager
+        $administration = Administration::with('manager')->find($request->administration_id);
+        $request->session()->put('selected_administration', $administration);
+
+        return redirect()->route('lottery.results')
+            ->with('success', 'Administración seleccionada: ' . $administration->name);
+    }
+
+    /**
+     * Obtener y guardar resultados de lotería desde la API
+     */
+    public function fetchAndSaveResults(Request $request)
+    {
+        try {
+            $request->validate([
+                'lottery_id' => 'required|integer|exists:lotteries,id',
+                'api_url' => 'required|url'
+            ]);
+
+            $lottery = Lottery::findOrFail($request->lottery_id);
+
+            // Realizar petición a la API
+            $response = Http::timeout(30)->get($request->api_url);
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al obtener datos de la API: ' . $response->status()
+                ], 400);
+            }
+
+            $data = $response->json();
+
+            // Verificar si ya existe un resultado para este sorteo
+            $existingResult = LotteryResult::where('lottery_id', $lottery->id)->first();
+
+            if ($existingResult) {
+                // Actualizar resultado existente
+                $this->updateLotteryResult($existingResult, $data);
+                $message = 'Resultados actualizados exitosamente';
+            } else {
+                // Crear nuevo resultado
+                $this->createLotteryResult($lottery, $data);
+                $message = 'Resultados guardados exitosamente';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'lottery_id' => $lottery->id
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener resultados específicos de un sorteo desde la API
+     */
+    public function fetchSpecificResults(Request $request)
+    {
+        try {
+            $request->validate([
+                'lottery_id' => 'required|integer|exists:lotteries,id',
+                'api_url' => 'required|url'
+            ]);
+
+            $lottery = Lottery::findOrFail($request->lottery_id);
+
+            // Realizar petición a la API
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept' => 'application/json, text/plain, */*',
+                'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.8',
+                'Accept-Encoding' => 'gzip, deflate, br',
+                'Connection' => 'keep-alive',
+                'Upgrade-Insecure-Requests' => '1',
+            ])
+            ->timeout(30)
+            ->get(html_entity_decode($request->api_url));
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al obtener datos de la API: ' . $response->status()
+                ], 400);
+            }
+
+            $data = $response->json();
+
+            // return response()->json($data,422);
+
+            // Filtrar por el número de sorteo específico
+            $filteredData = null;
+            if (is_array($data)) {
+                foreach ($data as $sorteo) {
+                    // Comparar el num_sorteo del JSON con el name del sorteo (sin el '0' inicial)
+                    $jsonNumSorteo = $sorteo['num_sorteo'] ?? '';
+                    $lotteryName = ltrim($lottery->name, '0'); // Remover '0' inicial si existe
+                    
+                    if ($jsonNumSorteo == $lotteryName) {
+                        $filteredData = $sorteo;
+                        break;
+                    }
+                }
+            }
+
+            if (!$filteredData || !isset($filteredData['primerPremio']['decimo'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron resultados para el sorteo número ' . $lottery->name
+                ], 404);
+            }
+
+            // Verificar si ya existe un resultado para este sorteo
+            $existingResult = LotteryResult::where('lottery_id', $lottery->id)->first();
+
+            if ($existingResult) {
+                // Actualizar resultado existente
+                $this->updateLotteryResult($existingResult, $filteredData);
+                $message = 'Resultados actualizados exitosamente';
+            } else {
+                // Crear nuevo resultado
+                $this->createLotteryResult($lottery, $filteredData);
+                $message = 'Resultados guardados exitosamente';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'lottery_id' => $lottery->id,
+                'data' => $filteredData
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Crear nuevo resultado de lotería
+     */
+    private function createLotteryResult(Lottery $lottery, array $data)
+    {
+        $resultData = [
+            'lottery_id' => $lottery->id,
+            'results_date' => now(),
+            'is_published' => true
+        ];
+
+        // Procesar premio especial
+        if (isset($data['premioEspecial']) && is_array($data['premioEspecial'])) {
+            $resultData['premio_especial'] = $data['premioEspecial'];
+        }
+
+        // Procesar otros premios
+        $resultData['primer_premio'] = $data['primerPremio'] ?? null;
+        $resultData['segundo_premio'] = $data['segundoPremio'] ?? null;
+        $resultData['terceros_premios'] = $data['tercerosPremios'] ?? [];
+        $resultData['cuartos_premios'] = $data['cuartosPremios'] ?? [];
+        $resultData['quintos_premios'] = $data['quintosPremios'] ?? [];
+
+        // Procesar extracciones
+        $resultData['extracciones_cinco_cifras'] = $data['extraccionesDeCincoCifras'] ?? [];
+        $resultData['extracciones_cuatro_cifras'] = $data['extraccionesDeCuatroCifras'] ?? [];
+        $resultData['extracciones_tres_cifras'] = $data['extraccionesDeTresCifras'] ?? [];
+        $resultData['extracciones_dos_cifras'] = $data['extraccionesDeDosCifras'] ?? [];
+
+        // Procesar reintegros
+        $resultData['reintegros'] = $data['reintegros'] ?? [];
+
+        LotteryResult::create($resultData);
+    }
+
+    /**
+     * Actualizar resultado existente de lotería
+     */
+    private function updateLotteryResult(LotteryResult $result, array $data)
+    {
+        $updateData = [
+            'results_date' => now()
+        ];
+
+        // Procesar premio especial
+        if (isset($data['premioEspecial']) && is_array($data['premioEspecial'])) {
+            $updateData['premio_especial'] = $data['premioEspecial'];
+        }
+
+        // Procesar otros premios
+        $updateData['primer_premio'] = $data['primerPremio'] ?? null;
+        $updateData['segundo_premio'] = $data['segundoPremio'] ?? null;
+        $updateData['terceros_premios'] = $data['tercerosPremios'] ?? [];
+        $updateData['cuartos_premios'] = $data['cuartosPremios'] ?? [];
+        $updateData['quintos_premios'] = $data['quintosPremios'] ?? [];
+
+        // Procesar extracciones
+        $updateData['extracciones_cinco_cifras'] = $data['extraccionesDeCincoCifras'] ?? [];
+        $updateData['extracciones_cuatro_cifras'] = $data['extraccionesDeCuatroCifras'] ?? [];
+        $updateData['extracciones_tres_cifras'] = $data['extraccionesDeTresCifras'] ?? [];
+        $updateData['extracciones_dos_cifras'] = $data['extraccionesDeDosCifras'] ?? [];
+
+        // Procesar reintegros
+        $updateData['reintegros'] = $data['reintegros'] ?? [];
+
+        $result->update($updateData);
+    }
+
+    /**
+     * Mostrar resultados de un sorteo específico
+     */
+    public function showResults(Lottery $lottery)
+    {
+        $lottery->load(['result', 'lotteryType']);
+        
+        return view('lottery.show_results', compact('lottery'));
+    }
+
+    /**
+     * Mostrar tabla de resultados de todos los sorteos
+     */
+    public function resultsTable()
+    {
+        $lotteries = Lottery::with(['result', 'lotteryType'])
+            ->orderBy('name', 'desc')
+            ->get();
+        
+        return view('lottery.results_table', compact('lotteries'));
+    }
+
+    /**
+     * Mostrar vista de resultados de lotería (después de seleccionar administración)
+     */
+    public function showLotteryResults()
+    {
+        $lotteries = Lottery::with(['result', 'lotteryType'])
+            ->orderBy('name', 'asc')
+            ->get();
+        
+        return view('lottery.lottery_results', compact('lotteries'));
+    }
+
+    /**
+     * Mostrar formulario para editar resultados de un sorteo específico
+     */
+    public function editLotteryResults($id)
+    {
+        $lottery = Lottery::with(['result', 'lotteryType'])->findOrFail($id);
+        
+        // Construir la URL de la API para este sorteo específico
+        $apiUrl = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva=" . $lottery->draw_date->format('Ymd') . "&fechaFinInclusiva=" . $lottery->draw_date->format('Ymd');
+
+        // return $lottery->result;
+
+        return view('lottery.edit_lottery_results', compact('lottery', 'apiUrl'));
     }
 } 

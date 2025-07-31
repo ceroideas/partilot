@@ -194,6 +194,8 @@
                             </div>
                         </div>
 
+
+
                         <div class="row">
 
                         <div class="col-6 text-start">
@@ -236,5 +238,7 @@
             lector.readAsDataURL(archivo);
         }
     });
+
+
 </script>
 @endsection

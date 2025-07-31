@@ -390,7 +390,7 @@ class DesignController extends Controller
      */
     public function index()
     {
-        $designs = DesignFormat::with(['entity', 'lottery', 'set'])->orderByDesc('created_at')->get();
+        $designs = DesignFormat::with(['entity', 'lottery', 'set'])->orderByDesc('id')->get();
         return view('design.index', compact('designs'));
     }
 } 

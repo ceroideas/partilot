@@ -126,10 +126,17 @@ Route::group(['prefix' => 'lottery'], function() {
     Route::post('/generate', [LotteryController::class, 'generate'])->name('lotteries.generate');
     
     // Rutas adicionales para funcionalidades específicas
-    Route::get('/administrations', function() {return view('lottery.administrations');});
-    Route::get('/results', function() {return view('lottery.lottery_results');});
+    Route::get('/administrations', [LotteryController::class, 'showAdministrations'])->name('lottery.administrations');
+    Route::post('/select-administration', [LotteryController::class, 'selectAdministration'])->name('lottery.select-administration');
+    Route::get('/results', [LotteryController::class, 'showLotteryResults'])->name('lottery.results');
     Route::get('/scrutiny/{id}', function() {return view('lottery.scrutiny');});
-    Route::get('/results/edit/{id}', function() {return view('lottery.edit_lottery_results');});
+    Route::get('/results/edit/{id}', [LotteryController::class, 'editLotteryResults'])->name('lottery.edit-results');
+    
+    // Rutas para resultados de lotería
+    Route::post('/fetch-results', [LotteryController::class, 'fetchAndSaveResults'])->name('lottery.fetch-results');
+    Route::post('/fetch-specific-results', [LotteryController::class, 'fetchSpecificResults'])->name('lottery.fetch-specific-results');
+    Route::get('/results/{lottery}', [LotteryController::class, 'showResults'])->name('lottery.show-results');
+    Route::get('/results-table', [LotteryController::class, 'resultsTable'])->name('lottery.results-table');
 });
 
 Route::group(['prefix' => 'lottery_types'], function() {
