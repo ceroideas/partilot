@@ -622,4 +622,149 @@ class LotteryController extends Controller
 
         return view('lottery.edit_lottery_results', compact('lottery', 'apiUrl'));
     }
+
+    /**
+     * Guardar resultados editados manualmente
+     */
+    public function saveResults(Request $request)
+    {
+        try {
+            $request->validate([
+                'lottery_id' => 'required|integer|exists:lotteries,id',
+                'premio_especial' => 'nullable|string',
+                'primer_premio' => 'nullable|string',
+                'primer_premio_serie' => 'nullable|string',
+                'primer_premio_fraccion' => 'nullable|string',
+                'segundo_premio' => 'nullable|string',
+                'reintegros' => 'nullable|string',
+                'terceros_premios' => 'nullable|string',
+                'cuartos_premios' => 'nullable|string',
+                'quintos_premios' => 'nullable|string',
+                'extracciones_5_cifras' => 'nullable|string',
+                'extracciones_4_cifras' => 'nullable|string',
+                'extracciones_3_cifras' => 'nullable|string',
+                'extracciones_2_cifras' => 'nullable|string',
+                'pedrea' => 'nullable|string'
+            ]);
+
+            $lottery = Lottery::findOrFail($request->lottery_id);
+            
+            // Verificar si ya existe un resultado para este sorteo
+            $existingResult = LotteryResult::where('lottery_id', $lottery->id)->first();
+
+            $resultData = [
+                'lottery_id' => $lottery->id,
+                'results_date' => now(),
+                'is_published' => true
+            ];
+
+            // Procesar premio especial
+            if (!empty($request->premio_especial)) {
+                $resultData['premio_especial'] = ['numero' => $request->premio_especial];
+            }
+
+            // Procesar primer premio
+            if (!empty($request->primer_premio)) {
+                $primerPremio = ['decimo' => $request->primer_premio];
+                if (!empty($request->primer_premio_serie)) {
+                    $primerPremio['serie'] = $request->primer_premio_serie;
+                }
+                if (!empty($request->primer_premio_fraccion)) {
+                    $primerPremio['fraccion'] = $request->primer_premio_fraccion;
+                }
+                $resultData['primer_premio'] = $primerPremio;
+            }
+
+            // Procesar segundo premio
+            if (!empty($request->segundo_premio)) {
+                $resultData['segundo_premio'] = ['decimo' => $request->segundo_premio];
+            }
+
+            // Procesar reintegros
+            if (!empty($request->reintegros)) {
+                $reintegros = explode('-', $request->reintegros);
+                $resultData['reintegros'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $reintegros);
+            }
+
+            // Procesar terceros premios
+            if (!empty($request->terceros_premios)) {
+                $terceros = explode('-', $request->terceros_premios);
+                $resultData['terceros_premios'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $terceros);
+            }
+
+            // Procesar cuartos premios
+            if (!empty($request->cuartos_premios)) {
+                $cuartos = explode('-', $request->cuartos_premios);
+                $resultData['cuartos_premios'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $cuartos);
+            }
+
+            // Procesar quintos premios
+            if (!empty($request->quintos_premios)) {
+                $quintos = explode('-', $request->quintos_premios);
+                $resultData['quintos_premios'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $quintos);
+            }
+
+            // Procesar extracciones 5 cifras
+            if (!empty($request->extracciones_5_cifras)) {
+                $extracciones5 = explode('-', $request->extracciones_5_cifras);
+                $resultData['extracciones_cinco_cifras'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $extracciones5);
+            }
+
+            // Procesar extracciones 4 cifras
+            if (!empty($request->extracciones_4_cifras)) {
+                $extracciones4 = explode('-', $request->extracciones_4_cifras);
+                $resultData['extracciones_cuatro_cifras'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $extracciones4);
+            }
+
+            // Procesar extracciones 3 cifras
+            if (!empty($request->extracciones_3_cifras)) {
+                $extracciones3 = explode('-', $request->extracciones_3_cifras);
+                $resultData['extracciones_tres_cifras'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $extracciones3);
+            }
+
+            // Procesar extracciones 2 cifras
+            if (!empty($request->extracciones_2_cifras)) {
+                $extracciones2 = explode('-', $request->extracciones_2_cifras);
+                $resultData['extracciones_dos_cifras'] = array_map(function($numero) {
+                    return ['decimo' => trim($numero)];
+                }, $extracciones2);
+            }
+
+            if ($existingResult) {
+                // Actualizar resultado existente
+                $existingResult->update($resultData);
+                $message = 'Resultados actualizados exitosamente';
+            } else {
+                // Crear nuevo resultado
+                LotteryResult::create($resultData);
+                $message = 'Resultados guardados exitosamente';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'results_date' => now()->format('d/m/Y H:i:s')
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 } 

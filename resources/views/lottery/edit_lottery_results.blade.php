@@ -8,6 +8,29 @@
 	input:disabled, textarea:disabled {
 		background-color: #e0e0e0 !important;
 	}
+	
+	.edit-mode {
+		background-color: #fff !important;
+		border: 2px solid #007bff !important;
+	}
+	
+	.save-btn {
+		display: none;
+	}
+	
+	.edit-mode .save-btn {
+		display: inline-block;
+	}
+	
+	.loading {
+		opacity: 0.6;
+		pointer-events: none;
+	}
+	
+	.alert {
+		border-radius: 10px;
+		margin-bottom: 20px;
+	}
 </style>
 
 <!-- Start Content-->
@@ -39,6 +62,9 @@
 
                     <br>
 
+                    <!-- Alertas de estado -->
+                    <div id="alertContainer"></div>
+
                     <!-- Botón para obtener resultados desde API -->
                     <div class="row mb-3">
                         <div class="col-12">
@@ -46,9 +72,14 @@
                                 <i class="ri-download-line me-2"></i>
                                 Obtener Resultados desde API
                             </button>
-                            {{-- <small class="text-muted d-block mt-2">
-                                <strong>URL de la API:</strong> {{ $apiUrl }}
-                            </small> --}}
+                            <button type="button" id="toggleEditBtn" class="btn btn-primary ms-2" style="border-radius: 30px; padding: 10px 20px;">
+                                <i class="ri-edit-line me-2"></i>
+                                Modo Edición
+                            </button>
+                            <button type="button" id="saveAllBtn" class="btn btn-warning ms-2 save-btn" style="border-radius: 30px; padding: 10px 20px;">
+                                <i class="ri-save-line me-2"></i>
+                                Guardar Cambios
+                            </button>
                         </div>
                     </div>
 
@@ -160,28 +191,30 @@
                                 </h4>
                                 <small><i>Dejar en blanco los datos que no proceden para este tipo de sorteo. <br> Para extracciones múltiples separar cada número por un guión</i></small>
 
-                                @if($lottery->result)
-                                    <!-- Mostrar resultados existentes -->
-                                    <div class="row mt-3">
-                                        <div class="col-12">
-                                            <div class="alert alert-success">
-                                                <i class="ri-check-line me-2"></i>
-                                                <strong>Resultados disponibles</strong> - Fecha: {{ $lottery->result->results_date ? $lottery->result->results_date->format('d/m/Y H:i:s') : 'No disponible' }}
+                                <div id="resultsStatus">
+                                    @if($lottery->result)
+                                        <!-- Mostrar resultados existentes -->
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-success">
+                                                    <i class="ri-check-line me-2"></i>
+                                                    <strong>Resultados disponibles</strong> - Fecha: {{ $lottery->result->results_date ? $lottery->result->results_date->format('d/m/Y H:i:s') : 'No disponible' }}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                @else
-                                    <div class="row mt-3">
-                                        <div class="col-12">
-                                            <div class="alert alert-info">
-                                                <i class="ri-information-line me-2"></i>
-                                                No hay resultados disponibles para este sorteo. Utiliza el botón de arriba para obtener los resultados desde la API.
+                                    @else
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-info">
+                                                    <i class="ri-information-line me-2"></i>
+                                                    No hay resultados disponibles para este sorteo. Utiliza el botón de arriba para obtener los resultados desde la API.
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                @endif
+                                    @endif
+                                </div>
 
-                                <div style="/*min-height: 400px; height: 400px; overflow-y: unset; overflow-x: scroll;*/">
+                                <div id="resultsForm" style="/*min-height: 400px; height: 400px; overflow-y: unset; overflow-x: scroll;*/">
 
                                     <!-- Premio Especial -->
                                     <div class="row">
@@ -189,7 +222,7 @@
 	                                        <div class="form-group mt-2 mb-2">
 	                                            <label class="label-control">Premio Especial</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->premio_especial ? (is_array($lottery->result->premio_especial) ? $lottery->result->premio_especial['numero'] : $lottery->result->premio_especial) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="premio_especial" value="{{ $lottery->result && $lottery->result->premio_especial ? (is_array($lottery->result->premio_especial) ? $lottery->result->premio_especial['numero'] : $lottery->result->premio_especial) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -201,7 +234,7 @@
 	                                        <div class="form-group mt-2 mb-2">
 	                                            <label class="label-control">Primer Premio</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->primer_premio ? (is_array($lottery->result->primer_premio) ? $lottery->result->primer_premio['decimo'] : $lottery->result->primer_premio) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="primer_premio" value="{{ $lottery->result && $lottery->result->primer_premio ? (is_array($lottery->result->primer_premio) ? $lottery->result->primer_premio['decimo'] : $lottery->result->primer_premio) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -210,7 +243,7 @@
 	                                        <div class="form-group mt-2 mb-2">
 	                                            <label class="label-control">Serie</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->primer_premio && is_array($lottery->result->primer_premio) ? ($lottery->result->primer_premio['serie'] ?? '') : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="primer_premio_serie" value="{{ $lottery->result && $lottery->result->primer_premio && is_array($lottery->result->primer_premio) ? ($lottery->result->primer_premio['serie'] ?? '') : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -219,7 +252,7 @@
 	                                        <div class="form-group mt-2 mb-2">
 	                                            <label class="label-control">Fracción</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->primer_premio && is_array($lottery->result->primer_premio) ? ($lottery->result->primer_premio['fraccion'] ?? '') : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="primer_premio_fraccion" value="{{ $lottery->result && $lottery->result->primer_premio && is_array($lottery->result->primer_premio) ? ($lottery->result->primer_premio['fraccion'] ?? '') : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -228,7 +261,7 @@
 	                                        <div class="form-group mt-2 mb-2">
 	                                            <label class="label-control">Reintegros</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->refunds ? implode('-', $lottery->result->refunds) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="reintegros" value="{{ $lottery->result && $lottery->result->refunds ? implode('-', $lottery->result->refunds) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -247,7 +280,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Segundo Premio</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->segundo_premio ? (is_array($lottery->result->segundo_premio) ? $lottery->result->segundo_premio['decimo'] : $lottery->result->segundo_premio) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="segundo_premio" value="{{ $lottery->result && $lottery->result->segundo_premio ? (is_array($lottery->result->segundo_premio) ? $lottery->result->segundo_premio['decimo'] : $lottery->result->segundo_premio) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -266,7 +299,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Terceros Premios</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->thirds ? implode('-', $lottery->result->thirds) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="terceros_premios" value="{{ $lottery->result && $lottery->result->thirds ? implode('-', $lottery->result->thirds) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -285,7 +318,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Cuartos Premios</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->fourths ? implode('-', $lottery->result->fourths) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="cuartos_premios" value="{{ $lottery->result && $lottery->result->fourths ? implode('-', $lottery->result->fourths) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -304,7 +337,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Quintos Premios</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result->fifths ? implode('-', $lottery->result->fifths) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="quintos_premios" value="{{ $lottery->result && $lottery->result->fifths ? implode('-', $lottery->result->fifths) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -323,7 +356,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Extracciones 5 Cifras</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result['5figures'] ? implode('-',$lottery->result['5figures']) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="extracciones_5_cifras" value="{{ $lottery->result && $lottery->result['5figures'] ? implode('-',$lottery->result['5figures']) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -346,7 +379,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Extracciones 4 Cifras</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result['4figures'] ? implode('-',$lottery->result['4figures']) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="extracciones_4_cifras" value="{{ $lottery->result && $lottery->result['4figures'] ? implode('-',$lottery->result['4figures']) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -365,7 +398,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Extracciones 3 Cifras</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result['3figures'] ? implode('-',$lottery->result['3figures']) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="extracciones_3_cifras" value="{{ $lottery->result && $lottery->result['3figures'] ? implode('-',$lottery->result['3figures']) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -384,7 +417,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Extracciones 2 Cifras</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                                <input class="form-control" type="text" value="{{ $lottery->result && $lottery->result['2figures'] ? implode('-',$lottery->result['2figures']) : '' }}" readonly style="border-radius: 30px;">
+	                                                <input class="form-control result-field" type="text" name="extracciones_2_cifras" value="{{ $lottery->result && $lottery->result['2figures'] ? implode('-',$lottery->result['2figures']) : '' }}" readonly style="border-radius: 30px;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -403,7 +436,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Pedrea</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                            	<textarea class="form-control" readonly style="border-radius: 30px;" rows="6">{{-- {{ $lottery->result && $lottery->result->reintegros ? 'Reintegros: ' . implode(', ', $lottery->result->reintegros) : '' }} --}}</textarea>
+	                                            	<textarea class="form-control result-field" name="pedrea" readonly style="border-radius: 30px;" rows="6">{{-- {{ $lottery->result && $lottery->result->reintegros ? 'Reintegros: ' . implode(', ', $lottery->result->reintegros) : '' }} --}}</textarea>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -444,8 +477,155 @@
 @section('scripts')
 
 <script>
-    // Funcionalidad para obtener resultados desde API
-    document.getElementById('fetchResultsBtn').addEventListener('click', function() {
+$(document).ready(function() {
+    let isEditMode = false;
+    
+    // Función para mostrar alertas
+    function showAlert(message, type = 'success') {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="ri-${type === 'success' ? 'check' : type === 'error' ? 'close' : 'information'}-line me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        $('#alertContainer').html(alertHtml);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            $('.alert').fadeOut();
+        }, 5000);
+    }
+    
+    // Función para actualizar el estado de los resultados
+    function updateResultsStatus(hasResults, resultsDate = null) {
+        let statusHtml = '';
+        if (hasResults) {
+            statusHtml = `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-success">
+                            <i class="ri-check-line me-2"></i>
+                            <strong>Resultados disponibles</strong> - Fecha: ${resultsDate || 'No disponible'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            statusHtml = `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="ri-information-line me-2"></i>
+                            No hay resultados disponibles para este sorteo. Utiliza el botón de arriba para obtener los resultados desde la API.
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        $('#resultsStatus').html(statusHtml);
+    }
+    
+    // Función para actualizar los campos con nuevos datos
+    function updateResultFields(data) {
+    	console.log(data.primerPremio)
+        // Actualizar campos con los nuevos datos
+        $('input[name="premio_especial"]').val((data.premioEspecial) ? data.premioEspecial.numero : '');
+        $('input[name="primer_premio"]').val((data.primerPremio) ? data.primerPremio.decimo : '');
+        $('input[name="primer_premio_serie"]').val((data.primerPremio) ? (data.primerPremio.serie || '') : '');
+        $('input[name="primer_premio_fraccion"]').val((data.primerPremio) ? (data.primerPremio.fraccion || '') : '');
+        $('input[name="segundo_premio"]').val((data.segundoPremio) ? data.segundoPremio.decimo : '');
+        
+        // Procesar arrays de números
+        $('input[name="reintegros"]').val(data.reintegros ? data.reintegros.map(item => item.decimo || item).join('-') : '');
+        $('input[name="terceros_premios"]').val(data.tercerosPremios ? data.tercerosPremios.map(item => item.decimo || item).join('-') : '');
+        $('input[name="cuartos_premios"]').val(data.cuartosPremios ? data.cuartosPremios.map(item => item.decimo || item).join('-') : '');
+        $('input[name="quintos_premios"]').val(data.quintosPremios ? data.quintosPremios.map(item => item.decimo || item).join('-') : '');
+        $('input[name="extracciones_5_cifras"]').val(data.extraccionesDeCincoCifras ? data.extraccionesDeCincoCifras.map(item => item.decimo || item).join('-') : '');
+        $('input[name="extracciones_4_cifras"]').val(data.extraccionesDeCuatroCifras ? data.extraccionesDeCuatroCifras.map(item => item.decimo || item).join('-') : '');
+        $('input[name="extracciones_3_cifras"]').val(data.extraccionesDeTresCifras ? data.extraccionesDeTresCifras.map(item => item.decimo || item).join('-') : '');
+        $('input[name="extracciones_2_cifras"]').val(data.extraccionesDeDosCifras ? data.extraccionesDeDosCifras.map(item => item.decimo || item).join('-') : '');
+    }
+    
+    // Toggle modo edición
+    $('#toggleEditBtn').click(function() {
+        isEditMode = !isEditMode;
+        
+        if (isEditMode) {
+            $('.result-field').prop('readonly', false).addClass('edit-mode');
+            $(this).html('<i class="ri-eye-line me-2"></i>Modo Visualización');
+            $(this).removeClass('btn-primary').addClass('btn-secondary');
+            $('.save-btn').show();
+        } else {
+            $('.result-field').prop('readonly', true).removeClass('edit-mode');
+            $(this).html('<i class="ri-edit-line me-2"></i>Modo Edición');
+            $(this).removeClass('btn-secondary').addClass('btn-primary');
+            $('.save-btn').hide();
+        }
+    });
+    
+    // Guardar cambios
+    $('#saveAllBtn').click(function() {
+        const button = this;
+        const originalText = button.innerHTML;
+        
+        // Cambiar estado del botón
+        button.disabled = true;
+        button.innerHTML = '<i class="ri-loader-4-line me-2"></i>Guardando...';
+        
+        // Recopilar datos del formulario
+        const formData = {
+            lottery_id: {{ $lottery->id }},
+            premio_especial: $('input[name="premio_especial"]').val(),
+            primer_premio: $('input[name="primer_premio"]').val(),
+            primer_premio_serie: $('input[name="primer_premio_serie"]').val(),
+            primer_premio_fraccion: $('input[name="primer_premio_fraccion"]').val(),
+            segundo_premio: $('input[name="segundo_premio"]').val(),
+            reintegros: $('input[name="reintegros"]').val(),
+            terceros_premios: $('input[name="terceros_premios"]').val(),
+            cuartos_premios: $('input[name="cuartos_premios"]').val(),
+            quintos_premios: $('input[name="quintos_premios"]').val(),
+            extracciones_5_cifras: $('input[name="extracciones_5_cifras"]').val(),
+            extracciones_4_cifras: $('input[name="extracciones_4_cifras"]').val(),
+            extracciones_3_cifras: $('input[name="extracciones_3_cifras"]').val(),
+            extracciones_2_cifras: $('input[name="extracciones_2_cifras"]').val(),
+            pedrea: $('textarea[name="pedrea"]').val()
+        };
+        
+        // Realizar petición AJAX para guardar
+        $.ajax({
+            url: '{{ route("lottery.save-results") }}',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('¡Resultados guardados exitosamente!', 'success');
+                    updateResultsStatus(true, response.results_date);
+                } else {
+                    showAlert('Error: ' + response.message, 'danger');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Error al guardar los resultados';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showAlert(errorMessage, 'danger');
+            },
+            complete: function() {
+                // Restaurar estado del botón
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        });
+    });
+    
+    // Obtener resultados desde API (sin recargar página)
+    $('#fetchResultsBtn').click(function() {
         const button = this;
         const originalText = button.innerHTML;
         
@@ -453,40 +633,55 @@
         button.disabled = true;
         button.innerHTML = '<i class="ri-loader-4-line me-2"></i>Obteniendo resultados...';
         
+        // Agregar clase loading al contenedor
+        $('#resultsForm').addClass('loading');
+        
         // Realizar petición AJAX
-        fetch('{{ route("lottery.fetch-specific-results") }}', {
+        $.ajax({
+            url: '{{ route("lottery.fetch-specific-results") }}',
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
+            data: JSON.stringify({
                 lottery_id: {{ $lottery->id }},
                 api_url: '{{ $apiUrl }}'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Mostrar mensaje de éxito
-                alert('¡Éxito! ' + data.message);
-                // Recargar la página para mostrar los nuevos resultados
-                window.location.reload();
-            } else {
-                // Mostrar mensaje de error
-                alert('Error: ' + data.message);
+            }),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('¡Éxito! ' + response.message, 'success');
+                    
+                    // Actualizar los campos con los nuevos datos
+                    if (response.data) {
+                        updateResultFields(response.data);
+                    }
+                    
+                    // Actualizar el estado de los resultados
+                    updateResultsStatus(true, new Date().toLocaleString('es-ES'));
+                    
+                } else {
+                    showAlert('Error: ' + response.message, 'danger');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Ocurrió un error al obtener los resultados';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showAlert(errorMessage, 'danger');
+            },
+            complete: function() {
+                // Restaurar estado del botón
+                button.disabled = false;
+                button.innerHTML = originalText;
+                
+                // Remover clase loading
+                $('#resultsForm').removeClass('loading');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Ocurrió un error al obtener los resultados');
-        })
-        .finally(() => {
-            // Restaurar estado del botón
-            button.disabled = false;
-            button.innerHTML = originalText;
         });
     });
+});
 </script>
 
 @endsection

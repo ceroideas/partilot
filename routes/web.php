@@ -135,6 +135,7 @@ Route::group(['prefix' => 'lottery'], function() {
     // Rutas para resultados de lotería
     Route::post('/fetch-results', [LotteryController::class, 'fetchAndSaveResults'])->name('lottery.fetch-results');
     Route::post('/fetch-specific-results', [LotteryController::class, 'fetchSpecificResults'])->name('lottery.fetch-specific-results');
+    Route::post('/save-results', [LotteryController::class, 'saveResults'])->name('lottery.save-results');
     Route::get('/results/{lottery}', [LotteryController::class, 'showResults'])->name('lottery.show-results');
     Route::get('/results-table', [LotteryController::class, 'resultsTable'])->name('lottery.results-table');
 });
