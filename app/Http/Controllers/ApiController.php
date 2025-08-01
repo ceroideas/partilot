@@ -227,7 +227,7 @@ class ApiController extends Controller
             $table->string('identificador', 2)->nullable()->after('name');
         });*/
 
-        /*Schema::create('lottery_results', function (Blueprint $table) {
+        Schema::create('lottery_results', function (Blueprint $table) {
             $table->id();
             $table->foreignId('lottery_id')->constrained('lotteries')->onDelete('cascade');
             
@@ -262,7 +262,7 @@ class ApiController extends Controller
             // Índices para optimizar consultas
             $table->index(['lottery_id', 'results_date']);
             $table->index('is_published');
-        });*/
+        });
 
 
         // https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva=20250802&fechaFinInclusiva=20250802
