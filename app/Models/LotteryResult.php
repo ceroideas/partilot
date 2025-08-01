@@ -81,6 +81,9 @@ class LotteryResult extends Model
     public function getRefundsAttribute()
     {
         $arr = [];
+        if (!$this->reintegros) {
+            return $arr;
+        }
         foreach ($this->reintegros as $key => $value) {
             $arr[] = $value['decimo'];
         }
@@ -90,6 +93,9 @@ class LotteryResult extends Model
     public function getThirdsAttribute()
     {
         $arr = [];
+        if (!$this->terceros_premios) {
+            return $arr;
+        }
         foreach ($this->terceros_premios as $key => $value) {
             $arr[] = $value['decimo'];
         }
@@ -99,6 +105,9 @@ class LotteryResult extends Model
     public function getFourthsAttribute()
     {
         $arr = [];
+        if (!$this->cuartos_premios) {
+            return $arr;
+        }
         foreach ($this->cuartos_premios as $key => $value) {
             $arr[] = $value['decimo'];
         }
@@ -108,6 +117,9 @@ class LotteryResult extends Model
     public function getFifthsAttribute()
     {
         $arr = [];
+        if (!$this->quintos_premios) {
+            return $arr;
+        }
         foreach ($this->quintos_premios as $key => $value) {
             $arr[] = $value['decimo'];
         }
@@ -117,6 +129,9 @@ class LotteryResult extends Model
     public function get5FiguresAttribute()
     {
         $arr = [];
+        if (!$this->extracciones_cinco_cifras) {
+            return $arr;
+        }
         foreach ($this->extracciones_cinco_cifras as $key => $value) {
             $arr[] = $value['decimo'];
         }
@@ -126,6 +141,9 @@ class LotteryResult extends Model
     public function get4FiguresAttribute()
     {
         $arr = [];
+        if (!$this->extracciones_cuatro_cifras) {
+            return $arr;
+        }
         foreach ($this->extracciones_cuatro_cifras as $key => $value) {
             $arr[] = $value['decimo'];
         }
@@ -135,6 +153,9 @@ class LotteryResult extends Model
     public function get3FiguresAttribute()
     {
         $arr = [];
+        if (!$this->extracciones_tres_cifras) {
+            return $arr;
+        }
         foreach ($this->extracciones_tres_cifras as $key => $value) {
             $arr[] = $value['decimo'];
         }
@@ -144,6 +165,9 @@ class LotteryResult extends Model
     public function get2FiguresAttribute()
     {
         $arr = [];
+        if (!$this->extracciones_dos_cifras) {
+            return $arr;
+        }
         foreach ($this->extracciones_dos_cifras as $key => $value) {
             $arr[] = $value['decimo'];
         }

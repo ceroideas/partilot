@@ -6,6 +6,7 @@
     <title>Participación de Lotería</title>
     <link rel="icon" href="{{ url('/logo.svg') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
         body {
             background: #f7f7f7;
@@ -66,6 +67,50 @@
             margin-bottom: 1.7rem;
             font-size: 1.15rem;
         }
+        .winner-message {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        .loser-message {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+        .prize-info {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+        .no-results {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+        }
         @media (max-width: 600px) {
             .ticket-container {
                 max-width: 98vw;
@@ -82,6 +127,13 @@
             }
             .ticket-footer {
                 font-size: 0.95rem;
+            }
+            .winner-message,
+            .loser-message,
+            .prize-info,
+            .no-results {
+                font-size: 1rem;
+                padding: 0.8rem;
             }
         }
     </style>
@@ -103,9 +155,36 @@
             <div class="ticket-numbers">
                 {{ $ticket['numeros'] ?? '-' }}
             </div>
+            
+            @if(isset($prizeInfo))
+                @if($prizeInfo['message'] === 'Resultados del sorteo no disponibles')
+                    <div class="no-results">
+                        <i class="ri-information-line me-2"></i>
+                        {{ $prizeInfo['message'] }}
+                    </div>
+                @elseif($prizeInfo['isWinner'])
+                    <div class="winner-message">
+                        <i class="ri-award-line me-2"></i>
+                        {{ $prizeInfo['message'] }}
+                    </div>
+                    <div class="prize-info">
+                        <div><strong>{{ $prizeInfo['category'] }}</strong></div>
+                        <div>Premio: {{ $prizeInfo['prizeAmount'] }}</div>
+                    </div>
+                @else
+                    <div class="loser-message">
+                        <i class="ri-close-circle-line me-2"></i>
+                        {{ $prizeInfo['message'] }}
+                    </div>
+                @endif
+            @endif
             <div class="ticket-section">
                 <span class="ticket-label">Sorteo:</span>
                 <span class="ticket-value">{{ $ticket['sorteo'] ?? '-' }}</span>
+            </div>
+            <div class="ticket-section">
+                <span class="ticket-label">Fecha Sorteo:</span>
+                <span class="ticket-value">{{ $ticket['fecha_sorteo'] ?? '-' }}</span>
             </div>
             <div class="ticket-section">
                 <span class="ticket-label">Jugado:</span>

@@ -67,26 +67,13 @@
                             <div class="col-12">
                                 <h5 class="text-primary">🏆 Premio Especial</h5>
                                 <div class="row">
-                                    <div class="col-md-3">
-                                        <strong>Número:</strong> {{ $lottery->result->premio_especial['numero'] ?? 'N/A' }}
+                                    <div class="col-md-6">
+                                        <strong>Décimo:</strong> {{ $lottery->result->premio_especial['decimo'] ?? 'N/A' }}
                                     </div>
-                                    <div class="col-md-3">
-                                        <strong>Fracción:</strong> {{ $lottery->result->premio_especial['fraccion'] ?? 'N/A' }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Serie:</strong> {{ $lottery->result->premio_especial['serie'] ?? 'N/A' }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Premio:</strong> {{ isset($lottery->result->premio_especial['premio']) ? number_format($lottery->result->premio_especial['premio'], 2) . ' €' : 'N/A' }}
+                                    <div class="col-md-6">
+                                        <strong>Premio:</strong> {{ isset($lottery->result->premio_especial['prize']) ? number_format($lottery->result->premio_especial['prize']/100, 2) . ' €' : 'N/A' }}
                                     </div>
                                 </div>
-                                @if(isset($lottery->result->premio_especial['literalPremio']))
-                                <div class="row mt-2">
-                                    <div class="col-12">
-                                        <strong>Literal:</strong> {{ $lottery->result->premio_especial['literalPremio'] }}
-                                    </div>
-                                </div>
-                                @endif
                             </div>
                         </div>
                         @endif
@@ -97,20 +84,12 @@
                             <div class="col-12">
                                 <h5 class="text-success">🥇 Primer Premio</h5>
                                 <div class="row">
-                                    @foreach($lottery->result->primer_premio as $index => $premio)
-                                    <div class="col-md-4 mb-2">
-                                        <div class="border rounded p-2">
-                                            <strong>Premio {{ $index + 1 }}:</strong><br>
-                                            Número: {{ $premio['numero'] ?? 'N/A' }}<br>
-                                            @if(isset($premio['fraccion']))
-                                                Fracción: {{ $premio['fraccion'] }}<br>
-                                            @endif
-                                            @if(isset($premio['premio']))
-                                                Premio: {{ number_format($premio['premio'], 2) }} €<br>
-                                            @endif
-                                        </div>
+                                    <div class="col-md-6">
+                                        <strong>Décimo:</strong> {{ $lottery->result->primer_premio['decimo'] ?? 'N/A' }}
                                     </div>
-                                    @endforeach
+                                    <div class="col-md-6">
+                                        <strong>Premio:</strong> {{ isset($lottery->result->primer_premio['prize']) ? number_format($lottery->result->primer_premio['prize']/100, 2) . ' €' : 'N/A' }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -122,20 +101,12 @@
                             <div class="col-12">
                                 <h5 class="text-warning">🥈 Segundo Premio</h5>
                                 <div class="row">
-                                    @foreach($lottery->result->segundo_premio as $index => $premio)
-                                    <div class="col-md-4 mb-2">
-                                        <div class="border rounded p-2">
-                                            <strong>Premio {{ $index + 1 }}:</strong><br>
-                                            Número: {{ $premio['numero'] ?? 'N/A' }}<br>
-                                            @if(isset($premio['fraccion']))
-                                                Fracción: {{ $premio['fraccion'] }}<br>
-                                            @endif
-                                            @if(isset($premio['premio']))
-                                                Premio: {{ number_format($premio['premio'], 2) }} €<br>
-                                            @endif
-                                        </div>
+                                    <div class="col-md-6">
+                                        <strong>Décimo:</strong> {{ $lottery->result->segundo_premio['decimo'] ?? 'N/A' }}
                                     </div>
-                                    @endforeach
+                                    <div class="col-md-6">
+                                        <strong>Premio:</strong> {{ isset($lottery->result->segundo_premio['prize']) ? number_format($lottery->result->segundo_premio['prize']/100, 2) . ' €' : 'N/A' }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -148,16 +119,11 @@
                                 <h5 class="text-info">🥉 Terceros Premios</h5>
                                 <div class="row">
                                     @foreach($lottery->result->terceros_premios as $index => $premio)
-                                    <div class="col-md-3 mb-2">
+                                    <div class="col-md-4 mb-2">
                                         <div class="border rounded p-2">
-                                            <strong>Premio {{ $index + 1 }}:</strong><br>
-                                            Número: {{ $premio['numero'] ?? 'N/A' }}<br>
-                                            @if(isset($premio['fraccion']))
-                                                Fracción: {{ $premio['fraccion'] }}<br>
-                                            @endif
-                                            @if(isset($premio['premio']))
-                                                Premio: {{ number_format($premio['premio'], 2) }} €<br>
-                                            @endif
+                                            {{-- <strong>Premio {{ $index + 1 }}:</strong><br> --}}
+                                            <strong>Décimo:</strong> {{ $premio['decimo'] ?? 'N/A' }}<br>
+                                            <strong>Premio:</strong> {{ isset($premio['prize']) ? number_format($premio['prize']/100, 2) . ' €' : 'N/A' }}
                                         </div>
                                     </div>
                                     @endforeach
@@ -173,16 +139,11 @@
                                 <h5 class="text-secondary">🏅 Cuartos Premios</h5>
                                 <div class="row">
                                     @foreach($lottery->result->cuartos_premios as $index => $premio)
-                                    <div class="col-md-3 mb-2">
+                                    <div class="col-md-4 mb-2">
                                         <div class="border rounded p-2">
-                                            <strong>Premio {{ $index + 1 }}:</strong><br>
-                                            Número: {{ $premio['numero'] ?? 'N/A' }}<br>
-                                            @if(isset($premio['fraccion']))
-                                                Fracción: {{ $premio['fraccion'] }}<br>
-                                            @endif
-                                            @if(isset($premio['premio']))
-                                                Premio: {{ number_format($premio['premio'], 2) }} €<br>
-                                            @endif
+                                            {{-- <strong>Premio {{ $index + 1 }}:</strong><br> --}}
+                                            <strong>Décimo:</strong> {{ $premio['decimo'] ?? 'N/A' }}<br>
+                                            <strong>Premio:</strong> {{ isset($premio['prize']) ? number_format($premio['prize']/100, 2) . ' €' : 'N/A' }}
                                         </div>
                                     </div>
                                     @endforeach
@@ -198,16 +159,11 @@
                                 <h5 class="text-dark">🏆 Quintos Premios</h5>
                                 <div class="row">
                                     @foreach($lottery->result->quintos_premios as $index => $premio)
-                                    <div class="col-md-3 mb-2">
+                                    <div class="col-md-4 mb-2">
                                         <div class="border rounded p-2">
-                                            <strong>Premio {{ $index + 1 }}:</strong><br>
-                                            Número: {{ $premio['numero'] ?? 'N/A' }}<br>
-                                            @if(isset($premio['fraccion']))
-                                                Fracción: {{ $premio['fraccion'] }}<br>
-                                            @endif
-                                            @if(isset($premio['premio']))
-                                                Premio: {{ number_format($premio['premio'], 2) }} €<br>
-                                            @endif
+                                            {{-- <strong>Premio {{ $index + 1 }}:</strong><br> --}}
+                                            <strong>Décimo:</strong> {{ $premio['decimo'] ?? 'N/A' }}<br>
+                                            <strong>Premio:</strong> {{ isset($premio['prize']) ? number_format($premio['prize']/100, 2) . ' €' : 'N/A' }}
                                         </div>
                                     </div>
                                     @endforeach
@@ -223,22 +179,34 @@
                                 <div class="mb-3">
                                     <h6 class="text-primary">Extracciones de 5 Cifras</h6>
                                     <div class="row">
-                                        @foreach($lottery->result->extracciones_cinco_cifras as $extraccion)
-                                        <div class="col-md-6 mb-1">
-                                            <span class="badge bg-light text-dark">{{ $extraccion }}</span>
+                                        @foreach($lottery->result->extracciones_cinco_cifras as $index => $extraccion)
+                                        <div class="col-md-6 mb-2">
+                                            <div class="border rounded p-2">
+                                                {{-- <strong>Extracción {{ $index + 1 }}:</strong><br> --}}
+                                                <strong>Décimo:</strong> {{ $extraccion['decimo'] ?? 'N/A' }}<br>
+                                                <strong>Premio:</strong> {{ isset($extraccion['prize']) ? number_format($extraccion['prize']/100, 2) . ' €' : 'N/A' }}
+                                            </div>
                                         </div>
                                         @endforeach
                                     </div>
                                 </div>
                                 @endif
 
+                            </div>
+
+                            <div class="col-md-6">
+
                                 @if($lottery->result->extracciones_cuatro_cifras && count($lottery->result->extracciones_cuatro_cifras) > 0)
                                 <div class="mb-3">
                                     <h6 class="text-success">Extracciones de 4 Cifras</h6>
                                     <div class="row">
-                                        @foreach($lottery->result->extracciones_cuatro_cifras as $extraccion)
-                                        <div class="col-md-6 mb-1">
-                                            <span class="badge bg-light text-dark">{{ $extraccion }}</span>
+                                        @foreach($lottery->result->extracciones_cuatro_cifras as $index => $extraccion)
+                                        <div class="col-md-6 mb-2">
+                                            <div class="border rounded p-2">
+                                                {{-- <strong>Extracción {{ $index + 1 }}:</strong><br> --}}
+                                                <strong>Décimo:</strong> {{ $extraccion['decimo'] ?? 'N/A' }}<br>
+                                                <strong>Premio:</strong> {{ isset($extraccion['prize']) ? number_format($extraccion['prize']/100, 2) . ' €' : 'N/A' }}
+                                            </div>
                                         </div>
                                         @endforeach
                                     </div>
@@ -251,22 +219,32 @@
                                 <div class="mb-3">
                                     <h6 class="text-warning">Extracciones de 3 Cifras</h6>
                                     <div class="row">
-                                        @foreach($lottery->result->extracciones_tres_cifras as $extraccion)
-                                        <div class="col-md-6 mb-1">
-                                            <span class="badge bg-light text-dark">{{ $extraccion }}</span>
+                                        @foreach($lottery->result->extracciones_tres_cifras as $index => $extraccion)
+                                        <div class="col-md-6 mb-2">
+                                            <div class="border rounded p-2">
+                                                {{-- <strong>Extracción {{ $index + 1 }}:</strong><br> --}}
+                                                <strong>Décimo:</strong> {{ $extraccion['decimo'] ?? 'N/A' }}<br>
+                                                <strong>Premio:</strong> {{ isset($extraccion['prize']) ? number_format($extraccion['prize']/100, 2) . ' €' : 'N/A' }}
+                                            </div>
                                         </div>
                                         @endforeach
                                     </div>
                                 </div>
                                 @endif
+                            </div>
 
+                            <div class="col-md-6">
                                 @if($lottery->result->extracciones_dos_cifras && count($lottery->result->extracciones_dos_cifras) > 0)
                                 <div class="mb-3">
                                     <h6 class="text-info">Extracciones de 2 Cifras</h6>
                                     <div class="row">
-                                        @foreach($lottery->result->extracciones_dos_cifras as $extraccion)
-                                        <div class="col-md-6 mb-1">
-                                            <span class="badge bg-light text-dark">{{ $extraccion }}</span>
+                                        @foreach($lottery->result->extracciones_dos_cifras as $index => $extraccion)
+                                        <div class="col-md-6 mb-2">
+                                            <div class="border rounded p-2">
+                                                {{-- <strong>Extracción {{ $index + 1 }}:</strong><br> --}}
+                                                <strong>Décimo:</strong> {{ $extraccion['decimo'] ?? 'N/A' }}<br>
+                                                <strong>Premio:</strong> {{ isset($extraccion['prize']) ? number_format($extraccion['prize']/100, 2) . ' €' : 'N/A' }}
+                                            </div>
                                         </div>
                                         @endforeach
                                     </div>
@@ -281,9 +259,13 @@
                             <div class="col-12">
                                 <h6 class="text-danger">🔄 Reintegros</h6>
                                 <div class="row">
-                                    @foreach($lottery->result->reintegros as $reintegro)
-                                    <div class="col-md-2 mb-1">
-                                        <span class="badge bg-danger">{{ $reintegro }}</span>
+                                    @foreach($lottery->result->reintegros as $index => $reintegro)
+                                    <div class="col-md-3 mb-2">
+                                        <div class="border rounded p-2">
+                                            {{-- <strong>Reintegro {{ $index + 1 }}:</strong><br> --}}
+                                            <strong>Décimo:</strong> {{ $reintegro['decimo'] ?? 'N/A' }}<br>
+                                            <strong>Premio:</strong> {{ isset($reintegro['prize']) ? number_format($reintegro['prize']/100, 2) . ' €' : 'N/A' }}
+                                        </div>
                                     </div>
                                     @endforeach
                                 </div>

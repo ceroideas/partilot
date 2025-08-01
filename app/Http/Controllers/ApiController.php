@@ -314,6 +314,8 @@ class ApiController extends Controller
     {
         $ticket = null;
         $error = null;
+        $prizeInfo = null;
+        
         if ($request->has('ref')) {
             $response = $this->checkParticipation($request);
             $data = $response->getData(true); // array asociativo
@@ -333,9 +335,15 @@ class ApiController extends Controller
                         }
                     }
                 }
+                
+                // Verificar si el sorteo tiene resultados
+                $lotteryModel = \App\Models\Lottery::find($lottery['id']);
+                $prizeInfo = $this->checkWinningNumbers($lotteryModel, $reserve['reservation_numbers'], $set['total_participations']);
+                
                 $ticket = [
                     'titulo' => $reserve['entity']['name'] ?? 'Participación',
                     'sorteo' => $lottery['description'] ?? '',
+                    'fecha_sorteo' => $lottery['draw_date'] ? \Carbon\Carbon::parse($lottery['draw_date'])->format('d/m/Y') : '-',
                     'numeros' => implode(' - ', $reserve['reservation_numbers']),
                     'jugado' => $reserve['total_amount'],
                     'serie' => $ticketData['n'] ?? '',
@@ -345,6 +353,158 @@ class ApiController extends Controller
         } else {
             $error = 'Referencia de ticket no proporcionada.';
         }
-        return view('participation_ticket', compact('ticket', 'error'));
+        return view('participation_ticket', compact('ticket', 'error', 'prizeInfo'));
+    }
+
+    /**
+     * Verifica si los números del ticket son ganadores
+     */
+    private function checkWinningNumbers($lottery, $ticketNumbers, $totalParticipations)
+    {
+        if (!$lottery || !$lottery->result) {
+            return [
+                'isWinner' => false,
+                'message' => 'Resultados del sorteo no disponibles',
+                'prize' => null,
+                'prizeAmount' => null
+            ];
+        }
+
+        $result = $lottery->result;
+        $winningCategory = null;
+        $prizeAmount = null;
+
+        // Verificar primer premio
+        if ($result->primer_premio && isset($result->primer_premio['decimo'])) {
+            if (in_array($result->primer_premio['decimo'], $ticketNumbers)) {
+                $winningCategory = 'Primer Premio';
+                $prizeAmount = isset($result->primer_premio['prize']) ? 
+                    ($result->primer_premio['prize']/100) / $totalParticipations : 0;
+            }
+        }
+
+        // Verificar segundo premio
+        if (!$winningCategory && $result->segundo_premio && isset($result->segundo_premio['decimo'])) {
+            if (in_array($result->segundo_premio['decimo'], $ticketNumbers)) {
+                $winningCategory = 'Segundo Premio';
+                $prizeAmount = isset($result->segundo_premio['prize']) ? 
+                    ($result->segundo_premio['prize']/100) / $totalParticipations : 0;
+            }
+        }
+
+        // Verificar terceros premios
+        if (!$winningCategory && $result->terceros_premios) {
+            foreach ($result->terceros_premios as $tercero) {
+                if (isset($tercero['decimo']) && in_array($tercero['decimo'], $ticketNumbers)) {
+                    $winningCategory = 'Tercer Premio';
+                    $prizeAmount = isset($tercero['prize']) ? 
+                        ($tercero['prize']/100) / $totalParticipations : 0;
+                    break;
+                }
+            }
+        }
+
+        // Verificar cuartos premios
+        if (!$winningCategory && $result->cuartos_premios) {
+            foreach ($result->cuartos_premios as $cuarto) {
+                if (isset($cuarto['decimo']) && in_array($cuarto['decimo'], $ticketNumbers)) {
+                    $winningCategory = 'Cuarto Premio';
+                    $prizeAmount = isset($cuarto['prize']) ? 
+                        ($cuarto['prize']/100) / $totalParticipations : 0;
+                    break;
+                }
+            }
+        }
+
+        // Verificar quintos premios
+        if (!$winningCategory && $result->quintos_premios) {
+            foreach ($result->quintos_premios as $quinto) {
+                if (isset($quinto['decimo']) && in_array($quinto['decimo'], $ticketNumbers)) {
+                    $winningCategory = 'Quinto Premio';
+                    $prizeAmount = isset($quinto['prize']) ? 
+                        ($quinto['prize']/100) / $totalParticipations : 0;
+                    break;
+                }
+            }
+        }
+
+        // Verificar extracciones
+        if (!$winningCategory) {
+            // Extracciones de 5 cifras
+            if ($result->extracciones_cinco_cifras) {
+                foreach ($result->extracciones_cinco_cifras as $extraccion) {
+                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
+                        $winningCategory = 'Extracción 5 Cifras';
+                        $prizeAmount = isset($extraccion['prize']) ? 
+                            ($extraccion['prize']/100) / $totalParticipations : 0;
+                        break;
+                    }
+                }
+            }
+
+            // Extracciones de 4 cifras
+            if (!$winningCategory && $result->extracciones_cuatro_cifras) {
+                foreach ($result->extracciones_cuatro_cifras as $extraccion) {
+                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
+                        $winningCategory = 'Extracción 4 Cifras';
+                        $prizeAmount = isset($extraccion['prize']) ? 
+                            ($extraccion['prize']/100) / $totalParticipations : 0;
+                        break;
+                    }
+                }
+            }
+
+            // Extracciones de 3 cifras
+            if (!$winningCategory && $result->extracciones_tres_cifras) {
+                foreach ($result->extracciones_tres_cifras as $extraccion) {
+                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
+                        $winningCategory = 'Extracción 3 Cifras';
+                        $prizeAmount = isset($extraccion['prize']) ? 
+                            ($extraccion['prize']/100) / $totalParticipations : 0;
+                        break;
+                    }
+                }
+            }
+
+            // Extracciones de 2 cifras
+            if (!$winningCategory && $result->extracciones_dos_cifras) {
+                foreach ($result->extracciones_dos_cifras as $extraccion) {
+                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
+                        $winningCategory = 'Extracción 2 Cifras';
+                        $prizeAmount = isset($extraccion['prize']) ? 
+                            ($extraccion['prize']/100) / $totalParticipations : 0;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Verificar reintegros
+        if (!$winningCategory && $result->reintegros) {
+            foreach ($result->reintegros as $reintegro) {
+                if (isset($reintegro['decimo']) && in_array($reintegro['decimo'], $ticketNumbers)) {
+                    $winningCategory = 'Reintegro';
+                    $prizeAmount = isset($reintegro['prize']) ? 
+                        $reintegro['prize'] : $lottery->ticket_price; // Usar el premio del reintegro o el precio del décimo
+                    break;
+                }
+            }
+        }
+
+        if ($winningCategory) {
+            return [
+                'isWinner' => true,
+                'message' => '¡FELICIDADES! Has ganado',
+                'category' => $winningCategory,
+                'prizeAmount' => number_format($prizeAmount, 2, ',', '.') . '€'
+            ];
+        } else {
+            return [
+                'isWinner' => false,
+                'message' => 'No has ganado en este sorteo',
+                'category' => null,
+                'prizeAmount' => null
+            ];
+        }
     }
 }
