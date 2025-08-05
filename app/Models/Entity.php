@@ -39,4 +39,12 @@ class Entity extends Model
     {
         return $this->belongsTo(Manager::class);
     }
+
+    /**
+     * Relación con Seller
+     */
+    public function sellers()
+    {
+        return $this->hasMany(Seller::class);
+    }
 }

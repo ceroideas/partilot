@@ -227,7 +227,7 @@ class ApiController extends Controller
             $table->string('identificador', 2)->nullable()->after('name');
         });*/
 
-        Schema::create('lottery_results', function (Blueprint $table) {
+        /*Schema::create('lottery_results', function (Blueprint $table) {
             $table->id();
             $table->foreignId('lottery_id')->constrained('lotteries')->onDelete('cascade');
             
@@ -262,6 +262,29 @@ class ApiController extends Controller
             // Índices para optimizar consultas
             $table->index(['lottery_id', 'results_date']);
             $table->index('is_published');
+        });*/
+
+        Schema::create('sellers', function (Blueprint $table) {
+            // Eliminar las columnas existentes
+            $table->id();
+            
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('entity_id')->constrained()->onDelete('cascade');
+
+            $table->string("image")->nullable();
+            $table->string("name")->nullable();
+            $table->string("last_name")->nullable();
+            $table->string("last_name2")->nullable();
+            $table->string("nif_cif")->nullable();
+            $table->string("birthday")->nullable();
+            $table->string("email")->nullable();
+            $table->string("phone")->nullable();
+            $table->string("comment")->nullable();
+            $table->integer("status")->nullable();
+            $table->timestamps();
+
+            $table->unique(['user_id', 'entity_id']);
+
         });
 
 

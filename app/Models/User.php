@@ -42,4 +42,12 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * Relación con Seller
+     */
+    public function sellers()
+    {
+        return $this->hasMany(Seller::class);
+    }
 }

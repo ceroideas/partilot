@@ -69,7 +69,7 @@
                     			
                     		</div>
 
-                    		<a href="{{url('sellers')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    		<a href="{{ route('sellers.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
@@ -87,36 +87,44 @@
 	                    			<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="">
 				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>Administración</th>
+				                                <th>Seleccionar</th>
+				                                <th>ID</th>
+				                                <th>Nombre</th>
 				                                <th>Provincia</th>
 				                                <th>Localidad</th>
 				                                <th>Administración</th>
-				                                <th>Status</th>
+				                                <th>Estado</th>
 				                            </tr>
 				                        </thead>
 				                    
-				                    
 				                        <tbody>
+				                            @foreach($entities as $entity)
 				                            <tr>
-				                                <td>#EN9801</td>
-				                                <td>El Buho Lotero</td>
-				                                <td>La Rioja</td>
-				                                <td>Logroño</td>
-				                                <td>El Búho Lotero</td>
+				                                <td>
+				                                    <input type="radio" name="entity_id" value="{{ $entity->id }}" class="form-check-input">
+				                                </td>
+				                                <td>#{{ $entity->id }}</td>
+				                                <td>{{ $entity->name }}</td>
+				                                <td>{{ $entity->province }}</td>
+				                                <td>{{ $entity->city }}</td>
+				                                <td>{{ $entity->administration->name ?? 'N/A' }}</td>
 				                                <td><label class="badge bg-success">Activo</label></td>
 				                            </tr>
+				                            @endforeach
 				                        </tbody>
 			                        </table>
 
 		                        </div>
 
-
                     			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('sellers/add/information')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+                    					<form action="{{ route('sellers.store-entity') }}" method="POST" id="entity-form">
+                    						@csrf
+                    						<input type="hidden" name="entity_id" id="selected-entity-id">
+                    						<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="next-button" disabled>Siguiente
+                    							<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+                    					</form>
                     				</div>
 
                     			</div>
@@ -198,42 +206,48 @@ function initDatatable()
                                }
                             });
 
-                            // $.each(api
-                            //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
-                            // });
-
-                            api
-                                .column(colIdx)
-                                .search(
-
-                                  (wSelect ?
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((selected' + this.value + ')))')
-                                        : '')
-                                    :
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((' + this.value + ')))')
-                                        : '')),
-
-                                    this.value != '',
-                                    this.value == ''
-                                ).draw()
+                            if (wSelect) {
+                                api
+                                    .column(colIdx)
+                                    .search(
+                                        this.value != ''
+                                            ? regexr.replace('{search}', '(((' + this.value.replace(/[.,\/+*?|{}()\[\]\\]/g, '\\$&') + ')))')
+                                            : '',
+                                        this.value != '',
+                                        this.value == ''
+                                    )
+                                    .draw();
+                            } else {
+                                api
+                                    .column(colIdx)
+                                    .search(
+                                        this.value != ''
+                                            ? regexr.replace('{search}', '(((' + this.value.replace(/[.,\/+*?|{}()\[\]\\]/g, '\\$&') + ')))')
+                                            : '',
+                                        this.value != '',
+                                        this.value == ''
+                                    )
+                                    .draw();
+                            }
  
                             $(this)
                                 .focus()[0]
                                 .setSelectionRange(cursorPosition, cursorPosition);
                         });
                 });
-        }
+        },
     });
   }
 
-  initDatatable();
-
-  setTimeout(()=>{
-    $('.filters .inline-fields:first').trigger('keyup');
-  },100);
+  $(document).ready(function() {
+    initDatatable();
+    
+    // Manejar selección de radio buttons
+    $('input[name="entity_id"]').change(function() {
+        $('#selected-entity-id').val($(this).val());
+        $('#next-button').prop('disabled', false);
+    });
+  });
 
 </script>
 

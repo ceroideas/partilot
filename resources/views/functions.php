@@ -1462,8 +1462,22 @@ function make_payment($request){
     }
     
     $product = wc_get_product($product_id);
-    $user_display = get_user_by('display_name', $product ? $product->name : '');
-    $user_display_id = $user_display ? $user_display->ID : 0;
+    // Obtener el vendor ID del producto de forma más robusta
+    $user_display_id = 0;
+    if ($product) {
+        // Intentar obtener el vendor ID del producto
+        $vendor_id = get_post_meta($product->get_id(), 'vendor_id', true);
+        if ($vendor_id) {
+            $user_display_id = $vendor_id;
+        } else {
+            // Fallback: buscar por display_name
+            $user_display = get_user_by('display_name', $product->get_name());
+            $user_display_id = $user_display ? $user_display->ID : 0;
+        }
+    }
+    
+    // Debug: verificar que el user_display_id se obtiene correctamente
+    error_log("DEBUG: Product ID: " . $product_id . ", User Display ID: " . $user_display_id . ", Product Name: " . ($product ? $product->get_name() : 'N/A'));
     $data = [
        "post_author" => 1,
        "post_date" => $date,
@@ -1532,10 +1546,27 @@ function make_payment($request){
         'order_id'        => $post_id_shop_1,
     ), array('%s', '%s', '%d'));
     $parent_tax_order_item_id = $wpdb->insert_id;
+    // Insertar estadísticas para la orden hija
     $wpdb->insert(
        'wpol_wc_order_stats',
        array(
            'order_id'=> $post_id_shop_2,
+           'parent_id' => $post_id_shop_1,
+           'date_created' => $date,
+           'date_created_gmt' => $date,
+           'num_items_sold' => 1,
+           'total_sales'=> $params['payment']['duplication']['currentAmount'] ?? 0,
+           'status'=>'wc-completed',
+           'customer_id'=> $user_id,
+           'returning_customer'=> 0
+       )
+    );
+    
+    // Insertar estadísticas para la orden padre
+    $wpdb->insert(
+       'wpol_wc_order_stats',
+       array(
+           'order_id'=> $post_id_shop_1,
            'parent_id' => 0,
            'date_created' => $date,
            'date_created_gmt' => $date,
@@ -1671,16 +1702,19 @@ function make_payment($request){
     wc_add_order_item_meta($parent_tax_order_item_id, 'rate_percent', '10');
     
     update_post_meta($post_id_shop_2, '_order_key', 'wc_order_'.uniqid());
+    update_post_meta($post_id_shop_1, '_order_key', 'wc_order_'.uniqid());
     update_post_meta($post_id_shop_2, '_customer_user', $user_id);
-    update_post_meta($post_id_shop_2, '_payment_method', 'xsalto');
-    update_post_meta($post_id_shop_2, '_payment_method_title', 'xSalto');
-    update_post_meta($post_id_shop_2, '_customer_ip_address', 0);
-    update_post_meta($post_id_shop_2, '_customer_user_agent', 'Mozilla/5.0');
-    update_post_meta($post_id_shop_2, '_created_via', "yith_wcmv_vendor_suborder");
+    update_post_meta($post_id_shop_1, '_customer_user', $user_id);
+    update_post_meta($post_id_shop_2, '_payment_method', 'redsys');
+    update_post_meta($post_id_shop_2, '_payment_method_title', 'Pagar amb Targeta');
+    update_post_meta($post_id_shop_2, '_customer_ip_address', $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    update_post_meta($post_id_shop_2, '_customer_user_agent', $_SERVER['HTTP_USER_AGENT'] ?? 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36');
+    update_post_meta($post_id_shop_2, '_cart_hash', uniqid());
+    update_post_meta($post_id_shop_2, '_created_via', "checkout");
     update_post_meta($post_id_shop_2, '_download_permissions_granted', "yes");
     update_post_meta($post_id_shop_2, '_recorded_sales', 'yes');
-    update_post_meta($post_id_shop_2, '_recorded_coupon_usage_counts', "no");
-    update_post_meta($post_id_shop_2, '_new_order_email_sent', "no");
+    update_post_meta($post_id_shop_2, '_recorded_coupon_usage_counts', "yes");
+    update_post_meta($post_id_shop_2, '_new_order_email_sent', "false");
     update_post_meta($post_id_shop_2, '_order_stock_reduced', "yes");
     update_post_meta($post_id_shop_2, '_billing_first_name', $billing_first_name);
     update_post_meta($post_id_shop_2, '_billing_last_name', $billing_last_name);
@@ -1702,12 +1736,33 @@ function make_payment($request){
     update_post_meta($post_id_shop_1, '_billing_country', $billing_country ?: 'ES');
     update_post_meta($post_id_shop_1, '_billing_email', $billing_email);
     update_post_meta($post_id_shop_1, '_billing_phone', $billing_phone ?: '');
+    update_post_meta($post_id_shop_1, 'vendor_id', $user_display_id);
+    update_post_meta($post_id_shop_1, '_vendor_id', $user_display_id);
     
     // Actualizar metadatos de la reserva principal para que aparezcan en el calendario
     update_post_meta($post_id, '_billing_first_name', $billing_first_name);
     update_post_meta($post_id, '_billing_last_name', $billing_last_name);
     update_post_meta($post_id, '_billing_email', $billing_email);
     update_post_meta($post_id, '_billing_phone', $billing_phone ?: '');
+    update_post_meta($post_id, 'vendor_id', $user_display_id);
+    update_post_meta($post_id, '_vendor_id', $user_display_id);
+    
+    // Asignar el término del vendor a la reserva
+    if ($user_display_id) {
+        wp_set_object_terms($post_id, $user_display_id, 'yith_shop_vendor');
+    }
+    
+    // Agregar nota de creación de la reserva
+    $wpdb->insert(
+        $wpdb->prefix . 'yith_wcbk_booking_notes',
+        array(
+            'booking_id' => $post_id,
+            'type' => 'new',
+            'description' => 'Reserva creada correctament',
+            'note_date' => $date
+        ),
+        array('%d', '%s', '%s', '%s')
+    );
     
     update_post_meta($post_id_shop_2, '_order_currency', "EUR");
     update_post_meta($post_id_shop_2, '_cart_discount', 0); 
@@ -1738,7 +1793,7 @@ function make_payment($request){
     update_post_meta($post_id_shop_2, '_wc_order_attribution_session_count', '1');
     update_post_meta($post_id_shop_2, '_wc_order_attribution_user_agent', 'xSalto Payment System');
     update_post_meta($post_id_shop_2, '_has_deposit', 1);
-    update_post_meta($post_id_shop_2, 'yith_bookings', 'a:1:{i:0;i:'.$post_id.';}');
+    update_post_meta($post_id_shop_2, 'yith_bookings', array($post_id));
     update_post_meta($post_id_shop_2, '_ywson_subnumber_created', "yes");
     update_post_meta($post_id_shop_2, '_commissions_processed', 'yes');
     update_post_meta($post_id_shop_2, '_date_completed', strtotime($date));
@@ -1746,22 +1801,28 @@ function make_payment($request){
     update_post_meta($post_id_shop_2, '_paid_date', $date);
     update_post_meta($post_id_shop_2, '_completed_date', $date); 
     update_post_meta($post_id_shop_2, '_order_version', "8.0.0"); 
-    update_post_meta($post_id_shop_2, 'vendor_id', $user_display_id); 
+    update_post_meta($post_id_shop_2, 'vendor_id', $user_display_id);
+    update_post_meta($post_id_shop_2, '_vendor_id', $user_display_id);
+    
+    // Debug: verificar que el vendor_id se establece correctamente en la orden
+    error_log("DEBUG: Order ID: " . $post_id_shop_2 . ", Vendor ID set to: " . $user_display_id); 
     
     // Agregar metadatos para la orden padre también
     update_post_meta($post_id_shop_1, '_order_key', 'wc_order_'.uniqid());
     update_post_meta($post_id_shop_1, '_customer_user', $user_id);
-    update_post_meta($post_id_shop_1, '_payment_method', 'xsalto');
-    update_post_meta($post_id_shop_1, '_payment_method_title', 'xSalto');
-    update_post_meta($post_id_shop_1, '_customer_ip_address', 0);
-    update_post_meta($post_id_shop_1, '_customer_user_agent', 'Mozilla/5.0');
-    update_post_meta($post_id_shop_1, '_created_via', "yith_wcmv_vendor_suborder");
+    update_post_meta($post_id_shop_1, '_payment_method', 'redsys');
+    update_post_meta($post_id_shop_1, '_payment_method_title', 'Pagar amb Targeta');
+    update_post_meta($post_id_shop_1, '_customer_ip_address', $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    update_post_meta($post_id_shop_1, '_customer_user_agent', $_SERVER['HTTP_USER_AGENT'] ?? 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36');
+    update_post_meta($post_id_shop_1, '_cart_hash', uniqid());
+    update_post_meta($post_id_shop_1, '_created_via', "checkout");
     update_post_meta($post_id_shop_1, '_download_permissions_granted', "yes");
     update_post_meta($post_id_shop_1, '_recorded_sales', 'yes');
-    update_post_meta($post_id_shop_1, '_recorded_coupon_usage_counts', "no");
-    update_post_meta($post_id_shop_1, '_new_order_email_sent', "no");
+    update_post_meta($post_id_shop_1, '_recorded_coupon_usage_counts', "yes");
+    update_post_meta($post_id_shop_1, '_new_order_email_sent', "false");
     update_post_meta($post_id_shop_1, '_order_stock_reduced', "yes");
     update_post_meta($post_id_shop_1, '_order_currency', "EUR");
+    update_post_meta($post_id_shop_1, 'has_sub_order', '1');
     update_post_meta($post_id_shop_1, '_cart_discount', 0); 
     update_post_meta($post_id_shop_1, '_cart_discount_tax', "0");
     update_post_meta($post_id_shop_1, '_order_shipping', 0); 
@@ -1791,13 +1852,23 @@ function make_payment($request){
     update_post_meta($post_id_shop_1, '_wc_order_attribution_session_count', '1');
     update_post_meta($post_id_shop_1, '_wc_order_attribution_user_agent', 'xSalto Payment System');
     update_post_meta($post_id_shop_1, '_has_deposit', 1);
-    update_post_meta($post_id_shop_1, 'yith_bookings', 'a:1:{i:0;i:'.$post_id.';}');
+    update_post_meta($post_id_shop_1, 'yith_bookings', array($post_id));
     update_post_meta($post_id_shop_1, '_ywson_subnumber_created', "yes");
     update_post_meta($post_id_shop_1, '_commissions_processed', 'yes');
     update_post_meta($post_id_shop_1, '_date_completed', strtotime($date));
     update_post_meta($post_id_shop_1, '_date_paid', strtotime($date));
     update_post_meta($post_id_shop_1, '_paid_date', $date);
-    update_post_meta($post_id_shop_1, '_completed_date', $date);  
+    update_post_meta($post_id_shop_1, '_completed_date', $date);
+    
+    // Actualizar la tabla de metadatos de YITH para que aparezca en el panel del vendor
+    // Verificar si la columna vendor_id existe en la tabla
+    $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$wpdb->prefix}yith_wcbk_booking_meta_lookup LIKE 'vendor_id'");
+    if (empty($column_exists)) {
+        // Agregar la columna vendor_id si no existe
+        $wpdb->get_results("ALTER TABLE {$wpdb->prefix}yith_wcbk_booking_meta_lookup ADD COLUMN vendor_id BIGINT(20) DEFAULT 0");
+    }
+    $wpdb->get_results("UPDATE {$wpdb->prefix}yith_wcbk_booking_meta_lookup SET vendor_id = $user_display_id WHERE booking_id = $post_id");
+    
     return ["response"=>["response"=>true]];
 }
 
@@ -1835,7 +1906,7 @@ function make_services($request)
                 update_term_meta($id_termino, "hidden_in_search_forms", "no");
                 update_term_meta($id_termino, "multiply_per_blocks", "no");
                 update_term_meta($id_termino, "multiply_per_persons", "no");
-                update_term_meta($id_termino, "price_for_person_types", 'a:1:{i:30748;s:0:"";}');
+                update_term_meta($id_termino, "price_for_person_types", array(30748 => ""));
                 update_term_meta($id_termino, "quantity_enabled", "no");
                 update_term_meta($id_termino, "min_quantity", "0");
                 update_term_meta($id_termino, "max_quantity", "0");
@@ -1913,7 +1984,7 @@ function update_booking($request)
         update_term_meta($id_termino, "hidden_in_search_forms", "no");
         update_term_meta($id_termino, "multiply_per_blocks", "no");
         update_term_meta($id_termino, "multiply_per_persons", "no");
-        update_term_meta($id_termino, "price_for_person_types", 'a:1:{i:30748;s:0:"";}');
+        update_term_meta($id_termino, "price_for_person_types", array(30748 => ""));
         update_term_meta($id_termino, "quantity_enabled", "no");
         update_term_meta($id_termino, "min_quantity", "0");
         update_term_meta($id_termino, "max_quantity", "0");

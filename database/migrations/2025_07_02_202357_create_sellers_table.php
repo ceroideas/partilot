@@ -13,7 +13,13 @@ return new class extends Migration
     {
         Schema::create('sellers', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('entity_id')->constrained()->onDelete('cascade');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
+            
+            // Índice único para evitar duplicados
+            $table->unique(['user_id', 'entity_id']);
         });
     }
 

@@ -69,15 +69,24 @@
                     			
                     		</div>
 
-                    		<a href="{{url('sellers')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                    		<a href="{{ route('sellers.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Invitación / Registro
-                    			</h4>
-                    			<small><i>Elige la manera en la que agregar al Vendedor</i></small>
+                    			<div class="d-flex justify-content-between align-items-center">
+                    				<div>
+                    					<h4 class="mb-0 mt-1">
+                    						Invitación / Registro
+                    					</h4>
+                    					<small><i>Elige la manera en la que agregar al Vendedor</i></small>
+                    				</div>
+                    				<div class="d-none" id="back-to-buttons">
+                    					<button class="btn btn-sm btn-light" id="back-button" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">
+                    						<i class="ri-arrow-left-line"></i>
+                    					</button>
+                    				</div>
+                    			</div>
 
                     			<div class="form-group mt-2 mb-3 admin-box">
 
@@ -95,17 +104,19 @@
 
                     					<div class="col-4 text-center mt-3">
 
-                    						<h4 class="mt-0 mb-0">FADEMUR</h4>
+                    						<h4 class="mt-0 mb-0">{{ session('selected_entity')->name ?? 'Entidad' }}</h4>
 
-                    						<small>La Rioja</small> <br>
-                    						
+                    						<small>{{ session('selected_entity')->province ?? 'Provincia' }}</small> <br>
+
+                    						<small>{{ session('selected_entity')->administration->name ?? 'Administración' }}</small>
+
                     					</div>
 
-                    					<div class="col-4">
+                    					<div class="col-3">
 
                     						<div class="mt-3">
-                    							Provincia: La Rioja <br>
-                    							Dirección: Avd. Club Deportivo 28
+                    							Provincia: {{ session('selected_entity')->province ?? 'N/A' }} <br>
+                    							Dirección: {{ session('selected_entity')->address ?? 'N/A' }}
                     						</div>
                     						
                     					</div>
@@ -113,12 +124,14 @@
                     					<div class="col-3">
 
                     						<div class="mt-3">
-                    							Ciudad: Logroño <br>
-                    							Tel: 941 900 900
+                    							Ciudad: {{ session('selected_entity')->city ?? 'N/A' }} <br>
+                    							Tel: {{ session('selected_entity')->phone ?? 'N/A' }}
                     						</div>
                     						
                     					</div>
+
                     				</div>
+
                     			</div>
 
                     			<br>
@@ -187,7 +200,7 @@
 		                    								<h2>¡Hay 0 coincidencias!</h2>
 
 		                    								<p>
-		                    									No hemos encontrado un <b>usuario registrado con el email “tomasgarciamontes@example.com”</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad una vez se que registre.</b>
+		                    									No hemos encontrado un <b>usuario registrado con el email "<span id="email-placeholder"></span>"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad una vez se que registre.</b>
 		                    								</p>
                     									</div>
 
@@ -195,7 +208,7 @@
 		                    								<h2>¡Hay 1 coincidencia!</h2>
 
 		                    								<p>
-		                    									Hemos encontrado un <b>usuario registrado con el email “tomasgarciamontes@example.com”</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad.</b>
+		                    									Hemos encontrado un <b>usuario registrado con el email "<span id="email-placeholder2"></span>"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad.</b>
 		                    								</p>
                     									</div>
 
@@ -205,13 +218,19 @@
 	                    									</div>
 
 	                    									<div class="col-6">
-	                    										<a href="{{url('sellers?table=1')}}" style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3">Aceptar</a>
+	                    										                    										<form action="{{ route('sellers.store-existing-user') }}" method="POST" id="invite-accept-form">
+                    											@csrf
+                    											<input type="hidden" name="email" id="invite-email-hidden">
+                    											<input type="hidden" name="entity_id" value="{{ session('selected_entity')->id }}">
+                    											<button type="submit" style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3">Aceptar</button>
+                    										</form>
 	                    									</div>
 	                    								</div>
                     								</div>
                     							</div>
                     							
                     						</div>
+
 
 
                     					</div>
@@ -235,7 +254,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" name="name" placeholder="Nombre" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -249,7 +268,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" name="last_name" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -264,7 +283,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" name="last_name2" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -279,7 +298,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" name="nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -294,7 +313,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="date" name="birthday" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -309,7 +328,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -324,7 +343,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="phone" name="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -336,17 +355,24 @@
                     				<div class="row">
 
                     					<div class="col-8">
-            								
-    									</div>
+             								
+     									</div>
 
 	                    				<div class="col-4 text-end">
-	                    					<a href="{{url('sellers?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-	                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
+	                    					 	                    					<form action="{{ route('sellers.store-new-user') }}" method="POST" id="register-form">
+ 	                    						@csrf
+ 	                    						<input type="hidden" name="entity_id" value="{{ session('selected_entity')->id }}">
+ 	                    						<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
+ 	                    							<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+ 	                    					</form>
 	                    				</div>
 
 	                    			</div>
                     				
                     			</div>
+
+                    		</div>
+
 
                     		</div>
                     	</div>
@@ -372,6 +398,7 @@ $('#invite-manager').click(function (e) {
 	e.preventDefault();
 
 	$('#manager-buttons').addClass('d-none');
+	$('#back-to-buttons').removeClass('d-none');
 
 	$('#invite-form').removeClass('d-none');
 });
@@ -392,13 +419,33 @@ $('#invite-button').click(function (e) {
 
 	$('#accept-invite').removeClass('d-none');
 
-	if ($('.invite-email').val() == 'admin@partilot.com') {
-		$('#coincidence').removeClass('d-none');
-		$('#no-coincidence').addClass('d-none');
-	}else{
-		$('#coincidence').addClass('d-none');
-		$('#no-coincidence').removeClass('d-none');
-	}
+	var email = $('.invite-email').val();
+	$('#email-placeholder').text(email);
+	$('#email-placeholder2').text(email);
+	$('#invite-email-hidden').val(email);
+
+	// Verificar si el usuario existe
+	$.ajax({
+		url: '{{ route("sellers.check-user-email") }}',
+		method: 'POST',
+		data: {
+			email: email,
+			_token: '{{ csrf_token() }}'
+		},
+		success: function(response) {
+			if (response.exists) {
+				$('#coincidence').removeClass('d-none');
+				$('#no-coincidence').addClass('d-none');
+			} else {
+				$('#coincidence').addClass('d-none');
+				$('#no-coincidence').removeClass('d-none');
+			}
+		},
+		error: function() {
+			$('#coincidence').addClass('d-none');
+			$('#no-coincidence').removeClass('d-none');
+		}
+	});
 });
 
 $('#cancel-invite').click(function (e) {
@@ -414,9 +461,28 @@ $('#register-manager').click(function (e) {
 	e.preventDefault();
 
 	$('#all-options').addClass('d-none');
+	$('#back-to-buttons').removeClass('d-none');
 
 	$('#register-manager-selected').removeClass('d-none');
 
+});
+
+$('#back-button').click(function (e) {
+	e.preventDefault();
+
+	// Ocultar todos los formularios
+	$('#invite-form').addClass('d-none');
+	$('#accept-invite').addClass('d-none');
+	$('#register-manager-selected').addClass('d-none');
+	$('#back-to-buttons').addClass('d-none');
+
+	// Mostrar los botones de selección
+	$('#all-options').removeClass('d-none');
+	$('#manager-buttons').removeClass('d-none');
+
+	// Limpiar campos
+	$('.invite-email').val('');
+	$('#invite-button').prop('disabled', true);
 });
 
 </script>

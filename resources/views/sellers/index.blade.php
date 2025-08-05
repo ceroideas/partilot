@@ -25,16 +25,35 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    {{-- @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif --}}
+
+                    @if($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <ul class="mb-0">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    <div class="{{ count($sellers) > 0 ? '' : 'd-none' }}">
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Número">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Tipo de Sorteo">
-                                <input type="text" class="form-control" placeholder="Precio">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Nombre">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Apellidos">
+                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Email">
+                                <input type="text" class="form-control" placeholder="Entidad">
                             </div>
 
-                            <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            <a href="{{ route('sellers.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
 
                         </h4>
 
@@ -52,25 +71,40 @@
                                     <th>NIF/CIF</th>
                                     <th>Email</th>
                                     <th>Teléfono</th>
-                                    <th class="no-filter"></th>
+                                    <th>Entidad</th>
+                                    <th>Estado</th>
+                                    <th class="no-filter">Acciones</th>
                                 </tr>
                             </thead>
                         
-                        
                             <tbody>
+                                @foreach($sellers as $seller)
                                 <tr>
-                                    <td><a href="{{url('sellers/view',1)}}">#VN9801</a></td>
-                                    <td>Jorge</td>
-                                    <td>Solano Cardona</td>
-                                    <td>16600600A</td>
-                                    <td>01/01/1990</td>
-                                    <td>administracion@ejemplo.es</td>
-                                    <td>941 900 900</td>
+                                    <td><a href="{{ route('sellers.show', $seller->id) }}">#VN{{ str_pad($seller->id, 4, '0', STR_PAD_LEFT) }}</a></td>
+                                    <td>{{ $seller->name ?? 'N/A' }}</td>
+                                    <td>{{ ($seller->last_name ?? '') . ' ' . ($seller->last_name2 ?? '') }}</td>
+                                    <td>{{ $seller->birthday ? \Carbon\Carbon::parse($seller->birthday)->format('d/m/Y') : 'N/A' }}</td>
+                                    <td>{{ $seller->nif_cif ?? 'N/A' }}</td>
+                                    <td>{{ $seller->email ?? 'N/A' }}</td>
+                                    <td>{{ $seller->phone ?? 'N/A' }}</td>
+                                    <td>{{ $seller->entity->name ?? 'N/A' }}</td>
                                     <td>
-                                        <a href="{{url('sellers/edit',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                        <span class="badge bg-{{ $seller->status_class }}">
+                                            {{ $seller->status_text }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('sellers.edit', $seller->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <form action="{{ route('sellers.destroy', $seller->id) }}" method="POST" style="display: inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este vendedor?')">
+                                                <i class="ri-delete-bin-6-line"></i>
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
+                                @endforeach
                             </tbody>
                         </table>
 
@@ -78,7 +112,7 @@
 
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
+                    <div class="{{ count($sellers) > 0 ? 'd-none' : '' }}">
                         <div class="d-flex align-items-center gap-1">
 
                             
@@ -94,19 +128,18 @@
 
                                 <br>
 
-                                <a href="{{url('sellers/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                                <a href="{{ route('sellers.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
                             </div>
 
                         </div>
                     </div>
-                    
-                </div> <!-- end card body-->
-            </div> <!-- end card -->
-        </div><!-- end col-->
-    </div>
-    <!-- end row-->
 
-</div> <!-- container -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 @endsection
 

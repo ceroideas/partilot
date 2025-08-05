@@ -10,6 +10,7 @@ use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\LotteryTypeController;
 use App\Http\Controllers\ReserveController;
 use App\Http\Controllers\SetController;
+use App\Http\Controllers\SellerController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ApiController;
 use App\Models\Administration;
@@ -101,11 +102,18 @@ Route::group(['prefix' => 'managers'], function() {
     return view('entities.index');
 });*/
 Route::group(['prefix' => 'sellers'], function() {
-    //
-    Route::get('/', function() {return view('sellers.index');});
-    Route::get('/add', function() {return view('sellers.add');});
-    Route::get('/add/information', function() {return view('sellers.add_information');});
-    Route::get('/edit/{id}', function() {return view('sellers.edit');});
+    Route::get('/', [SellerController::class, 'index'])->name('sellers.index');
+    Route::get('/add', [SellerController::class, 'create'])->name('sellers.create');
+    Route::post('/store-entity', [SellerController::class, 'store_entity'])->name('sellers.store-entity');
+    Route::get('/add-information', [SellerController::class, 'add_information'])->name('sellers.add-information');
+    Route::post('/store-existing-user', [SellerController::class, 'store_existing_user'])->name('sellers.store-existing-user');
+    Route::post('/store-new-user', [SellerController::class, 'store_new_user'])->name('sellers.store-new-user');
+    Route::get('/view/{id}', [SellerController::class, 'show'])->name('sellers.show');
+    Route::get('/edit/{id}', [SellerController::class, 'edit'])->name('sellers.edit');
+    Route::put('/update/{id}', [SellerController::class, 'update'])->name('sellers.update');
+    Route::delete('/destroy/{id}', [SellerController::class, 'destroy'])->name('sellers.destroy');
+    Route::get('/delete/{id}', [SellerController::class, 'destroy'])->name('sellers.delete');
+    Route::post('/check-user-email', [SellerController::class, 'check_user_email'])->name('sellers.check-user-email');
 });
 Route::get('users',function() {
     return view('users.index');
