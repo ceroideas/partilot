@@ -11,7 +11,6 @@ class Entity extends Model
 
     protected $fillable = [
         'administration_id',
-        'manager_id',
         'image',
         'name',
         'province',
@@ -21,7 +20,12 @@ class Entity extends Model
         'nif_cif',
         'phone',
         'email',
-        'comments'
+        'comments',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean',
     ];
 
     /**
@@ -37,7 +41,7 @@ class Entity extends Model
      */
     public function manager()
     {
-        return $this->belongsTo(Manager::class);
+        return $this->hasOne(Manager::class,'entity_id','id');
     }
 
     /**
@@ -46,5 +50,21 @@ class Entity extends Model
     public function sellers()
     {
         return $this->hasMany(Seller::class);
+    }
+
+    /**
+     * Obtener el estado como texto
+     */
+    public function getStatusTextAttribute()
+    {
+        return $this->status ? 'Activo' : 'Inactivo';
+    }
+
+    /**
+     * Obtener el estado como clase CSS
+     */
+    public function getStatusClassAttribute()
+    {
+        return $this->status ? 'success' : 'danger';
     }
 }

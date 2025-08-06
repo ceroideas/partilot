@@ -66,7 +66,7 @@
                                     <td>{{$entity->name ?? 'Sin nombre'}}</td>
                                     <td>{{$entity->province ?? 'Sin provincia'}}</td>
                                     <td>{{$entity->city ?? 'Sin localidad'}}</td>
-                                    <td>{{$entity->manager ? $entity->manager->name . ' ' . $entity->manager->last_name : 'Sin gestor'}}</td>
+                                    <td>{{$entity->manager ? $entity->manager->user->name . ' ' . $entity->manager->user->last_name : 'Sin gestor'}}</td>
                                     <td>{{$entity->phone ?? 'Sin teléfono'}}</td>
                                     <td>{{$entity->email ?? 'Sin email'}}</td>
                                     <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>

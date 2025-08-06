@@ -8,17 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class Manager extends Model
 {
     use HasFactory;
+    
     protected $fillable = [
         "user_id",
-        "image",
-        "name",
-        "last_name",
-        "last_name2",
-        "nif_cif",
-        "birthday",
-        "email",
-        "phone",
-        "comment",
+        "entity_id",
+        "administration_id",
     ];
 
     /**
@@ -27,5 +21,18 @@ class Manager extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relación con Entity
+     */
+    public function entity()
+    {
+        return $this->belongsTo(Entity::class);
+    }
+
+    public function administration()
+    {
+        return $this->belongsTo(Administration::class);
     }
 }

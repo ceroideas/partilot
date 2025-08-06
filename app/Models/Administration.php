@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Administration extends Model
 {
     use HasFactory;
+    
     protected $fillable = [
         "web",
         "name",
@@ -21,13 +22,40 @@ class Administration extends Model
         "email",
         "phone",
         "account",
-        "manager_id",
         "status",
         "image"
     ];
 
+    protected $casts = [
+        'status' => 'boolean',
+    ];
+
+    /**
+     * Relación con Entity
+     */
+    public function entities()
+    {
+        return $this->hasMany(Entity::class);
+    }
+
     public function manager()
     {
-        return $this->belongsTo('App\Models\Manager');
+        return $this->hasOne(Manager::class,'administration_id','id');
+    }
+
+    /**
+     * Obtener el estado como texto
+     */
+    public function getStatusTextAttribute()
+    {
+        return $this->status ? 'Activo' : 'Inactivo';
+    }
+
+    /**
+     * Obtener el estado como clase CSS
+     */
+    public function getStatusClassAttribute()
+    {
+        return $this->status ? 'success' : 'danger';
     }
 }

@@ -45,53 +45,48 @@ class ManagerController extends Controller
             $user->email = $request->email;
             $user->password = bcrypt(12345678);
             $user->save();
-        } else {
-            // Actualizar nombre del usuario si es diferente
-            $user->name = $request->name . ' ' . $request->last_name;
-            $user->save();
         }
 
-        // Preparar datos del manager
-        $managerData = [
+        // Actualizar datos del usuario
+        $user->update([
             'name' => $request->name,
             'last_name' => $request->last_name,
             'last_name2' => $request->last_name2,
             'nif_cif' => $request->nif_cif,
             'birthday' => $request->birthday,
-            'email' => $request->email,
             'phone' => $request->phone,
             'comment' => $request->comment,
-            'user_id' => $user->id
-        ];
+        ]);
 
         // Manejo de imagen del manager
         if ($request->hasFile('image')) {
             // Eliminar imagen anterior si existe
-            if ($manager->image && file_exists(public_path('manager/' . $manager->image))) {
-                unlink(public_path('manager/' . $manager->image));
+            if ($user->image && file_exists(public_path('manager/' . $user->image))) {
+                unlink(public_path('manager/' . $user->image));
             }
             
             $file = $request->file('image');
             $filename = $file->hashName();
             $file->move(public_path('manager'), $filename);
-            $managerData['image'] = $filename;
+            $user->update(['image' => $filename]);
         }
 
-        $manager->update($managerData);
+        // Actualizar la relación manager-entity
+        $manager->update(['user_id' => $user->id]);
 
         // Redirección según el origen
         if ($request->has('origin') && $request->origin === 'entity') {
             // Buscar la entidad asociada a este manager
-            $entity = \App\Models\Entity::where('manager_id', $manager->id)->first();
+            $entity = $manager->entity;
             if ($entity) {
                 return redirect()->route('entities.show', $entity->id)
                     ->with('success', 'Gestor actualizado correctamente.');
             }
         } else {
-            // Buscar la administración asociada a este manager
-            $administration = \App\Models\Administration::where('manager_id', $manager->id)->first();
-            if ($administration) {
-                return redirect()->route('administrations.show', $administration->id)
+            // Buscar la administración asociada a este manager a través de la entidad
+            $entity = $manager->entity;
+            if ($entity && $entity->administration) {
+                return redirect()->route('administrations.show', $entity->administration->id)
                     ->with('success', 'Gestor actualizado correctamente.');
             }
         }
@@ -107,11 +102,13 @@ class ManagerController extends Controller
     {
         $manager = Manager::findOrFail($id);
         
-        // Eliminar imagen si existe
-        if ($manager->image && file_exists(public_path('manager/' . $manager->image))) {
-            unlink(public_path('manager/' . $manager->image));
+        // Eliminar imagen del usuario si existe
+        $user = $manager->user;
+        if ($user && $user->image && file_exists(public_path('manager/' . $user->image))) {
+            unlink(public_path('manager/' . $user->image));
         }
 
+        // Eliminar la relación manager-entity
         $manager->delete();
 
         return redirect()->back()

@@ -3,26 +3,23 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Exception;
 
 class ApiController extends Controller
 {
-    //
     public function test()
     {
-        /*Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->timestamps();
-        });
-
-        Schema::create('managers', function (Blueprint $table) {
+        // Primero, actualizar la estructura de la tabla users
+        $this->updateUsersTable();
+        
+        // Luego, eliminar las restricciones de clave foránea existentes si existen
+        $this->dropForeignKeys();
+        
+        // Crear tablas temporales para guardar los datos existentes
+        Schema::create('sellers_temp', function (Blueprint $table) {
             $table->id();
             $table->integer('user_id')->nullable();
             $table->string("image")->nullable();
@@ -35,242 +32,13 @@ class ApiController extends Controller
             $table->string("phone")->nullable();
             $table->string("comment")->nullable();
             $table->integer("status")->nullable();
+            $table->integer('entity_id')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('administrations', function (Blueprint $table) {
+        Schema::create('managers_temp', function (Blueprint $table) {
             $table->id();
-            $table->string("manager_id")->nullable();
-            $table->string("web")->nullable();
-            $table->string("image")->nullable();
-            $table->string("name")->nullable();
-            $table->string("receiving")->nullable();
-            $table->string("society")->nullable();
-            $table->string("nif_cif")->nullable();
-            $table->string("province")->nullable();
-            $table->string("city")->nullable();
-            $table->string("postal_code")->nullable();
-            $table->string("address")->nullable();
-            $table->string("email")->nullable();
-            $table->string("phone")->nullable();
-            $table->string("account")->nullable();
-            $table->integer("status")->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('entities', function (Blueprint $table) {
-            $table->id();
-            $table->integer('administration_id')->nullable();
-            $table->integer('manager_id')->nullable();
-            $table->string("image")->nullable();
-            $table->string("name")->nullable();
-            $table->string("province")->nullable();
-            $table->string("city")->nullable();
-            $table->string("postal_code")->nullable();
-            $table->string("address")->nullable();
-            $table->string("nif_cif")->nullable();
-            $table->string("phone")->nullable();
-            $table->string("email")->nullable();
-            $table->string("comments")->nullable();
-            $table->integer("status")->nullable();
-            $table->timestamps();
-        });
-
-        \App\Models\User::factory()->create([
-            'name' => 'Test Admin',
-            'email' => 'admin@partilot.com',
-            'password' => bcrypt(12345678),
-        ]);
-
-        Schema::dropIfExists('lotteries');
-        Schema::create('lotteries', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->nullable(); // Número/Nombre del sorteo
-            $table->text('description')->nullable(); // Descripción del sorteo
-            $table->date('draw_date')->nullable(); // Fecha del sorteo
-            $table->time('draw_time')->nullable(); // Hora del sorteo
-            $table->date('deadline_date')->nullable(); // Fecha límite
-            $table->decimal('ticket_price', 10, 2)->nullable(); // Precio del décimo
-            $table->integer('total_tickets')->nullable(); // Total de boletos disponibles
-            $table->integer('sold_tickets')->default(0); // Boletos vendidos
-            $table->string('prize_description')->nullable(); // Descripción del premio
-            $table->decimal('prize_value', 10, 2)->nullable(); // Valor del premio
-            $table->string('image')->nullable(); // Imagen del sorteo
-            $table->integer('status')->default(1);
-            $table->integer('lottery_type_id');
-            $table->timestamps();
-        });
-
-        Schema::create('lottery_types', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->nullable(); // Nombre del tipo de sorteo
-            $table->decimal('ticket_price', 10, 2)->nullable(); // Precio del décimo
-            $table->json('prize_categories')->nullable(); // Categorías de premios en JSON
-            $table->boolean('is_active')->default(true); // Si está activo
-            $table->timestamps();
-        });
-
-        Schema::dropIfExists('reserves');
-        Schema::create('reserves', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('entity_id')->constrained('entities')->onDelete('cascade');
-            $table->foreignId('lottery_id')->constrained('lotteries')->onDelete('cascade');
-            $table->json('reservation_numbers'); // Array de números reservados
-            $table->decimal('total_amount', 10, 2);
-            $table->integer('total_tickets');
-            $table->decimal('reservation_amount', 10, 2); // Importe a reservar
-            $table->integer('reservation_tickets'); // Cantidad de décimos
-            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending');
-            $table->timestamp('reservation_date');
-            $table->timestamp('expiration_date')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::dropIfExists('sets');
-        Schema::create('sets', function (Blueprint $table) {
-            $table->id();
-            
-            // Relaciones
-            $table->foreignId('entity_id')->constrained('entities')->onDelete('cascade');
-            $table->foreignId('reserve_id')->constrained('reserves')->onDelete('cascade');
-            
-            // Información del set
-            $table->string('set_name');
-            $table->text('set_description')->nullable();
-            
-            // Configuración de participaciones
-            $table->integer('total_participations')->nullable();
-            $table->decimal('participation_price', 10, 2)->nullable();
-            $table->decimal('total_amount', 12, 2)->nullable();
-            
-            // Campos adicionales para tipos de participaciones
-            $table->decimal('played_amount', 10, 2)->nullable(); // Importe jugado por número
-            $table->decimal('donation_amount', 10, 2)->nullable(); // Importe donativo
-            $table->decimal('total_participation_amount', 10, 2)->nullable(); // Importe total participación
-            $table->integer('physical_participations')->default(0); // Participaciones físicas
-            $table->integer('digital_participations')->default(0); // Participaciones digitales
-            $table->date('deadline_date')->nullable(); // Fecha límite
-            
-            // Estado (0=inactivo, 1=activo, 2=pausado)
-            $table->tinyInteger('status')->default(1);
-            
-            // Timestamps
-            $table->timestamps();
-            
-            // Índices para mejorar rendimiento
-            $table->index(['entity_id', 'status']);
-            $table->index(['reserve_id']);
-            $table->index('status');
-        });*/
-
-        /*Schema::table('sets', function(Blueprint $table) {
-            //
-            $table->json('tickets')->nullable();
-        });*/
-
-        /*Schema::dropIfExists('design_formats');
-        Schema::create('design_formats', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('entity_id');
-            $table->unsignedBigInteger('lottery_id');
-            $table->unsignedBigInteger('set_id');
-            $table->string('format')->nullable();
-            $table->string('page')->nullable();
-            $table->integer('rows')->nullable();
-            $table->integer('cols')->nullable();
-            $table->string('orientation')->nullable();
-            $table->decimal('margin_up', 8, 2)->nullable();
-            $table->decimal('margin_right', 8, 2)->nullable();
-            $table->decimal('margin_left', 8, 2)->nullable();
-            $table->decimal('margin_top', 8, 2)->nullable();
-            $table->decimal('identation', 8, 2)->nullable();
-            $table->decimal('matrix_box', 8, 2)->nullable();
-            $table->decimal('page_rigth', 8, 2)->nullable();
-            $table->decimal('page_bottom', 8, 2)->nullable();
-            $table->string('guide_color', 20)->nullable();
-            $table->decimal('guide_weight', 8, 2)->nullable();
-            $table->integer('participation_number')->nullable();
-            $table->integer('participation_from')->nullable();
-            $table->integer('participation_to')->nullable();
-            $table->integer('participation_page')->nullable();
-            $table->boolean('guides')->nullable();
-            $table->string('generate', 10)->nullable();
-            $table->string('documents', 10)->nullable();
-
-            $table->decimal('horizontal_space', 8,2)->nullable();
-            $table->decimal('vertical_space', 8,2)->nullable();
-            $table->decimal('margin_custom', 8,2)->nullable();
-
-            $table->json('blocks')->nullable(); // HTML de los containment-wrapper
-            $table->longText('participation_html')->nullable();
-            $table->longText('cover_html')->nullable();
-            $table->longText('back_html')->nullable();
-            $table->json('backgrounds')->nullable();
-            $table->json('output')->nullable();
-            $table->timestamps();
-
-            // Foreign keys (opcional, si existen las tablas referenciadas)
-            // $table->foreign('entity_id')->references('id')->on('entities');
-            // $table->foreign('lottery_id')->references('id')->on('lotteries');
-            // $table->foreign('set_id')->references('id')->on('sets');
-        });*/
-
-        /*Schema::table('design_formats', function(Blueprint $table) {
-            //
-            $table->decimal('horizontal_space', 8,2)->nullable();
-            $table->decimal('vertical_space', 8,2)->nullable();
-            $table->decimal('margin_custom', 8,2)->nullable();
-            $table->longText('margins')->nullable();
-        });*/
-
-        /*Schema::table('lottery_types', function (Blueprint $table) {
-            $table->string('identificador', 2)->nullable()->after('name');
-        });*/
-
-        /*Schema::create('lottery_results', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('lottery_id')->constrained('lotteries')->onDelete('cascade');
-            
-            // Premio Especial
-            $table->json('premio_especial')->nullable();
-            
-            // Primer Premio
-            $table->json('primer_premio')->nullable();
-            
-            // Segundo Premio
-            $table->json('segundo_premio')->nullable();
-            
-            // Arrays de premios
-            $table->json('terceros_premios')->nullable();
-            $table->json('cuartos_premios')->nullable();
-            $table->json('quintos_premios')->nullable();
-            
-            // Arrays de extracciones
-            $table->json('extracciones_cinco_cifras')->nullable();
-            $table->json('extracciones_cuatro_cifras')->nullable();
-            $table->json('extracciones_tres_cifras')->nullable();
-            $table->json('extracciones_dos_cifras')->nullable();
-            
-            // Reintegros
-            $table->json('reintegros')->nullable();
-            
-            // Metadatos
-            $table->timestamp('results_date')->nullable();
-            $table->boolean('is_published')->default(false);
-            $table->timestamps();
-            
-            // Índices para optimizar consultas
-            $table->index(['lottery_id', 'results_date']);
-            $table->index('is_published');
-        });*/
-
-        Schema::create('sellers', function (Blueprint $table) {
-            // Eliminar las columnas existentes
-            $table->id();
-            
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('entity_id')->constrained()->onDelete('cascade');
-
+            $table->integer('user_id')->nullable();
             $table->string("image")->nullable();
             $table->string("name")->nullable();
             $table->string("last_name")->nullable();
@@ -280,15 +48,288 @@ class ApiController extends Controller
             $table->string("email")->nullable();
             $table->string("phone")->nullable();
             $table->string("comment")->nullable();
-            $table->integer("status")->nullable();
             $table->timestamps();
-
-            $table->unique(['user_id', 'entity_id']);
-
         });
 
+        // Copiar datos existentes a tablas temporales
+        if (Schema::hasTable('sellers')) {
+            DB::statement('INSERT INTO sellers_temp (id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, status, entity_id, created_at, updated_at) 
+                          SELECT id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, status, entity_id, created_at, updated_at FROM sellers');
+        }
+        
+        if (Schema::hasTable('managers')) {
+            DB::statement('INSERT INTO managers_temp (id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, created_at, updated_at) 
+                          SELECT id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, created_at, updated_at FROM managers');
+        }
 
-        // https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva=20250802&fechaFinInclusiva=20250802
+        // Migrar datos de managers a users
+        $this->migrateManagersToUsers();
+        
+        // Migrar datos de sellers a users
+        $this->migrateSellersToUsers();
+        
+        // Eliminar las tablas existentes
+        Schema::dropIfExists('sellers');
+        Schema::dropIfExists('managers');
+        
+        // Crear la nueva estructura de sellers
+        Schema::create('sellers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('entity_id')->constrained()->onDelete('cascade');
+            $table->timestamps();
+            $table->unique(['user_id', 'entity_id']);
+        });
+
+        // Crear la nueva estructura de managers
+        Schema::create('managers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('entity_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('administration_id')->nullable()->constrained()->onDelete('cascade');
+            $table->timestamps();
+            $table->unique(['user_id', 'entity_id']);
+            $table->unique(['user_id', 'administration_id']);
+        });
+
+        // Migrar las relaciones
+        $this->migrateRelations();
+        
+        // Eliminar tablas temporales
+        Schema::dropIfExists('sellers_temp');
+        Schema::dropIfExists('managers_temp');
+
+        // Eliminar la columna manager_id de entities si existe
+        if (Schema::hasColumn('entities', 'manager_id')) {
+            Schema::table('entities', function (Blueprint $table) {
+                $table->dropColumn('manager_id');
+            });
+        }
+
+        // Agregar la columna administration_id a managers si no existe
+        if (!Schema::hasColumn('managers', 'administration_id')) {
+            Schema::table('managers', function (Blueprint $table) {
+                $table->foreignId('administration_id')->nullable()->constrained()->onDelete('cascade');
+            });
+        }
+
+        return response()->json(['message' => 'Migración completada exitosamente']);
+    }
+
+    /**
+     * Actualizar la estructura de la tabla users
+     */
+    private function updateUsersTable()
+    {
+        // Verificar si las columnas ya existen para evitar errores
+        $columns = [
+            'last_name',
+            'last_name2', 
+            'nif_cif',
+            'birthday',
+            'phone',
+            'comment',
+            'image',
+            'status'
+        ];
+
+        foreach ($columns as $column) {
+            if (!Schema::hasColumn('users', $column)) {
+                try {
+                    Schema::table('users', function (Blueprint $table) use ($column) {
+                        switch ($column) {
+                            case 'last_name':
+                            case 'last_name2':
+                            case 'nif_cif':
+                            case 'birthday':
+                            case 'phone':
+                            case 'image':
+                                $table->string($column)->nullable();
+                                break;
+                            case 'comment':
+                                $table->text($column)->nullable();
+                                break;
+                            case 'status':
+                                $table->boolean($column)->default(true);
+                                break;
+                        }
+                    });
+                } catch (Exception $e) {
+                    // La columna ya existe o hay otro error, continuar
+                }
+            }
+        }
+    }
+
+    /**
+     * Eliminar restricciones de clave foránea existentes
+     */
+    private function dropForeignKeys()
+    {
+        // Eliminar restricciones de sellers si existen
+        if (Schema::hasTable('sellers')) {
+            try {
+                Schema::table('sellers', function (Blueprint $table) {
+                    $table->dropForeign(['user_id']);
+                });
+            } catch (Exception $e) {
+                // La restricción no existe, continuar
+            }
+            
+            try {
+                Schema::table('sellers', function (Blueprint $table) {
+                    $table->dropForeign(['entity_id']);
+                });
+            } catch (Exception $e) {
+                // La restricción no existe, continuar
+            }
+        }
+
+        // Eliminar restricciones de managers si existen
+        if (Schema::hasTable('managers')) {
+            try {
+                Schema::table('managers', function (Blueprint $table) {
+                    $table->dropForeign(['user_id']);
+                });
+            } catch (Exception $e) {
+                // La restricción no existe, continuar
+            }
+            
+            try {
+                Schema::table('managers', function (Blueprint $table) {
+                    $table->dropForeign(['entity_id']);
+                });
+            } catch (Exception $e) {
+                // La restricción no existe, continuar
+            }
+        }
+    }
+
+    /**
+     * Migrar datos de managers a users
+     */
+    private function migrateManagersToUsers()
+    {
+        $managers = DB::table('managers_temp')->get();
+        
+        foreach ($managers as $manager) {
+            if ($manager->email) {
+                // Verificar si ya existe un usuario con ese email
+                $existingUser = DB::table('users')->where('email', $manager->email)->first();
+                
+                if (!$existingUser) {
+                    // Crear nuevo usuario con los datos del manager
+                    $userId = DB::table('users')->insertGetId([
+                        'name' => $manager->name ?? '',
+                        'last_name' => $manager->last_name ?? null,
+                        'last_name2' => $manager->last_name2 ?? null,
+                        'nif_cif' => $manager->nif_cif ?? null,
+                        'birthday' => $manager->birthday ?? null,
+                        'email' => $manager->email,
+                        'phone' => $manager->phone ?? null,
+                        'comment' => $manager->comment ?? null,
+                        'image' => $manager->image ?? null,
+                        'status' => true,
+                        'password' => bcrypt('password'),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    
+                    // Actualizar el manager con el nuevo user_id
+                    DB::table('managers_temp')->where('id', $manager->id)->update(['user_id' => $userId]);
+                } else {
+                    // Usar el usuario existente
+                    DB::table('managers_temp')->where('id', $manager->id)->update(['user_id' => $existingUser->id]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Migrar datos de sellers a users
+     */
+    private function migrateSellersToUsers()
+    {
+        $sellers = DB::table('sellers_temp')->get();
+        
+        foreach ($sellers as $seller) {
+            if ($seller->email) {
+                // Verificar si ya existe un usuario con ese email
+                $existingUser = DB::table('users')->where('email', $seller->email)->first();
+                
+                if (!$existingUser) {
+                    // Crear nuevo usuario con los datos del seller
+                    $userId = DB::table('users')->insertGetId([
+                        'name' => $seller->name ?? '',
+                        'last_name' => $seller->last_name ?? null,
+                        'last_name2' => $seller->last_name2 ?? null,
+                        'nif_cif' => $seller->nif_cif ?? null,
+                        'birthday' => $seller->birthday ?? null,
+                        'email' => $seller->email,
+                        'phone' => $seller->phone ?? null,
+                        'comment' => $seller->comment ?? null,
+                        'image' => $seller->image ?? null,
+                        'status' => $seller->status ?? true,
+                        'password' => bcrypt('password'),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    
+                    // Actualizar el seller con el nuevo user_id
+                    DB::table('sellers_temp')->where('id', $seller->id)->update(['user_id' => $userId]);
+                } else {
+                    // Usar el usuario existente
+                    DB::table('sellers_temp')->where('id', $seller->id)->update(['user_id' => $existingUser->id]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Migrar las relaciones
+     */
+    private function migrateRelations()
+    {
+        // Migrar sellers
+        $sellers = DB::table('sellers_temp')->whereNotNull('user_id')->whereNotNull('entity_id')->get();
+        
+        foreach ($sellers as $seller) {
+            DB::table('sellers')->insert([
+                'user_id' => $seller->user_id,
+                'entity_id' => $seller->entity_id,
+                'created_at' => $seller->created_at,
+                'updated_at' => $seller->updated_at,
+            ]);
+        }
+
+        // Migrar managers
+        $managers = DB::table('managers_temp')->whereNotNull('user_id')->get();
+        
+        foreach ($managers as $manager) {
+            // Buscar la entidad asociada al manager usando el manager_id original
+            $entity = DB::table('entities')->where('manager_id', $manager->id)->first();
+            
+            // Buscar la administración asociada al manager usando el manager_id original
+            $administration = DB::table('administrations')->where('manager_id', $manager->id)->first();
+            
+            if ($entity) {
+                DB::table('managers')->insert([
+                    'user_id' => $manager->user_id,
+                    'entity_id' => $entity->id,
+                    'administration_id' => null,
+                    'created_at' => $manager->created_at,
+                    'updated_at' => $manager->updated_at,
+                ]);
+            } elseif ($administration) {
+                DB::table('managers')->insert([
+                    'user_id' => $manager->user_id,
+                    'entity_id' => null,
+                    'administration_id' => $administration->id,
+                    'created_at' => $manager->created_at,
+                    'updated_at' => $manager->updated_at,
+                ]);
+            }
+        }
     }
 
     public function checkParticipation(Request $r)
@@ -330,9 +371,6 @@ class ApiController extends Controller
         ]);
     }
 
-    /**
-     * Muestra la vista personalizada del ticket de participación.
-     */
     public function showParticipationTicket(Request $request)
     {
         $ticket = null;
@@ -341,7 +379,7 @@ class ApiController extends Controller
         
         if ($request->has('ref')) {
             $response = $this->checkParticipation($request);
-            $data = $response->getData(true); // array asociativo
+            $data = $response->getData(true);
             if (empty($data['success'])) {
                 $error = $data['message'] ?? 'Error desconocido.';
             } else {
@@ -361,173 +399,62 @@ class ApiController extends Controller
                 
                 // Verificar si el sorteo tiene resultados
                 $lotteryModel = \App\Models\Lottery::find($lottery['id']);
-                $prizeInfo = $this->checkWinningNumbers($lotteryModel, $reserve['reservation_numbers'], $set['total_participations']);
+                if ($lotteryModel && $lotteryModel->results) {
+                    $prizeInfo = $this->checkWinningNumbers($lotteryModel, $ticketData['numbers'] ?? [], $ticketData['total_participations'] ?? 0);
+                }
                 
                 $ticket = [
-                    'titulo' => $reserve['entity']['name'] ?? 'Participación',
-                    'sorteo' => $lottery['description'] ?? '',
-                    'fecha_sorteo' => $lottery['draw_date'] ? \Carbon\Carbon::parse($lottery['draw_date'])->format('d/m/Y') : '-',
-                    'numeros' => implode(' - ', $reserve['reservation_numbers']),
-                    'jugado' => $reserve['total_amount'],
-                    'serie' => $ticketData['n'] ?? '',
-                    'referencia' => $ticketData['r'] ?? $ref,
+                    'data' => $ticketData,
+                    'set' => $set,
+                    'reserve' => $reserve,
+                    'lottery' => $lottery,
+                    'prize_info' => $prizeInfo
                 ];
             }
-        } else {
-            $error = 'Referencia de ticket no proporcionada.';
         }
-        return view('participation_ticket', compact('ticket', 'error', 'prizeInfo'));
+        
+        return view('social.participation-ticket', compact('ticket', 'error'));
     }
 
-    /**
-     * Verifica si los números del ticket son ganadores
-     */
     private function checkWinningNumbers($lottery, $ticketNumbers, $totalParticipations)
     {
-        if (!$lottery || !$lottery->result) {
-            return [
-                'isWinner' => false,
-                'message' => 'Resultados del sorteo no disponibles',
-                'prize' => null,
-                'prizeAmount' => null
-            ];
+        if (!$lottery->results || !$ticketNumbers) {
+            return null;
         }
 
-        $result = $lottery->result;
-        $winningCategory = null;
-        $prizeAmount = null;
+        $results = $lottery->results;
+        $prizeInfo = [
+            'has_won' => false,
+            'prize_category' => null,
+            'prize_amount' => 0,
+            'matching_numbers' => []
+        ];
 
-        // Verificar primer premio
-        if ($result->primer_premio && isset($result->primer_premio['decimo'])) {
-            if (in_array($result->primer_premio['decimo'], $ticketNumbers)) {
-                $winningCategory = 'Primer Premio';
-                $prizeAmount = isset($result->primer_premio['prize']) ? 
-                    ($result->primer_premio['prize']/100) / $totalParticipations : 0;
-            }
-        }
-
-        // Verificar segundo premio
-        if (!$winningCategory && $result->segundo_premio && isset($result->segundo_premio['decimo'])) {
-            if (in_array($result->segundo_premio['decimo'], $ticketNumbers)) {
-                $winningCategory = 'Segundo Premio';
-                $prizeAmount = isset($result->segundo_premio['prize']) ? 
-                    ($result->segundo_premio['prize']/100) / $totalParticipations : 0;
-            }
-        }
-
-        // Verificar terceros premios
-        if (!$winningCategory && $result->terceros_premios) {
-            foreach ($result->terceros_premios as $tercero) {
-                if (isset($tercero['decimo']) && in_array($tercero['decimo'], $ticketNumbers)) {
-                    $winningCategory = 'Tercer Premio';
-                    $prizeAmount = isset($tercero['prize']) ? 
-                        ($tercero['prize']/100) / $totalParticipations : 0;
-                    break;
-                }
-            }
-        }
-
-        // Verificar cuartos premios
-        if (!$winningCategory && $result->cuartos_premios) {
-            foreach ($result->cuartos_premios as $cuarto) {
-                if (isset($cuarto['decimo']) && in_array($cuarto['decimo'], $ticketNumbers)) {
-                    $winningCategory = 'Cuarto Premio';
-                    $prizeAmount = isset($cuarto['prize']) ? 
-                        ($cuarto['prize']/100) / $totalParticipations : 0;
-                    break;
-                }
-            }
-        }
-
-        // Verificar quintos premios
-        if (!$winningCategory && $result->quintos_premios) {
-            foreach ($result->quintos_premios as $quinto) {
-                if (isset($quinto['decimo']) && in_array($quinto['decimo'], $ticketNumbers)) {
-                    $winningCategory = 'Quinto Premio';
-                    $prizeAmount = isset($quinto['prize']) ? 
-                        ($quinto['prize']/100) / $totalParticipations : 0;
-                    break;
-                }
-            }
-        }
-
-        // Verificar extracciones
-        if (!$winningCategory) {
-            // Extracciones de 5 cifras
-            if ($result->extracciones_cinco_cifras) {
-                foreach ($result->extracciones_cinco_cifras as $extraccion) {
-                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
-                        $winningCategory = 'Extracción 5 Cifras';
-                        $prizeAmount = isset($extraccion['prize']) ? 
-                            ($extraccion['prize']/100) / $totalParticipations : 0;
-                        break;
+        // Verificar cada número del ticket
+        foreach ($ticketNumbers as $number) {
+            $numberStr = str_pad($number, 5, '0', STR_PAD_LEFT);
+            
+            // Verificar premios
+            if (isset($results['premios'])) {
+                foreach ($results['premios'] as $category => $prize) {
+                    if (isset($prize['numero']) && $prize['numero'] == $numberStr) {
+                        $prizeInfo['has_won'] = true;
+                        $prizeInfo['prize_category'] = $category;
+                        $prizeInfo['prize_amount'] = $prize['importe'] ?? 0;
+                        $prizeInfo['matching_numbers'][] = $number;
                     }
                 }
             }
 
-            // Extracciones de 4 cifras
-            if (!$winningCategory && $result->extracciones_cuatro_cifras) {
-                foreach ($result->extracciones_cuatro_cifras as $extraccion) {
-                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
-                        $winningCategory = 'Extracción 4 Cifras';
-                        $prizeAmount = isset($extraccion['prize']) ? 
-                            ($extraccion['prize']/100) / $totalParticipations : 0;
-                        break;
-                    }
-                }
-            }
-
-            // Extracciones de 3 cifras
-            if (!$winningCategory && $result->extracciones_tres_cifras) {
-                foreach ($result->extracciones_tres_cifras as $extraccion) {
-                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
-                        $winningCategory = 'Extracción 3 Cifras';
-                        $prizeAmount = isset($extraccion['prize']) ? 
-                            ($extraccion['prize']/100) / $totalParticipations : 0;
-                        break;
-                    }
-                }
-            }
-
-            // Extracciones de 2 cifras
-            if (!$winningCategory && $result->extracciones_dos_cifras) {
-                foreach ($result->extracciones_dos_cifras as $extraccion) {
-                    if (isset($extraccion['decimo']) && in_array($extraccion['decimo'], $ticketNumbers)) {
-                        $winningCategory = 'Extracción 2 Cifras';
-                        $prizeAmount = isset($extraccion['prize']) ? 
-                            ($extraccion['prize']/100) / $totalParticipations : 0;
-                        break;
-                    }
-                }
+            // Verificar reintegros
+            if (isset($results['reintegros']) && in_array($numberStr, $results['reintegros'])) {
+                $prizeInfo['has_won'] = true;
+                $prizeInfo['prize_category'] = 'reintegro';
+                $prizeInfo['prize_amount'] = 20; // Valor del reintegro
+                $prizeInfo['matching_numbers'][] = $number;
             }
         }
 
-        // Verificar reintegros
-        if (!$winningCategory && $result->reintegros) {
-            foreach ($result->reintegros as $reintegro) {
-                if (isset($reintegro['decimo']) && in_array($reintegro['decimo'], $ticketNumbers)) {
-                    $winningCategory = 'Reintegro';
-                    $prizeAmount = isset($reintegro['prize']) ? 
-                        $reintegro['prize'] : $lottery->ticket_price; // Usar el premio del reintegro o el precio del décimo
-                    break;
-                }
-            }
-        }
-
-        if ($winningCategory) {
-            return [
-                'isWinner' => true,
-                'message' => '¡FELICIDADES! Has ganado',
-                'category' => $winningCategory,
-                'prizeAmount' => number_format($prizeAmount, 2, ',', '.') . '€'
-            ];
-        } else {
-            return [
-                'isWinner' => false,
-                'message' => 'No has ganado en este sorteo',
-                'category' => null,
-                'prizeAmount' => null
-            ];
-        }
+        return $prizeInfo;
     }
-}
+} 

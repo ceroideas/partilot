@@ -11,25 +11,11 @@ class Seller extends Model
 
     protected $fillable = [
         'user_id',
-        'image',
-        'name',
-        'last_name',
-        'last_name2',
-        'nif_cif',
-        'birthday',
-        'email',
-        'phone',
-        'comment',
-        'status',
         'entity_id'
     ];
 
-    protected $casts = [
-        'status' => 'integer',
-    ];
-
     /**
-     * Relación con User (opcional)
+     * Relación con User
      */
     public function user()
     {
@@ -45,33 +31,79 @@ class Seller extends Model
     }
 
     /**
-     * Obtener el nombre completo del vendedor
+     * Obtener el nombre completo del vendedor desde el usuario
      */
     public function getFullNameAttribute()
     {
-        $fullName = $this->name ?? '';
-        if ($this->last_name) {
-            $fullName .= ' ' . $this->last_name;
-        }
-        if ($this->last_name2) {
-            $fullName .= ' ' . $this->last_name2;
-        }
-        return trim($fullName);
+        return $this->user ? $this->user->full_name : '';
     }
 
     /**
-     * Obtener el estado como texto
+     * Obtener el estado como texto desde el usuario
      */
     public function getStatusTextAttribute()
     {
-        return $this->status == 1 ? 'Activo' : 'Inactivo';
+        return $this->user && $this->user->status ? 'Activo' : 'Inactivo';
     }
 
     /**
-     * Obtener el estado como clase CSS
+     * Obtener el estado como clase CSS desde el usuario
      */
     public function getStatusClassAttribute()
     {
-        return $this->status == 1 ? 'success' : 'danger';
+        return $this->user && $this->user->status ? 'success' : 'danger';
+    }
+
+    /**
+     * Accesores para los datos del usuario
+     */
+    public function getNameAttribute()
+    {
+        return $this->user ? $this->user->name : '';
+    }
+
+    public function getLastNameAttribute()
+    {
+        return $this->user ? $this->user->last_name : '';
+    }
+
+    public function getLastName2Attribute()
+    {
+        return $this->user ? $this->user->last_name2 : '';
+    }
+
+    public function getNifCifAttribute()
+    {
+        return $this->user ? $this->user->nif_cif : '';
+    }
+
+    public function getBirthdayAttribute()
+    {
+        return $this->user ? $this->user->birthday : '';
+    }
+
+    public function getEmailAttribute()
+    {
+        return $this->user ? $this->user->email : '';
+    }
+
+    public function getPhoneAttribute()
+    {
+        return $this->user ? $this->user->phone : '';
+    }
+
+    public function getCommentAttribute()
+    {
+        return $this->user ? $this->user->comment : '';
+    }
+
+    public function getImageAttribute()
+    {
+        return $this->user ? $this->user->image : '';
+    }
+
+    public function getStatusAttribute()
+    {
+        return $this->user ? $this->user->status : false;
     }
 }

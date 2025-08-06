@@ -358,8 +358,8 @@
 			                    						
 					                    				<div class="photo-preview-2">
 					                    					
-					                    					@if($entity->manager && $entity->manager->image)
-					                    						<img src="{{ url('manager/' . $entity->manager->image) }}" alt="Imagen del gestor" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+					                    					@if($entity->manager && $entity->manager->user->image)
+					                    						<img src="{{ url('manager/' . $entity->manager->user->image) }}" alt="Imagen del gestor" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
 					                    					@else
 					                    						<i class="ri-account-circle-fill"></i>
 					                    					@endif
@@ -373,7 +373,7 @@
 
 			                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin gestor' }}</h4>
 
-			                    						<small>{{ $entity->manager ? $entity->manager->name . ' ' . $entity->manager->last_name : 'Sin gestor asignado' }}</small> <br>
+			                    						<small>{{ $entity->manager ? $entity->manager->user->name . ' ' . $entity->manager->user->last_name : 'Sin gestor asignado' }}</small> <br>
 
 			                    						@if($entity->manager)
 			                    							<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $entity->administration->receiving ?? '' }}
@@ -426,7 +426,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->user->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -440,7 +440,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->user->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -455,7 +455,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->user->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -470,7 +470,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->user->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -485,7 +485,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->birthday ?? '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->user->birthday->format('Y-m-d') ?? '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -500,7 +500,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->user->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -515,7 +515,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->phone ?? '' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager->user->phone ?? '' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -538,7 +538,7 @@
 
 						                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{ $entity->manager->comment ?? '' }}</textarea>
+						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{ $entity->manager->user->comment ?? '' }}</textarea>
 						                                </div>
 					                    			</div>
 

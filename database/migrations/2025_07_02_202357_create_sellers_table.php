@@ -13,13 +13,20 @@ return new class extends Migration
     {
         Schema::create('sellers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('entity_id')->constrained()->onDelete('cascade');
-            $table->boolean('is_active')->default(true);
+            $table->integer('user_id')->nullable();
+            $table->string("image")->nullable();
+            $table->string("name")->nullable();
+            $table->string("last_name")->nullable();
+            $table->string("last_name2")->nullable();
+            $table->string("nif_cif")->nullable();
+            $table->string("birthday")->nullable();
+            $table->string("email")->nullable();
+            $table->string("phone")->nullable();
+            $table->string("comment")->nullable();
+            $table->integer("status")->nullable();
+            $table->integer('entity_id')->nullable();
+            $table->integer('temp_user_id')->nullable(); // Columna temporal para migración
             $table->timestamps();
-            
-            // Índice único para evitar duplicados
-            $table->unique(['user_id', 'entity_id']);
         });
     }
 

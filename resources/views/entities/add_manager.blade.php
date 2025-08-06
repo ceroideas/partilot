@@ -321,7 +321,7 @@
                     						<!-- Formularios ocultos para manejar las invitaciones -->
                     						<form id="invite-manager-form" action="{{url('entities/invite-manager')}}" method="POST" style="display: none;">
                     							@csrf()
-                    							<input type="hidden" name="manager_id" id="manager-id-input">
+                    							                <input type="hidden" name="user_id" id="user-id-input">
                     							<input type="hidden" name="invite_email" id="invite-email-input">
                     						</form>
 
@@ -595,7 +595,7 @@ $('#invite-button').click(function (e) {
 				$('#coincidence-email').text(email);
 				
 				// Guardar datos para el formulario
-				$('#manager-id-input').val(response.manager_id);
+				                    $('#user-id-input').val(response.user_id);
 				$('#invite-email-input').val(email);
 			} else {
 				// No hay coincidencia

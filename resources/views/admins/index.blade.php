@@ -71,7 +71,7 @@
 	                                <td>{{$admins->receiving}}</td>
 	                                <td>{{$admins->province}}</td>
 	                                <td>{{$admins->city}}</td>
-	                                <td>{{$admins->manager->name.' '.$admins->manager->last_name}}</td>
+	                                <td>{{$admins->manager->user->name.' '.$admins->manager->user->last_name}}</td>
 	                                <td>{{$admins->phone}}</td>
 	                                <td>{{$admins->email}}</td>
 	                                <td>

@@ -19,7 +19,15 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'last_name',
+        'last_name2',
+        'nif_cif',
+        'birthday',
         'email',
+        'phone',
+        'comment',
+        'image',
+        'status',
         'password',
     ];
 
@@ -41,6 +49,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'status' => 'boolean',
+        'birthday' => 'date',
     ];
 
     /**
@@ -49,5 +59,28 @@ class User extends Authenticatable
     public function sellers()
     {
         return $this->hasMany(Seller::class);
+    }
+
+    /**
+     * Relación con Manager
+     */
+    public function managers()
+    {
+        return $this->hasMany(Manager::class);
+    }
+
+    /**
+     * Obtener el nombre completo del usuario
+     */
+    public function getFullNameAttribute()
+    {
+        $fullName = $this->name;
+        if ($this->last_name) {
+            $fullName .= ' ' . $this->last_name;
+        }
+        if ($this->last_name2) {
+            $fullName .= ' ' . $this->last_name2;
+        }
+        return $fullName;
     }
 }

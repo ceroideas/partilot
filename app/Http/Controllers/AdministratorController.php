@@ -59,7 +59,7 @@ class AdministratorController extends Controller
             "email" => $request->email,
             "phone" => $request->phone,
             "account" => implode(' ', $request->account),
-            "status" => $request->status ?? false,
+            "status" => $request->status ?? true,
         ];
 
         if ($request->file('image')) {
@@ -132,18 +132,42 @@ class AdministratorController extends Controller
             $u->save();
         }
 
-        $data['user_id'] = $u->id;
+        // Actualizar datos del usuario
+        $u->update([
+            'name' => $request->validated()["name"],
+            'last_name' => $request->validated()["last_name"],
+            'last_name2' => $request->validated()["last_name2"],
+            'nif_cif' => $request->validated()["nif_cif"],
+            'birthday' => $request->validated()["birthday"],
+            'phone' => $request->validated()["phone"],
+            'comment' => $request->validated()["comment"],
+        ]);
 
-        $manager = Manager::where('email',$request->validated()["email"])->first();
+        // Manejo de imagen del manager
+        if ($request->file('image')) {
+            $u->update(['image' => $data["image"]]);
+        }
+
+        // Verificar si ya existe un manager con este usuario para esta administración
+        $manager = Manager::where('user_id', $u->id)
+                          ->where('administration_id', null)
+                          ->first();
 
         if (!$manager) {
-            $manager = Manager::create($data);
+            // Crear el manager con user_id y administration_id
+            $manager = Manager::create([
+                'user_id' => $u->id,
+                'administration_id' => null // Se asignará después de crear la administración
+            ]);
         }
 
         $administration = $request->session()->get("administration");
-        $administration['manager_id'] = $manager->id;
+        // La relación manager-administration se maneja a través de entities
 
-        Administration::create($administration);
+        $newAdministration = Administration::create($administration);
+
+        // Actualizar el manager con el administration_id
+        $manager->update(['administration_id' => $newAdministration->id]);
 
         $request->session()->forget('administration');
 

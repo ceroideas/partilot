@@ -101,28 +101,23 @@ class EntityController extends Controller
             $user->save();
         }
 
-        // Crear manager
-        $managerData = [
+        // Actualizar datos del usuario si es necesario
+        $user->update([
             'name' => $validated['manager_name'],
             'last_name' => $validated['manager_last_name'],
             'last_name2' => $validated['manager_last_name2'],
             'nif_cif' => $validated['manager_nif_cif'],
             'birthday' => $validated['manager_birthday'],
-            'email' => $validated['manager_email'],
             'phone' => $validated['manager_phone'],
-            // 'comment' => $validated['manager_comment'],
-            'user_id' => $user->id
-        ];
+        ]);
 
         // Manejo de imagen del manager
         if ($request->hasFile('manager_image')) {
             $file = $request->file('manager_image');
             $filename = $file->hashName();
             $file->move(public_path('manager'), $filename);
-            $managerData['image'] = $filename;
+            $user->update(['image' => $filename]);
         }
-
-        $manager = Manager::create($managerData);
 
         // Obtener datos de sesión
         $administration = $request->session()->get('selected_administration');
@@ -131,10 +126,15 @@ class EntityController extends Controller
         // Crear entidad
         $entityData = array_merge($entityInformation, [
             'administration_id' => $administration->id,
-            'manager_id' => $manager->id
         ]);
 
-        Entity::create($entityData);
+        $entity = Entity::create($entityData);
+
+        // Crear la relación manager-entity
+        Manager::create([
+            'user_id' => $user->id,
+            'entity_id' => $entity->id
+        ]);
 
         // Limpiar sesión
         $request->session()->forget(['selected_administration', 'entity_information']);
@@ -154,13 +154,13 @@ class EntityController extends Controller
 
         $email = $request->email;
         
-        // Buscar si existe un manager con ese email
-        $manager = Manager::where('email', $email)->first();
+        // Buscar si existe un usuario con ese email
+        $user = User::where('email', $email)->first();
         
         return response()->json([
-            'exists' => $manager ? true : false,
-            'manager_id' => $manager ? $manager->id : null,
-            'manager_name' => $manager ? $manager->name . ' ' . $manager->last_name : null
+            'exists' => $user ? true : false,
+            'user_id' => $user ? $user->id : null,
+            'manager_name' => $user ? $user->name . ' ' . $user->last_name : null
         ]);
     }
 
@@ -170,7 +170,7 @@ class EntityController extends Controller
     public function invite_manager(Request $request)
     {
         $request->validate([
-            'manager_id' => 'required|integer|exists:managers,id',
+            'user_id' => 'required|integer|exists:users,id',
             'invite_email' => 'required|email'
         ]);
 
@@ -183,13 +183,18 @@ class EntityController extends Controller
                 ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
         }
 
-        // Crear entidad con el manager existente
+        // Crear entidad
         $entityData = array_merge($entityInformation, [
             'administration_id' => $administration->id,
-            'manager_id' => $request->manager_id
         ]);
 
-        Entity::create($entityData);
+        $entity = Entity::create($entityData);
+
+        // Crear la relación manager-entity
+        Manager::create([
+            'user_id' => $request->user_id,
+            'entity_id' => $entity->id
+        ]);
 
         // Limpiar sesión
         $request->session()->forget(['selected_administration', 'entity_information']);
@@ -219,7 +224,6 @@ class EntityController extends Controller
         // Crear entidad sin manager (se asignará cuando se registre)
         $entityData = array_merge($entityInformation, [
             'administration_id' => $administration->id,
-            'manager_id' => null // Se asignará cuando el usuario se registre
         ]);
 
         $entity = Entity::create($entityData);
@@ -250,25 +254,36 @@ class EntityController extends Controller
             ]
         );
 
-        // Crear manager de prueba
-        $manager = Manager::firstOrCreate(
-            ['email' => 'test@manager.com'],
+        // Crear entidad de prueba
+        $entity = Entity::firstOrCreate(
+            ['name' => 'Test Entity'],
             [
-                'name' => 'Test',
-                'last_name' => 'Manager',
-                'last_name2' => 'Apellido2',
-                'nif_cif' => '12345678A',
-                'birthday' => '1990-01-01',
-                'email' => 'test@manager.com',
+                'administration_id' => 1,
+                'name' => 'Test Entity',
+                'province' => 'Test Province',
+                'city' => 'Test City',
+                'postal_code' => '12345',
+                'address' => 'Test Address',
+                'nif_cif' => '12345678B',
                 'phone' => '123456789',
-                'user_id' => $user->id
+                'email' => 'test@entity.com',
+                'comments' => 'Test Comments',
+            ]
+        );
+
+        // Crear la relación manager-entity
+        $manager = Manager::firstOrCreate(
+            ['user_id' => $user->id, 'entity_id' => $entity->id],
+            [
+                'user_id' => $user->id,
+                'entity_id' => $entity->id
             ]
         );
 
         return response()->json([
             'message' => 'Gestor de prueba creado exitosamente',
-            'manager_id' => $manager->id,
-            'email' => $manager->email
+            'user_id' => $user->id,
+            'email' => $user->email
         ]);
     }
 
@@ -289,8 +304,8 @@ class EntityController extends Controller
     {
         $entity = Entity::findOrFail($id);
         $administrations = Administration::all();
-        $managers = Manager::all();
-        return view('entities.edit', compact('entity', 'administrations', 'managers'));
+        $users = User::all();
+        return view('entities.edit', compact('entity', 'administrations', 'users'));
     }
 
     /**
@@ -302,7 +317,6 @@ class EntityController extends Controller
         
         $validated = $request->validate([
             'administration_id' => 'nullable|integer|exists:administrations,id',
-            'manager_id' => 'nullable|integer|exists:managers,id',
             'name' => 'nullable|string|max:255',
             'province' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
@@ -386,44 +400,41 @@ class EntityController extends Controller
             $user->email = $request->manager_email;
             $user->password = bcrypt(12345678);
             $user->save();
-        } else {
-            // Actualizar nombre del usuario si es diferente
-            $user->name = $request->manager_name . ' ' . $request->manager_last_name;
-            $user->save();
         }
 
-        // Preparar datos del manager
-        $managerData = [
+        // Actualizar datos del usuario
+        $user->update([
             'name' => $request->manager_name,
             'last_name' => $request->manager_last_name,
             'last_name2' => $request->manager_last_name2,
             'nif_cif' => $request->manager_nif_cif,
             'birthday' => $request->manager_birthday,
-            'email' => $request->manager_email,
             'phone' => $request->manager_phone,
             'comment' => $request->manager_comment,
-            'user_id' => $user->id
-        ];
+        ]);
 
         // Manejo de imagen del manager
         if ($request->hasFile('manager_image')) {
             // Eliminar imagen anterior si existe
-            if ($entity->manager && $entity->manager->image && file_exists(public_path('manager/' . $entity->manager->image))) {
-                unlink(public_path('manager/' . $entity->manager->image));
+            if ($user->image && file_exists(public_path('manager/' . $user->image))) {
+                unlink(public_path('manager/' . $user->image));
             }
             
             $file = $request->file('manager_image');
             $filename = $file->hashName();
             $file->move(public_path('manager'), $filename);
-            $managerData['image'] = $filename;
+            $user->update(['image' => $filename]);
         }
 
-        // Actualizar o crear manager
-        if ($entity->manager) {
-            $entity->manager->update($managerData);
+        // Actualizar o crear relación manager-entity
+        $manager = Manager::where('entity_id', $entity->id)->first();
+        if ($manager) {
+            $manager->update(['user_id' => $user->id]);
         } else {
-            $manager = Manager::create($managerData);
-            $entity->update(['manager_id' => $manager->id]);
+            Manager::create([
+                'user_id' => $user->id,
+                'entity_id' => $entity->id
+            ]);
         }
 
         return redirect()->route('entities.show', $entity->id)

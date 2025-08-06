@@ -13,10 +13,9 @@ return new class extends Migration
     {
         Schema::create('administrations', function (Blueprint $table) {
             $table->id();
-            $table->integer("manager_id")->nullable();
             $table->string("web")->nullable();
             $table->string("image")->nullable();
-            $table->string("name")->nullable();
+            $table->string("name");
             $table->string("receiving")->nullable();
             $table->string("society")->nullable();
             $table->string("nif_cif")->nullable();

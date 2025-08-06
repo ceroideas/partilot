@@ -13,17 +13,14 @@ return new class extends Migration
     {
         Schema::create('managers', function (Blueprint $table) {
             $table->id();
-            $table->integer('user_id')->nullable();
-            $table->string("image")->nullable();
-            $table->string("name")->nullable();
-            $table->string("last_name")->nullable();
-            $table->string("last_name2")->nullable();
-            $table->string("nif_cif")->nullable();
-            $table->string("birthday")->nullable();
-            $table->string("email")->nullable();
-            $table->string("phone")->nullable();
-            $table->string("comment")->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('entity_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('administration_id')->nullable()->constrained()->onDelete('cascade');
             $table->timestamps();
+            
+            // Asegurar que un usuario solo puede ser manager de una entidad o administración
+            $table->unique(['user_id', 'entity_id']);
+            $table->unique(['user_id', 'administration_id']);
         });
     }
 
