@@ -74,8 +74,8 @@ class ManagerController extends Controller
         // Actualizar la relación manager-entity
         $manager->update(['user_id' => $user->id]);
 
-        // Redirección según el origen
-        if ($request->has('origin') && $request->origin === 'entity') {
+        /*// Redirección según el origen
+        if ($request->has('origin') && $request->origin === 'entities') {
             // Buscar la entidad asociada a este manager
             $entity = $manager->entity;
             if ($entity) {
@@ -89,7 +89,7 @@ class ManagerController extends Controller
                 return redirect()->route('administrations.show', $entity->administration->id)
                     ->with('success', 'Gestor actualizado correctamente.');
             }
-        }
+        }*/
         
         return redirect()->back()
             ->with('success', 'Gestor actualizado correctamente.');

@@ -104,7 +104,11 @@
                                         </div>
                                     </div>
 
-                                    <div class="row mt-4">
+                                    <br>
+
+                                    <div style="min-height: 340px;">
+
+                                    <div class="row">
                                         <div class="col-md-4">
                                             <div class="form-group mt-2 mb-3">
                                                 <label class="label-control">Nombre</label>
@@ -159,7 +163,7 @@
                                                     <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                         <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                     </div>
-                                                    <input class="form-control" type="date" name="birthday" value="{{ old('birthday', $seller->birthday) }}" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+                                                    <input class="form-control" type="date" name="birthday" value="{{ old('birthday', $seller->birthday->format('Y-m-d')) }}" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
                                                 </div>
                                             </div>
                                         </div>
@@ -187,14 +191,15 @@
                                         </div>
                                     </div>
 
-                                    <div class="row mt-4">
+                                    </div>
+
+                                    <div class="row">
                                         <div class="col-8">
                                             
                                         </div>
                                         <div class="col-4 text-end">
-                                            <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder;" class="btn btn-md btn-light">
-                                                <i class="ri-save-line" style="margin-right: 6px;"></i>
-                                                Guardar
+                                            <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
+                                                    <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i>
                                             </button>
                                         </div>
                                     </div>
