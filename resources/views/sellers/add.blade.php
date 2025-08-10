@@ -82,33 +82,35 @@
                     			<br>
                     			<br>
 
-                    			<div style="min-height: 656px;">
+                    			<div style="min-height: 250px; max-height: 656px; overflow: auto;">
 
 	                    			<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="">
 				                            <tr>
-				                                <th>Seleccionar</th>
 				                                <th>ID</th>
 				                                <th>Nombre</th>
 				                                <th>Provincia</th>
 				                                <th>Localidad</th>
 				                                <th>Administración</th>
 				                                <th>Estado</th>
+				                                <th>Seleccionar</th>
 				                            </tr>
 				                        </thead>
 				                    
 				                        <tbody>
 				                            @foreach($entities as $entity)
 				                            <tr>
-				                                <td>
-				                                    <input type="radio" name="entity_id" value="{{ $entity->id }}" class="form-check-input">
-				                                </td>
 				                                <td>#{{ $entity->id }}</td>
 				                                <td>{{ $entity->name }}</td>
 				                                <td>{{ $entity->province }}</td>
 				                                <td>{{ $entity->city }}</td>
 				                                <td>{{ $entity->administration->name ?? 'N/A' }}</td>
 				                                <td><label class="badge bg-success">Activo</label></td>
+				                                <td>
+                                                    <label>
+				                                        <input type="radio" name="entity_id" value="{{ $entity->id }}" class="form-check-input"> Seleccionar
+                                                    </label>
+				                                </td>
 				                            </tr>
 				                            @endforeach
 				                        </tbody>

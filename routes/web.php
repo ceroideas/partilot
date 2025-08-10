@@ -8,6 +8,7 @@ use App\Http\Controllers\EntityController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\LotteryTypeController;
+use App\Http\Controllers\LotteryScrutinyController;
 use App\Http\Controllers\ReserveController;
 use App\Http\Controllers\SetController;
 use App\Http\Controllers\SellerController;
@@ -137,7 +138,11 @@ Route::group(['prefix' => 'lottery'], function() {
     Route::get('/administrations', [LotteryController::class, 'showAdministrations'])->name('lottery.administrations');
     Route::post('/select-administration', [LotteryController::class, 'selectAdministration'])->name('lottery.select-administration');
     Route::get('/results', [LotteryController::class, 'showLotteryResults'])->name('lottery.results');
-    Route::get('/scrutiny/{id}', function() {return view('lottery.scrutiny');});
+    // Rutas de escrutinio
+    Route::get('/scrutiny/{lottery}', [LotteryScrutinyController::class, 'show'])->name('lottery.scrutiny');
+    Route::post('/scrutiny/{lottery}/process', [LotteryScrutinyController::class, 'process'])->name('lottery.process-scrutiny');
+    Route::get('/scrutiny/{lottery}/administration/{administration}', [LotteryScrutinyController::class, 'showResults'])->name('lottery.show-administration-scrutiny');
+    Route::delete('/scrutiny/{lottery}/administration/{administration}', [LotteryScrutinyController::class, 'delete'])->name('lottery.delete-scrutiny');
     Route::get('/results/edit/{id}', [LotteryController::class, 'editLotteryResults'])->name('lottery.edit-results');
     
     // Rutas para resultados de lotería

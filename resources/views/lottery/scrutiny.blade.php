@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title','Administraciones')
+@section('title','Escrutinio de Sorteo')
 
 @section('content')
 
@@ -10,194 +10,252 @@
     <div class="row">
         <div class="col-12">
             <div class="page-title-box">
-            	<div class="page-title-right">
+                <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="javascript: void(0);">Sorteos</a></li>
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">Resultados</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('lottery.results') }}">Resultados</a></li>
                         <li class="breadcrumb-item active">Escrutinio</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Sorteos</h4>
+                <h4 class="page-title">Escrutinio de Sorteo</h4>
             </div>
         </div>
-    </div>     
+    </div>
+
+    @if(session('error'))
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="ri-error-warning-line me-2"></i>
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="ri-alert-line me-2"></i>
+                    {{ session('warning') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
 
-                	<h4 class="header-title">
+                    <form action="{{ route('lottery.process-scrutiny', $lottery->id) }}" method="POST">
+                        @csrf
+                        
+                        <h4 class="header-title">
+                            Realizar Escrutinio
+                            <span class="badge bg-warning float-end">PENDIENTE</span>
+                        </h4>
 
-                    	Escrutinio Sorteo
+                        <br>
 
-                    </h4>
+                        <div class="row">
+                            
+                            <div class="col-md-12">
+                                <div class="form-card bs" style="min-height: 658px;">
+                                    <h4 class="mb-0 mt-1">
+                                        Datos del Sorteo y Administración
+                                    </h4>
+                                    <small><i>Verificar que los datos sean correctos antes de procesar</i></small>
 
-                    <br>
+                                    <div class="form-group mt-2 mb-3">
 
-                    <div class="row">
-                    	
-                    	<div class="col-md-12">
-                    		<div class="form-card bs" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Datos resultados sorteo
-                    			</h4>
-                    			<small><i>Asegúrate de que los datos sean correctos</i></small>
+                                        <div class="row">
 
-                    			<div class="form-group mt-2 mb-3">
+                                            <div class="col-4">
+
+                                                <div style="width: 150px; height: 80px; border-radius: 8px; background-color: silver; float: left; margin-right: 20px;">
+                                                    @if($lottery->image)
+                                                        <img src="{{ url('storage/' . $lottery->image) }}" alt="Sorteo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                                                    @endif
+                                                </div>
+
+                                                <div style="float: left; margin-top: .5rem">
+                                                    Sorteo: {{ $lottery->name }} <br>
+                                                    
+                                                    <h4 class="mt-0 mb-0">
+                                                        {{ $lottery->description ?? $lottery->lotteryType->name }}
+                                                    </h4>
+
+                                                </div>
+
+                                                <div class="clearfix"></div>
+                                                
+                                            </div>
+
+                                            <div class="col-2">
+
+                                                <div style="float: left; margin-top: .5rem">
+                                                    Fecha Sorteo <br>
+                                                    
+                                                    <h5 class="mb-0">
+                                                       {{ $lottery->draw_date ? $lottery->draw_date->format('d/m/Y') : 'N/A' }}
+                                                    </h5>
+
+                                                </div>
+                                                
+                                            </div>
+
+                                            <div class="col-6">
+
+                                                <div class="mt-2">
+                                                    <strong>Administración:</strong> {{ $administration->name }} <br>
+                                                    <strong>Entidades con reservas:</strong> {{ count($entitiesWithReserves) }} <br>
+                                                    @php
+                                                        $totalWinning = 0;
+                                                        $totalNonWinning = 0;
+                                                        $totalPrizeAmount = 0;
+                                                        
+                                                        foreach($scrutinyData as $data) {
+                                                            $totalWinning += $data['result']->total_winning;
+                                                            $totalNonWinning += ($data['result']->total_reserved - $data['result']->total_winning);
+                                                            $totalPrizeAmount += $data['result']->total_prize_amount;
+                                                        }
+                                                    @endphp
+                                                    Participaciones Premiadas: <b>{{ $totalWinning }} Números</b> <br>
+                                                    Participaciones No Premiadas: <b>{{ $totalNonWinning }} Números</b> <br>
+                                                    Importe Premios Repartidos: <b>{{ number_format($totalPrizeAmount, 2) }}€</b>
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+
+                                    <h4 class="mb-0 mt-1">
+                                        Lista de entidades y sus participaciones
+                                    </h4>
+
+                                    <div style="min-height: 400px; height: 400px; overflow: auto;">
+
+                                        <table class="table">
+
+                                            <thead>
+                                                <tr>
+                                                    <th>Entidad</th>
+                                                    <th class="text-center">Participaciones</th>
+                                                    <th class="text-center">Premio Total</th>
+                                                    <th class="text-center">Premio por Participación</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody class="text-center">
+                                                @forelse($scrutinyData as $data)
+                                                    @php
+                                                        $entity = $data['entity'];
+                                                        $result = $data['result'];
+                                                        $prizeBreakdown = $result->prize_breakdown;
+                                                    @endphp
+                                                    <tr>
+                                                        <td><b>{{ $entity->name }}</b></td>
+
+                                                        <td>
+                                                            Reservadas: <b>{{ $result->total_reserved }}</b> <br>
+                                                            Vendidas: <b>{{ $result->total_sold }}</b> <br>
+                                                            Devueltas: <b>{{ $result->total_returned }}</b> <br>
+                                                            <span class="badge bg-{{ $result->total_winning > 0 ? 'success' : 'secondary' }}">
+                                                                Premiadas: {{ $result->total_winning }}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <b>{{ number_format($result->total_prize_amount, 2) }}€</b>
+                                                        </td>
+                                                        <td>
+                                                            <b>{{ number_format($result->prize_per_participation, 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                    
+                                                    @if($result->total_winning > 0)
+                                                        {{-- Primer Premio --}}
+                                                        @if(!empty($prizeBreakdown['primer_premio']['numbers']))
+                                                            <tr>
+                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                                    <b>Primer Premio: {{ implode(', ', $prizeBreakdown['primer_premio']['numbers']) }} - {{ number_format($prizeBreakdown['primer_premio']['amount'], 2) }}€</b>
+                                                                </td>
+                                                            </tr>
+                                                        @endif
+
+                                                        {{-- Segundo Premio --}}
+                                                        @if(!empty($prizeBreakdown['segundo_premio']['numbers']))
+                                                            <tr>
+                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                                    <b>Segundo Premio: {{ implode(', ', $prizeBreakdown['segundo_premio']['numbers']) }} - {{ number_format($prizeBreakdown['segundo_premio']['amount'], 2) }}€</b>
+                                                                </td>
+                                                            </tr>
+                                                        @endif
+
+                                                        {{-- Terceros Premios --}}
+                                                        @if(!empty($prizeBreakdown['terceros_premios']['numbers']))
+                                                            <tr>
+                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                                    <b>Terceros Premios: {{ implode(', ', $prizeBreakdown['terceros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['terceros_premios']['amount'], 2) }}€</b>
+                                                                </td>
+                                                            </tr>
+                                                        @endif
+
+                                                        {{-- Reintegros --}}
+                                                        @if(!empty($prizeBreakdown['reintegros']['numbers']))
+                                                            <tr>
+                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                                    <b>Reintegros: {{ count($prizeBreakdown['reintegros']['numbers']) }} números - {{ number_format($prizeBreakdown['reintegros']['amount'], 2) }}€</b>
+                                                                </td>
+                                                            </tr>
+                                                        @endif
+                                                    @endif
+
+                                                @empty
+                                                <tr>
+                                                    <td colspan="4" class="text-center">
+                                                        <div class="alert alert-info">
+                                                            <i class="ri-information-line me-2"></i>
+                                                            No hay entidades con reservas para este sorteo
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                @endforelse
+                                            </tbody>
+                                            
+                                        </table>
+
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <label for="comments" class="form-label">Comentarios del escrutinio (opcional):</label>
+                                        <textarea class="form-control" id="comments" name="comments" rows="3" placeholder="Ingrese cualquier observación o comentario sobre el escrutinio..."></textarea>
+                                    </div>
 
                                     <div class="row">
 
-                                        <div class="col-4">
-
-                                            <div style="width: 150px; height: 80px; border-radius: 8px; background-color: silver; float: left; margin-right: 20px;">
-                                            </div>
-
-                                            <div style="float: left; margin-top: .5rem">
-                                                Sorteo: 46/25 <br>
-                                                
-                                                <h4 class="mt-0 mb-0">
-                                                    Sorteo Extraordinario Asociación <br> Española Contra El Cáncer
-                                                </h4>
-
-                                            </div>
-
-                                            <div class="clearfix"></div>
-                                            
+                                        <div class="col-6 text-start">
+                                            <a href="{{route('lottery.results')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">
+                                                <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Cancelar</span></a>
                                         </div>
-
-                                        <div class="col-2">
-
-                                            <div style="float: left; margin-top: .5rem">
-                                                Fecha Sorteo <br>
-                                                
-                                                <h5 class="mb-0">
-                                                   07/08/2025 
-                                                </h5>
-
-                                            </div>
-                                            
-                                        </div>
-
-                                        <div class="col-6">
-
-                                            <div class="mt-2">
-                                                Participaciones Premiadas: Logroño: <b>12 Números</b> <br>
-                                                Participaciones No Premiadas: Logroño: <b>56 Números</b> <br>
-                                                Importe Premios Repartidos: <b>585.400€</b>
-                                            </div>
-                                            
-                                        </div>
-                                    </div>
-                    				
-                    			</div>
-
-                                <h4 class="mb-0 mt-1">
-                                    Lista de participaciones premiadas
-                                </h4>
-
-                                <div style="min-height: 400px; height: 400px; overflow: auto;">
-
-                                    <table class="table">
-
-                                        <thead>
-                                            <tr>
-                                                <th>Participaciones</th>
-                                                <th class="text-center">Cantidad</th>
-                                                <th class="text-center">Premio Total</th>
-                                                <th class="text-center">Premio Participaciones</th>
-                                            </tr>
-                                        </thead>
-
-                                        <tbody class="text-center">
-                                            <tr>
-                                                <td><b>CSIF Madrid</b></td>
-
-                                                <td>
-                                                    Emitidas: <b>7400</b> <br>
-                                                    Vendidas: <b>6450</b> <br>
-                                                    Devueltas: <b>950</b> <br>
-                                                </td>
-                                                <td>
-                                                    <b>161.250,00€</b>
-                                                </td>
-                                                <td>
-                                                    <b>25,00€</b>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="4" style="border-bottom: 1px solid #333;">
-                                                    <b>Número: 40083 - Premiado con 100 € X 1850 décimos = 185.000 €</b>
-                                                </td>
-                                            </tr>
-
-                                            <tr>
-                                                <td><b>Colaboración Animal</b></td>
-
-                                                <td>
-                                                    Emitidas: <b>2750</b> <br>
-                                                    Vendidas: <b>2555</b> <br>
-                                                    Devueltas: <b>195</b> <br>
-                                                </td>
-                                                <td>
-                                                    <b>51.100,00€</b>
-                                                </td>
-                                                <td>
-                                                    <b>20,00€</b>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="4" style="border-bottom: 1px solid #333;">
-                                                    <b>Número: 91996 - Premiado con 100 € X 550 décimos = 55.000 €</b>
-                                                </td>
-                                            </tr>
-
-                                            <tr>
-                                                <td><b>Colaboración Animal</b></td>
-
-                                                <td>
-                                                    Emitidas: <b>2750</b> <br>
-                                                    Vendidas: <b>2555</b> <br>
-                                                    Devueltas: <b>195</b> <br>
-                                                </td>
-                                                <td>
-                                                    <b>51.100,00€</b>
-                                                </td>
-                                                <td>
-                                                    <b>20,00€</b>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="4" style="border-bottom: 1px solid #333;">
-                                                    <b>Número: 91996 - Premiado con 100 € X 550 décimos = 55.000 €</b>
-                                                </td>
-                                            </tr>
-                                            
-                                        </tbody>
                                         
-                                    </table>
+                                        <div class="col-6 text-end">
+                                            <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-warning mt-2">Procesar Escrutinio
+                                                <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+                                        </div>
 
-                                </div>
-
-                                <div class="row">
-
-                                    <div class="col-6 text-start">
-                                        <a href="{{url('lottery/results')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">
-                                            <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
-                                    </div>
-                                    
-                                    <div class="col-6 text-end">
-                                        <a href="{{url('lottery/results')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Aceptar
-                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
                                     </div>
 
                                 </div>
+                            </div>
 
-                    		</div>
-                    	</div>
+                        </div>
 
-                    </div>
-
+                    </form>
                     
                 </div> <!-- end card body-->
             </div> <!-- end card -->
@@ -212,7 +270,12 @@
 @section('scripts')
 
 <script>
-
+// Confirmación antes de procesar el escrutinio
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!confirm('¿Está seguro de que desea procesar el escrutinio? Esta acción no se puede deshacer.')) {
+        e.preventDefault();
+    }
+});
 </script>
 
 @endsection

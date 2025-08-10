@@ -56,4 +56,31 @@ class Lottery extends Model
     {
         return $this->hasOne(LotteryResult::class);
     }
+
+    // Relación con los escrutinios de administraciones
+    public function administrationScrutinies()
+    {
+        return $this->hasMany(AdministrationLotteryScrutiny::class);
+    }
+
+    /**
+     * Verificar si una administración ha escrutado este sorteo
+     */
+    public function isScrutinizedByAdministration($administrationId)
+    {
+        return $this->administrationScrutinies()
+            ->where('administration_id', $administrationId)
+            ->where('is_scrutinized', true)
+            ->exists();
+    }
+
+    /**
+     * Obtener el escrutinio de una administración específica
+     */
+    public function getAdministrationScrutiny($administrationId)
+    {
+        return $this->administrationScrutinies()
+            ->where('administration_id', $administrationId)
+            ->first();
+    }
 }

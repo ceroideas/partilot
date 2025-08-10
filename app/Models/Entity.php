@@ -45,6 +45,22 @@ class Entity extends Model
     }
 
     /**
+     * Relación con Reservas
+     */
+    public function reserves()
+    {
+        return $this->hasMany(Reserve::class);
+    }
+
+    /**
+     * Relación con los resultados de escrutinio
+     */
+    public function scrutinyResults()
+    {
+        return $this->hasMany(ScrutinyEntityResult::class);
+    }
+
+    /**
      * Relación con Seller
      */
     public function sellers()

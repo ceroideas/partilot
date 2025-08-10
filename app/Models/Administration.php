@@ -44,6 +44,14 @@ class Administration extends Model
     }
 
     /**
+     * Relación con los escrutinios de lotería de esta administración
+     */
+    public function lotteryScrutinies()
+    {
+        return $this->hasMany(AdministrationLotteryScrutiny::class);
+    }
+
+    /**
      * Obtener el estado como texto
      */
     public function getStatusTextAttribute()

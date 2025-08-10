@@ -143,7 +143,7 @@
 			                                <tr>
 			                                    <td>#RS{{str_pad($reserve->id, 4, '0', STR_PAD_LEFT)}}</td>
 			                                    <td>{{$reserve->lottery ? $reserve->lottery->name : 'Sin sorteo'}}</td>
-			                                    <td>{{$reserve->lottery ? $reserve->lottery->draw_date : 'Sin fecha'}}</td>
+			                                    <td>{{$reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : 'Sin fecha'}}</td>
 			                                    <td>{{implode(' - ', $reserve->reservation_numbers ?? [])}}</td>
 			                                    <td>{{number_format($reserve->total_amount, 2)}} €</td>
 			                                    <td><label class="badge bg-success">{{ucfirst($reserve->status ? 'Activo' : '')}}</label></td>

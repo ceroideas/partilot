@@ -174,7 +174,17 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if($lottery->result)
+                                        @php
+                                            $isScrutinized = false;
+                                            if (session('selected_administration.id')) {
+                                                $scrutiny = \App\Models\AdministrationLotteryScrutiny::where('administration_id', session('selected_administration.id'))
+                                                    ->where('lottery_id', $lottery->id)
+                                                    ->where('is_scrutinized', true)
+                                                    ->first();
+                                                $isScrutinized = !is_null($scrutiny);
+                                            }
+                                        @endphp
+                                        @if($isScrutinized)
                                             <label class="badge bg-success">SI</label>
                                         @else
                                             <label class="badge bg-danger">NO</label>
@@ -182,10 +192,22 @@
                                     </td>
                                     <td>{{ $lottery->lotteryType->name ?? 'Sin tipo' }}</td>
                                     <td class="text-end">
-                                        @if($lottery->result)
-                                            <a href="{{ route('lottery.show-results', $lottery->id) }}" class="btn btn-sm btn-light" title="Ver Resultados"><img src="{{url('assets/form-groups/results.svg')}}" alt="" width="12"></a>
+                                        @php
+                                            $isScrutinized = false;
+                                            if (session('selected_administration.id')) {
+                                                $scrutiny = \App\Models\AdministrationLotteryScrutiny::where('administration_id', session('selected_administration.id'))
+                                                    ->where('lottery_id', $lottery->id)
+                                                    ->where('is_scrutinized', true)
+                                                    ->first();
+                                                $isScrutinized = !is_null($scrutiny);
+                                            }
+                                        @endphp
+                                        @if($isScrutinized)
+                                            <a href="{{ route('lottery.show-administration-scrutiny', [$lottery->id, session('selected_administration.id')]) }}" class="btn btn-sm btn-light" title="Ver Escrutinio"><img src="{{url('assets/form-groups/results.svg')}}" alt="" width="12"></a>
+                                        @elseif($lottery->result && session('selected_administration.id'))
+                                            <a href="{{url('lottery/scrutiny', $lottery->id)}}" class="btn btn-sm btn-light" title="Realizar Escrutinio"><img src="{{url('assets/form-groups/escrutinio.svg')}}" alt="" width="12"></a>
                                         @else
-                                            <a href="{{url('lottery/scrutiny', $lottery->id)}}" class="btn btn-sm btn-light" title="Escrutinio"><img src="{{url('assets/form-groups/escrutinio.svg')}}" alt="" width="12"></a>
+                                            <span class="btn btn-sm btn-light disabled" title="Sorteo sin resultados aún"><img src="{{url('assets/form-groups/escrutinio.svg')}}" alt="" width="12" style="opacity: 0.5;"></span>
                                         @endif
                                         <a href="{{url('lottery/results/edit', $lottery->id)}}" class="btn btn-sm btn-light" title="Editar"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$lottery->id}}" data-name="{{$lottery->name}}" title="Eliminar"><i class="ri-delete-bin-6-line"></i></button>

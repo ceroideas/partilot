@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Seller;
 use App\Models\User;
 use App\Models\Entity;
+use App\Models\Reserve;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -175,7 +176,13 @@ class SellerController extends Controller
     public function show($id)
     {
         $seller = Seller::with(['entity.administration'])->findOrFail($id);
-        return view('sellers.show', compact('seller'));
+
+        $reserves = Reserve::where('entity_id', $seller->entity->id)
+            ->where('status', 1) // confirmed
+            ->with(['lottery'])
+            ->get();
+
+        return view('sellers.show', compact('seller','reserves'));
     }
 
     /**
