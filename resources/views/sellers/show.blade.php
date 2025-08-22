@@ -446,226 +446,7 @@
 
                                     </div>
 
-                                                                        <div class="tab-pane fade" id="participaciones" style="display: none;">
-                                        <div class="form-card bs" id="participations_select" style="min-height: 658px; display: none;">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h4 class="mb-0 mt-1">
-                                                        Reserva en la que Asignar participaciones
-                                                    </h4>
-                                                    <small><i>Selecciona una Reserva</i></small>
-                                                </div>
-                                            </div>
 
-                                            <br>
-                                            <br>
-
-                                            <div style="min-height: 656px;">
-
-                                                <table id="example2" class="table table-striped nowrap w-100">
-                                                    <thead class="">
-                                                        <tr>
-                                                            <th>ID Reserva</th>
-                                                            <th>Sorteo</th>
-                                                            <th>Fecha Sorteo</th>
-                                                            <th>Nombre Sorteo</th>
-                                                            <th>Números</th>
-                                                            <th>Importe Total</th>
-                                                            <th>Estado</th>
-                                                            <th>Seleccionar</th>
-                                                        </tr>
-                                                    </thead>
-                                                 
-                                                    <tbody>
-                                                        @forelse($reserves as $reserve)
-                                                        <tr>
-                                                            <td>#RS{{str_pad($reserve->id, 4, '0', STR_PAD_LEFT)}}</td>
-                                                            <td>{{$reserve->lottery ? $reserve->lottery->name : 'Sin sorteo'}}</td>
-                                                            <td>{{$reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : 'Sin fecha'}}</td>
-                                                            <td>{{$reserve->lottery ? $reserve->lottery->description : 'N/A'}}</td>
-                                                            <td>{{implode(' - ', $reserve->reservation_numbers ?? [])}}</td>
-                                                            <td>{{number_format($reserve->total_amount, 2)}} €</td>
-                                                            <td><label class="badge bg-success">{{ucfirst($reserve->status ? 'Activo' : '')}}</label></td>
-                                                            <td>
-                                                                <div class="form-check">
-                                                                    <input class="form-check-input" type="radio" name="reserve_id" value="{{$reserve->id}}" id="reserve_{{$reserve->id}}" required>
-                                                                    <label class="form-check-label" for="reserve_{{$reserve->id}}">
-                                                                        Seleccionar
-                                                                    </label>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                        @empty
-                                                        {{-- <tr>
-                                                            <td colspan="7" class="text-center">No hay reservas confirmadas disponibles para esta entidad</td>
-                                                        </tr> --}}
-                                                        @endforelse
-                                                    </tbody>
-                                                </table>
-
-                                            </div>
-
-
-                                            <div class="row">
-
-                                                <div class="col-12 text-end">
-                                                    <button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="load_participations">Siguiente
-                                                        <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
-                                                </div>
-
-                                            </div>
-                                        </div>
-                                        <div class="form-card bs d-none" id="participations_load" style="min-height: 658px;">
-
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h4 class="mb-0 mt-1">
-                                                        Asignación
-                                                    </h4>
-                                                    <small><i>Resumen asignación total</i></small>
-                                                </div>
-                                            </div>
-
-                                            <br>
-                                            <br>
-
-                                            <div style="height: 656px; overflow: auto;" id="list-participations" class="">
-
-                                                @for ($i = 0; $i < 4; $i++)
-                                                <div class="form-card bs mb-2" style="margin: 5px;">
-                                                
-                                                    <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                        <thead>
-                                                            <tr style="font-size: 10px;">
-                                                                <th rowspan="2" style="border-color: transparent;">
-                                                                    <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                        <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                                    </div>
-                                                                </th>
-                                                                <th>Nº Taco</th>
-                                                                <th>Participaciones</th>
-                                                                <th>Nº Participaciones</th>
-                                                                <th>Ventas Registradas</th>
-                                                                <th>Participaciones Devueltas</th>
-                                                                <th>Participaciones Disponibles</th>
-                                                                <th></th>
-                                                            </tr>
-                                                            <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                                <td>1/0001</td>
-                                                                <td>50</td>
-                                                                <td>1/00001 - 1/00050</td>
-                                                                <td>10</td>
-                                                                <td>5</td>
-                                                                <td>35</td>
-                                                                <td>
-                                                                    <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                                </td>
-                                                            </tr>
-                                                        </thead>
-                                                        
-                                                    </table>
-
-                                                    <div style="height: 0px; overflow-y: auto; overflow-x: hidden;" class="part-information">
-
-                                                        <div class="row">
-                                                            <div class="col-12">
-                                                                <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                                    <thead>
-                                                                        <tr style="font-size: 10px;">
-                                                                            <th rowspan="2" style="border-color: transparent;">
-                                                                                <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                                    <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
-                                                                                </div>
-                                                                            </th>
-                                                                            <th>Nº Participación</th>
-                                                                            <th>Estado</th>
-                                                                            <th>Vendedor</th>
-                                                                            <th>Fecha Venta</th>
-                                                                            <th>Hora Venta</th>
-                                                                            <th></th>
-                                                                        </tr>
-                                                                        <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                                            <td>1/0001</td>
-                                                                            <td><label class="badge bg-success">Vendida</label></td>
-                                                                            <td>Jorge Ruiz Ortega</td>
-                                                                            <td>20/10/2025</td>
-                                                                            <td>21:00h</td>
-                                                                            <td>
-                                                                                <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    
-                                                                </table>
-                                                                <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                                    <thead>
-                                                                        <tr style="font-size: 10px;">
-                                                                            <th rowspan="2" style="border-color: transparent;">
-                                                                                <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                                    <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
-                                                                                </div>
-                                                                            </th>
-                                                                            <th>Nº Participación</th>
-                                                                            <th>Estado</th>
-                                                                            <th>Vendedor</th>
-                                                                            <th>Fecha Venta</th>
-                                                                            <th>Hora Venta</th>
-                                                                            <th></th>
-                                                                        </tr>
-                                                                        <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                                            <td>1/0001</td>
-                                                                            <td><label class="badge bg-success">Vendida</label></td>
-                                                                            <td>Jorge Ruiz Ortega</td>
-                                                                            <td>20/10/2025</td>
-                                                                            <td>21:00h</td>
-                                                                            <td>
-                                                                                <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    
-                                                                </table>
-                                                                <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                                    <thead>
-                                                                        <tr style="font-size: 10px;">
-                                                                            <th rowspan="2" style="border-color: transparent;">
-                                                                                <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                                    <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
-                                                                                </div>
-                                                                            </th>
-                                                                            <th>Nº Participación</th>
-                                                                            <th>Estado</th>
-                                                                            <th>Vendedor</th>
-                                                                            <th>Fecha Venta</th>
-                                                                            <th>Hora Venta</th>
-                                                                            <th></th>
-                                                                        </tr>
-                                                                        <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                                            <td>1/0001</td>
-                                                                            <td><label class="badge bg-success">Vendida</label></td>
-                                                                            <td>Jorge Ruiz Ortega</td>
-                                                                            <td>20/10/2025</td>
-                                                                            <td>21:00h</td>
-                                                                            <td>
-                                                                                <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    
-                                                                </table>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                @endfor
-                                            </div>
-
-                                        </div>
-                                    </div>
 
                                     <div class="tab-pane fade" id="asignacion">
                                         <div class="form-card bs" style="min-height: 658px;">
@@ -899,7 +680,7 @@
                                                             <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
                                                         </div>
                                         
-                                                        <h3 class="mb-0">No hay Participaciones</h3>
+                                                        <h3 class="mb-0">Participaciones del vendedor</h3>
                                         
                                                         <small>Asigna Participaciones</small>
                                         
@@ -914,14 +695,101 @@
                                         </div>
                                     </div>
 
+                                    <div class="tab-pane fade" id="participaciones">
+                                        <div class="form-card bs" style="min-height: 658px;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h4 class="mb-0 mt-1">
+                                                        Selector de Participaciones
+                                                    </h4>
+                                                    <small><i>Selecciona y gestiona participaciones</i></small>
+                                                </div>
+                                            </div>
+
+                                            <br>
+
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="form-card bs">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <h5 class="mb-0">Reservas Disponibles</h5>
+                                                                <small><i>Selecciona una reserva para ver sus participaciones</i></small>
+                                                            </div>
+                                                        </div>
+
+                                                        <br>
+
+                                                        <div class="table-responsive">
+                                                            <table class="table table-striped table-hover">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>ID Reserva</th>
+                                                                        <th>Sorteo</th>
+                                                                        <th>Fecha Sorteo</th>
+                                                                        <th>Nombre Sorteo</th>
+                                                                        <th>Números</th>
+                                                                        <th>Importe Total</th>
+                                                                        <th>Estado</th>
+                                                                        <th>Acciones</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @forelse($reserves as $reserve)
+                                                                    <tr>
+                                                                        <td>#RS{{str_pad($reserve->id, 4, '0', STR_PAD_LEFT)}}</td>
+                                                                        <td>{{$reserve->lottery ? $reserve->lottery->name : 'Sin sorteo'}}</td>
+                                                                        <td>{{$reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : 'Sin fecha'}}</td>
+                                                                        <td>{{$reserve->lottery ? $reserve->lottery->description : 'N/A'}}</td>
+                                                                        <td>{{implode(' - ', $reserve->reservation_numbers ?? [])}}</td>
+                                                                        <td>{{number_format($reserve->total_amount, 2)}} €</td>
+                                                                        <td><span class="badge bg-success">{{ucfirst($reserve->status ? 'Activo' : '')}}</span></td>
+                                                                        <td>
+                                                                            <button class="btn btn-sm btn-primary" onclick="verParticipacionesReserva({{$reserve->id}})">
+                                                                                <i class="ri-eye-line"></i> Ver Participaciones
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                    @empty
+                                                                    <tr>
+                                                                        <td colspan="8" class="text-center">No hay reservas disponibles para esta entidad</td>
+                                                                    </tr>
+                                                                    @endforelse
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Modal para mostrar participaciones -->
+                                            <div class="modal fade" id="modalParticipaciones" tabindex="-1" aria-labelledby="modalParticipacionesLabel" aria-hidden="true">
+                                                <div class="modal-dialog modal-xl">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="modalParticipacionesLabel">Participaciones de la Reserva</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body" id="modalParticipacionesBody">
+                                                            <!-- El contenido se cargará dinámicamente -->
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="tab-pane fade" id="liquidacion">
                                         <div class="form-card bs" style="min-height: 658px;">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <h4 class="mb-0 mt-1">
-                                                        Asignación
+                                                        Liquidación
                                                     </h4>
-                                                    <small><i>Resumen Asignación total</i></small>
+                                                    <small><i>Resumen Liquidación total</i></small>
                                                 </div>
                                             </div>
                                         </div>
@@ -1041,12 +909,12 @@ function initDatatable()
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
-  $('[data-bs-target="#participaciones"]').click(function (e) {
+  {{-- $('[data-bs-target="#participaciones"]').click(function (e) {
     if (!init1) {
       initDatatable();
       init1 =true;
     }
-  });
+  }); --}}
 
   $('.show-details').click(function (e) {
       e.preventDefault();
@@ -1068,11 +936,7 @@ function initDatatable()
       $(this).parents('.form-card').find('#list-participations').addClass('d-none');
   }); --}}
 
-  $('#load_participations').click(function (e) {
-      e.preventDefault();
-      $('#participations_load').removeClass('d-none');
-      $('#participations_select').addClass('d-none');
-  });
+
 
   // Funcionalidad para asignación de participaciones
   $(document).ready(function() {
@@ -1702,6 +1566,65 @@ function initDatatable()
          $('#rango-desde, #rango-hasta').prop('disabled', false);
        }
      });
+
+     // Función para ver participaciones de una reserva
+     window.verParticipacionesReserva = function(reservaId) {
+       // Mostrar loading en el modal
+       $('#modalParticipacionesBody').html('<div class="text-center"><i class="ri-loader-4-line fa-spin"></i> Cargando participaciones...</div>');
+       $('#modalParticipaciones').modal('show');
+
+       // Hacer llamada AJAX para obtener los sets de la reserva
+       $.ajax({
+         url: '{{ route("sellers.get-sets-by-reserve") }}',
+         method: 'POST',
+         data: {
+           reserve_id: reservaId,
+           _token: '{{ csrf_token() }}'
+         },
+         success: function(response) {
+           if (response.sets && response.sets.length > 0) {
+             let html = '<div class="row">';
+             
+             response.sets.forEach(set => {
+               html += `
+                 <div class="col-md-6 mb-3">
+                   <div class="card">
+                     <div class="card-header">
+                       <h6 class="mb-0">Set: ${set.set_name}</h6>
+                     </div>
+                     <div class="card-body">
+                       <p><strong>ID:</strong> #SP${String(set.id).padStart(4, '0')}</p>
+                       <p><strong>Importe Jugado:</strong> ${parseFloat(set.played_amount || 0).toFixed(2)}€</p>
+                       <p><strong>Importe Donativo:</strong> ${parseFloat(set.donation_amount || 0).toFixed(2)}€</p>
+                       <p><strong>Total:</strong> ${parseFloat(set.total_amount || 0).toFixed(2)}€</p>
+                       <p><strong>Participaciones Físicas:</strong> ${set.physical_participations || 0}</p>
+                       <p><strong>Participaciones Disponibles:</strong> ${set.total_participations || 0}</p>
+                       <button class="btn btn-sm btn-info" onclick="verParticipacionesSet(${set.id})">
+                         <i class="ri-eye-line"></i> Ver Participaciones del Set
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+               `;
+             });
+             
+             html += '</div>';
+             $('#modalParticipacionesBody').html(html);
+           } else {
+             $('#modalParticipacionesBody').html('<div class="alert alert-info">No hay sets disponibles para esta reserva</div>');
+           }
+         },
+         error: function(xhr, status, error) {
+           $('#modalParticipacionesBody').html('<div class="alert alert-danger">Error al cargar los sets: ' + error + '</div>');
+         }
+       });
+     };
+
+     // Función para ver participaciones de un set específico
+     window.verParticipacionesSet = function(setId) {
+       // Aquí puedes implementar la lógica para mostrar las participaciones específicas del set
+       alert('Función para ver participaciones del set ' + setId + ' - Por implementar');
+     };
    });
 
  </script>
