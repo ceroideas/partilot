@@ -121,6 +121,7 @@ Route::group(['prefix' => 'sellers'], function() {
     Route::post('/save-assignments', [SellerController::class, 'saveAssignments'])->name('sellers.save-assignments');
     Route::post('/get-assigned-participations', [SellerController::class, 'getAssignedParticipations'])->name('sellers.get-assigned-participations');
     Route::post('/remove-assignment', [SellerController::class, 'removeAssignment'])->name('sellers.remove-assignment');
+    Route::post('/get-participations-by-book', [SellerController::class, 'getParticipationsByBook'])->name('sellers.get-participations-by-book');
 });
 Route::get('users',function() {
     return view('users.index');

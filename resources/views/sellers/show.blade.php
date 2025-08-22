@@ -255,9 +255,9 @@
                                  </div>
                              </div>
 
-                             <a href="{{ route('sellers.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                                 <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
-                             </a>
+                            <a href="{{ route('sellers.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                                <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
+                            </a>
                         </div>
 
                         <div class="col-md-9">
@@ -570,19 +570,19 @@
                                                                 </div>
                                                                 <div class="d-flex gap-2" style="width: 70%;">
                                                                      <div class="flex-fill">
-                                                                         <label class="form-label small mb-1">Desde</label>
+                                                                        <label class="form-label small mb-1">Desde</label>
                                                                          <div class="input-group input-group-merge group-form">
                                                                              <input type="number" class="form-control" id="rango-desde" placeholder="Número inicial" style="border-radius: 30px;">
-                                                                         </div>
+                                                                    </div>
                                                                      </div>
                                                                      <div class="flex-fill">
-                                                                         <label class="form-label small mb-1">Hasta</label>
+                                                                        <label class="form-label small mb-1">Hasta</label>
                                                                          <div class="input-group input-group-merge group-form">
                                                                              
                                                                              <input type="number" class="form-control" id="rango-hasta" placeholder="Número final" style="border-radius: 30px;">
                                                                          </div>
-                                                                     </div>
-                                                                 </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                             <div class="d-flex align-items-center p-3">
                                                                 <div class="me-3">
@@ -594,17 +594,17 @@
                                                                 </div>
                                                                 <div class="d-flex gap-2 align-items-end" style="width: 70%;">
                                                                      <div style="width: 50%;">
-                                                                         <label class="form-label small mb-1">Participación</label>
+                                                                        <label class="form-label small mb-1">Participación</label>
                                                                          <div class="input-group input-group-merge group-form">
                                                                              <input type="number" class="form-control" id="participacion-unidad" placeholder="Número de participación" style="border-radius: 30px;">
-                                                                         </div>
+                                                                    </div>
                                                                      </div>
                                                                      <div style="width: 50%;">
                                                                          <button type="button" class="btn btn-warning w-100" id="btn-asignar-participacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">
-                                                                             Asignar
-                                                                         </button>
-                                                                     </div>
-                                                                 </div>
+                                                                            Asignar
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -697,86 +697,68 @@
 
                                     <div class="tab-pane fade" id="participaciones">
                                         <div class="form-card bs" style="min-height: 658px;">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h4 class="mb-0 mt-1">
-                                                        Selector de Participaciones
-                                                    </h4>
-                                                    <small><i>Selecciona y gestiona participaciones</i></small>
+                                            <!-- Paso 1: Selección de Reservas -->
+                                            <div id="paso-reservas-participaciones" class="participaciones-paso">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h4 class="mb-0 mt-1">
+                                                            Reserva en la que Asignar participaciones
+                                                        </h4>
+                                                        <small><i>Selecciona una reserva para continuar</i></small>
+                                                    </div>
                                                 </div>
-                                            </div>
 
-                                            <br>
+                                                <br>
 
-                                            <div class="row">
-                                                <div class="col-md-12">
-                                                    <div class="form-card bs">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <h5 class="mb-0">Reservas Disponibles</h5>
-                                                                <small><i>Selecciona una reserva para ver sus participaciones</i></small>
-                                                            </div>
-                                                        </div>
+                                                <div style="min-height: 656px;">
+                                                    <table id="tabla-reservas-participaciones" class="table table-striped nowrap w-100">
+                                                        <thead class="">
+                                                            <tr>
+                                                                <th>Orden ID</th>
+                                                                <th>N.Sorteo</th>
+                                                                <th>Fecha Sorteo</th>
+                                                                <th>Nombre Sorteo</th>
+                                                                <th>Numero/s</th>
+                                                                <th>Importe <br> (Número)</th>
+                                                                <th>Décimos <br> (Número)</th>
+                                                                <th>Importe <br> TOTAL</th>
+                                                                <th>Seleccionar</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Los datos se cargarán dinámicamente -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
 
-                                                        <br>
-
-                                                        <div class="table-responsive">
-                                                            <table class="table table-striped table-hover">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>ID Reserva</th>
-                                                                        <th>Sorteo</th>
-                                                                        <th>Fecha Sorteo</th>
-                                                                        <th>Nombre Sorteo</th>
-                                                                        <th>Números</th>
-                                                                        <th>Importe Total</th>
-                                                                        <th>Estado</th>
-                                                                        <th>Acciones</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    @forelse($reserves as $reserve)
-                                                                    <tr>
-                                                                        <td>#RS{{str_pad($reserve->id, 4, '0', STR_PAD_LEFT)}}</td>
-                                                                        <td>{{$reserve->lottery ? $reserve->lottery->name : 'Sin sorteo'}}</td>
-                                                                        <td>{{$reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : 'Sin fecha'}}</td>
-                                                                        <td>{{$reserve->lottery ? $reserve->lottery->description : 'N/A'}}</td>
-                                                                        <td>{{implode(' - ', $reserve->reservation_numbers ?? [])}}</td>
-                                                                        <td>{{number_format($reserve->total_amount, 2)}} €</td>
-                                                                        <td><span class="badge bg-success">{{ucfirst($reserve->status ? 'Activo' : '')}}</span></td>
-                                                                        <td>
-                                                                            <button class="btn btn-sm btn-primary" onclick="verParticipacionesReserva({{$reserve->id}})">
-                                                                                <i class="ri-eye-line"></i> Ver Participaciones
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                    @empty
-                                                                    <tr>
-                                                                        <td colspan="8" class="text-center">No hay reservas disponibles para esta entidad</td>
-                                                                    </tr>
-                                                                    @endforelse
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
+                                                <div class="row">
+                                                    <div class="col-12 text-end">
+                                                        <button type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="btn-siguiente-reservas-participaciones" disabled>
+                                                            Siguiente
+                                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <!-- Modal para mostrar participaciones -->
-                                            <div class="modal fade" id="modalParticipaciones" tabindex="-1" aria-labelledby="modalParticipacionesLabel" aria-hidden="true">
-                                                <div class="modal-dialog modal-xl">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="modalParticipacionesLabel">Participaciones de la Reserva</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <div class="modal-body" id="modalParticipacionesBody">
-                                                            <!-- El contenido se cargará dinámicamente -->
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                                                        </div>
+                                            <!-- Paso 2: Mostrar Tacos del Vendedor -->
+                                            <div id="paso-tacos-participaciones" class="participaciones-paso" style="display: none;">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h4 class="mb-0 mt-1">
+                                                            Tacos del Vendedor
+                                                        </h4>
+                                                        <small><i>Participaciones asignadas por taco</i></small>
                                                     </div>
+                                                    <button id="btn-volver-reservas-participaciones" class="btn btn-secondary btn-sm">
+                                                        <i class="ri-arrow-left-line"></i> Volver a Reservas
+                                                    </button>
+                                                </div>
+
+                                                <br>
+
+                                                <div style="min-height: 656px;" id="contenedor-tacos">
+                                                    <!-- Los tacos se cargarán dinámicamente aquí -->
                                                 </div>
                                             </div>
                                         </div>
@@ -1132,7 +1114,7 @@ function initDatatable()
       });
     }
     
-          // Event listeners
+    // Event listeners
       
              // Cargar participaciones existentes al cargar la página
        $(document).ready(function() {
@@ -1140,12 +1122,12 @@ function initDatatable()
          participacionesAsignadas = [];
          actualizarResumenAsignacion();
        });
-      
-      // Botón para iniciar asignación
-      $(document).on('click', '#btn-iniciar-asignacion', function() {
-        cargarReservas();
-        mostrarPaso('paso-reservas');
-      });
+    
+    // Botón para iniciar asignación
+    $(document).on('click', '#btn-iniciar-asignacion', function() {
+      cargarReservas();
+      mostrarPaso('paso-reservas');
+    });
     
     // Seleccionar reserva
     $(document).on('change', '.seleccionar-reserva', function() {
@@ -1178,27 +1160,27 @@ function initDatatable()
       console.log('Botón siguiente sets habilitado');
     });
     
-         // Botón siguiente para ir a asignación
-     $(document).on('click', '#btn-siguiente-sets', function() {
-       console.log('Botón siguiente sets clickeado');
-       if (setSeleccionado) {
+    // Botón siguiente para ir a asignación
+    $(document).on('click', '#btn-siguiente-sets', function() {
+      console.log('Botón siguiente sets clickeado');
+      if (setSeleccionado) {
          // Limpiar participaciones asignadas al cambiar de set
          participacionesAsignadas = [];
          // Cargar participaciones del set seleccionado
          cargarParticipacionesExistentes();
-         mostrarPaso('paso-asignacion');
-       }
-     });
+        mostrarPaso('paso-asignacion');
+      }
+    });
     
     // Botón volver a reservas
     $(document).on('click', '#btn-volver-reservas', function() {
       mostrarPaso('paso-reservas');
     });
     
-         // Botón volver a sets
-     $(document).on('click', '#btn-volver-sets', function() {
-       mostrarPaso('paso-sets');
-     });
+    // Botón volver a sets
+    $(document).on('click', '#btn-volver-sets', function() {
+      mostrarPaso('paso-sets');
+    });
 
            // Variables para manejar las participaciones asignadas
       let participacionesAsignadas = [];
@@ -1396,22 +1378,41 @@ function initDatatable()
             const horaStr = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
             
             return `
-              <div class="col-md-6 col-lg-4">
-                <div class="participacion-item">
-                  <div class="participacion-icon">
-                    <i class="ri-ticket-line" style="color: white; font-size: 20px;"></i>
-                  </div>
-                  <div class="participacion-info">
-                    <div class="participacion-numero">Participación: ${participation.participation_code}</div>
-                    <div class="participacion-fecha">
-                      <i class="ri-calendar-line"></i> ${fechaStr} - ${horaStr}h
-                    </div>
-                    <div class="participacion-estado">Asignada</div>
-                  </div>
-                  <button class="btn-eliminar-participacion" onclick="eliminarParticipacion('${participation.participation_code}')">
-                    <i class="ri-delete-bin-line"></i>
-                  </button>
-                </div>
+              <div class="col-12 mb-2">
+                <table class="table table-striped table-condensed table nowrap w-100 mb-0">
+                  <thead>
+                    <tr style="font-size: 10px;">
+                      <th rowspan="2" style="border-color: transparent; width: 80px;">
+                        <div style="background-color: #333; padding: 10px 5px; border-radius: 12px; text-align: center;">
+                          <img src="{{url('assets/ticket.svg')}}" alt="" width="30px">
+                        </div>
+                      </th>
+                      <th>Nº Participación</th>
+                      <th>Estado</th>
+                      <th>Vendedor</th>
+                      <th>Fecha Venta</th>
+                      <th>Hora Venta</th>
+                      <th></th>
+                    </tr>
+                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                      <td>${participation.participation_code}</td>
+                      <td><label class="badge bg-success">Asignada</label></td>
+                      <td>{{ $seller->name ?? 'N/A' }}</td>
+                      <td>${fechaStr}</td>
+                      <td>${horaStr}h</td>
+                      <td>
+                        <div class="d-flex gap-2">
+                          <button class="btn btn-sm btn-light" onclick="verDetalleParticipacion('${participation.participation_code}', ${participation.id})" title="Ver detalle">
+                            <img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12">
+                          </button>
+                          <button class="btn btn-sm btn-danger" onclick="eliminarParticipacion('${participation.participation_code}')" title="Eliminar">
+                            <i class="ri-delete-bin-line"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </thead>
+                </table>
               </div>
             `;
           }).join('');
@@ -1567,66 +1568,403 @@ function initDatatable()
        }
      });
 
-     // Función para ver participaciones de una reserva
-     window.verParticipacionesReserva = function(reservaId) {
-       // Mostrar loading en el modal
-       $('#modalParticipacionesBody').html('<div class="text-center"><i class="ri-loader-4-line fa-spin"></i> Cargando participaciones...</div>');
-       $('#modalParticipaciones').modal('show');
+     // Variables para el tab de participaciones
+     let tablaReservasParticipaciones = null;
+     let reservaSeleccionadaParticipaciones = null;
 
-       // Hacer llamada AJAX para obtener los sets de la reserva
-       $.ajax({
-         url: '{{ route("sellers.get-sets-by-reserve") }}',
-         method: 'POST',
-         data: {
-           reserve_id: reservaId,
-           _token: '{{ csrf_token() }}'
+     // Función para inicializar DataTable de reservas para participaciones
+     function inicializarDataTableReservasParticipaciones() {
+       if (tablaReservasParticipaciones) {
+         return; // Ya está inicializada
+       }
+       
+       tablaReservasParticipaciones = $('#tabla-reservas-participaciones').DataTable({
+         "select": { style: "single" },
+         "ordering": false,
+         "sorting": false,
+         "scrollX": true,
+         "scrollCollapse": true,
+         "language": {
+           url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
          },
-         success: function(response) {
-           if (response.sets && response.sets.length > 0) {
-             let html = '<div class="row">';
-             
-             response.sets.forEach(set => {
-               html += `
-                 <div class="col-md-6 mb-3">
-                   <div class="card">
-                     <div class="card-header">
-                       <h6 class="mb-0">Set: ${set.set_name}</h6>
-                     </div>
-                     <div class="card-body">
-                       <p><strong>ID:</strong> #SP${String(set.id).padStart(4, '0')}</p>
-                       <p><strong>Importe Jugado:</strong> ${parseFloat(set.played_amount || 0).toFixed(2)}€</p>
-                       <p><strong>Importe Donativo:</strong> ${parseFloat(set.donation_amount || 0).toFixed(2)}€</p>
-                       <p><strong>Total:</strong> ${parseFloat(set.total_amount || 0).toFixed(2)}€</p>
-                       <p><strong>Participaciones Físicas:</strong> ${set.physical_participations || 0}</p>
-                       <p><strong>Participaciones Disponibles:</strong> ${set.total_participations || 0}</p>
-                       <button class="btn btn-sm btn-info" onclick="verParticipacionesSet(${set.id})">
-                         <i class="ri-eye-line"></i> Ver Participaciones del Set
-                       </button>
-                     </div>
-                   </div>
-                 </div>
-               `;
-             });
-             
-             html += '</div>';
-             $('#modalParticipacionesBody').html(html);
-           } else {
-             $('#modalParticipacionesBody').html('<div class="alert alert-info">No hay sets disponibles para esta reserva</div>');
+         "pageLength": 10,
+         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+         "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+                '<"row"<"col-sm-12"tr>>' +
+                '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+         "columnDefs": [
+           {
+             "targets": -1, // Última columna (Seleccionar)
+             "orderable": false,
+             "searchable": false
            }
-         },
-         error: function(xhr, status, error) {
-           $('#modalParticipacionesBody').html('<div class="alert alert-danger">Error al cargar los sets: ' + error + '</div>');
+         ]
+       });
+     }
+
+     // Función para cargar reservas en el tab de participaciones
+     function cargarReservasParticipaciones() {
+       if (!tablaReservasParticipaciones) {
+         inicializarDataTableReservasParticipaciones();
+       }
+       
+       tablaReservasParticipaciones.clear();
+       
+       let datosReservas = [];
+       
+       @if(isset($reserves) && $reserves->count() > 0)
+         @foreach($reserves as $reserve)
+           datosReservas.push([
+             '#RS{{ str_pad($reserve->id, 4, '0', STR_PAD_LEFT) }}',
+             '{{ $reserve->lottery ? $reserve->lottery->name : "Sin sorteo" }}',
+             '{{ $reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : "Sin fecha" }}',
+             '{{ $reserve->lottery ? $reserve->lottery->description : "N/A" }}',
+             '{{ is_array($reserve->reservation_numbers) ? implode(' - ', $reserve->reservation_numbers) : ($reserve->reservation_numbers ?? 'Sin números') }}',
+             '{{ number_format($reserve->reservation_amount ?? 0, 2) }}€',
+             '{{ $reserve->reservation_tickets ?? 0 }}',
+             '<b>{{ number_format($reserve->total_amount ?? 0, 2) }}€</b>',
+             `<div class="form-check">
+                <input class="form-check-input seleccionar-reserva-participaciones" type="radio" name="reserve_id_participaciones" value="{{ $reserve->id }}" id="reserve_participaciones_{{ $reserve->id }}" data-reserva-id="{{ $reserve->id }}">
+                <label class="form-check-label" for="reserve_participaciones_{{ $reserve->id }}">
+                  Seleccionar
+                </label>
+              </div>`
+           ]);
+         @endforeach
+       @endif
+       
+       if (datosReservas.length > 0) {
+         tablaReservasParticipaciones.rows.add(datosReservas).draw();
+       } else {
+         tablaReservasParticipaciones.rows.add([['No hay reservas disponibles para esta entidad', '', '', '', '', '', '', '', '']]).draw();
+       }
+     }
+
+           // Función para calcular y mostrar tacos del vendedor
+      window.cargarTacosVendedor = function(reservaId) {
+        // Mostrar loading
+        $('#contenedor-tacos').html('<div class="text-center"><i class="ri-loader-4-line fa-spin"></i> Cargando tacos...</div>');
+
+        // Obtener los sets de la reserva
+        $.ajax({
+          url: '{{ route("sellers.get-sets-by-reserve") }}',
+          method: 'POST',
+          data: {
+            reserve_id: reservaId,
+            _token: '{{ csrf_token() }}'
+          },
+          success: function(response) {
+            if (response.sets && response.sets.length > 0) {
+              let html = '';
+              let setsProcessed = 0;
+              
+              response.sets.forEach(set => {
+                // Obtener las participaciones asignadas del vendedor para este set
+                $.ajax({
+                  url: '{{ route("sellers.get-assigned-participations") }}',
+                  method: 'POST',
+                  data: {
+                    seller_id: {{ $seller->id }},
+                    set_id: set.id,
+                    _token: '{{ csrf_token() }}'
+                  },
+                  success: function(participationsResponse) {
+                    setsProcessed++;
+                    
+                    if (participationsResponse.success && participationsResponse.participations.length > 0) {
+                      // Calcular tacos basándose en las participaciones asignadas
+                      const tacos = calcularTacos(participationsResponse.participations, set);
+                      
+                      if (tacos.length > 0) {
+                        html += generarHTMLTacos(tacos, set);
+                      }
+                    }
+                    
+                    // Si todos los sets han sido procesados, mostrar el resultado
+                    if (setsProcessed === response.sets.length) {
+                      if (html) {
+                        $('#contenedor-tacos').html(html);
+                      } else {
+                        $('#contenedor-tacos').html('<div class="alert alert-info">No hay participaciones asignadas en ningún set de esta reserva</div>');
+                      }
+                    }
+                  },
+                  error: function() {
+                    setsProcessed++;
+                    if (setsProcessed === response.sets.length) {
+                      $('#contenedor-tacos').html('<div class="alert alert-danger">Error al cargar las participaciones</div>');
+                    }
+                  }
+                });
+              });
+            } else {
+              $('#contenedor-tacos').html('<div class="alert alert-info">No hay sets disponibles para esta reserva</div>');
+            }
+          },
+          error: function() {
+            $('#contenedor-tacos').html('<div class="alert alert-danger">Error al cargar los sets</div>');
+          }
+        });
+      };
+
+     // Función para calcular los tacos basándose en las participaciones
+     function calcularTacos(participations, set) {
+       const tacos = new Map();
+       
+       // Obtener el número de participaciones por taco desde el set
+       // Por defecto 50 si no está definido
+       const participationsPerBook = set.participations_per_book || 50;
+       
+       participations.forEach(participation => {
+         const participationNumber = parseInt(participation.number);
+         const bookNumber = Math.ceil(participationNumber / participationsPerBook);
+         
+         if (!tacos.has(bookNumber)) {
+           tacos.set(bookNumber, {
+             bookNumber: bookNumber,
+             participations: [],
+             totalParticipations: 0,
+             salesRegistered: 0,
+             returnedParticipations: 0,
+             availableParticipations: 0
+           });
+         }
+         
+         const taco = tacos.get(bookNumber);
+         taco.participations.push(participation);
+         taco.totalParticipations++;
+         
+         // Aquí puedes agregar lógica para calcular ventas registradas, devoluciones, etc.
+         if (participation.status === 'asignada') {
+           taco.salesRegistered++;
          }
        });
-     };
+       
+       return Array.from(tacos.values());
+     }
 
-     // Función para ver participaciones de un set específico
-     window.verParticipacionesSet = function(setId) {
-       // Aquí puedes implementar la lógica para mostrar las participaciones específicas del set
-       alert('Función para ver participaciones del set ' + setId + ' - Por implementar');
-     };
-   });
+           // Función para generar HTML de los tacos
+      function generarHTMLTacos(tacos, set) {
+        let html = '';
+        
+        // Obtener el número de participaciones por taco desde el set
+        const participationsPerBook = set.participations_per_book || 50;
+        
+        tacos.forEach(taco => {
+          const startParticipation = (taco.bookNumber - 1) * participationsPerBook + 1;
+          const endParticipation = Math.min(taco.bookNumber * participationsPerBook, set.total_participations || 1000);
+          
+          // Generar el formato de participation_code para el rango
+          const startCode = `${set.set_number || 1}/${String(startParticipation).padStart(5, '0')}`;
+          const endCode = `${set.set_number || 1}/${String(endParticipation).padStart(5, '0')}`;
+          const participationsRange = `${startCode} - ${endCode}`;
+          
+          html += `
+            <div class="form-card bs mb-2" style="margin: 5px;">
+              <table class="table table-striped table-condensed table nowrap w-100 mb-0">
+                <thead>
+                  <tr style="font-size: 10px;">
+                    
+                    <th>Nº Taco</th>
+                    <th>Participaciones</th>
+                    <th>Nº Participaciones</th>
+                    <th>Ventas Registradas</th>
+                    <th>Participaciones Devueltas</th>
+                    <th>Participaciones Disponibles</th>
+                    <th></th>
+                  </tr>
+                  <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                    <td>${set.set_number || set.id}/${String(taco.bookNumber).padStart(4, '0')}</td>
+                    <td>${taco.totalParticipations}</td>
+                    <td>${participationsRange}</td>
+                    <td>${taco.salesRegistered}</td>
+                    <td>${taco.returnedParticipations}</td>
+                    <td>${taco.availableParticipations}</td>
+                    <td>
+                      <a class="btn btn-sm btn-light show-details-taco" data-set-id="${set.id}" data-book-number="${taco.bookNumber}" data-participations='${JSON.stringify(taco.participations)}'><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                    </td>
+                  </tr>
+                </thead>
+              </table>
+              
+                             <!-- Sección desplegable para mostrar participaciones -->
+               <div class="part-information" style="height: 0px; overflow: hidden; transition: height 0.5s ease;">
+                 <div style="height: 250px; overflow: auto;" id="list-participations-taco-${set.id}-${taco.bookNumber}" class="">
+                   <table class="table table-striped table-condensed table nowrap w-100 mb-0">
+                     <thead>
+                       <tr style="font-size: 10px;">
+                         <th rowspan="2" style="border-color: transparent; width: 80px;">
+                           <div style="background-color: #333; padding: 10px 5px; border-radius: 12px; text-align: center; display:none">
+                             <img src="{{url('assets/ticket.svg')}}" alt="" width="30px">
+                           </div>
+                         </th>
+                         <th>Nº Participación</th>
+                         <th>Estado</th>
+                         <th>Vendedor</th>
+                         <th>Fecha Venta</th>
+                         <th>Hora Venta</th>
+                         <th></th>
+                       </tr>
+                       <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                         <td></td>
+                         <td></td>
+                         <td></td>
+                         <td></td>
+                         <td></td>
+                         <td></td>
+                       </tr>
+                     </thead>
+                     <tbody id="participations-body-${set.id}-${taco.bookNumber}">
+                       <!-- Las participaciones se cargarán dinámicamente aquí -->
+                     </tbody>
+                   </table>
+                 </div>
+               </div>
+            </div>
+          `;
+        });
+        
+        return html;
+      }
 
- </script>
+     // Event listeners para el tab de participaciones
+     $(document).on('change', '.seleccionar-reserva-participaciones', function() {
+       const reservaId = $(this).data('reserva-id');
+       reservaSeleccionadaParticipaciones = { id: reservaId };
+       $('#btn-siguiente-reservas-participaciones').prop('disabled', false);
+     });
+
+     $(document).on('click', '#btn-siguiente-reservas-participaciones', function() {
+       if (reservaSeleccionadaParticipaciones) {
+         cargarTacosVendedor(reservaSeleccionadaParticipaciones.id);
+         $('#paso-reservas-participaciones').hide();
+         $('#paso-tacos-participaciones').show();
+       }
+     });
+
+     $(document).on('click', '#btn-volver-reservas-participaciones', function() {
+       $('#paso-tacos-participaciones').hide();
+       $('#paso-reservas-participaciones').show();
+     });
+
+           // Inicializar el tab de participaciones cuando se active
+      $('[data-bs-target="#participaciones"]').click(function() {
+        if (!tablaReservasParticipaciones) {
+          cargarReservasParticipaciones();
+        }
+      });
+
+      // Event listener para mostrar/ocultar participaciones de tacos
+      $(document).on('click', '.show-details-taco', function(e) {
+        e.preventDefault();
+        
+        const setId = $(this).data('set-id');
+        const bookNumber = $(this).data('book-number');
+        const participations = $(this).data('participations');
+        const partInformation = $(this).closest('.form-card').find('.part-information');
+        
+        if (partInformation.css('height') == '0px') {
+          // Abrir el desplegable
+          partInformation.css('height', '250px');
+          
+          // Cargar las participaciones en la tabla
+          const tbody = $(`#participations-body-${setId}-${bookNumber}`);
+          tbody.empty();
+          
+          if (participations && participations.length > 0) {
+            participations.forEach(participation => {
+              const saleDate = participation.sale_date ? new Date(participation.sale_date).toLocaleDateString('es-ES') : 'N/A';
+              const saleTime = participation.sale_time ? participation.sale_time : 'N/A';
+              
+              tbody.append(`
+                <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                  <td style="width: 80px;">
+                    <div style="background-color: #333; padding: 10px 5px; border-radius: 12px; text-align: center;">
+                      <img src="{{url('assets/ticket.svg')}}" alt="" width="30px">
+                    </div>
+                  </td>
+                  <td>${participation.participation_code}</td>
+                  <td><label class="badge bg-success">Asignada</label></td>
+                  <td>{{ $seller->name ?? 'N/A' }}</td>
+                  <td>${saleDate}</td>
+                  <td>${saleTime}</td>
+                  <td>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm btn-light" onclick="verDetalleParticipacionTaco('${participation.participation_code}', ${participation.id})" title="Ver detalle">
+                        <img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12">
+                      </button>
+                      <button class="btn btn-sm btn-danger" onclick="eliminarParticipacionTaco('${participation.participation_code}', ${participation.id})">
+                        <i class="ri-delete-bin-line"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `);
+            });
+                     } else {
+             tbody.append(`
+               <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                 <td colspan="7" class="text-center">No hay participaciones en este taco</td>
+               </tr>
+             `);
+           }
+        } else {
+          // Cerrar el desplegable
+          partInformation.css('height', '0px');
+        }
+      });
+
+     
+
+           // Función para ver detalle de participación desde el grid
+      window.verDetalleParticipacion = function(codigo, participationId) {
+        // Aquí puedes implementar la lógica para mostrar el detalle de la participación
+        // Por ejemplo, abrir un modal con la información detallada
+        alert(`Detalle de participación: ${codigo}\nID: ${participationId}`);
+        // TODO: Implementar modal o vista detallada de la participación
+      };
+
+      // Función para ver detalle de participación desde el taco
+      window.verDetalleParticipacionTaco = function(codigo, participationId) {
+        // Aquí puedes implementar la lógica para mostrar el detalle de la participación
+        // Por ejemplo, abrir un modal con la información detallada
+        alert(`Detalle de participación: ${codigo}\nID: ${participationId}`);
+        // TODO: Implementar modal o vista detallada de la participación
+      };
+
+      // Función para eliminar participación desde el taco
+      window.eliminarParticipacionTaco = function(codigo, participationId) {
+        if (confirm('¿Estás seguro de que quieres eliminar esta participación?')) {
+          // Eliminar de la base de datos
+          $.ajax({
+            url: '{{ route("sellers.remove-assignment") }}',
+            method: 'POST',
+            data: {
+              participation_id: participationId,
+              seller_id: {{ $seller->id }},
+              _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+              if (response.success) {
+                // Mostrar mensaje de éxito
+                mostrarMensaje('Participación eliminada correctamente', 'success');
+                
+                // Recargar los tacos para actualizar la información
+                if (reservaSeleccionadaParticipaciones) {
+                  cargarTacosVendedor(reservaSeleccionadaParticipaciones.id);
+                }
+              } else {
+                mostrarMensaje(response.message || 'Error al eliminar la participación', 'error');
+              }
+            },
+            error: function(xhr, status, error) {
+              mostrarMensaje('Error de conexión al eliminar la participación', 'error');
+            }
+          });
+        }
+      };
+  });
+
+</script>
 
 @endsection

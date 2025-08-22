@@ -566,4 +566,75 @@ class SellerController extends Controller
             ]);
         }
     }
+
+    /**
+     * Obtener participaciones por taco (book)
+     */
+    public function getParticipationsByBook(Request $request)
+    {
+        try {
+            $request->validate([
+                'seller_id' => 'required|integer',
+                'set_id' => 'required|integer',
+                'book_number' => 'required|integer'
+            ]);
+
+            // Obtener información del set
+            $set = DB::table('sets')
+                ->where('id', $request->set_id)
+                ->first();
+
+            if (!$set) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Set no encontrado'
+                ]);
+            }
+
+            // Obtener el formato de diseño para saber cuántas participaciones por taco
+            $designFormat = DB::table('design_formats')
+                ->where('set_id', $request->set_id)
+                ->first();
+
+            if (!$designFormat) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Formato de diseño no encontrado'
+                ]);
+            }
+
+            $participationsPerBook = $designFormat->output['participations_per_book'] ?? 50;
+            $startParticipation = ($request->book_number - 1) * $participationsPerBook + 1;
+            $endParticipation = $request->book_number * $participationsPerBook;
+
+            // Obtener participaciones del vendedor en este taco
+            $participations = DB::table('participations')
+                ->where('seller_id', $request->seller_id)
+                ->where('set_id', $request->set_id)
+                ->where('participation_number', '>=', $startParticipation)
+                ->where('participation_number', '<=', $endParticipation)
+                ->where('status', 'asignada')
+                ->select('id', 'participation_number as number', 'participation_code', 'sale_date', 'sale_time')
+                ->orderBy('participation_number')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'participations' => $participations,
+                'book_info' => [
+                    'book_number' => $request->book_number,
+                    'start_participation' => $startParticipation,
+                    'end_participation' => $endParticipation,
+                    'participations_per_book' => $participationsPerBook,
+                    'total_assigned' => $participations->count()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener participaciones del taco: ' . $e->getMessage()
+            ]);
+        }
+    }
 } 
