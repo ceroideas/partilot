@@ -1817,6 +1817,7 @@ $('#format').change(function (e) {
     const pages_per_document = parseInt($('#participation_page').val());
 
     return {
+      set_id: {{ $set->id }},
       format,
       page,
       rows,

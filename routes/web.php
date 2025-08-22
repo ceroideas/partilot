@@ -14,6 +14,7 @@ use App\Http\Controllers\SetController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\ParticipationController;
 use App\Models\Administration;
 /*
 |--------------------------------------------------------------------------
@@ -115,6 +116,11 @@ Route::group(['prefix' => 'sellers'], function() {
     Route::delete('/destroy/{id}', [SellerController::class, 'destroy'])->name('sellers.destroy');
     Route::get('/delete/{id}', [SellerController::class, 'destroy'])->name('sellers.delete');
     Route::post('/check-user-email', [SellerController::class, 'check_user_email'])->name('sellers.check-user-email');
+    Route::post('/get-sets-by-reserve', [SellerController::class, 'getSetsByReserve'])->name('sellers.get-sets-by-reserve');
+    Route::post('/validate-participations', [SellerController::class, 'validateParticipations'])->name('sellers.validate-participations');
+    Route::post('/save-assignments', [SellerController::class, 'saveAssignments'])->name('sellers.save-assignments');
+    Route::post('/get-assigned-participations', [SellerController::class, 'getAssignedParticipations'])->name('sellers.get-assigned-participations');
+    Route::post('/remove-assignment', [SellerController::class, 'removeAssignment'])->name('sellers.remove-assignment');
 });
 Route::get('users',function() {
     return view('users.index');
@@ -213,10 +219,12 @@ Route::group(['prefix' => 'sets'], function() {
 
 Route::group(['prefix' => 'participations'], function() {
     //
-    Route::get('/', function() {return view('participations.index');});
-    Route::get('/add', function() {return view('participations.add');});
-    Route::get('/view/{id}', function() {return view('participations.show');});
-    Route::get('/view/{id}/seller', function() {return view('participations.show_seller');});
+    Route::get('/', [ParticipationController::class, 'index'])->name('participations.index');
+    Route::get('/add', [ParticipationController::class, 'create'])->name('participations.create');
+    Route::post('/store-entity', [ParticipationController::class, 'store_entity'])->name('participations.store-entity');
+    Route::get('/view/{id}', [ParticipationController::class, 'show'])->name('participations.show');
+    Route::get('/view/{id}/seller', [ParticipationController::class, 'show_seller'])->name('participations.show-seller');
+    Route::get('/book/{set_id}/{book_number}/participations', [ParticipationController::class, 'getBookParticipations'])->name('participations.book-participations');
 });
 
 Route::group(['prefix' => 'design'], function() {

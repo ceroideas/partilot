@@ -31,13 +31,20 @@
             <div class="card">
                 <div class="card-body">
 
+                    @if(!session('selected_entity'))
+                        <div class="alert alert-warning" role="alert">
+                            <i class="ri-error-warning-line"></i>
+                            <strong>¡Atención!</strong> No se ha seleccionado ninguna entidad. 
+                            <a href="{{ route('participations.index') }}" class="alert-link">Haz clic aquí para seleccionar una entidad</a>.
+                        </div>
+                    @endif
 
                     <div class="row">
-                        <div class="col-2">
+                        <div class="col-3">
                                 
                             <div class="form-card bs">
                                 <div class="row">
-                                    <div class="col-4">
+                                    <div class="col-3">
                                         
                                         <div class="photo-preview-2">
                                             
@@ -48,12 +55,12 @@
                                         <div style="clear: both;"></div>
                                     </div>
 
-                                    <div class="col-8 text-center">
+                                    <div class="col-9 text-center">
 
                                         <h4 class="mb-0 mt-2">
-                                            Fademur
+                                            {{ session('selected_entity') ? session('selected_entity')->name : 'Selecciona una entidad' }}
                                         </h4>
-                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
+                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ session('selected_entity') ? session('selected_entity')->province : 'Sin provincia' }}
                                         
                                     </div>
                                 </div>
@@ -61,7 +68,7 @@
                             </div>
                         </div>
 
-                        <div class="col-10">
+                        <div class="col-9">
                             <div class="form-card bs">
 
                                 <div class="row">
@@ -112,7 +119,7 @@
                         </div>
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? '' : 'd-none'}}">
+                    <div class="{{isset($designFormats) && count($designFormats) > 0 ? '' : 'd-none'}}">
 
                         <br>
                         <h4 class="header-title">
@@ -130,6 +137,8 @@
 
                         <div style="min-height: 358px;">
 
+                            @if(isset($designFormats))
+                                @foreach($designFormats as $designFormat)
                             <div class="form-card mb-2 p-0">
                                 <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
                                     <thead>
@@ -150,16 +159,16 @@
                                             <th></th>
                                         </tr>
                                         <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                            <td>#SP9801</td>
-                                            <td>Set de Pruebas</td>
-                                            <td>46/25</td>
-                                            <td>05716 - 52468 - 51235 - 69584</td>
-                                            <td>2,00€</td>
-                                            <td>2,00€</td>
-                                            <td>10,00€</td>
-                                            <td>750</td>
-                                            <td>600</td>
-                                            <td>150</td>
+                                            <td>#SP{{str_pad($designFormat->set->id, 4, '0', STR_PAD_LEFT)}}</td>
+                                            <td>{{$designFormat->set ? $designFormat->set->set_name : 'Sin set'}}</td>
+                                            <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? $designFormat->set->reserve->lottery->name : 'Sin sorteo'}}</td>
+                                            <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? implode(' - ', $designFormat->set->reserve->reservation_numbers ?? []) : 'Sin números'}}</td>
+                                            <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? number_format($designFormat->set->reserve->lottery->ticket_price, 2) : '0,00'}}€</td>
+                                            <td>{{$designFormat->set ? number_format($designFormat->set->donation_amount, 2) : '0,00'}}€</td>
+                                            <td>{{$designFormat->set ? number_format($designFormat->set->total_amount, 2) : '0,00'}}€</td>
+                                            <td>{{$designFormat->set ? $designFormat->set->total_participations : 0}}</td>
+                                            <td>{{$designFormat->set ? $designFormat->set->physical_participations : 0}}</td>
+                                            <td>{{$designFormat->set ? $designFormat->set->digital_participations : 0}}</td>
                                             <td>
                                                 <a class="btn btn-sm btn-light show-information"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                             </td>
@@ -167,8 +176,8 @@
                                     </thead>
                                 </table>
 
+                                <!-- Sección expandible con información detallada -->
                                 <div style="height: 0px; overflow: hidden;" class="part-information">
-
                                     <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
                                         <thead>
                                             <tr style="font-size: 10px;">
@@ -182,13 +191,13 @@
                                                 <th>Lotería + Donativo TOTAL</th>
                                             </tr>
                                             <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                <td>750</td>
-                                                <td>120</td>
-                                                <td>120</td>
-                                                <td>120</td>
-                                                <td>6.000,00€</td>
-                                                <td>1.500,00€</td>
-                                                <td>7.500,00€</td>
+                                                <td>{{$designFormat->set ? $designFormat->set->total_participations : 0}}</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>{{$designFormat->set ? $designFormat->set->total_participations : 0}}</td>
+                                                <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? number_format($designFormat->set->total_participations * $designFormat->set->reserve->lottery->ticket_price, 2) : '0,00'}}€</td>
+                                                <td>{{$designFormat->set ? number_format($designFormat->set->total_participations * $designFormat->set->donation_amount, 2) : '0,00'}}€</td>
+                                                                                                 <td>{{$designFormat->set ? number_format(($designFormat->set->total_participations * ($designFormat->set->reserve && $designFormat->set->reserve->lottery ? $designFormat->set->reserve->lottery->ticket_price : 0)) + ($designFormat->set->total_participations * $designFormat->set->donation_amount), 2) : '0,00'}}€</td>
                                             </tr>
                                         </thead>
                                     </table>
@@ -210,10 +219,18 @@
 
                                         <br>
 
-                                        <div style="height: 250px; overflow: auto;" id="details-participations" class="d-none">
+                                                                                 <div style="height: 250px; overflow: auto;" id="details-participations" class="d-none">
 
-                                            <div class="row">
-                                                <div class="col-10 offset-2">
+                                             <div class="row mb-2">
+                                                 <div class="col-12">
+                                                     <button class="btn btn-sm btn-outline-secondary back-to-books" style="padding: 4px 8px; font-size: 11px;">
+                                                         <i class="ri-arrow-left-line"></i>
+                                                     </button>
+                                                 </div>
+                                             </div>
+
+                                             <div class="row">
+                                                 <div class="col-10 offset-2">
                                                     <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
 
                                                         <thead>
@@ -306,487 +323,59 @@
 
                                         </div>
 
-                                        <div style="height: 250px; overflow: auto;" id="list-participations" class="">
-                                            
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
+                                                                                 <div style="height: 250px; overflow: auto;" id="list-participations" class="">
+                                             
+                                             @if(isset($designFormat->books) && count($designFormat->books) > 0)
+                                                 @foreach($designFormat->books as $book)
+                                                     <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
+                                                         <thead>
+                                                             <tr style="font-size: 10px;">
+                                                                 <th rowspan="2" style="border-color: transparent;">
+                                                                     <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
+                                                                         <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
+                                                                     </div>
+                                                                 </th>
+                                                                 <th>Nº Taco</th>
+                                                                 <th>Participaciones</th>
+                                                                 <th>Nº Participaciones</th>
+                                                                 <th>Ventas Registradas</th>
+                                                                 <th>Participaciones Devueltas</th>
+                                                                 <th>Participaciones Disponibles</th>
+                                                                 <th>Estado</th>
+                                                                 <th>Vendedor</th>
+                                                                 <th></th>
+                                                             </tr>
+                                                             <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                                                                 <td>{{$book['set_number']}}/{{str_pad($book['book_number'], 4, '0', STR_PAD_LEFT)}}</td>
+                                                                 <td>{{$book['total_participations']}}</td>
+                                                                 <td>{{$book['participations_range']}}</td>
+                                                                 <td>{{$book['sales_registered']}}</td>
+                                                                 <td>{{$book['returned_participations']}}</td>
+                                                                 <td>{{$book['available_participations']}}</td>
+                                                                 <td><label class="badge bg-success">{{$book['status']}}</label></td>
+                                                                 <td>{{$book['seller']}}</td>
+                                                                 <td>
+                                                                     <a class="btn btn-sm btn-light show-details" data-book="{{$book['book_number']}}" data-set="{{$designFormat->set->id}}"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                                                                 </td>
+                                                             </tr>
+                                                         </thead>
+                                                     </table>
+                                                 @endforeach
+                                             @else
+                                                 <div class="text-center p-4">
+                                                     <p>No hay tacos disponibles para este diseño</p>
+                                                 </div>
+                                             @endif
 
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                        </div>
+                                         </div>
 
                                     </div>
                                     
                                 </div>
                             </div>
+                                @endforeach
+                            @endif
 
-                            <div class="form-card mb-2 p-0">
-                                <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-                                    <thead>
-                                        <tr style="font-size: 10px;">
-                                            <th rowspan="2" class="no-filter" style="border-color: transparent;">
-                                                <img src="{{url('assets/participacion.png')}}" alt="" width="150px">
-                                            </th>
-                                            <th>Orden ID</th>
-                                            <th>Nombre Set</th>
-                                            <th>N. Sorteo</th>
-                                            <th>Número/s</th>
-                                            <th>Importe Jugado (Número)</th>
-                                            <th>Importe Donativo</th>
-                                            <th>Importe TOTAL</th>
-                                            <th>Participaciones TOTAL</th>
-                                            <th>Participaciones Físicas</th>
-                                            <th>Participaciones Digitales</th>
-                                            <th></th>
-                                        </tr>
-                                        <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                            <td>#SP9801</td>
-                                            <td>Set de Pruebas</td>
-                                            <td>46/25</td>
-                                            <td>05716 - 52468 - 51235 - 69584</td>
-                                            <td>2,00€</td>
-                                            <td>2,00€</td>
-                                            <td>10,00€</td>
-                                            <td>750</td>
-                                            <td>600</td>
-                                            <td>150</td>
-                                            <td>
-                                                <a class="btn btn-sm btn-light show-information"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                            </td>
-                                        </tr>
-                                    </thead>
-                                </table>
-
-                                <div style="height: 0px; overflow: hidden;" class="part-information">
-
-                                    <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-                                        <thead>
-                                            <tr style="font-size: 10px;">
-                                                <th rowspan="2" style="width: 182px; border-color: transparent;"></th>
-                                                <th>Participaciones Vendidas</th>
-                                                <th>Participaciones Devueltas</th>
-                                                <th>Participaciones Anuladas</th>
-                                                <th>Participaciones Disponibles</th>
-                                                <th>Importe Lotería TOTAL</th>
-                                                <th>Importe Donativo TOTAL</th>
-                                                <th>Lotería + Donativo TOTAL</th>
-                                            </tr>
-                                            <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                <td>750</td>
-                                                <td>120</td>
-                                                <td>120</td>
-                                                <td>120</td>
-                                                <td>6.000,00€</td>
-                                                <td>1.500,00€</td>
-                                                <td>7.500,00€</td>
-                                            </tr>
-                                        </thead>
-                                    </table>
-
-                                    <hr>
-
-                                    <div class="p-3 pt-0 pb-0">
-                                        
-                                        <h4 class="header-title">
-
-                                            <div class="float-start d-flex align-items-start">
-                                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Provincia">
-                                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Localidad">
-                                                <input type="text" class="form-control" placeholder="Status">
-                                            </div>
-                                        </h4>
-
-                                        <div style="clear: both;"></div>
-
-                                        <br>
-
-                                        <div style="height: 250px; overflow: auto;" id="details-participations" class="d-none">
-
-                                            <div class="row">
-                                                <div class="col-10 offset-2">
-                                                    <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                        <thead>
-                                                            <tr style="font-size: 10px;">
-                                                                <th rowspan="2" style="border-color: transparent;">
-                                                                    <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                        <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
-                                                                    </div>
-                                                                </th>
-                                                                <th>Nº Participación</th>
-                                                                <th>Estado</th>
-                                                                <th>Vendedor</th>
-                                                                <th>Fecha Venta</th>
-                                                                <th>Hora Venta</th>
-                                                                <th></th>
-                                                            </tr>
-                                                            <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                                <td>1/0001</td>
-                                                                <td><label class="badge bg-success">Vendida</label></td>
-                                                                <td>Jorge Ruiz Ortega</td>
-                                                                <td>20/10/2025</td>
-                                                                <td>21:00h</td>
-                                                                <td>
-                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                                </td>
-                                                            </tr>
-                                                        </thead>
-                                                        
-                                                    </table>
-                                                    <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                        <thead>
-                                                            <tr style="font-size: 10px;">
-                                                                <th rowspan="2" style="border-color: transparent;">
-                                                                    <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                        <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
-                                                                    </div>
-                                                                </th>
-                                                                <th>Nº Participación</th>
-                                                                <th>Estado</th>
-                                                                <th>Vendedor</th>
-                                                                <th>Fecha Venta</th>
-                                                                <th>Hora Venta</th>
-                                                                <th></th>
-                                                            </tr>
-                                                            <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                                <td>1/0001</td>
-                                                                <td><label class="badge bg-success">Vendida</label></td>
-                                                                <td>Jorge Ruiz Ortega</td>
-                                                                <td>20/10/2025</td>
-                                                                <td>21:00h</td>
-                                                                <td>
-                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                                </td>
-                                                            </tr>
-                                                        </thead>
-                                                        
-                                                    </table>
-                                                    <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                        <thead>
-                                                            <tr style="font-size: 10px;">
-                                                                <th rowspan="2" style="border-color: transparent;">
-                                                                    <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                        <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
-                                                                    </div>
-                                                                </th>
-                                                                <th>Nº Participación</th>
-                                                                <th>Estado</th>
-                                                                <th>Vendedor</th>
-                                                                <th>Fecha Venta</th>
-                                                                <th>Hora Venta</th>
-                                                                <th></th>
-                                                            </tr>
-                                                            <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                                <td>1/0001</td>
-                                                                <td><label class="badge bg-success">Vendida</label></td>
-                                                                <td>Jorge Ruiz Ortega</td>
-                                                                <td>20/10/2025</td>
-                                                                <td>21:00h</td>
-                                                                <td>
-                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                                </td>
-                                                            </tr>
-                                                        </thead>
-                                                        
-                                                    </table>
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        <div style="height: 250px; overflow: auto;" id="list-participations" class="">
-                                            
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                            <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
-
-                                                <thead>
-                                                    <tr style="font-size: 10px;">
-                                                        <th rowspan="2" style="border-color: transparent;">
-                                                            <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
-                                                                <img src="{{url('assets/rectangulo.svg')}}" alt="" width="50px">
-                                                            </div>
-                                                        </th>
-                                                        <th>Nº Taco</th>
-                                                        <th>Participaciones</th>
-                                                        <th>Nº Participaciones</th>
-                                                        <th>Ventas Registradas</th>
-                                                        <th>Participaciones Devueltas</th>
-                                                        <th>Participaciones Disponibles</th>
-                                                        <th>Estado</th>
-                                                        <th>Vendedor</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                        <td>1/0001</td>
-                                                        <td>50</td>
-                                                        <td>1/00001 - 1/00050</td>
-                                                        <td>10</td>
-                                                        <td>5</td>
-                                                        <td>35</td>
-                                                        <td><label class="badge bg-success">Asignado</label></td>
-                                                        <td>Jorge Ruíz Ortega</td>
-                                                        <td>
-                                                            <a class="btn btn-sm btn-light show-details"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
-                                                        </td>
-                                                    </tr>
-                                                </thead>
-                                                
-                                            </table>
-
-                                        </div>
-
-                                    </div>
-                                    
-                                </div>
-                            </div>
                         </div>
 
                         <div class="row">
@@ -803,7 +392,7 @@
 
                     </div>
 
-                    <div class="{{isset($_GET['table']) ? 'd-none' : ''}}">
+                    <div class="{{!isset($designFormats) || count($designFormats) == 0 ? '' : 'd-none'}}">
                         
                         <div class="d-flex align-items-center gap-1">
                             
@@ -817,9 +406,6 @@
 
                                 <small>Las participaciones se añadirán <br> automaticamente una vez <br> completado el diseño en la seccion <br> <b>Diseño e Impresión</b></small>
 
-                                {{-- <br>
-
-                                <a href="{{url('participations/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a> --}}
                             </div>
 
                         </div>
@@ -957,10 +543,85 @@
 
   });
 
-  $('.show-details').click(function(event) {
-      $(this).parents('.form-card').find('#details-participations').removeClass('d-none');
-      $(this).parents('.form-card').find('#list-participations').addClass('d-none');
-  });
+     $('.show-details').click(function(event) {
+       event.preventDefault();
+       
+       var bookNumber = $(this).data('book');
+       var setId = $(this).data('set');
+       var $formCard = $(this).parents('.form-card');
+       
+       // Mostrar loading
+       $formCard.find('#details-participations').html('<div class="text-center p-4"><p>Cargando participaciones...</p></div>');
+       $formCard.find('#details-participations').removeClass('d-none');
+       $formCard.find('#list-participations').addClass('d-none');
+       
+       // Hacer la petición AJAX para obtener las participaciones
+       $.ajax({
+           url: '/participations/book/' + setId + '/' + bookNumber + '/participations',
+           method: 'GET',
+           success: function(response) {
+               var participationsHtml = '';
+               
+                               // Agregar botón de volver
+                participationsHtml += '<div class="row mb-2">' +
+                    '<div class="col-12">' +
+                        '<button class="btn btn-sm btn-outline-secondary back-to-books" style="padding: 4px 8px; font-size: 11px;">' +
+                            '<i class="ri-arrow-left-line"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+               
+               if (response.participations && response.participations.length > 0) {
+                   participationsHtml += '<div class="row"><div class="col-10 offset-2">';
+                   response.participations.forEach(function(participation) {
+                       participationsHtml += '<table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">' +
+                           '<thead>' +
+                               '<tr style="font-size: 10px;">' +
+                                   '<th rowspan="2" style="border-color: transparent;">' +
+                                       '<div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">' +
+                                           '<img src="' + window.location.origin + '/assets/ticket.svg" alt="" width="50px">' +
+                                       '</div>' +
+                                   '</th>' +
+                                   '<th>Nº Participación</th>' +
+                                   '<th>Estado</th>' +
+                                   '<th>Vendedor</th>' +
+                                   '<th>Fecha Venta</th>' +
+                                   '<th>Hora Venta</th>' +
+                                   '<th></th>' +
+                               '</tr>' +
+                               '<tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">' +
+                                   '<td>' + participation.participation_number + '</td>' +
+                                   '<td><label class="badge bg-success">' + participation.status + '</label></td>' +
+                                   '<td>' + participation.seller + '</td>' +
+                                   '<td>' + participation.sale_date + '</td>' +
+                                   '<td>' + participation.sale_time + '</td>' +
+                                   '<td>' +
+                                       '<a href="' + window.location.origin + '/participations/view/1" class="btn btn-sm btn-light"><img src="' + window.location.origin + '/assets/form-groups/eye.svg" alt="" width="12"></a>' +
+                                   '</td>' +
+                               '</tr>' +
+                           '</thead>' +
+                       '</table>';
+                   });
+                   participationsHtml += '</div></div>';
+               } else {
+                   participationsHtml += '<div class="text-center p-4"><p>No hay participaciones en este taco</p></div>';
+               }
+               
+               $formCard.find('#details-participations').html(participationsHtml);
+           },
+           error: function(xhr) {
+               $formCard.find('#details-participations').html('<div class="text-center p-4"><p>Error al cargar las participaciones</p></div>');
+           }
+       });
+   });
+
+   // Botón para volver a la lista de tacos
+   $(document).on('click', '.back-to-books', function() {
+       var $formCard = $(this).closest('.form-card');
+       $formCard.find('#details-participations').addClass('d-none');
+       $formCard.find('#list-participations').removeClass('d-none');
+   });
+
 </script>
 
 @endsection

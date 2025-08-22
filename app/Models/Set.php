@@ -69,6 +69,14 @@ class Set extends Model
     }
 
     /**
+     * Relación con los design formats
+     */
+    public function designFormats()
+    {
+        return $this->hasMany(DesignFormat::class);
+    }
+
+    /**
      * Scope para sets activos
      */
     public function scopeActive($query)

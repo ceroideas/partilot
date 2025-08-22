@@ -129,7 +129,7 @@
                     							<tr>
                     								<td>#SP{{str_pad($set->id, 4, '0', STR_PAD_LEFT)}}</td>
                     								<td>{{$set->set_name}}</td>
-                    								<td>{{number_format($set->amount_played, 2)}}€</td>
+                    								<td>{{number_format($set->played_amount, 2)}}€</td>
                     								<td>{{number_format($set->donation_amount, 2)}}€</td>
                     								<td>{{number_format($set->total_amount, 2)}}€</td>
                     								<td>{{$set->physical_participations}}</td>

@@ -16,6 +16,119 @@
     .part-information {
         transition: all 500ms;
     }
+
+    /* Estilos para la funcionalidad de asignación */
+    .asignacion-paso {
+        transition: all 0.3s ease;
+    }
+
+    .asignacion-paso table {
+        margin-top: 20px;
+    }
+
+    .asignacion-paso .btn-seleccionar {
+        border-radius: 20px;
+        font-size: 12px;
+        padding: 5px 15px;
+    }
+
+    .asignacion-paso .btn-volver {
+        border-radius: 20px;
+        font-size: 12px;
+        padding: 5px 15px;
+    }
+
+    /* Animación para transiciones entre pasos */
+    .asignacion-paso.fade-in {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Estilos para las participaciones asignadas */
+    .participacion-item {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+    }
+
+    .participacion-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .participacion-icon {
+        width: 40px;
+        height: 40px;
+        background: #333;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+    }
+
+    .participacion-info {
+        flex-grow: 1;
+    }
+
+    .participacion-numero {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .participacion-fecha {
+        color: #666;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .participacion-estado {
+        background: #28a745;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        font-weight: bold;
+        margin-top: 4px;
+        display: inline-block;
+    }
+
+    .btn-eliminar-participacion {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-eliminar-participacion:hover {
+        background: #c82333;
+        transform: scale(1.1);
+    }
+
+    .grid-participaciones {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 15px;
+    }
 </style>
 
 
@@ -65,21 +178,6 @@
                                 </li>
 
                                 <li class="nav-item">
-                                    <div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#participaciones">
-                                        
-                                        <span>
-                                            &nbsp;&nbsp;
-                                        </span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
-                                        <label>
-                                            Participaciones
-                                        </label>
-
-                                    </div>
-
-                                </li>
-
-                                <li class="nav-item">
                                     <div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#asignacion">
                                         
                                         <span>
@@ -88,6 +186,21 @@
                                         <img src="{{url('icons/participaciones.svg')}}" alt="">
                                         <label>
                                             Asignación
+                                        </label>
+
+                                    </div>
+
+                                </li>
+
+                                <li class="nav-item">
+                                    <div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#participaciones">
+                                        
+                                        <span>
+                                            &nbsp;&nbsp;
+                                        </span>
+                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                                        <label>
+                                            Participaciones
                                         </label>
 
                                     </div>
@@ -110,14 +223,46 @@
                                 </li>
                             </ul>
 
-                            <a href="{{ route('sellers.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                                <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
-                            </a>
+                                                         <!-- Información del Vendedor -->
+                             <div class="form-card bs mb-3">
+                                 <div class="row">
+                                     <div class="col-4">
+                                         <div class="photo-preview-3">
+                                             <i class="ri-account-circle-fill"></i>
+                                         </div>
+                                         <div style="clear: both;"></div>
+                                     </div>
+                                     <div class="col-8 text-center mt-2">
+                                         <h3 class="mt-2 mb-0">{{ $seller->name ?? 'N/A' }}</h3>
+                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-mail-line"></i> {{ $seller->email ?? 'N/A' }}
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Información de la Entidad -->
+                             <div class="form-card bs mb-3">
+                                 <div class="row">
+                                     <div class="col-4">
+                                         <div class="photo-preview-3">
+                                             <i class="ri-account-circle-fill"></i>
+                                         </div>
+                                         <div style="clear: both;"></div>
+                                     </div>
+                                     <div class="col-8 text-center mt-2">
+                                         <h3 class="mt-2 mb-0">{{ $seller->entity->name ?? 'Entidad' }}</h3>
+                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $seller->entity->province ?? 'Provincia' }}
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <a href="{{ route('sellers.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                                 <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
+                             </a>
                         </div>
 
                         <div class="col-md-9">
 
-                            <div class="tabbable show-content">
+                            <div class="tabbable">
                                 
                                 <div class="tab-content p-0">
                                     
@@ -125,7 +270,7 @@
 
 
                                         <div class="form-card bs" style="min-height: 658px;">
-                                            <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex justify-content-between align-items-center show-content">
                                                 <div>
                                                     <h4 class="mb-0 mt-1">
                                                         Información del Vendedor
@@ -301,8 +446,8 @@
 
                                     </div>
 
-                                    <div class="tab-pane fade" id="participaciones">
-                                        <div class="form-card bs" id="participations_select" style="min-height: 658px;">
+                                                                        <div class="tab-pane fade" id="participaciones" style="display: none;">
+                                        <div class="form-card bs" id="participations_select" style="min-height: 658px; display: none;">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <h4 class="mb-0 mt-1">
@@ -330,7 +475,7 @@
                                                             <th>Seleccionar</th>
                                                         </tr>
                                                     </thead>
-                                                
+                                                 
                                                     <tbody>
                                                         @forelse($reserves as $reserve)
                                                         <tr>
@@ -524,12 +669,246 @@
 
                                     <div class="tab-pane fade" id="asignacion">
                                         <div class="form-card bs" style="min-height: 658px;">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h4 class="mb-0 mt-1">
-                                                        Asigna las participaciones
-                                                    </h4>
-                                                    <small><i>Individual o por rango</i></small>
+                                                                                         <!-- Paso 1: Selección de Reservas -->
+                                             <div id="paso-reservas" class="asignacion-paso" style="display: none;">
+                                                 <div class="d-flex justify-content-between align-items-center">
+                                                     <div>
+                                                         <h4 class="mb-0 mt-1">
+                                                             Participaciones
+                                                         </h4>
+                                                         <small><i>Selecciona una reserva para continuar</i></small>
+                                                     </div>
+                                                 </div>
+
+                                                 <br>
+
+                                                                                                   <div style="min-height: 656px;">
+                                                      <table id="tabla-reservas" class="table table-striped nowrap w-100">
+                                                          <thead class="">
+                                                              <tr>
+                                                                  <th>Orden ID</th>
+                                                                  <th>N.Sorteo</th>
+                                                                  <th>Fecha Sorteo</th>
+                                                                  <th>Nombre Sorteo</th>
+                                                                  <th>Numero/s</th>
+                                                                  <th>Importe <br> (Número)</th>
+                                                                  <th>Décimos <br> (Número)</th>
+                                                                  <th>Importe <br> TOTAL</th>
+                                                                  <th>Seleccionar</th>
+                                                              </tr>
+                                                          </thead>
+                                                          <tbody>
+                                                              <!-- Los datos se cargarán dinámicamente -->
+                                                          </tbody>
+                                                      </table>
+                                                  </div>
+
+                                                  <div class="row">
+                                                      <div class="col-12 text-end">
+                                                          <button type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="btn-siguiente-reservas" disabled>
+                                                              Siguiente
+                                                              <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i>
+                                                          </button>
+                                                      </div>
+                                                  </div>
+                                             </div>
+
+                                                                                         <!-- Paso 2: Selección de Sets -->
+                                             <div id="paso-sets" class="asignacion-paso" style="display: none;">
+                                                 <div class="d-flex justify-content-between align-items-center">
+                                                     <div>
+                                                         <h4 class="mb-0 mt-1">
+                                                             Set en el que Asignar participaciones
+                                                         </h4>
+                                                         <small><i>Selecciona un set para continuar</i></small>
+                                                     </div>
+                                                     <button id="btn-volver-reservas" class="btn btn-secondary btn-sm">
+                                                         <i class="ri-arrow-left-line"></i> Volver a Reservas
+                                                     </button>
+                                                 </div>
+
+                                                 <br>
+
+                                                                                                   <div style="min-height: 656px;">
+                                                      <table id="tabla-sets" class="table table-striped nowrap w-100">
+                                                          <thead class="">
+                                                              <tr>
+                                                                  <th>Orden ID</th>
+                                                                  <th>Nombre Set</th>
+                                                                  <th>Importe Jugado <br> (por Número)</th>
+                                                                  <th>Importe Donativo</th>
+                                                                  <th>Importe TOTAL</th>
+                                                                  <th>Participaciones <br> Físicas</th>
+                                                                  <th>Participaciones <br> Disponibles</th>
+                                                                  <th>Seleccionar</th>
+                                                              </tr>
+                                                          </thead>
+                                                          <tbody>
+                                                              <!-- Los datos se cargarán dinámicamente -->
+                                                          </tbody>
+                                                      </table>
+                                                  </div>
+
+                                                  <div class="row">
+                                                      <div class="col-12 text-end">
+                                                          <button type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="btn-siguiente-sets" disabled>
+                                                              Siguiente
+                                                              <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i>
+                                                          </button>
+                                                      </div>
+                                                  </div>
+                                             </div>
+
+                                            <!-- Paso 3: Asignación de Participaciones -->
+                                            <div id="paso-asignacion" class="asignacion-paso" style="display: none;">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h4 class="mb-0 mt-1">
+                                                            Asigna las participaciones
+                                                        </h4>
+                                                        <small><i>Individual o por rango</i></small>
+                                                    </div>
+                                                    <button id="btn-volver-sets" class="btn btn-secondary btn-sm">
+                                                        <i class="ri-arrow-left-line"></i> Volver a Sets
+                                                    </button>
+                                                </div>
+
+                                                <br>
+
+                                                <div class="row">
+                                                    <!-- Sección: Participaciones Por Rango -->
+                                                    <div class="col-md-12 mb-3">
+                                                        <div class="form-card bs">
+                                                            <div class="d-flex align-items-center p-3">
+                                                                <div class="me-3">
+                                                                    <img src="{{url('icons/participaciones.svg')}}" alt="" width="40px">
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <h4 class="m-0 fw-bold">Participaciones</h4>
+                                                                    <small class="text-muted">Por Rango</small>
+                                                                </div>
+                                                                <div class="d-flex gap-2" style="width: 70%;">
+                                                                     <div class="flex-fill">
+                                                                         <label class="form-label small mb-1">Desde</label>
+                                                                         <div class="input-group input-group-merge group-form">
+                                                                             <input type="number" class="form-control" id="rango-desde" placeholder="Número inicial" style="border-radius: 30px;">
+                                                                         </div>
+                                                                     </div>
+                                                                     <div class="flex-fill">
+                                                                         <label class="form-label small mb-1">Hasta</label>
+                                                                         <div class="input-group input-group-merge group-form">
+                                                                             
+                                                                             <input type="number" class="form-control" id="rango-hasta" placeholder="Número final" style="border-radius: 30px;">
+                                                                         </div>
+                                                                     </div>
+                                                                 </div>
+                                                            </div>
+                                                            <div class="d-flex align-items-center p-3">
+                                                                <div class="me-3">
+                                                                    <img src="{{url('icons/participaciones.svg')}}" alt="" width="40px">
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <h4 class="m-0 fw-bold">Participación</h4>
+                                                                    <small class="text-muted">Participación Unidad</small>
+                                                                </div>
+                                                                <div class="d-flex gap-2 align-items-end" style="width: 70%;">
+                                                                     <div style="width: 50%;">
+                                                                         <label class="form-label small mb-1">Participación</label>
+                                                                         <div class="input-group input-group-merge group-form">
+                                                                             <input type="number" class="form-control" id="participacion-unidad" placeholder="Número de participación" style="border-radius: 30px;">
+                                                                         </div>
+                                                                     </div>
+                                                                     <div style="width: 50%;">
+                                                                         <button type="button" class="btn btn-warning w-100" id="btn-asignar-participacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">
+                                                                             Asignar
+                                                                         </button>
+                                                                     </div>
+                                                                 </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div id="resumen-asignacion" style="display: block;">
+                                                    
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <h4 class="mb-0 mt-1">
+                                                                Resumen Asignación
+                                                            </h4>
+                                                            <small><i>comprueba que la asignación sea la correcta </i></small>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <br>
+                                                    
+                                                    <!-- Estado vacío -->
+                                                    <div id="estado-vacio-resumen" class="d-flex align-items-center gap-1">
+                                                        <div class="empty-tables">
+                                                            <div>
+                                                                <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
+                                                            </div>
+                                                            
+                                                            <h3 class="mb-0">No hay Participaciones</h3>
+                                                            
+                                                            <small>Asigna Participaciones</small>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Lista de participaciones asignadas -->
+                                                    <div id="lista-participaciones-asignadas" style="display: none;">
+                                                        <div class="form-card bs" style="max-height: 400px; overflow-y: auto;">
+                                                            <div class="row" id="grid-participaciones">
+                                                                <!-- Las participaciones se cargarán dinámicamente aquí -->
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                                            <div class="d-flex align-items-center gap-3">
+                                                                <span class="fw-bold">Total Asignadas:</span>
+                                                                <div class="form-card bs px-3 py-2">
+                                                                    <span id="total-asignadas" class="fw-bold fs-4">0</span>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="btn btn-warning" id="btn-terminar-asignacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold; padding: 10px 30px;">
+                                                                Terminar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <!-- Estado inicial: Mostrar botón para comenzar -->
+                                            <div id="estado-inicial" class="asignacion-paso">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h4 class="mb-0 mt-1">
+                                                            Asignación de Participaciones
+                                                        </h4>
+                                                        <small><i>Comienza seleccionando una reserva</i></small>
+                                                    </div>
+                                                </div>
+
+                                                <br>
+                                                <br>
+
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <div class="empty-tables">
+                                                        <div>
+                                                            <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
+                                                        </div>
+                                        
+                                                        <h3 class="mb-0">No hay Participaciones</h3>
+                                        
+                                                        <small>Asigna Participaciones</small>
+                                        
+                                                        <br>
+                                        
+                                                        <button id="btn-iniciar-asignacion" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2">
+                                                            <i style="position: relative; top: 2px;" class="ri-add-line"></i> Asignar
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -695,6 +1074,636 @@ function initDatatable()
       $('#participations_select').addClass('d-none');
   });
 
-</script>
+  // Funcionalidad para asignación de participaciones
+  $(document).ready(function() {
+    // Variables globales para almacenar datos
+    let reservaSeleccionada = null;
+    let setSeleccionado = null;
+    
+    // Inicializar DataTables para las tablas de reservas y sets
+    let tablaReservas = null;
+    let tablaSets = null;
+    
+    // Función para inicializar DataTable de reservas
+    function inicializarDataTableReservas() {
+      if (tablaReservas) {
+        return; // Ya está inicializada
+      }
+      
+      tablaReservas = $('#tabla-reservas').DataTable({
+        "select": { style: "single" },
+        "ordering": false,
+        "sorting": false,
+        "scrollX": true,
+        "scrollCollapse": true,
+        "language": {
+          url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+        },
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+               '<"row"<"col-sm-12"tr>>' +
+               '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "columnDefs": [
+          {
+            "targets": -1, // Última columna (Seleccionar)
+            "orderable": false,
+            "searchable": false
+          }
+        ]
+      });
+    }
+    
+    // Función para inicializar DataTable de sets
+    function inicializarDataTableSets() {
+      if (tablaSets) {
+        return; // Ya está inicializada
+      }
+      
+      tablaSets = $('#tabla-sets').DataTable({
+        "select": { style: "single" },
+        "ordering": false,
+        "sorting": false,
+        "scrollX": true,
+        "scrollCollapse": true,
+        "language": {
+          url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+        },
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+               '<"row"<"col-sm-12"tr>>' +
+               '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "columnDefs": [
+          {
+            "targets": -1, // Última columna (Seleccionar)
+            "orderable": false,
+            "searchable": false
+          }
+        ]
+      });
+    }
+    
+    // Función para mostrar un paso específico
+    function mostrarPaso(pasoId) {
+      $('.asignacion-paso').hide();
+      $('#' + pasoId).show();
+      
+      // Inicializar DataTables según el paso
+      if (pasoId === 'paso-reservas' && !tablaReservas) {
+        inicializarDataTableReservas();
+      } else if (pasoId === 'paso-sets' && !tablaSets) {
+        inicializarDataTableSets();
+      }
+      
+      // Verificar que el botón existe
+      if (pasoId === 'paso-reservas') {
+        console.log('Botón siguiente existe:', $('#btn-siguiente-reservas').length > 0);
+        console.log('Botón siguiente disabled:', $('#btn-siguiente-reservas').prop('disabled'));
+      }
+    }
+    
+    // Función para cargar datos de reservas desde la base de datos
+    function cargarReservas() {
+      // Inicializar DataTable si no existe
+      if (!tablaReservas) {
+        inicializarDataTableReservas();
+      }
+      
+      // Limpiar datos existentes
+      tablaReservas.clear();
+      
+      // Preparar los datos para agregar
+      let datosReservas = [];
+      
+      // Los datos de reservas están disponibles en la variable PHP $reserves
+      @if(isset($reserves) && $reserves->count() > 0)
+        @foreach($reserves as $reserve)
+          datosReservas.push([
+            '#RS{{ str_pad($reserve->id, 4, '0', STR_PAD_LEFT) }}',
+            '{{ $reserve->lottery ? $reserve->lottery->name : "Sin sorteo" }}',
+            '{{ $reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : "Sin fecha" }}',
+            '{{ $reserve->lottery ? $reserve->lottery->description : "N/A" }}',
+            '{{ is_array($reserve->reservation_numbers) ? implode(' - ', $reserve->reservation_numbers) : ($reserve->reservation_numbers ?? 'Sin números') }}',
+            '{{ number_format($reserve->reservation_amount ?? 0, 2) }}€',
+            '{{ $reserve->reservation_tickets ?? 0 }}',
+            '<b>{{ number_format($reserve->total_amount ?? 0, 2) }}€</b>',
+            `<div class="form-check">
+               <input class="form-check-input seleccionar-reserva" type="radio" name="reserve_id" value="{{ $reserve->id }}" id="reserve_{{ $reserve->id }}" data-reserva-id="{{ $reserve->id }}">
+               <label class="form-check-label" for="reserve_{{ $reserve->id }}">
+                 Seleccionar
+               </label>
+             </div>`
+          ]);
+        @endforeach
+      @endif
+      
+      // Agregar los datos a la tabla
+      if (datosReservas.length > 0) {
+        tablaReservas.rows.add(datosReservas).draw();
+      } else {
+        tablaReservas.rows.add([['No hay reservas disponibles para esta entidad', '', '', '', '', '', '', '', '']]).draw();
+      }
+      
+      console.log('Reservas cargadas correctamente con DataTable');
+    }
+    
+    // Función para cargar sets de una reserva desde la base de datos
+    function cargarSets(reservaId) {
+      // Inicializar DataTable si no existe
+      if (!tablaSets) {
+        inicializarDataTableSets();
+      }
+      
+      // Limpiar datos existentes
+      tablaSets.clear();
+      
+      // Hacer llamada AJAX para obtener los sets de la reserva
+      $.ajax({
+        url: '{{ route("sellers.get-sets-by-reserve") }}',
+        method: 'POST',
+        data: {
+          reserve_id: reservaId,
+          _token: '{{ csrf_token() }}'
+        },
+        success: function(response) {
+          // Limpiar datos existentes
+          tablaSets.clear();
+          
+          if (response.sets && response.sets.length > 0) {
+            let datosSets = [];
+            
+            response.sets.forEach(set => {
+              datosSets.push([
+                `#SP${String(set.id).padStart(4, '0')}`,
+                set.set_name,
+                `${parseFloat(set.played_amount || 0).toFixed(2)}€`,
+                `${parseFloat(set.donation_amount || 0).toFixed(2)}€`,
+                `<b>${parseFloat(set.total_amount || 0).toFixed(2)}€</b>`,
+                set.physical_participations || 0,
+                set.total_participations || 0,
+                `<div class="form-check">
+                   <input class="form-check-input seleccionar-set" type="radio" name="set_id" value="${set.id}" id="set_${set.id}" data-set-id="${set.id}">
+                   <label class="form-check-label" for="set_${set.id}">
+                     Seleccionar
+                   </label>
+                 </div>`
+              ]);
+            });
+            
+            tablaSets.rows.add(datosSets).draw();
+          } else {
+            tablaSets.rows.add([['No hay sets disponibles para esta reserva', '', '', '', '', '', '', '']]).draw();
+          }
+          
+          console.log('Sets cargados correctamente con DataTable');
+        },
+        error: function(xhr, status, error) {
+          console.error('Error al cargar sets:', error);
+          
+          // Limpiar datos y mostrar error
+          tablaSets.clear();
+          tablaSets.rows.add([['Error al cargar los sets', '', '', '', '', '', '', '']]).draw();
+        }
+      });
+    }
+    
+          // Event listeners
+      
+             // Cargar participaciones existentes al cargar la página
+       $(document).ready(function() {
+         // No cargar participaciones al inicio, solo cuando se seleccione un set
+         participacionesAsignadas = [];
+         actualizarResumenAsignacion();
+       });
+      
+      // Botón para iniciar asignación
+      $(document).on('click', '#btn-iniciar-asignacion', function() {
+        cargarReservas();
+        mostrarPaso('paso-reservas');
+      });
+    
+    // Seleccionar reserva
+    $(document).on('change', '.seleccionar-reserva', function() {
+      console.log('Radio button seleccionado (change)');
+      const reservaId = $(this).data('reserva-id');
+      reservaSeleccionada = { id: reservaId };
+      console.log('Reserva seleccionada ID:', reservaId);
+      // Habilitar el botón siguiente
+      $('#btn-siguiente-reservas').prop('disabled', false);
+      console.log('Botón habilitado');
+    });
+    
+    // Botón siguiente para ir a sets
+    $(document).on('click', '#btn-siguiente-reservas', function() {
+      console.log('Botón siguiente clickeado');
+      if (reservaSeleccionada) {
+        cargarSets(reservaSeleccionada.id);
+        mostrarPaso('paso-sets');
+      }
+    });
+    
+    // Seleccionar set
+    $(document).on('change', '.seleccionar-set', function() {
+      console.log('Set seleccionado (change)');
+      const setId = $(this).data('set-id');
+      setSeleccionado = { id: setId };
+      console.log('Set seleccionado ID:', setId);
+      // Habilitar el botón siguiente
+      $('#btn-siguiente-sets').prop('disabled', false);
+      console.log('Botón siguiente sets habilitado');
+    });
+    
+         // Botón siguiente para ir a asignación
+     $(document).on('click', '#btn-siguiente-sets', function() {
+       console.log('Botón siguiente sets clickeado');
+       if (setSeleccionado) {
+         // Limpiar participaciones asignadas al cambiar de set
+         participacionesAsignadas = [];
+         // Cargar participaciones del set seleccionado
+         cargarParticipacionesExistentes();
+         mostrarPaso('paso-asignacion');
+       }
+     });
+    
+    // Botón volver a reservas
+    $(document).on('click', '#btn-volver-reservas', function() {
+      mostrarPaso('paso-reservas');
+    });
+    
+         // Botón volver a sets
+     $(document).on('click', '#btn-volver-sets', function() {
+       mostrarPaso('paso-sets');
+     });
+
+           // Variables para manejar las participaciones asignadas
+      let participacionesAsignadas = [];
+      let participacionesDisponibles = [];
+
+      // Función para cargar participaciones asignadas existentes
+      function cargarParticipacionesExistentes() {
+        // Solo cargar si hay un set seleccionado
+        if (!setSeleccionado) {
+          participacionesAsignadas = [];
+          actualizarResumenAsignacion();
+          return;
+        }
+
+        $.ajax({
+          url: '{{ route("sellers.get-assigned-participations") }}',
+          method: 'POST',
+          data: {
+            seller_id: {{ $seller->id }},
+            set_id: setSeleccionado.id,
+            _token: '{{ csrf_token() }}'
+          },
+          success: function(response) {
+            if (response.success && response.participations) {
+              // Convertir las participaciones existentes al formato que usa la aplicación
+              participacionesAsignadas = response.participations.map(participation => ({
+                id: participation.id,
+                number: participation.number,
+                participation_code: participation.participation_code,
+                set_id: participation.set_id,
+                assigned_at: participation.sale_date + 'T' + participation.sale_time
+              }));
+              
+              // Actualizar el resumen con las participaciones existentes
+              actualizarResumenAsignacion();
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('Error al cargar participaciones existentes:', error);
+          }
+        });
+      }
+
+      // Función para validar y obtener participaciones disponibles
+     function validarParticipacionesDisponibles(desde, hasta, setId) {
+       return new Promise((resolve, reject) => {
+         $.ajax({
+           url: '{{ route("sellers.validate-participations") }}',
+           method: 'POST',
+           data: {
+             desde: desde,
+             hasta: hasta,
+             set_id: setId,
+             seller_id: {{ $seller->id }},
+             _token: '{{ csrf_token() }}'
+           },
+           success: function(response) {
+             if (response.success) {
+               participacionesDisponibles = response.participations || [];
+               resolve(response);
+             } else {
+               reject(response.message || 'Error al validar participaciones');
+             }
+           },
+           error: function(xhr, status, error) {
+             reject('Error de conexión: ' + error);
+           }
+         });
+       });
+     }
+
+     // Función para asignar participaciones por rango
+     function asignarParticipacionesPorRango(desde, hasta) {
+       if (!setSeleccionado) {
+         alert('Debes seleccionar un set primero');
+         return;
+       }
+
+       if (!desde || !hasta) {
+         alert('Debes especificar el rango desde y hasta');
+         return;
+       }
+
+       if (parseInt(desde) > parseInt(hasta)) {
+         alert('El número "Desde" no puede ser mayor que "Hasta"');
+         return;
+       }
+
+       // Mostrar loading
+       $('#btn-asignar-participacion').prop('disabled', true).text('Validando...');
+
+       validarParticipacionesDisponibles(desde, hasta, setSeleccionado.id)
+         .then(response => {
+           if (response.participations && response.participations.length > 0) {
+             // Agregar las participaciones válidas al resumen
+             response.participations.forEach(participation => {
+               const participacionExistente = participacionesAsignadas.find(p => p.number === participation.number);
+               if (!participacionExistente) {
+                 participacionesAsignadas.push({
+                   id: participation.id,
+                   number: participation.number,
+                   participation_code: participation.participation_code,
+                   set_id: setSeleccionado.id,
+                   assigned_at: new Date().toISOString()
+                 });
+               }
+             });
+
+             actualizarResumenAsignacion();
+             mostrarMensaje('Participaciones asignadas correctamente', 'success');
+           } else {
+             mostrarMensaje('No hay participaciones disponibles en ese rango', 'warning');
+           }
+         })
+         .catch(error => {
+           mostrarMensaje(error, 'error');
+         })
+         .finally(() => {
+           $('#btn-asignar-participacion').prop('disabled', false).text('Asignar');
+           $('#rango-desde').val('');
+           $('#rango-hasta').val('');
+         });
+     }
+
+     // Función para asignar participación individual
+     function asignarParticipacionIndividual(numero) {
+       if (!setSeleccionado) {
+         alert('Debes seleccionar un set primero');
+         return;
+       }
+
+       if (!numero) {
+         alert('Debes especificar el número de participación');
+         return;
+       }
+
+       // Mostrar loading
+       $('#btn-asignar-participacion').prop('disabled', true).text('Validando...');
+
+       validarParticipacionesDisponibles(numero, numero, setSeleccionado.id)
+         .then(response => {
+           if (response.participations && response.participations.length > 0) {
+             const participation = response.participations[0];
+             const participacionExistente = participacionesAsignadas.find(p => p.number === participation.number);
+             
+             if (!participacionExistente) {
+               participacionesAsignadas.push({
+                 id: participation.id,
+                 number: participation.number,
+                 participation_code: participation.participation_code,
+                 set_id: setSeleccionado.id,
+                 assigned_at: new Date().toISOString()
+               });
+               actualizarResumenAsignacion();
+               mostrarMensaje('Participación asignada correctamente', 'success');
+             } else {
+               mostrarMensaje('Esta participación ya está asignada', 'warning');
+             }
+           } else {
+             mostrarMensaje('La participación no está disponible', 'warning');
+           }
+         })
+         .catch(error => {
+           mostrarMensaje(error, 'error');
+         })
+         .finally(() => {
+           $('#btn-asignar-participacion').prop('disabled', false).text('Asignar');
+           $('#participacion-unidad').val('');
+         });
+     }
+
+           // Función para actualizar el resumen de asignación
+      function actualizarResumenAsignacion() {
+        // Siempre mostrar el resumen, pero controlar qué contenido mostrar
+        $('#resumen-asignacion').show();
+        
+        // Ocultar el estado vacío por defecto
+        $('#estado-vacio-resumen').addClass('d-none');
+        
+        if (participacionesAsignadas.length === 0) {
+          // Si no hay participaciones, mostrar estado vacío
+          $('#estado-vacio-resumen').removeClass('d-none');
+          $('#lista-participaciones-asignadas').hide();
+        } else {
+          // Si hay participaciones, mostrar lista
+          $('#lista-participaciones-asignadas').show();
+          
+          // Actualizar contador
+          $('#total-asignadas').text(participacionesAsignadas.length);
+
+          // Generar grid de participaciones
+          const gridHtml = participacionesAsignadas.map(participation => {
+            const fecha = new Date(participation.assigned_at);
+            const fechaStr = fecha.toLocaleDateString('es-ES');
+            const horaStr = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            
+            return `
+              <div class="col-md-6 col-lg-4">
+                <div class="participacion-item">
+                  <div class="participacion-icon">
+                    <i class="ri-ticket-line" style="color: white; font-size: 20px;"></i>
+                  </div>
+                  <div class="participacion-info">
+                    <div class="participacion-numero">Participación: ${participation.participation_code}</div>
+                    <div class="participacion-fecha">
+                      <i class="ri-calendar-line"></i> ${fechaStr} - ${horaStr}h
+                    </div>
+                    <div class="participacion-estado">Asignada</div>
+                  </div>
+                  <button class="btn-eliminar-participacion" onclick="eliminarParticipacion('${participation.participation_code}')">
+                    <i class="ri-delete-bin-line"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          $('#grid-participaciones').html(gridHtml);
+          
+          // Asegurar que el estado vacío esté oculto cuando hay elementos en el grid
+          $('#estado-vacio-resumen').addClass('d-none');
+        }
+      }
+
+           // Función para eliminar participación del resumen
+      window.eliminarParticipacion = function(codigo) {
+        // Encontrar la participación a eliminar
+        const participacionAEliminar = participacionesAsignadas.find(p => p.participation_code === codigo);
+        
+        if (participacionAEliminar) {
+          // Eliminar de la base de datos
+          $.ajax({
+            url: '{{ route("sellers.remove-assignment") }}',
+            method: 'POST',
+            data: {
+              participation_id: participacionAEliminar.id,
+              seller_id: {{ $seller->id }},
+              _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+              if (response.success) {
+                // Eliminar del array local
+                participacionesAsignadas = participacionesAsignadas.filter(p => p.participation_code !== codigo);
+                actualizarResumenAsignacion();
+                mostrarMensaje('Participación eliminada correctamente', 'success');
+              } else {
+                mostrarMensaje(response.message || 'Error al eliminar la participación', 'error');
+              }
+            },
+            error: function(xhr, status, error) {
+              mostrarMensaje('Error de conexión al eliminar la participación', 'error');
+            }
+          });
+        }
+      };
+
+           // Función para mostrar mensajes
+      function mostrarMensaje(mensaje, tipo) {
+        const alertClass = tipo === 'success' ? 'alert-success' : 
+                          tipo === 'warning' ? 'alert-warning' : 
+                          tipo === 'error' ? 'alert-danger' : 'alert-info';
+       
+        const alertHtml = `
+          <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        `;
+        
+        // Insertar alerta en la parte superior de la página, fuera del contenido de asignación
+        $('.page-title-box').after(alertHtml);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+          $('.alert').fadeOut();
+        }, 5000);
+      }
+
+     // Event listeners para asignación
+     $(document).on('click', '#btn-asignar-participacion', function() {
+       const desde = $('#rango-desde').val();
+       const hasta = $('#rango-hasta').val();
+       const unidad = $('#participacion-unidad').val();
+
+       if (desde && hasta) {
+         // Asignación por rango
+         asignarParticipacionesPorRango(desde, hasta);
+       } else if (unidad) {
+         // Asignación individual
+         asignarParticipacionIndividual(unidad);
+       } else {
+         alert('Debes especificar un rango o una participación individual');
+       }
+     });
+
+           // Event listener para terminar asignación
+      $(document).on('click', '#btn-terminar-asignacion', function() {
+        if (participacionesAsignadas.length === 0) {
+          alert('No hay participaciones para guardar');
+          return;
+        }
+
+        // Mostrar loading
+        $('#btn-terminar-asignacion').prop('disabled', true).text('Guardando...');
+
+        // Guardar asignaciones en la base de datos
+        $.ajax({
+          url: '{{ route("sellers.save-assignments") }}',
+          method: 'POST',
+          data: {
+            participations: participacionesAsignadas,
+            seller_id: {{ $seller->id }},
+            _token: '{{ csrf_token() }}'
+          },
+          success: function(response) {
+            if (response.success) {
+              mostrarMensaje('Asignaciones guardadas correctamente', 'success');
+              
+              // Limpiar el array temporal y recargar las participaciones existentes
+              participacionesAsignadas = [];
+              
+              // Recargar las participaciones existentes desde la base de datos
+              cargarParticipacionesExistentes();
+              
+              // Limpiar los campos de entrada
+              $('#rango-desde').val('');
+              $('#rango-hasta').val('');
+              $('#participacion-unidad').val('');
+              
+              // Habilitar todos los campos
+              $('#rango-desde, #rango-hasta, #participacion-unidad').prop('disabled', false);
+              
+            } else {
+              mostrarMensaje(response.message || 'Error al guardar las asignaciones', 'error');
+            }
+          },
+                     error: function(xhr, status, error) {
+             mostrarMensaje('Error de conexión al guardar las asignaciones', 'error');
+             $('#btn-terminar-asignacion').prop('disabled', false).text('Terminar');
+           },
+           complete: function() {
+             $('#btn-terminar-asignacion').prop('disabled', false).text('Terminar');
+           }
+        });
+      });
+
+     // Event listeners para inputs
+     $('#rango-desde, #rango-hasta').on('input', function() {
+       const desde = $('#rango-desde').val();
+       const hasta = $('#rango-hasta').val();
+       
+       if (desde && hasta) {
+         $('#participacion-unidad').val('').prop('disabled', true);
+       } else {
+         $('#participacion-unidad').prop('disabled', false);
+       }
+     });
+
+     $('#participacion-unidad').on('input', function() {
+       const unidad = $(this).val();
+       
+       if (unidad) {
+         $('#rango-desde, #rango-hasta').val('').prop('disabled', true);
+       } else {
+         $('#rango-desde, #rango-hasta').prop('disabled', false);
+       }
+     });
+   });
+
+ </script>
 
 @endsection

@@ -344,7 +344,7 @@ class DesignController extends Controller
         $format = DesignFormat::findOrFail($id);
         $set = $format->set_id ? Set::find($format->set_id) : null;
         $reservation_numbers = $set && $set->reserve ? $set->reserve->reservation_numbers : [];
-        return view('design.edit_format', compact('format', 'reservation_numbers'));
+        return view('design.edit_format', compact('format', 'set', 'reservation_numbers'));
     }
 
     /**

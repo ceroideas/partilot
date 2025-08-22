@@ -68,41 +68,54 @@
                     			<br>
                     			<br>
 
-                    			<div style="min-height: 656px;">
+                    						<div style="min-height: 656px;">
 
-	                    			<table id="example2" class="table table-striped nowrap w-100">
+	                    			<form id="entity-form" action="{{ route('participations.store-entity') }}" method="POST">
+	                    				@csrf
+	                    				<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="filters">
 				                            <tr>
-				                                <th>Order ID</th>
-				                                <th>Administración</th>
+				                                <th>ID</th>
+				                                <th>Nombre Entidad</th>
 				                                <th>Provincia</th>
 				                                <th>Localidad</th>
 				                                <th>Administración</th>
-				                                <th>Status</th>
+				                                <th>Estado</th>
+				                                <th>Seleccionar</th>
 				                            </tr>
 				                        </thead>
 				                    
 				                    
 				                        <tbody>
+				                            @foreach($entities as $entity)
 				                            <tr>
-				                                <td>#EN9801</td>
-				                                <td>El Buho Lotero</td>
-				                                <td>La Rioja</td>
-				                                <td>Logroño</td>
-				                                <td>El Búho Lotero</td>
+				                                <td>#EN{{str_pad($entity->id, 4, '0', STR_PAD_LEFT)}}</td>
+				                                <td>{{$entity->name}}</td>
+				                                <td>{{$entity->province ?? 'Sin provincia'}}</td>
+				                                <td>{{$entity->city ?? 'Sin localidad'}}</td>
+				                                <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
 				                                <td><label class="badge bg-success">Activo</label></td>
+				                                <td>
+				                                    <div class="form-check">
+				                                        <input class="form-check-input" type="radio" name="entity_id" value="{{$entity->id}}" id="entity_{{$entity->id}}" required>
+				                                        <label class="form-check-label" for="entity_{{$entity->id}}">
+				                                            Seleccionar
+				                                        </label>
+				                                    </div>
+				                                </td>
 				                            </tr>
+				                            @endforeach
 				                        </tbody>
 			                        </table>
+                    			</form>
 
 		                        </div>
 
-
-                    			<div class="row">
+			<div class="row">
 
                     				<div class="col-12 text-end">
-                    					<a href="{{url('participations/add')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
+                    					<button type="submit" form="entity-form" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
+                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
                     				</div>
 
                     			</div>

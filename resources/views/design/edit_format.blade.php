@@ -964,6 +964,7 @@ function collectDesignData() {
   const pages_per_document = parseInt($('#participation_page').val());
 
   return {
+    set_id: {{ $set->id ?? 'null' }},
     format,
     page,
     rows,
