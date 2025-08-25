@@ -596,7 +596,7 @@
                                    '<td>' + participation.sale_date + '</td>' +
                                    '<td>' + participation.sale_time + '</td>' +
                                    '<td>' +
-                                       '<a href="' + window.location.origin + '/participations/view/1" class="btn btn-sm btn-light"><img src="' + window.location.origin + '/assets/form-groups/eye.svg" alt="" width="12"></a>' +
+                                       '<a href="{{url('/')}}/participations/view/1" class="btn btn-sm btn-light"><img src="{{url('/')}}/assets/form-groups/eye.svg" alt="" width="12"></a>' +
                                    '</td>' +
                                '</tr>' +
                            '</thead>' +
