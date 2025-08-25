@@ -383,6 +383,8 @@ class DesignController extends Controller
             }
         // }
         // return response()->json(['success' => false], 200);
+
+        $format->updateParticipations();
     }
 
     /**
