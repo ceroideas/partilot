@@ -379,12 +379,11 @@ class DesignController extends Controller
                 if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
                 if (isset($data['output'])) $format->output = $data['output'];
                 $format->save();
+                $format->updateParticipations();
                 return response()->json(['success' => true, 'redirect' => route('design.editFormat', $id)]);
             }
         // }
         // return response()->json(['success' => false], 200);
-
-        $format->updateParticipations();
     }
 
     /**
