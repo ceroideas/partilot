@@ -579,7 +579,7 @@
                                '<tr style="font-size: 10px;">' +
                                    '<th rowspan="2" style="border-color: transparent;">' +
                                        '<div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">' +
-                                           '<img src="' + {{url('/')}} + '/assets/ticket.svg" alt="" width="50px">' +
+                                           '<img src="{{url('/')}}/assets/ticket.svg" alt="" width="50px">' +
                                        '</div>' +
                                    '</th>' +
                                    '<th>Nº Participación</th>' +
