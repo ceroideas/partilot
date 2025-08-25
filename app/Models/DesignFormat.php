@@ -179,13 +179,17 @@ class DesignFormat extends Model
                     try {
                         // Verificar si hay códigos duplicados antes de insertar
                         $codesToInsert = array_column($participationsToCreate, 'participation_code');
-                        $existingCodes = Participation::whereIn('participation_code', $codesToInsert)->pluck('participation_code')->toArray();
+                        $existingCodes = Participation::whereIn('participation_code', $codesToInsert)
+                            ->where('design_format_id', $this->id)
+                            ->pluck('participation_code')->toArray();
                         
                         if (!empty($existingCodes)) {
-                            \Log::warning('Códigos de participación ya existen: ' . implode(', ', $existingCodes));
-                            // Eliminar las participaciones existentes con estos códigos
-                            Participation::whereIn('participation_code', $existingCodes)->delete();
-                            \Log::info('Eliminadas participaciones con códigos duplicados');
+                            \Log::warning('Códigos de participación ya existen para este design format: ' . implode(', ', $existingCodes));
+                            // Eliminar solo las participaciones existentes de este design format con estos códigos
+                            Participation::whereIn('participation_code', $existingCodes)
+                                ->where('design_format_id', $this->id)
+                                ->delete();
+                            \Log::info('Eliminadas participaciones duplicadas de este design format');
                         }
                         
                         // Usar insert en lugar de upsert para evitar conflictos de duplicados
@@ -206,13 +210,17 @@ class DesignFormat extends Model
                 try {
                     // Verificar si hay códigos duplicados antes de insertar
                     $codesToInsert = array_column($participationsToCreate, 'participation_code');
-                    $existingCodes = Participation::whereIn('participation_code', $codesToInsert)->pluck('participation_code')->toArray();
+                    $existingCodes = Participation::whereIn('participation_code', $codesToInsert)
+                        ->where('design_format_id', $this->id)
+                        ->pluck('participation_code')->toArray();
                     
                     if (!empty($existingCodes)) {
-                        \Log::warning('Códigos de participación ya existen en lote final: ' . implode(', ', $existingCodes));
-                        // Eliminar las participaciones existentes con estos códigos
-                        Participation::whereIn('participation_code', $existingCodes)->delete();
-                        \Log::info('Eliminadas participaciones con códigos duplicados del lote final');
+                        \Log::warning('Códigos de participación ya existen en lote final para este design format: ' . implode(', ', $existingCodes));
+                        // Eliminar solo las participaciones existentes de este design format con estos códigos
+                        Participation::whereIn('participation_code', $existingCodes)
+                            ->where('design_format_id', $this->id)
+                            ->delete();
+                        \Log::info('Eliminadas participaciones duplicadas del lote final de este design format');
                     }
                     
                     // Usar insert en lugar de upsert para evitar conflictos de duplicados
@@ -266,25 +274,6 @@ class DesignFormat extends Model
             // Eliminar participaciones del design format actual
             $deleted = Participation::where('design_format_id', $this->id)->delete();
             \Log::info('Eliminadas ' . $deleted . ' participaciones existentes para DesignFormat ID: ' . $this->id);
-            
-            // También eliminar participaciones que puedan tener conflictos de código con el mismo set
-            if ($this->set_id) {
-                $setNumber = $this->getSetNumber();
-                $conflictingCodes = [];
-                
-                // Generar los códigos que vamos a crear para verificar conflictos
-                $totalParticipations = $this->set->total_participations ?? 0;
-                $output = is_string($this->output) ? json_decode($this->output, true) : $this->output;
-                $participationsPerBook = $output['participations_per_book'] ?? 50;
-                
-                for ($i = 1; $i <= $totalParticipations; $i++) {
-                    $conflictingCodes[] = sprintf('%d/%05d', $setNumber, $i);
-                }
-                
-                // Eliminar participaciones con códigos conflictivos
-                $conflictingDeleted = Participation::whereIn('participation_code', $conflictingCodes)->delete();
-                \Log::info('Eliminadas ' . $conflictingDeleted . ' participaciones con códigos conflictivos');
-            }
             
             return $deleted;
         } catch (\Exception $e) {
