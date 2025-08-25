@@ -557,7 +557,7 @@
        
        // Hacer la petición AJAX para obtener las participaciones
        $.ajax({
-           url: '/participations/book/' + setId + '/' + bookNumber + '/participations',
+           url: '{{url('/')}}/participations/book/' + setId + '/' + bookNumber + '/participations',
            method: 'GET',
            success: function(response) {
                var participationsHtml = '';
