@@ -636,13 +636,13 @@
                                                         </div>
                                                     </div>
 
-                                                    <!-- Lista de participaciones asignadas -->
-                                                    <div id="lista-participaciones-asignadas" style="display: none;">
-                                                        <div class="form-card bs" style="max-height: 400px; overflow-y: auto;">
-                                                            <div class="row" id="grid-participaciones">
-                                                                <!-- Las participaciones se cargarán dinámicamente aquí -->
-                                                            </div>
-                                                        </div>
+                                                                         <!-- Lista de participaciones asignadas -->
+                     <div id="lista-participaciones-asignadas" style="display: none;">
+                         <div class="form-card bs" style="max-height: 400px; overflow-y: auto;">
+                             <div class="grid-participaciones" id="grid-participaciones">
+                                 <!-- Las participaciones se cargarán dinámicamente aquí -->
+                             </div>
+                         </div>
                                                         
                                                         <div class="d-flex justify-content-between align-items-center mt-3">
                                                             <div class="d-flex align-items-center gap-3">
@@ -1371,51 +1371,40 @@ function initDatatable()
           // Actualizar contador
           $('#total-asignadas').text(participacionesAsignadas.length);
 
-          // Generar grid de participaciones
-          const gridHtml = participacionesAsignadas.map(participation => {
-            const fecha = new Date(participation.assigned_at);
-            const fechaStr = fecha.toLocaleDateString('es-ES');
-            const horaStr = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            
-            return `
-              <div class="col-12 mb-2">
-                <table class="table table-striped table-condensed table nowrap w-100 mb-0">
-                  <thead>
-                    <tr style="font-size: 10px;">
-                      <th rowspan="2" style="border-color: transparent; width: 80px;">
-                        <div style="background-color: #333; padding: 10px 5px; border-radius: 12px; text-align: center;">
-                          <img src="{{url('assets/ticket.svg')}}" alt="" width="30px">
-                        </div>
-                      </th>
-                      <th>Nº Participación</th>
-                      <th>Estado</th>
-                      <th>Vendedor</th>
-                      <th>Fecha Venta</th>
-                      <th>Hora Venta</th>
-                      <th></th>
-                    </tr>
-                    <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                      <td>${participation.participation_code}</td>
-                      <td><label class="badge bg-success">Asignada</label></td>
-                      <td>{{ $seller->name ?? 'N/A' }}</td>
-                      <td>${fechaStr}</td>
-                      <td>${horaStr}h</td>
-                      <td>
-                        <div class="d-flex gap-2">
-                          <button class="btn btn-sm btn-light" onclick="verDetalleParticipacion('${participation.participation_code}', ${participation.id})" title="Ver detalle">
-                            <img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12">
-                          </button>
-                          <button class="btn btn-sm btn-danger" onclick="eliminarParticipacion('${participation.participation_code}')" title="Eliminar">
-                            <i class="ri-delete-bin-line"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </thead>
-                </table>
-              </div>
-            `;
-          }).join('');
+                     // Generar grid de participaciones
+           const gridHtml = participacionesAsignadas.map(participation => {
+             const fecha = new Date(participation.assigned_at);
+             const fechaStr = fecha.toLocaleDateString('es-ES');
+             const horaStr = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+             
+             return `
+               <div class="participation-block" style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                 <div class="d-flex align-items-center justify-content-between">
+                   <div class="d-flex align-items-center">
+                     <div style="background-color: #333; padding: 16px 10px; border-radius: 12px; margin-right: 15px;">
+                       <img src="{{url('assets/ticket.svg')}}" alt="" width="30px">
+                     </div>
+                     <div>
+                       <h6 class="mb-1" style="font-weight: bold; color: #333;">Participación: ${participation.participation_code}</h6>
+                       <div class="d-flex align-items-center gap-2">
+                         <i class="ri-calendar-line" style="font-size: 14px; color: #666;"></i>
+                         <span style="font-size: 14px; color: #666;">${fechaStr} - ${horaStr}h</span>
+                       </div>
+                       <span class="badge bg-success mt-2">Asignada</span>
+                     </div>
+                   </div>
+                   <div class="d-flex gap-2">
+                     <button class="btn btn-sm btn-light" onclick="verDetalleParticipacion('${participation.participation_code}', ${participation.id})" title="Ver detalle" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                       <img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12">
+                     </button>
+                     <button class="btn btn-sm btn-danger" onclick="eliminarParticipacion('${participation.participation_code}')" title="Eliminar" style="border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                       <i class="ri-delete-bin-line"></i>
+                     </button>
+                   </div>
+                 </div>
+               </div>
+             `;
+           }).join('');
 
           $('#grid-participaciones').html(gridHtml);
           

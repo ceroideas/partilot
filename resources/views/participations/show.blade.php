@@ -92,7 +92,16 @@
                     			<small><i>Cambia estado Participación</i></small>
 
                     			<div class="form-group mt-2">
-	                    			<label class="">Estado Actual</label> <label class="badge badge-lg bg-success float-end">Vendido</label>
+	                    			<label class="">Estado Actual</label> 
+	                    			@if($participation->status == 'vendida')
+	                    				<label class="badge badge-lg bg-success float-end">Vendida</label>
+	                    			@elseif($participation->status == 'disponible')
+	                    				<label class="badge badge-lg bg-info float-end">Disponible</label>
+	                    			@elseif($participation->status == 'devuelta')
+	                    				<label class="badge badge-lg bg-danger float-end">Devuelta</label>
+	                    			@else
+	                    				<label class="badge badge-lg bg-warning float-end">{{ ucfirst($participation->status ?? 'Sin estado') }}</label>
+	                    			@endif
 	                    			<div style="clear: both;"></div>
                     			</div>
                     		</div>
@@ -113,9 +122,9 @@
 
                 					<div class="col-8 text-center mt-2">
 
-                						<h3 class="mt-2 mb-0">Fademur</h3>
+                						<h3 class="mt-2 mb-0">{{ $participation->set && $participation->set->reserve && $participation->set->reserve->entity ? $participation->set->reserve->entity->name : 'Sin entidad' }}</h3>
 
-                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> La Rioja
+                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $participation->set && $participation->set->reserve && $participation->set->reserve->entity ? ($participation->set->reserve->entity->province ?? 'Sin provincia') : 'Sin provincia' }}
                 						
                 					</div>
                 				</div>
@@ -163,7 +172,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="102/25" class="form-control" type="text" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->set && $participation->set->reserve && $participation->set->reserve->lottery ? $participation->set->reserve->lottery->name : 'N/A' }}" class="form-control" type="text" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -178,7 +187,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="2025-12-22" class="form-control" type="date" placeholder="01/01/2025" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->set && $participation->set->reserve && $participation->set->reserve->lottery && $participation->set->reserve->lottery->draw_date ? \Carbon\Carbon::parse($participation->set->reserve->lottery->draw_date)->format('Y-m-d') : 'N/A' }}" class="form-control" type="date" placeholder="01/01/2025" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -193,7 +202,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="05716 - 52468 - 51235 - 69548" class="form-control" type="text" placeholder="0000" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->set && $participation->set->reserve && $participation->set->reserve->reservation_numbers ? implode(' - ', $participation->set->reserve->reservation_numbers) : 'N/A' }}" class="form-control" type="text" placeholder="0000" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -208,7 +217,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="2,00" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->set && $participation->set->reserve && $participation->set->reserve->lottery ? number_format($participation->set->reserve->lottery->ticket_price, 2) . '€' : 'N/A' }}" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -223,7 +232,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="2,00" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->set ? number_format($participation->set->donation_amount, 2) . '€' : 'N/A' }}" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -238,7 +247,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="10,00" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->set ? number_format($participation->set->total_amount, 2) . '€' : 'N/A' }}" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -253,7 +262,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/22.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="1/0001" class="form-control" type="text" placeholder="1/0001" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->participation_code ?? 'N/A' }}" class="form-control" type="text" placeholder="1/0001" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -268,7 +277,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/21.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="12345678901234567890" class="form-control" type="text" placeholder="12345678901234567890" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $ticketReference ?? 'N/A' }}" class="form-control" type="text" placeholder="12345678901234567890" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -295,31 +304,57 @@
 
 			                    				<tbody>
 			                    					<tr>
-			                    						<td>01/09/2025</td>
-			                    						<td>10:30h</td>
-			                    						<td>Diseño Participación</td>
-			                    						<td>Jorge Ruíz Ortega</td>
-			                    						<td>Gestor Administración</td>
-			                    						<td><label class="badge bg-default">Disponible</label></td>
+			                    						<td>{{ $participation->created_at ? \Carbon\Carbon::parse($participation->created_at)->format('d/m/Y') : 'N/A' }}</td>
+			                    						<td>{{ $participation->created_at ? \Carbon\Carbon::parse($participation->created_at)->format('H:i') . 'h' : 'N/A' }}</td>
+			                    						<td>Participación Creada</td>
+			                    						<td>Sistema</td>
+			                    						<td>Sistema</td>
+			                    						<td><label class="badge bg-primary">Creada</label></td>
 			                    					</tr>
 
+			                    					@if($participation->seller && $participation->seller->user)
 			                    					<tr>
-			                    						<td>01/09/2025</td>
-			                    						<td>20:30h</td>
-			                    						<td>Entregada</td>
-			                    						<td>Manuel Martinez Garcia</td>
-			                    						<td>Gestor Entidad</td>
-			                    						<td><label class="badge bg-warning">Pendiente</label></td>
-			                    					</tr>
-
-			                    					<tr>
-			                    						<td>01/09/2025</td>
-			                    						<td>21:30h</td>
-			                    						<td>Confirmación Entrega</td>
-			                    						<td>Lorena Elias Terrazas</td>
+			                    						<td>{{ $participation->assigned_at ? \Carbon\Carbon::parse($participation->assigned_at)->format('d/m/Y') : ($participation->sale_date ? \Carbon\Carbon::parse($participation->sale_date)->format('d/m/Y') : 'N/A') }}</td>
+			                    						<td>{{ $participation->assigned_at ? \Carbon\Carbon::parse($participation->assigned_at)->format('H:i') . 'h' : ($participation->sale_time ?? 'N/A') }}</td>
+			                    						<td>Asignada al Vendedor</td>
+			                    						<td>{{ $participation->seller->user->name ?? 'N/A' }}</td>
 			                    						<td>Vendedor</td>
-			                    						<td><label class="badge bg-success">Entregada</label></td>
+			                    						<td><label class="badge bg-warning">Asignada</label></td>
 			                    					</tr>
+			                    					@endif
+
+			                    					@if($participation->status == 'vendida')
+			                    					<tr>
+			                    						<td>{{ $participation->sale_date ? \Carbon\Carbon::parse($participation->sale_date)->format('d/m/Y') : 'N/A' }}</td>
+			                    						<td>{{ $participation->sale_time ?? 'N/A' }}</td>
+			                    						<td>Venta Registrada</td>
+			                    						<td>{{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'N/A' }}</td>
+			                    						<td>Vendedor</td>
+			                    						<td><label class="badge bg-success">Vendida</label></td>
+			                    					</tr>
+			                    					@endif
+
+			                    					@if($participation->status == 'devuelta')
+			                    					<tr>
+			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('d/m/Y') : 'N/A' }}</td>
+			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('H:i') . 'h' : 'N/A' }}</td>
+			                    						<td>Participación Devuelta</td>
+			                    						<td>{{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'N/A' }}</td>
+			                    						<td>Vendedor</td>
+			                    						<td><label class="badge bg-danger">Devuelta</label></td>
+			                    					</tr>
+			                    					@endif
+
+			                    					@if($participation->status == 'disponible')
+			                    					<tr>
+			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('d/m/Y') : 'N/A' }}</td>
+			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('H:i') . 'h' : 'N/A' }}</td>
+			                    						<td>Disponible para Venta</td>
+			                    						<td>Sistema</td>
+			                    						<td>Sistema</td>
+			                    						<td><label class="badge bg-info">Disponible</label></td>
+			                    					</tr>
+			                    					@endif
 			                    				</tbody>
 			                    				
 			                    			</table>
@@ -356,7 +391,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Jorge" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->seller && $participation->seller->user ? explode(' ', $participation->seller->user->name)[0] ?? 'N/A' : 'Sin asignar' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -370,7 +405,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Ruiz" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->seller && $participation->seller->user ? (explode(' ', $participation->seller->user->name)[1] ?? 'N/A') : 'Sin asignar' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -385,7 +420,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="Ortega" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->seller && $participation->seller->user ? (explode(' ', $participation->seller->user->name)[2] ?? 'N/A') : 'Sin asignar' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>

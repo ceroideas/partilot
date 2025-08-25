@@ -70,7 +70,7 @@
 
                     						<div style="min-height: 656px;">
 
-	                    			<form id="entity-form" action="{{ route('participations.store-entity') }}" method="POST">
+	                    			<form id="entity-form" action="{{ route('participations.view-entity') }}" method="POST">
 	                    				@csrf
 	                    				<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="filters">

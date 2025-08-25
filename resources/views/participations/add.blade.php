@@ -235,7 +235,7 @@
 
                                                         <thead>
                                                             <tr style="font-size: 10px;">
-                                                                <th rowspan="2" style="border-color: transparent;">
+                                                                <th rowspan="2" style="border-color: transparent; width: 100px">
                                                                     <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
                                                                         <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
                                                                     </div>
@@ -264,7 +264,7 @@
 
                                                         <thead>
                                                             <tr style="font-size: 10px;">
-                                                                <th rowspan="2" style="border-color: transparent;">
+                                                                <th rowspan="2" style="border-color: transparent; width: 100px">
                                                                     <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
                                                                         <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
                                                                     </div>
@@ -293,7 +293,7 @@
 
                                                         <thead>
                                                             <tr style="font-size: 10px;">
-                                                                <th rowspan="2" style="border-color: transparent;">
+                                                                <th rowspan="2" style="border-color: transparent; width: 100px">
                                                                     <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
                                                                         <img src="{{url('assets/ticket.svg')}}" alt="" width="50px">
                                                                     </div>
@@ -577,7 +577,7 @@
                        participationsHtml += '<table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">' +
                            '<thead>' +
                                '<tr style="font-size: 10px;">' +
-                                   '<th rowspan="2" style="border-color: transparent;">' +
+                                   '<th rowspan="2" style="border-color: transparent; width: 100px">' +
                                        '<div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">' +
                                            '<img src="{{url('/')}}/assets/ticket.svg" alt="" width="50px">' +
                                        '</div>' +
@@ -596,7 +596,7 @@
                                    '<td>' + participation.sale_date + '</td>' +
                                    '<td>' + participation.sale_time + '</td>' +
                                    '<td>' +
-                                       '<a href="{{url('/')}}/participations/view/1" class="btn btn-sm btn-light"><img src="{{url('/')}}/assets/form-groups/eye.svg" alt="" width="12"></a>' +
+                                       '<a href="{{url('/')}}/participations/view/' + participation.id + '" class="btn btn-sm btn-light"><img src="{{url('/')}}/assets/form-groups/eye.svg" alt="" width="12"></a>' +
                                    '</td>' +
                                '</tr>' +
                            '</thead>' +

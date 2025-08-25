@@ -70,12 +70,48 @@ class ParticipationController extends Controller
     }
 
     /**
+     * Mostrar participación específica por ID con todos los datos relacionados
+     */
+    public function view($id)
+    {
+        $participation = Participation::with([
+            'set.reserve.lottery.lotteryType',
+            'set.reserve.entity.administration',
+            'seller.user',
+            'designFormat'
+        ])->findOrFail($id);
+        
+        return view('participations.view', compact('participation'));
+    }
+
+    /**
      * Mostrar participación específica
      */
     public function show($id)
     {
-        $participation = Participation::findOrFail($id);
-        return view('participations.show', compact('participation'));
+        $participation = Participation::with([
+            'set.reserve.lottery.lotteryType',
+            'set.reserve.entity.administration',
+            'seller.user',
+            'designFormat'
+        ])->findOrFail($id);
+        
+        // Buscar la referencia del ticket en el set
+        $ticketReference = null;
+        if ($participation->set && $participation->set->tickets) {
+            $tickets = is_string($participation->set->tickets) ? json_decode($participation->set->tickets, true) : $participation->set->tickets;
+            
+            if (is_array($tickets)) {
+                foreach ($tickets as $ticket) {
+                    if (isset($ticket['n']) && $ticket['n'] == $participation->participation_number) {
+                        $ticketReference = $ticket['r'] ?? null;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return view('participations.show', compact('participation', 'ticketReference'));
     }
 
     /**
@@ -215,17 +251,18 @@ class ParticipationController extends Controller
             ->with(['seller.user'])
             ->get();
         
-        // Formatear las participaciones para la vista
-        $formattedParticipations = [];
-        foreach ($participations as $participation) {
-            $formattedParticipations[] = [
-                'participation_number' => $participation->participation_code,
-                'status' => $participation->status_text,
-                'seller' => $participation->seller ? $participation->seller->user->name : 'Sin asignar',
-                'sale_date' => $participation->sale_date ? $participation->sale_date->format('d/m/Y') : '-',
-                'sale_time' => $participation->sale_time ? $participation->sale_time->format('H:i') . 'h' : '-',
-            ];
-        }
+                 // Formatear las participaciones para la vista
+         $formattedParticipations = [];
+         foreach ($participations as $participation) {
+             $formattedParticipations[] = [
+                 'id' => $participation->id,
+                 'participation_number' => $participation->participation_code,
+                 'status' => $participation->status_text,
+                 'seller' => $participation->seller ? $participation->seller->user->name : 'Sin asignar',
+                 'sale_date' => $participation->sale_date ? $participation->sale_date->format('d/m/Y') : '-',
+                 'sale_time' => $participation->sale_time ? $participation->sale_time->format('H:i') . 'h' : '-',
+             ];
+         }
         
         return response()->json([
             'book' => $book,
