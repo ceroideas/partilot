@@ -1258,7 +1258,7 @@ $('#format').change(function (e) {
         e.preventDefault();
           const data = collectDesignData();
           console.log(data);
-          fetch('/api/design/save-format', {
+          fetch('{{url('/api/design/save-format')}}', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
