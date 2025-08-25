@@ -52,13 +52,13 @@
                         <!-- Logo -->
                         <div class="auth-brand text-center text-lg-start">
                             <div class="auth-brand">
-                                <a href="index.html" class="logo logo-dark text-center">
+                                <a href="{{url('/')}}" class="logo logo-dark text-center">
                                     <span class="logo-lg">
                                         <img src="{{url('/')}}/logo.svg" alt="" height="40">
                                     </span>
                                 </a>
             
-                                <a href="index.html" class="logo logo-light text-center">
+                                <a href="{{url('/')}}" class="logo logo-light text-center">
                                     <span class="logo-lg">
                                         <img src="{{url('/')}}/logo.svg" alt="" height="40">
                                     </span>
@@ -95,7 +95,7 @@
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <a href="auth-recoverpw-2.html" class="text-muted float-end mb-1"><small>¿Olvidaste tu contraseña?</small></a>
+                                <a href="javascript:void(0);" class="text-muted float-end mb-1"><small>¿Olvidaste tu contraseña?</small></a>
                                 {{-- <label for="password" class="form-label">Contraseña</label> --}}
                                 
                                 <div class="input-group input-group-merge group-login">

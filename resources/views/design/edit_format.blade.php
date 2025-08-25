@@ -1181,7 +1181,7 @@ $(document).ready(function() {
         e.preventDefault();
         const formData = new FormData();
         formData.append('text', $('#qr-text').val());
-        fetch('/api/generarQr', {
+        fetch('{{url('api/generarQr')}}', {
             method: 'POST',
             body: formData
         })
@@ -1200,7 +1200,7 @@ $(document).ready(function() {
     function uploadImage(file) {
         const formData = new FormData();
         formData.append('image', file);
-        fetch('/api/upload-image', {
+        fetch('{{url('api/upload-image')}}', {
             method: 'POST',
             body: formData
         })
@@ -1254,7 +1254,7 @@ $(document).on('click', '#apply-bg', function() {
     const file = $('#background-image')[0].files[0];
     const formData = new FormData();
     formData.append('image', file);
-    fetch('/api/upload-image', {
+    fetch('{{url('api/upload-image')}}', {
       method: 'POST',
       body: formData
     })

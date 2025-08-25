@@ -68,7 +68,7 @@
                 <!-- Brand Logo -->
                 <div class="logo-box">
                     <!-- Brand Logo Light -->
-                    <a href="index.html" class="logo-light">
+                    <a href="{{url('/dashboard')}}" class="logo-light">
                         {{-- <img src="{{url('default')}}/assets/images/logo-light.png" alt="logo" class="logo-lg"> --}}
                         <img src="{{url('/')}}/logo_menu.svg" alt="logo" class="logo-lg">
                         {{-- <img src="{{url('default')}}/assets/images/logo-sm.png" alt="small logo" class="logo-sm"> --}}
@@ -76,7 +76,7 @@
                     </a>
 
                     <!-- Brand Logo Dark -->
-                    <a href="index.html" class="logo-dark">
+                    <a href="{{url('/dashboard')}}" class="logo-dark">
                         {{-- <img src="{{url('default')}}/assets/images/logo-dark.png" alt="dark logo" class="logo-lg"> --}}
                         <img src="{{url('/')}}/logo_menu.svg" alt="dark logo" class="logo-lg">
                         {{-- <img src="{{url('default')}}/assets/images/logo-sm.png" alt="small logo" class="logo-sm"> --}}
@@ -335,7 +335,7 @@
                             <!-- Topbar Brand Logo -->
                             <div class="logo-box">
                                 <!-- Brand Logo Light -->
-                                <a href="index.html" class="logo-light">
+                                <a href="{{url('/dashboard')}}" class="logo-light">
                                     {{-- <img src="{{url('default')}}/assets/images/logo-light.png" alt="logo" class="logo-lg">
                                     <img src="{{url('default')}}/assets/images/logo-sm.png" alt="small logo" class="logo-sm"> --}}
 
@@ -344,7 +344,7 @@
                                 </a>
 
                                 <!-- Brand Logo Dark -->
-                                <a href="index.html" class="logo-dark">
+                                <a href="{{url('/dashboard')}}" class="logo-dark">
                                     {{-- <img src="{{url('default')}}/assets/images/logo-dark.png" alt="dark logo" class="logo-lg">
                                     <img src="{{url('default')}}/assets/images/logo-sm.png" alt="small logo" class="logo-sm"> --}}
 
