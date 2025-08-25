@@ -105,9 +105,9 @@ class DesignFormat extends Model
      */
     public function generateParticipations()
     {
-        if (!$this->set) {
+        /*if (!$this->set) {
             return;
-        }
+        }*/
 
         $totalParticipations = $this->set->total_participations ?? 0;
         if ($totalParticipations <= 0) {
