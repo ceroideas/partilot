@@ -17,6 +17,7 @@ class ScrutinyEntityResult extends Model
         'total_issued',
         'total_sold',
         'total_returned',
+        'total_non_winning',
         'winning_numbers',
         'total_winning',
         'winning_participations',
@@ -269,6 +270,7 @@ class ScrutinyEntityResult extends Model
         // El premio total es: precio del décimo × número de participaciones asignadas
         $ticketPrice = $lotteryType ? $lotteryType->ticket_price : 20; // Precio por defecto de 20€
         $totalPrizeAmount = $ticketPrice * $this->total_reserved; // total_reserved = participaciones asignadas
+        // $totalPrizeAmount = $ticketPrice * $this->total_sold; // total_reserved = participaciones asignadas
 
         // Actualizar el modelo
         $this->winning_numbers = $winningNumbers;

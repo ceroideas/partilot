@@ -1499,7 +1499,7 @@ function initDatatable()
           url: '{{ route("sellers.save-assignments") }}',
           method: 'POST',
           data: {
-            participations: participacionesAsignadas,
+            participations_json: JSON.stringify(participacionesAsignadas),
             seller_id: {{ $seller->id }},
             _token: '{{ csrf_token() }}'
           },

@@ -175,7 +175,7 @@ class LotteryScrutinyController extends Controller
 
         foreach ($entitiesWithReserves as $entity) {
             // Obtener participaciones asignadas de esta entidad para este sorteo
-            $assignedParticipations = Participation::where('entity_id', $entity->id)
+            $allAssignedParticipations = Participation::where('entity_id', $entity->id)
                 ->whereHas('set.reserve', function ($query) use ($lottery) {
                     $query->where('lottery_id', $lottery->id);
                 })
@@ -200,7 +200,7 @@ class LotteryScrutinyController extends Controller
 
             // Obtener los números de las participaciones asignadas
             $assignedNumbers = [];
-            foreach ($assignedParticipations as $participation) {
+            foreach ($allAssignedParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
                     if (isset($reservedNumbers[$participation->participation_number - 1])) {
@@ -212,43 +212,91 @@ class LotteryScrutinyController extends Controller
             // Eliminar duplicados
             $assignedNumbers = array_unique($assignedNumbers);
 
-            // Calcular premios
-            $entityResult = new ScrutinyEntityResult([
+            // Calcular premios para obtener los números ganadores
+            $tempEntityResult = new ScrutinyEntityResult([
                 'entity_id' => $entity->id,
                 'reserved_numbers' => $assignedNumbers,
-                'total_reserved' => $assignedParticipations->count(), // Total de participaciones asignadas (vendidas)
-                'total_issued' => $allParticipations->count(), // Total de participaciones emitidas
-                'total_sold' => $assignedParticipations->count(), // Total en escrutinio (mismas que asignadas)
-                'total_returned' => $returnedParticipations->count() // Total de participaciones devueltas
+                'total_reserved' => $allAssignedParticipations->count(),
+                'total_issued' => $allParticipations->count(),
+                'total_sold' => $allAssignedParticipations->count(),
+                'total_returned' => $returnedParticipations->count()
             ]);
 
-            // Primero calcular los premios para obtener los números ganadores
-            $entityResult->calculatePrizes($lotteryResult, $lottery->lotteryType);
+            $tempEntityResult->calculatePrizes($lotteryResult, $lottery->lotteryType);
             
-            // Ahora calcular las participaciones ganadoras por número específico
+            // Filtrar participaciones asignadas: solo aquellas que están en sets con reservas que tienen números ganadores
+            $winningParticipations = [];
             $winningParticipationsByNumber = [];
             $totalWinningParticipations = 0;
             
-            foreach ($assignedParticipations as $participation) {
+            foreach ($allAssignedParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
-                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                        $number = $reservedNumbers[$participation->participation_number - 1];
-                        if (in_array($number, $entityResult->winning_numbers)) {
-                            $totalWinningParticipations++;
-                            $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
+                    $hasWinningNumber = false;
+                    
+                    // Verificar si esta reserva tiene algún número ganador
+                    foreach ($reservedNumbers as $number) {
+                        if (in_array($number, $tempEntityResult->winning_numbers)) {
+                            $hasWinningNumber = true;
+                            break;
+                        }
+                    }
+                    
+                    // Solo incluir participaciones de sets con reservas que tienen números ganadores
+                    if ($hasWinningNumber) {
+                        $winningParticipations[] = $participation;
+                        
+                        // Calcular participaciones ganadoras por número específico
+                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                            $number = $reservedNumbers[$participation->participation_number - 1];
+                            if (in_array($number, $tempEntityResult->winning_numbers)) {
+                                $totalWinningParticipations++;
+                                $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
+                            }
                         }
                     }
                 }
             }
+
+            // Obtener los números de las participaciones ganadoras (solo de sets con reservas ganadoras)
+            $winningNumbers = [];
+            foreach ($winningParticipations as $participation) {
+                if ($participation->set && $participation->set->reserve) {
+                    $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
+                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                        $winningNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                    }
+                }
+            }
+            $winningNumbers = array_unique($winningNumbers);
+
+            // Calcular participaciones sin premio (sets sin números ganadores)
+            $nonWinningParticipations = $allAssignedParticipations->count() - count($winningParticipations);
+
+            // Crear el resultado final con solo las participaciones de sets ganadores
+            $entityResult = new ScrutinyEntityResult([
+                'entity_id' => $entity->id,
+                'reserved_numbers' => $winningNumbers,
+                'total_reserved' => count($winningParticipations), // Solo participaciones de sets ganadores
+                'total_issued' => $allParticipations->count(), // Total de participaciones emitidas
+                'total_sold' => count($winningParticipations), // Solo participaciones de sets ganadores
+                //'total_sold' => $allAssignedParticipations->count(), // Solo participaciones de sets ganadores
+                'total_returned' => $returnedParticipations->count(),
+                'total_non_winning' => $nonWinningParticipations // Participaciones sin premio
+            ]);
+
             $entityResult->winning_participations = $totalWinningParticipations;
             
-            // Ahora recalcular los premios con las participaciones ganadoras por número
+            // Calcular los premios con las participaciones ganadoras por número
             $entityResult->calculatePrizes($lotteryResult, $lottery->lotteryType, $winningParticipationsByNumber);
 
             // Acumular números ganadores para el total global
             $allWinningNumbers = array_merge($allWinningNumbers, $entityResult->winning_numbers);
-            $totalPrizeAmount += $entityResult->total_prize_amount;
+            
+            // Solo acumular el premio si la entidad tiene números ganadores
+            if ($entityResult->total_winning > 0) {
+                $totalPrizeAmount += $entityResult->total_prize_amount;
+            }
 
             $scrutinyData[] = [
                 'entity' => $entity,
@@ -292,7 +340,7 @@ class LotteryScrutinyController extends Controller
 
         foreach ($entitiesWithReserves as $entity) {
             // Obtener participaciones asignadas de esta entidad para este sorteo
-            $assignedParticipations = Participation::where('entity_id', $entity->id)
+            $allAssignedParticipations = Participation::where('entity_id', $entity->id)
                 ->whereHas('set.reserve', function ($query) use ($lottery) {
                     $query->where('lottery_id', $lottery->id);
                 })
@@ -309,7 +357,7 @@ class LotteryScrutinyController extends Controller
 
             // Obtener los números de las participaciones asignadas
             $assignedNumbers = [];
-            foreach ($assignedParticipations as $participation) {
+            foreach ($allAssignedParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
                     if (isset($reservedNumbers[$participation->participation_number - 1])) {
@@ -321,37 +369,83 @@ class LotteryScrutinyController extends Controller
             // Eliminar duplicados
             $assignedNumbers = array_unique($assignedNumbers);
 
-            // Crear o actualizar resultado de la entidad
-            $entityResult = ScrutinyEntityResult::updateOrCreate([
-                'administration_lottery_scrutiny_id' => $scrutiny->id,
-                'entity_id' => $entity->id
-            ], [
+            // Calcular premios para obtener los números ganadores
+            $tempEntityResult = new ScrutinyEntityResult([
+                'entity_id' => $entity->id,
                 'reserved_numbers' => $assignedNumbers,
-                'total_reserved' => $assignedParticipations->count(), // Total de participaciones asignadas
-                'total_issued' => $allParticipations->count(), // Total de participaciones emitidas (disponibles + asignadas)
-                'total_sold' => $assignedParticipations->count(), // Total en escrutinio (mismas que asignadas)
+                'total_reserved' => $allAssignedParticipations->count(),
+                'total_issued' => $allParticipations->count(),
+                'total_sold' => $allAssignedParticipations->count(),
                 'total_returned' => 0
             ]);
 
-            // Calcular participaciones ganadoras por número específico
+            $tempEntityResult->calculatePrizes($lotteryResult, $lottery->lotteryType);
+            
+            // Filtrar participaciones asignadas: solo aquellas que están en sets con reservas que tienen números ganadores
+            $winningParticipations = [];
             $winningParticipationsByNumber = [];
             $totalWinningParticipations = 0;
             
-            foreach ($assignedParticipations as $participation) {
+            foreach ($allAssignedParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
-                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                        $number = $reservedNumbers[$participation->participation_number - 1];
-                        if (in_array($number, $entityResult->winning_numbers)) {
-                            $totalWinningParticipations++;
-                            $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
+                    $hasWinningNumber = false;
+                    
+                    // Verificar si esta reserva tiene algún número ganador
+                    foreach ($reservedNumbers as $number) {
+                        if (in_array($number, $tempEntityResult->winning_numbers)) {
+                            $hasWinningNumber = true;
+                            break;
+                        }
+                    }
+                    
+                    // Solo incluir participaciones de sets con reservas que tienen números ganadores
+                    if ($hasWinningNumber) {
+                        $winningParticipations[] = $participation;
+                        
+                        // Calcular participaciones ganadoras por número específico
+                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                            $number = $reservedNumbers[$participation->participation_number - 1];
+                            if (in_array($number, $tempEntityResult->winning_numbers)) {
+                                $totalWinningParticipations++;
+                                $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
+                            }
                         }
                     }
                 }
             }
+
+            // Obtener los números de las participaciones ganadoras (solo de sets con reservas ganadoras)
+            $winningNumbers = [];
+            foreach ($winningParticipations as $participation) {
+                if ($participation->set && $participation->set->reserve) {
+                    $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
+                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                        $winningNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                    }
+                }
+            }
+            $winningNumbers = array_unique($winningNumbers);
+
+            // Calcular participaciones sin premio (sets sin números ganadores)
+            $nonWinningParticipations = $allAssignedParticipations->count() - count($winningParticipations);
+
+            // Crear o actualizar resultado de la entidad con solo las participaciones de sets ganadores
+            $entityResult = ScrutinyEntityResult::updateOrCreate([
+                'administration_lottery_scrutiny_id' => $scrutiny->id,
+                'entity_id' => $entity->id
+            ], [
+                'reserved_numbers' => $winningNumbers,
+                'total_reserved' => count($winningParticipations), // Solo participaciones de sets ganadores
+                'total_issued' => $allParticipations->count(), // Total de participaciones emitidas
+                'total_sold' => count($winningParticipations), // Solo participaciones de sets ganadores
+                'total_returned' => 0,
+                'total_non_winning' => $nonWinningParticipations // Participaciones sin premio
+            ]);
+
             $entityResult->winning_participations = $totalWinningParticipations;
             
-            // Ahora calcular los premios con las participaciones ganadoras por número
+            // Calcular los premios con las participaciones ganadoras por número
             $entityResult->calculatePrizes($lotteryResult, $lottery->lotteryType, $winningParticipationsByNumber);
             $entityResult->save();
         }

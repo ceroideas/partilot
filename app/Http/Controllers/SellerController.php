@@ -422,12 +422,37 @@ class SellerController extends Controller
     public function saveAssignments(Request $request)
     {
         $request->validate([
-            'participations' => 'required|array|min:1',
-            'participations.*.id' => 'required|integer|exists:participations,id',
-            'participations.*.number' => 'required|string',
-            'participations.*.set_id' => 'required|integer|exists:sets,id',
+            'participations_json' => 'required|string',
             'seller_id' => 'required|integer|exists:sellers,id'
         ]);
+
+        // Decodificar el JSON de participaciones
+        $participations = json_decode($request->participations_json, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar los datos de participaciones: ' . json_last_error_msg()
+            ]);
+        }
+
+        // Validar que participations sea un array y tenga al menos un elemento
+        if (!is_array($participations) || empty($participations)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debe proporcionar al menos una participación'
+            ]);
+        }
+
+        // Validar cada participación
+        foreach ($participations as $participation) {
+            if (!isset($participation['id']) || !isset($participation['number']) || !isset($participation['set_id'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Datos de participación incompletos'
+                ]);
+            }
+        }
 
         try {
             DB::beginTransaction();
@@ -435,7 +460,7 @@ class SellerController extends Controller
             $seller = Seller::findOrFail($request->seller_id);
             $assignedCount = 0;
 
-            foreach ($request->participations as $participationData) {
+            foreach ($participations as $participationData) {
                 // Verificar que la participación esté disponible o ya asignada al vendedor actual
                 $participation = DB::table('participations')
                     ->where('id', $participationData['id'])

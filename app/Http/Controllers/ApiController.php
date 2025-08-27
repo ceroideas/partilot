@@ -12,6 +12,12 @@ class ApiController extends Controller
 {
     public function test()
     {
+        Schema::table('scrutiny_entity_results', function (Blueprint $table) {
+            $table->integer('total_non_winning')->default(0)->after('total_returned');
+        });
+
+        return;
+
         Schema::dropIfExists('administration_lottery_scrutinies');
         Schema::create('administration_lottery_scrutinies', function (Blueprint $table) {
             $table->id();

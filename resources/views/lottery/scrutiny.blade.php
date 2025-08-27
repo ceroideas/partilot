@@ -170,7 +170,7 @@
 
                                                         <td>
                                                             Emitidas: <b>{{ $result->total_issued }}</b> <br>
-                                                            Vendidas: <b>{{ $result->total_reserved }}</b> <br>
+                                                            Vendidas: <b>{{ $result->total_reserved + ($result->total_non_winning ?? 0) }}</b> <br>
                                                             Devueltas: <b>{{ $result->total_returned }}</b> <br>
                                                             <span class="badge bg-{{ $result->total_winning > 0 ? 'success' : 'secondary' }}">
                                                                 Premiadas: {{ $result->total_winning }} Números
@@ -198,7 +198,7 @@
                                                         @if(!empty($prizeBreakdown['segundo_premio']['numbers']))
                                                             <tr>
                                                                 <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Segundo Premio: {{ implode(', ', $prizeBreakdown['segundo_premio']['numbers']) }} - {{ number_format($prizeBreakdown['segundo_premio']['amount'], 2) }}€</b>
+                                                                    <b>Segundo Premio: {{ implode(', ', $prizeBreakdown['segundo_premio']['numbers']) }} - {{ number_format($prizeBreakdown['segundo_premio']['total_amount'], 2) }}€</b>
                                                                 </td>
                                                             </tr>
                                                         @endif
@@ -207,7 +207,7 @@
                                                         @if(!empty($prizeBreakdown['terceros_premios']['numbers']))
                                                             <tr>
                                                                 <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Terceros Premios: {{ implode(', ', $prizeBreakdown['terceros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['terceros_premios']['amount'], 2) }}€</b>
+                                                                    <b>Terceros Premios: {{ implode(', ', $prizeBreakdown['terceros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['terceros_premios']['total_amount'], 2) }}€</b>
                                                                 </td>
                                                             </tr>
                                                         @endif
@@ -216,7 +216,7 @@
                                                         @if(!empty($prizeBreakdown['reintegros']['numbers']))
                                                             <tr>
                                                                 <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Reintegros: {{ count($prizeBreakdown['reintegros']['numbers']) }} números - {{ number_format($prizeBreakdown['reintegros']['amount'], 2) }}€</b>
+                                                                    <b>Reintegros: {{ count($prizeBreakdown['reintegros']['numbers']) }} números - {{ number_format($prizeBreakdown['reintegros']['total_amount'], 2) }}€</b>
                                                                 </td>
                                                             </tr>
                                                         @endif
