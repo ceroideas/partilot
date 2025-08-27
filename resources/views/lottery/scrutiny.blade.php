@@ -111,21 +111,28 @@
                                             <div class="col-6">
 
                                                 <div class="mt-2">
-                                                    <strong>Administración:</strong> {{ $administration->name }} <br>
-                                                    <strong>Entidades con reservas:</strong> {{ count($entitiesWithReserves) }} <br>
                                                     @php
-                                                        $totalWinning = 0;
-                                                        $totalNonWinning = 0;
-                                                        $totalPrizeAmount = 0;
-                                                        
-                                                        foreach($scrutinyData as $data) {
-                                                            $totalWinning += $data['result']->total_winning;
-                                                            $totalNonWinning += ($data['result']->total_reserved - $data['result']->total_winning);
-                                                            $totalPrizeAmount += $data['result']->total_prize_amount;
+                                                        // Usar los datos del resumen calculado en el controlador
+                                                        $summary = $scrutinyData['summary'] ?? null;
+                                                        if ($summary) {
+                                                            $totalWinning = $summary['unique_winning_numbers'];
+                                                            $totalNonWinning = $summary['unique_non_winning_numbers'];
+                                                            $totalPrizeAmount = $summary['total_prize_amount'];
+                                                        } else {
+                                                            // Fallback al cálculo anterior si no hay resumen
+                                                            $totalWinning = 0;
+                                                            $totalNonWinning = 0;
+                                                            $totalPrizeAmount = 0;
+                                                            
+                                                            foreach($scrutinyData['entities'] ?? $scrutinyData as $data) {
+                                                                $totalWinning += $data['result']->total_winning;
+                                                                $totalNonWinning += count($data['result']->reserved_numbers) - $data['result']->total_winning;
+                                                                $totalPrizeAmount += $data['result']->total_prize_amount;
+                                                            }
                                                         }
                                                     @endphp
-                                                    Participaciones Premiadas: <b>{{ $totalWinning }} Números</b> <br>
-                                                    Participaciones No Premiadas: <b>{{ $totalNonWinning }} Números</b> <br>
+                                                    Participaciones Asignadas Premiadas: <b>{{ $totalWinning }} Números</b> <br>
+                                                    Participaciones Asignadas No Premiadas: <b>{{ $totalNonWinning }} Números</b> <br>
                                                     Importe Premios Repartidos: <b>{{ number_format($totalPrizeAmount, 2) }}€</b>
                                                 </div>
                                                 
@@ -135,7 +142,7 @@
                                     </div>
 
                                     <h4 class="mb-0 mt-1">
-                                        Lista de entidades y sus participaciones
+                                        Lista de entidades y sus participaciones asignadas
                                     </h4>
 
                                     <div style="min-height: 400px; height: 400px; overflow: auto;">
@@ -152,7 +159,7 @@
                                             </thead>
 
                                             <tbody class="text-center">
-                                                @forelse($scrutinyData as $data)
+                                                @forelse(($scrutinyData['entities'] ?? $scrutinyData) as $data)
                                                     @php
                                                         $entity = $data['entity'];
                                                         $result = $data['result'];
@@ -162,11 +169,11 @@
                                                         <td><b>{{ $entity->name }}</b></td>
 
                                                         <td>
-                                                            Reservadas: <b>{{ $result->total_reserved }}</b> <br>
-                                                            Vendidas: <b>{{ $result->total_sold }}</b> <br>
+                                                            Emitidas: <b>{{ $result->total_issued }}</b> <br>
+                                                            Vendidas: <b>{{ $result->total_reserved }}</b> <br>
                                                             Devueltas: <b>{{ $result->total_returned }}</b> <br>
                                                             <span class="badge bg-{{ $result->total_winning > 0 ? 'success' : 'secondary' }}">
-                                                                Premiadas: {{ $result->total_winning }}
+                                                                Premiadas: {{ $result->total_winning }} Números
                                                             </span>
                                                         </td>
                                                         <td>
@@ -182,7 +189,7 @@
                                                         @if(!empty($prizeBreakdown['primer_premio']['numbers']))
                                                             <tr>
                                                                 <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Primer Premio: {{ implode(', ', $prizeBreakdown['primer_premio']['numbers']) }} - {{ number_format($prizeBreakdown['primer_premio']['amount'], 2) }}€</b>
+                                                                    <b>Número: {{ implode(', ', $prizeBreakdown['primer_premio']['numbers']) }} - Premiado con {{ number_format($prizeBreakdown['primer_premio']['prize_per_ticket'], 0) }}€ × {{ $prizeBreakdown['primer_premio']['total_tickets'] }} décimos = {{ number_format($prizeBreakdown['primer_premio']['total_amount'], 0) }}€</b>
                                                                 </td>
                                                             </tr>
                                                         @endif

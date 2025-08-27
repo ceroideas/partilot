@@ -122,8 +122,8 @@ class AdministrationLotteryScrutiny extends Model
         
         $summary = [
             'total_entities' => $entityResults->count(),
-            'total_winning_participations' => $entityResults->sum('total_winning'),
-            'total_non_winning_participations' => $entityResults->sum('total_reserved') - $entityResults->sum('total_winning'),
+            'total_winning_participations' => $entityResults->sum('winning_participations'),
+            'total_non_winning_participations' => $entityResults->sum('total_reserved') - $entityResults->sum('winning_participations'),
             'total_prize_amount' => $entityResults->sum('total_prize_amount')
         ];
 

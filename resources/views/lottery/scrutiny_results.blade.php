@@ -21,7 +21,7 @@
             </div>
         </div>
     </div>
-
+{{-- 
     @if(session('success'))
         <div class="row">
             <div class="col-12">
@@ -32,7 +32,7 @@
                 </div>
             </div>
         </div>
-    @endif
+    @endif --}}
 
     <div class="row">
         <div class="col-12">
@@ -61,9 +61,9 @@
 
                                         <div class="col-4">
 
-                                            <div style="width: 150px; height: 80px; border-radius: 8px; background-color: silver; float: left; margin-right: 20px;">
-                                                @if($lottery->image)
-                                                    <img src="{{ url('storage/' . $lottery->image) }}" alt="Sorteo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                                            <div class="photo-preview" style="width: 200px; background-image: url({{ $lottery->image ? url('uploads/' . $lottery->image) : '' }});">
+                                                @if(!$lottery->image)
+                                                    <i class="ri-image-add-line"></i>
                                                 @endif
                                             </div>
 
@@ -134,8 +134,8 @@
                                                     Reservadas: <b>{{ $entityResult->total_reserved }}</b> <br>
                                                     Vendidas: <b>{{ $entityResult->total_sold }}</b> <br>
                                                     Devueltas: <b>{{ $entityResult->total_returned }}</b> <br>
-                                                    <span class="badge bg-{{ $entityResult->total_winning > 0 ? 'success' : 'secondary' }}">
-                                                        Premiadas: {{ $entityResult->total_winning }}
+                                                    <span class="badge bg-{{ ($entityResult->winning_participations ?? $entityResult->total_winning) > 0 ? 'success' : 'secondary' }}">
+                                                        Premiadas: {{ $entityResult->winning_participations ?? $entityResult->total_winning }}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -146,15 +146,24 @@
                                                 </td>
                                             </tr>
                                             
-                                            @if($entityResult->total_winning > 0)
+                                            @if(($entityResult->winning_participations ?? $entityResult->total_winning) > 0)
                                                 @php
                                                     $prizeBreakdown = $entityResult->prize_breakdown;
                                                 @endphp
                                                 
+                                                {{-- Premio Especial --}}
+                                                @if(!empty($prizeBreakdown['otros_premios']['numbers']))
+                                                    <tr>
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #fff3cd;">
+                                                            <b>Premio Especial: {{ implode(', ', $prizeBreakdown['otros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['otros_premios']['amount'], 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
                                                 {{-- Primer Premio --}}
                                                 @if(!empty($prizeBreakdown['primer_premio']['numbers']))
                                                     <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #d1ecf1;">
                                                             <b>Primer Premio: {{ implode(', ', $prizeBreakdown['primer_premio']['numbers']) }} - {{ number_format($prizeBreakdown['primer_premio']['amount'], 2) }}€</b>
                                                         </td>
                                                     </tr>
@@ -163,7 +172,7 @@
                                                 {{-- Segundo Premio --}}
                                                 @if(!empty($prizeBreakdown['segundo_premio']['numbers']))
                                                     <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #d1ecf1;">
                                                             <b>Segundo Premio: {{ implode(', ', $prizeBreakdown['segundo_premio']['numbers']) }} - {{ number_format($prizeBreakdown['segundo_premio']['amount'], 2) }}€</b>
                                                         </td>
                                                     </tr>
@@ -174,6 +183,60 @@
                                                     <tr>
                                                         <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
                                                             <b>Terceros Premios: {{ implode(', ', $prizeBreakdown['terceros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['terceros_premios']['amount'], 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
+                                                {{-- Cuartos Premios --}}
+                                                @if(!empty($prizeBreakdown['cuartos_premios']['numbers']))
+                                                    <tr>
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                            <b>Cuartos Premios: {{ implode(', ', $prizeBreakdown['cuartos_premios']['numbers']) }} - {{ number_format($prizeBreakdown['cuartos_premios']['amount'], 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
+                                                {{-- Quintos Premios --}}
+                                                @if(!empty($prizeBreakdown['quintos_premios']['numbers']))
+                                                    <tr>
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                            <b>Quintos Premios: {{ implode(', ', $prizeBreakdown['quintos_premios']['numbers']) }} - {{ number_format($prizeBreakdown['quintos_premios']['amount'], 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
+                                                {{-- Extracciones de Cinco Cifras --}}
+                                                @if(!empty($prizeBreakdown['extracciones_cinco_cifras']['numbers']))
+                                                    <tr>
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
+                                                            <b>Extracciones 5 Cifras: {{ count($prizeBreakdown['extracciones_cinco_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_cinco_cifras']['amount'], 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
+                                                {{-- Extracciones de Cuatro Cifras --}}
+                                                @if(!empty($prizeBreakdown['extracciones_cuatro_cifras']['numbers']))
+                                                    <tr>
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
+                                                            <b>Extracciones 4 Cifras: {{ count($prizeBreakdown['extracciones_cuatro_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_cuatro_cifras']['amount'], 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
+                                                {{-- Extracciones de Tres Cifras --}}
+                                                @if(!empty($prizeBreakdown['extracciones_tres_cifras']['numbers']))
+                                                    <tr>
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
+                                                            <b>Extracciones 3 Cifras: {{ count($prizeBreakdown['extracciones_tres_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_tres_cifras']['amount'], 2) }}€</b>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
+                                                {{-- Extracciones de Dos Cifras --}}
+                                                @if(!empty($prizeBreakdown['extracciones_dos_cifras']['numbers']))
+                                                    <tr>
+                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
+                                                            <b>Extracciones 2 Cifras: {{ count($prizeBreakdown['extracciones_dos_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_dos_cifras']['amount'], 2) }}€</b>
                                                         </td>
                                                     </tr>
                                                 @endif
@@ -217,7 +280,7 @@
 
                                     <div class="col-6 text-start">
                                         <a href="{{route('lottery.results')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">
-                                            <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Volver a Resultados</span></a>
+                                            <i style="top: 5px; left: 10%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Volver a Resultados</span></a>
                                     </div>
                                     
                                     <div class="col-6 text-end">

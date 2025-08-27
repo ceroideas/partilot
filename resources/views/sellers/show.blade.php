@@ -1907,18 +1907,14 @@ function initDatatable()
 
            // Función para ver detalle de participación desde el grid
       window.verDetalleParticipacion = function(codigo, participationId) {
-        // Aquí puedes implementar la lógica para mostrar el detalle de la participación
-        // Por ejemplo, abrir un modal con la información detallada
-        alert(`Detalle de participación: ${codigo}\nID: ${participationId}`);
-        // TODO: Implementar modal o vista detallada de la participación
+        // Abrir el detalle de la participación en una nueva pestaña
+        window.open(`{{ url('/') }}/participations/view/${participationId}`, '_blank');
       };
 
       // Función para ver detalle de participación desde el taco
       window.verDetalleParticipacionTaco = function(codigo, participationId) {
-        // Aquí puedes implementar la lógica para mostrar el detalle de la participación
-        // Por ejemplo, abrir un modal con la información detallada
-        alert(`Detalle de participación: ${codigo}\nID: ${participationId}`);
-        // TODO: Implementar modal o vista detallada de la participación
+        // Abrir el detalle de la participación en una nueva pestaña
+        window.open(`{{ url('/') }}/participations/view/${participationId}`, '_blank');
       };
 
       // Función para eliminar participación desde el taco
