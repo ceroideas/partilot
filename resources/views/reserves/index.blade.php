@@ -78,9 +78,9 @@
                                             <span class="text-muted">Sin números</span>
                                         @endif
                                     </td>
-                                    <td>{{number_format($reserve->reservation_amount ?? 0, 2)}}€</td>
-                                    <td>{{$reserve->reservation_tickets ?? 0}}</td>
                                     <td><b>{{number_format($reserve->total_amount, 2)}}€</b></td>
+                                    <td>{{$reserve->reservation_tickets ?? 0}}</td>
+                                    <td>{{number_format($reserve->reservation_amount ?? 0, 2)}}€</td>
                                     <td>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons/participations.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('reserves/edit', $reserve->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>

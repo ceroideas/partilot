@@ -108,8 +108,13 @@
 
                             </div>
 
-                            <a href="{{url('reserves/add/lottery')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
-                                <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+                            <form action="{{url('reserves/store-entity')}}" method="POST" style="position: absolute; bottom: 16px;">
+                                @csrf
+                                <input type="hidden" name="entity_id" value="{{session('selected_entity')->id}}">
+                                <button type="submit" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder;" class="btn btn-md btn-light mt-2">
+                                    <i style="top: 18px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
+                                </button>
+                            </form>
                         </div>
                         <div class="col-md-9">
                             <div class="form-card bs" style="min-height: 0px;">

@@ -145,7 +145,7 @@
 			                                    <td>{{$reserve->lottery ? $reserve->lottery->name : 'Sin sorteo'}}</td>
 			                                    <td>{{$reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : 'Sin fecha'}}</td>
 			                                    <td>{{implode(' - ', $reserve->reservation_numbers ?? [])}}</td>
-			                                    <td>{{number_format($reserve->total_amount, 2)}} €</td>
+			                                    <td><b>{{number_format($reserve->reservation_amount, 2)}} €</b></td>
 			                                    <td><label class="badge bg-success">{{ucfirst($reserve->status ? 'Activo' : '')}}</label></td>
 			                                    <td>
 			                                        <div class="form-check">

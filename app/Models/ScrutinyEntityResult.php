@@ -113,13 +113,13 @@ class ScrutinyEntityResult extends Model
         $totalPrizeAmount = 0;
 
         // Verificar premio especial
-        if ($lotteryResult->premio_especial && in_array($lotteryResult->premio_especial['decimo'], $reservedNumbers)) {
+        /*if ($lotteryResult->premio_especial && in_array($lotteryResult->premio_especial['decimo'], $reservedNumbers)) {
             $winningNumbers[] = $lotteryResult->premio_especial['decimo'];
             $prizeBreakdown['otros_premios']['numbers'][] = $lotteryResult->premio_especial['decimo'];
             $prizeAmount = ($lotteryResult->premio_especial['prize'] ?? 0) / 100;
             $prizeBreakdown['otros_premios']['amount'] += $prizeAmount;
             $totalPrizeAmount += $prizeAmount;
-        }
+        }*/
 
         // Verificar primer premio
         if ($lotteryResult->primer_premio && in_array($lotteryResult->primer_premio['decimo'], $reservedNumbers)) {

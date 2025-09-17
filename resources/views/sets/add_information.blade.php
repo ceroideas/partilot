@@ -250,7 +250,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="played_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="played_amount" name="played_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -265,7 +265,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="donation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="donation_amount" name="donation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -280,7 +280,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="total_participation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="total_participation_amount" name="total_participation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -295,7 +295,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="total_participations" type="number" placeholder="0" style="border-radius: 0 30px 30px 0;" required>
+	                                                <input class="form-control" id="total_participations" name="total_participations" type="number" placeholder="0" style="border-radius: 0 30px 30px 0;" required>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -310,7 +310,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="total_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" required>
+	                                                <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly required>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -349,7 +349,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="physical_participations" type="number" placeholder="600" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="physical_participations" name="physical_participations" type="number" placeholder="600" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -364,7 +364,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="digital_participations" type="number" placeholder="150" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="digital_participations" name="digital_participations" type="number" placeholder="150" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -401,99 +401,95 @@
 
 <script>
 
-function initDatatable() 
-  {
-    $("#example2").DataTable({
+// Función para calcular el Importe Total Participación
+function calculateTotalParticipationAmount() {
+    const playedAmount = parseFloat($('#played_amount').val()) || 0;
+    const donationAmount = parseFloat($('#donation_amount').val()) || 0;
+    const totalParticipationAmount = playedAmount + donationAmount;
+    
+    $('#total_participation_amount').val(totalParticipationAmount.toFixed(2));
+}
 
-      "select":{style:"single"},
+// Función para calcular el Importe Total
+function calculateTotalAmount() {
+    const totalParticipations = parseInt($('#total_participations').val()) || 0;
+    const playedAmount = parseFloat($('#played_amount').val()) || 0;
+    const totalAmount = totalParticipations * playedAmount;
+    
+    $('#total_amount').val(totalAmount.toFixed(2));
+}
 
-      "ordering": false,
-      "sorting": false,
+// Función para calcular participaciones digitales cuando cambian las físicas
+function calculateDigitalParticipations() {
+    const totalParticipations = parseInt($('#total_participations').val()) || 0;
+    const physicalParticipations = parseInt($('#physical_participations').val()) || 0;
+    
+    if (physicalParticipations > totalParticipations) {
+        $('#physical_participations').val(totalParticipations);
+        $('#digital_participations').val(0);
+    } else {
+        const digitalParticipations = totalParticipations - physicalParticipations;
+        $('#digital_participations').val(digitalParticipations);
+    }
+}
 
-      "scrollX": true, "scrollCollapse": true,
-        orderCellsTop: true,
-        fixedHeader: true,
-        initComplete: function () {
-            var api = this.api();
- 
-            // For each column
-            api
-                .columns()
-                .eq(0)
-                .each(function (colIdx) {
-                    // Set the header cell to contain the input element
-                    var cell = $('.filters th').eq(
-                        $(api.column(colIdx).header()).index()
-                    );
-                    var title = $(cell).text();
-                    if ($(cell).hasClass('no-filter')) {
-                      $(cell).addClass('sorting_disabled').html(title);
-                    }else{
-                      $(cell).addClass('sorting_disabled').html('<input type="text" class="inline-fields" placeholder="' + title + '" />');
-                    }
- 
-                    // On every keypress in this input
-                    $(
-                        'input',
-                        $('.filters th').eq($(api.column(colIdx).header()).index())
-                    )
-                        .off('keyup change')
-                        .on('keyup change', function (e) {
-                            e.stopPropagation();
- 
-                            // Get the search value
-                            $(this).attr('title', $(this).val());
-                            var regexr = '({search})'; //$(this).parents('th').find('select').val();
- 
-                            var cursorPosition = this.selectionStart;
-                            // Search the column for that value
+// Función para calcular participaciones físicas cuando cambian las digitales
+function calculatePhysicalParticipations() {
+    const totalParticipations = parseInt($('#total_participations').val()) || 0;
+    const digitalParticipations = parseInt($('#digital_participations').val()) || 0;
+    
+    if (digitalParticipations > totalParticipations) {
+        $('#digital_participations').val(totalParticipations);
+        $('#physical_participations').val(0);
+    } else {
+        const physicalParticipations = totalParticipations - digitalParticipations;
+        $('#physical_participations').val(physicalParticipations);
+    }
+}
 
-                            // console.log(val.replace(/<select[\s\S]*?<\/select>/,''));
-                            let wSelect = false;
-                            $.each(api.column(colIdx).data(), function(index, val) {
-                               if (val.indexOf('<select') == -1) {
-                                wSelect = false;
-                               }else{
-                                wSelect = true;
-                               }
-                            });
-
-                            // $.each(api
-                            //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
-                            // });
-
-                            api
-                                .column(colIdx)
-                                .search(
-
-                                  (wSelect ?
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((selected' + this.value + ')))')
-                                        : '')
-                                    :
-                                      (this.value != ''
-                                        ? regexr.replace('{search}', '(((' + this.value + ')))')
-                                        : '')),
-
-                                    this.value != '',
-                                    this.value == ''
-                                ).draw()
- 
-                            $(this)
-                                .focus()[0]
-                                .setSelectionRange(cursorPosition, cursorPosition);
-                        });
-                });
+// Event listeners para los cálculos automáticos
+$(document).ready(function() {
+    
+    // Calcular Importe Total Participación cuando cambian Importe Jugado o Importe Donativo
+    $('#played_amount, #donation_amount').on('input', function() {
+        calculateTotalParticipationAmount();
+    });
+    
+    // Calcular Importe Total cuando cambian Participaciones Totales o Importe Jugado
+    $('#total_participations, #played_amount').on('input', function() {
+        calculateTotalAmount();
+        calculateDigitalParticipations();
+        calculatePhysicalParticipations();
+    });
+    
+    // Calcular participaciones digitales cuando cambian las físicas
+    $('#physical_participations').on('input', function() {
+        calculateDigitalParticipations();
+    });
+    
+    // Calcular participaciones físicas cuando cambian las digitales
+    $('#digital_participations').on('input', function() {
+        calculatePhysicalParticipations();
+    });
+    
+    // Validación adicional para Participaciones Totales
+    $('#total_participations').on('input', function() {
+        const totalParticipations = parseInt($(this).val()) || 0;
+        const physicalParticipations = parseInt($('#physical_participations').val()) || 0;
+        const digitalParticipations = parseInt($('#digital_participations').val()) || 0;
+        
+        // Si las participaciones físicas o digitales superan el total, ajustarlas
+        if (physicalParticipations > totalParticipations) {
+            $('#physical_participations').val(totalParticipations);
+            $('#digital_participations').val(0);
+        }
+        if (digitalParticipations > totalParticipations) {
+            $('#digital_participations').val(totalParticipations);
+            $('#physical_participations').val(0);
         }
     });
-  }
-
-  initDatatable();
-
-  setTimeout(()=>{
-    $('.filters .inline-fields:first').trigger('keyup');
-  },100);
+    
+});
 
 </script>
 
