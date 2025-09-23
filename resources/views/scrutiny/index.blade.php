@@ -189,7 +189,14 @@
                         <span class="visually-hidden">Cargando...</span>
                     </div>
                     <p class="mt-2">Generando escrutinio completo...</p>
-                    <small class="text-muted">Analizando 100.000 números</small>
+                    <small class="text-muted">Analizando números con premios potenciales</small>
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" id="progress-bar">
+                            <span id="progress-text">0%</span>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Esto puede tomar unos segundos...</small>
                 </div>
                 
                 <div id="scrutiny-results" style="display: none;">
@@ -347,6 +354,7 @@ $(document).ready(function() {
             },
             complete: function() {
                 $('#scrutiny-loading').hide();
+                $(document).trigger('scrutinyComplete');
             }
         });
     }
@@ -483,6 +491,9 @@ $(document).ready(function() {
         $('#scrutiny-loading').show();
         $('#scrutiny-results').hide();
         
+        // Simular progreso
+        simulateProgress();
+        
         // Almacenar rangos globalmente para usar en paginación
         currentStartRange = startRange;
         currentEndRange = endRange;
@@ -593,6 +604,32 @@ function formatCurrency(amount) {
 function setQuickRange(start, end) {
     $('#config-start-range').val(start);
     $('#config-end-range').val(end);
+}
+
+// Función para simular progreso
+function simulateProgress() {
+    let progress = 0;
+    const progressBar = $('#progress-bar');
+    const progressText = $('#progress-text');
+    
+    const interval = setInterval(function() {
+        progress += Math.random() * 15; // Incremento aleatorio entre 0-15%
+        if (progress > 90) progress = 90; // No llegar al 100% hasta que termine
+        
+        progressBar.css('width', progress + '%');
+        progressText.text(Math.round(progress) + '%');
+        
+        if (progress >= 90) {
+            clearInterval(interval);
+        }
+    }, 200);
+    
+    // Limpiar intervalo cuando se complete la carga
+    $(document).on('scrutinyComplete', function() {
+        clearInterval(interval);
+        progressBar.css('width', '100%');
+        progressText.text('100%');
+    });
 }
 </script>
 @endsection

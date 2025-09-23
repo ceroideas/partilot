@@ -27,6 +27,9 @@ class ScrutinyController extends Controller
      */
     public function generateScrutiny(Request $request)
     {
+        // Aumentar límite de tiempo de ejecución
+        set_time_limit(300); // 5 minutos
+        
         $request->validate([
             'lottery_id' => 'required|integer|exists:lotteries,id',
             'page' => 'nullable|integer|min:1',
@@ -50,24 +53,38 @@ class ScrutinyController extends Controller
         $endRange = $request->get('end_range', 99999);
         $sortOrder = $request->get('sort_order', 'desc');
         
-        // TEMPORAL: Deshabilitar caché para testing
         // Crear clave única para el caché
         $cacheKey = "scrutiny_{$lottery->id}_{$startRange}_{$endRange}_{$sortOrder}";
         
-        // Limpiar caché existente
-        session()->forget($cacheKey);
-        
-        // Calcular resultados (sin caché temporalmente)
-        if ($startRange > 0 || $endRange < 99999) {
-            $scrutinyResults = $this->calculateNumbersInRange($lottery, $startRange, $endRange);
+        // Verificar si existe en caché
+        if (session()->has($cacheKey)) {
+            $cachedData = session($cacheKey);
+            $scrutinyResults = $cachedData['results'];
+            $totalPrizes = $cachedData['total_prizes'];
+            \Log::info("=== USANDO CACHÉ PARA ESCRUTINIO ===");
         } else {
-            $scrutinyResults = $this->calculateAllNumbers($lottery);
-        }
-        
-        // Calcular total de premios de forma consistente
-        $totalPrizes = 0;
-        foreach ($scrutinyResults as $result) {
-            $totalPrizes += count($result['prizes']);
+            // Calcular resultados
+            if ($startRange > 0 || $endRange < 99999) {
+                $scrutinyResults = $this->calculateNumbersInRange($lottery, $startRange, $endRange);
+            } else {
+                $scrutinyResults = $this->calculateAllNumbers($lottery);
+            }
+            
+            // Calcular total de premios
+            $totalPrizes = 0;
+            foreach ($scrutinyResults as $result) {
+                $totalPrizes += count($result['prizes']);
+            }
+            
+            // Guardar en caché (solo para rangos completos)
+            if ($startRange == 0 && $endRange == 99999) {
+                session([$cacheKey => [
+                    'results' => $scrutinyResults,
+                    'total_prizes' => $totalPrizes,
+                    'timestamp' => time()
+                ]]);
+                \Log::info("=== GUARDANDO EN CACHÉ ===");
+            }
         }
         
         // Ordenamiento
@@ -205,7 +222,7 @@ class ScrutinyController extends Controller
     }
 
     /**
-     * Calcular premios para todos los números del 00000 al 99999
+     * Calcular premios para todos los números del 00000 al 99999 (optimizado)
      */
     private function calculateAllNumbers(Lottery $lottery)
     {
@@ -216,9 +233,12 @@ class ScrutinyController extends Controller
         $results = [];
         $categoryCounts = []; // Contador por categoría
         
-        // Generar todos los números del 00000 al 99999
-        for ($number = 0; $number <= 99999; $number++) {
-            $numberStr = str_pad($number, 5, '0', STR_PAD_LEFT);
+        // Calcular solo números que pueden tener premios (optimización)
+        $winningNumbers = $this->getPotentialWinningNumbers($lotteryResult);
+        
+        \Log::info("=== CALCULANDO PREMIOS PARA " . count($winningNumbers) . " NÚMEROS POTENCIALES ===");
+        
+        foreach ($winningNumbers as $numberStr) {
             $prizeInfo = $this->calculateNumberPrizes($numberStr, $lotteryResult, $typeIdentifier, $categories);
             
             // Solo incluir números que tengan premios
@@ -250,6 +270,166 @@ class ScrutinyController extends Controller
         });
         
         return $results;
+    }
+    
+    /**
+     * Obtener números que potencialmente pueden tener premios (optimización)
+     */
+    private function getPotentialWinningNumbers($lotteryResult)
+    {
+        $numbers = [];
+        
+        // 1. Números principales
+        if ($lotteryResult->primer_premio && isset($lotteryResult->primer_premio['decimo'])) {
+            $numbers[] = $lotteryResult->primer_premio['decimo'];
+        }
+        if ($lotteryResult->segundo_premio && isset($lotteryResult->segundo_premio['decimo'])) {
+            $numbers[] = $lotteryResult->segundo_premio['decimo'];
+        }
+        
+        // 2. Terceros, cuartos, quintos premios
+        $additionalPrizes = ['terceros_premios', 'cuartos_premios', 'quintos_premios'];
+        foreach ($additionalPrizes as $prizeType) {
+            if ($lotteryResult->$prizeType && is_array($lotteryResult->$prizeType)) {
+                foreach ($lotteryResult->$prizeType as $premio) {
+                    if (isset($premio['decimo'])) {
+                        $numbers[] = $premio['decimo'];
+                    }
+                }
+            }
+        }
+        
+        // 3. Extracciones
+        $extractionTypes = ['extracciones_cinco_cifras', 'extracciones_cuatro_cifras', 'extracciones_tres_cifras', 'extracciones_dos_cifras'];
+        foreach ($extractionTypes as $extractionType) {
+            if ($lotteryResult->$extractionType && is_array($lotteryResult->$extractionType)) {
+                foreach ($lotteryResult->$extractionType as $extraccion) {
+                    if (isset($extraccion['decimo'])) {
+                        $numbers[] = $extraccion['decimo'];
+                    }
+                }
+            }
+        }
+        
+        // 4. Números con terminaciones que pueden ganar premios derivados
+        $derivedNumbers = $this->getDerivedNumbers($lotteryResult);
+        $numbers = array_merge($numbers, $derivedNumbers);
+        
+        // 5. Números con reintegros
+        if ($lotteryResult->reintegros && is_array($lotteryResult->reintegros)) {
+            foreach ($lotteryResult->reintegros as $reintegro) {
+                if (isset($reintegro['decimo'])) {
+                    // Agregar todos los números que terminan en esta cifra
+                    for ($i = 0; $i <= 99999; $i += 10) {
+                        $number = $i + intval($reintegro['decimo']);
+                        if ($number <= 99999) {
+                            $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Eliminar duplicados y ordenar
+        $numbers = array_unique($numbers);
+        sort($numbers);
+        
+        return $numbers;
+    }
+    
+    /**
+     * Obtener números que pueden ganar premios derivados
+     */
+    private function getDerivedNumbers($lotteryResult)
+    {
+        $numbers = [];
+        
+        // Centenas del primer premio
+        if ($lotteryResult->primer_premio && isset($lotteryResult->primer_premio['decimo'])) {
+            $primerPremio = intval($lotteryResult->primer_premio['decimo']);
+            $centenaStart = intval($primerPremio / 100) * 100;
+            for ($i = $centenaStart; $i <= $centenaStart + 99; $i++) {
+                $numbers[] = str_pad($i, 5, '0', STR_PAD_LEFT);
+            }
+        }
+        
+        // Centenas del segundo premio
+        if ($lotteryResult->segundo_premio && isset($lotteryResult->segundo_premio['decimo'])) {
+            $segundoPremio = intval($lotteryResult->segundo_premio['decimo']);
+            $centenaStart = intval($segundoPremio / 100) * 100;
+            for ($i = $centenaStart; $i <= $centenaStart + 99; $i++) {
+                $numbers[] = str_pad($i, 5, '0', STR_PAD_LEFT);
+            }
+        }
+        
+        // Centenas de terceros premios
+        if ($lotteryResult->terceros_premios && is_array($lotteryResult->terceros_premios)) {
+            foreach ($lotteryResult->terceros_premios as $tercerPremio) {
+                if (isset($tercerPremio['decimo'])) {
+                    $tercerPremioNum = intval($tercerPremio['decimo']);
+                    $centenaStart = intval($tercerPremioNum / 100) * 100;
+                    for ($i = $centenaStart; $i <= $centenaStart + 99; $i++) {
+                        $numbers[] = str_pad($i, 5, '0', STR_PAD_LEFT);
+                    }
+                }
+            }
+        }
+        
+        // Anterior y posterior al primer premio
+        if ($lotteryResult->primer_premio && isset($lotteryResult->primer_premio['decimo'])) {
+            $primerPremio = intval($lotteryResult->primer_premio['decimo']);
+            if ($primerPremio > 0) {
+                $numbers[] = str_pad($primerPremio - 1, 5, '0', STR_PAD_LEFT);
+            }
+            if ($primerPremio < 99999) {
+                $numbers[] = str_pad($primerPremio + 1, 5, '0', STR_PAD_LEFT);
+            }
+        }
+        
+        // Anterior y posterior al segundo premio
+        if ($lotteryResult->segundo_premio && isset($lotteryResult->segundo_premio['decimo'])) {
+            $segundoPremio = intval($lotteryResult->segundo_premio['decimo']);
+            if ($segundoPremio > 0) {
+                $numbers[] = str_pad($segundoPremio - 1, 5, '0', STR_PAD_LEFT);
+            }
+            if ($segundoPremio < 99999) {
+                $numbers[] = str_pad($segundoPremio + 1, 5, '0', STR_PAD_LEFT);
+            }
+        }
+        
+        // Números con terminaciones del primer premio
+        if ($lotteryResult->primer_premio && isset($lotteryResult->primer_premio['decimo'])) {
+            $primerPremio = $lotteryResult->primer_premio['decimo'];
+            $lastDigit = substr($primerPremio, -1);
+            $lastTwoDigits = substr($primerPremio, -2);
+            $lastThreeDigits = substr($primerPremio, -3);
+            
+            // Última cifra (10,000 números)
+            for ($i = 0; $i <= 99999; $i += 10) {
+                $number = $i + intval($lastDigit);
+                if ($number <= 99999) {
+                    $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
+                }
+            }
+            
+            // 2 últimas cifras (1,000 números)
+            for ($i = 0; $i <= 99999; $i += 100) {
+                $number = $i + intval($lastTwoDigits);
+                if ($number <= 99999) {
+                    $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
+                }
+            }
+            
+            // 3 últimas cifras (100 números)
+            for ($i = 0; $i <= 99999; $i += 1000) {
+                $number = $i + intval($lastThreeDigits);
+                if ($number <= 99999) {
+                    $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
+                }
+            }
+        }
+        
+        return $numbers;
     }
 
     /**
