@@ -145,6 +145,145 @@ class LotteryScrutinyController extends Controller
     }
 
     /**
+     * Verificar premios de una participación usando las nuevas categorías
+     */
+    private function checkParticipationPrizes($participation, $lottery, $lotteryResult)
+    {
+        $typeIdentifier = $lottery->getLotteryTypeIdentifier();
+        $categories = config('lotteryCategories');
+        $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
+        
+        $totalPrize = 0;
+        $winningCategories = [];
+        
+        foreach ($reservedNumbers as $number) {
+            foreach ($categories as $category) {
+                $prizeAmount = $category['importe_por_tipo'][$typeIdentifier] ?? 0;
+                
+                if ($prizeAmount > 0) {
+                    $won = $this->checkCategoryWin($number, $category, $lotteryResult);
+                    
+                    if ($won) {
+                        // Calcular premio proporcional a la participación
+                        $participationPrize = $this->calculateParticipationPrize(
+                            $prizeAmount, 
+                            $participation,
+                            $participation->set->total_participations
+                        );
+                        
+                        $totalPrize += $participationPrize;
+                        $winningCategories[] = [
+                            'categoria' => $category['nombre_categoria'],
+                            'key' => $category['key_categoria'],
+                            'numero' => $number,
+                            'premio_serie' => $prizeAmount,
+                            'premio_participacion' => $participationPrize
+                        ];
+                    }
+                }
+            }
+        }
+        
+        return [
+            'total_prize' => $totalPrize,
+            'categories' => $winningCategories,
+            'has_won' => $totalPrize > 0
+        ];
+    }
+
+    /**
+     * Verificar si un número gana en una categoría específica
+     */
+    private function checkCategoryWin($number, $category, $lotteryResult)
+    {
+        $key = $category['key_categoria'];
+        $numberStr = str_pad($number, 5, '0', STR_PAD_LEFT);
+        
+        switch ($key) {
+            case 'primerPremio':
+                return isset($lotteryResult->primerPremio['decimo']) && 
+                       $lotteryResult->primerPremio['decimo'] == $numberStr;
+                       
+            case 'segundoPremio':
+                return isset($lotteryResult->segundoPremio['decimo']) && 
+                       $lotteryResult->segundoPremio['decimo'] == $numberStr;
+                       
+            case 'tercerosPremios':
+                if (isset($lotteryResult->tercerosPremios)) {
+                    foreach ($lotteryResult->tercerosPremios as $premio) {
+                        if ($premio['decimo'] == $numberStr) return true;
+                    }
+                }
+                return false;
+                
+            case 'anteriorPrimerPremio':
+                if (isset($lotteryResult->primerPremio['decimo'])) {
+                    $primerPremio = $lotteryResult->primerPremio['decimo'];
+                    $anterior = str_pad((intval($primerPremio) - 1), 5, '0', STR_PAD_LEFT);
+                    return $numberStr == $anterior;
+                }
+                return false;
+                
+            case 'posteriorPrimerPremio':
+                if (isset($lotteryResult->primerPremio['decimo'])) {
+                    $primerPremio = $lotteryResult->primerPremio['decimo'];
+                    $posterior = str_pad((intval($primerPremio) + 1), 5, '0', STR_PAD_LEFT);
+                    return $numberStr == $posterior;
+                }
+                return false;
+                
+            case 'extraccionesDeTresCifras':
+                $lastThree = substr($numberStr, -3);
+                if (isset($lotteryResult->extraccionesDeTresCifras)) {
+                    foreach ($lotteryResult->extraccionesDeTresCifras as $extraccion) {
+                        if ($extraccion['decimo'] == $lastThree) return true;
+                    }
+                }
+                return false;
+                
+            case 'extraccionesDeDosCifras':
+                $lastTwo = substr($numberStr, -2);
+                if (isset($lotteryResult->extraccionesDeDosCifras)) {
+                    foreach ($lotteryResult->extraccionesDeDosCifras as $extraccion) {
+                        if ($extraccion['decimo'] == $lastTwo) return true;
+                    }
+                }
+                return false;
+                
+            case 'reintegros':
+                $lastOne = substr($numberStr, -1);
+                if (isset($lotteryResult->reintegros)) {
+                    foreach ($lotteryResult->reintegros as $reintegro) {
+                        if ($reintegro['decimo'] == $lastOne) return true;
+                    }
+                }
+                return false;
+                
+            case 'centenasPrimerPremio':
+                if (isset($lotteryResult->primerPremio['decimo'])) {
+                    $primerPremio = $lotteryResult->primerPremio['decimo'];
+                    $centenaPremio = substr($primerPremio, 0, 3);
+                    $centenaNumero = substr($numberStr, 0, 3);
+                    return $centenaNumero == $centenaPremio && $numberStr != $primerPremio;
+                }
+                return false;
+                
+            // Añadir más casos según sea necesario...
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Calcular el premio proporcional para una participación
+     */
+    private function calculateParticipationPrize($prizeAmountPerSerie, $participation, $totalParticipations)
+    {
+        // El premio se divide proporcionalmente entre todas las participaciones del set
+        return $prizeAmountPerSerie / $totalParticipations;
+    }
+
+    /**
      * Preparar datos para el escrutinio
      */
     private function prepareScrutinyData($lottery, $entitiesWithReserves)

@@ -19,6 +19,7 @@ class LotteryController extends Controller
     public function index()
     {
         $lotteries = Lottery::with(['lotteryType'])
+            ->orderBy('draw_date', 'desc')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -49,6 +50,8 @@ class LotteryController extends Controller
             'draw_time' => 'required',
             'deadline_date' => 'nullable|date|after:today',
             'ticket_price' => 'required|numeric|min:0',
+            'lottery_type_code' => 'required|string|in:J,X,S,N,B,V',
+            'is_special' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'lottery_type_id' => 'required|integer',
             // 'total_tickets' => 'required|integer|min:1',
@@ -65,6 +68,7 @@ class LotteryController extends Controller
         $data = $request->all();
         $data['sold_tickets'] = 0;
         $data['status'] = 1; // 1 = active
+        $data['is_special'] = $request->has('is_special') ? true : false;
 
         // Manejar la imagen si se subió
         if ($request->hasFile('image')) {
@@ -112,6 +116,8 @@ class LotteryController extends Controller
             'draw_time' => 'required',
             'deadline_date' => 'nullable|date',
             'ticket_price' => 'required|numeric|min:0',
+            'lottery_type_code' => 'required|string|in:J,X,S,N,B,V',
+            'is_special' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'lottery_type_id' => 'required|integer',
             'status' => 'nullable|integer|in:1,2,3,4', // 1=active, 2=inactive, 3=completed, 4=cancelled
@@ -127,6 +133,7 @@ class LotteryController extends Controller
         }
 
         $data = $request->all();
+        $data['is_special'] = $request->has('is_special') ? true : false;
 
         // Manejar la imagen si se subió
         if ($request->hasFile('image')) {
@@ -295,8 +302,9 @@ class LotteryController extends Controller
                         'draw_date' => $fechaSorteo,
                         'deadline_date' => $fechaSorteo,
                         'draw_time' => $horaSorteo ? $horaSorteo : '00:00:00',
-                        'draw_time' => $horaSorteo ? $horaSorteo : '00:00:00',
-                        'ticket_price' => $sorteo['precioDecimo'], // Por defecto 0 ya que no veo precio en el JSON
+                        'ticket_price' => $sorteo['precioDecimo'], // Precio del décimo desde JSON
+                        'lottery_type_code' => $sorteo['tipoSorteo'] ?? 'S', // Código del tipo desde JSON
+                        'is_special' => isset($sorteo['premio_especial']) && $sorteo['premio_especial'] > 0, // Es especial si tiene premio especial
                         'status' => 1,
                         'sold_tickets' => 0,
                     ];
@@ -306,15 +314,14 @@ class LotteryController extends Controller
                         ->orWhere('name', $lotteryData['name'])
                         ->first();
 
-                    // Buscar tipo de sorteo por identificador (usar game_id si está disponible)
-                    if (isset($sorteo['game_id'])) {
-                        $lotteryType = LotteryType::where('identificador', $sorteo['tipoSorteo'])->first();
-                        if ($lotteryType) {
-                            $lotteryData['lottery_type_id'] = $lotteryType->id;
-                        }else{
-                            $lotteryData['lottery_type_id'] = 0;
-                        }
+                    // Buscar o crear tipo de sorteo específico
+                    $typeIdentifier = $lotteryData['ticket_price'] . '_' . $lotteryData['lottery_type_code'];
+                    if ($lotteryData['is_special'] && $lotteryData['lottery_type_code'] == 'S' && $lotteryData['ticket_price'] == 15) {
+                        $typeIdentifier .= '_ESPECIAL';
                     }
+                    
+                    $lotteryType = $this->findOrCreateLotteryType($typeIdentifier, $sorteo);
+                    $lotteryData['lottery_type_id'] = $lotteryType->id;
 
                     if ($existingLottery) {
                         // Actualizar sorteo existente
@@ -590,7 +597,8 @@ class LotteryController extends Controller
     public function resultsTable()
     {
         $lotteries = Lottery::with(['result', 'lotteryType'])
-            ->orderBy('name', 'desc')
+            ->orderBy('draw_date', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
         
         return view('lottery.results_table', compact('lotteries'));
@@ -602,7 +610,8 @@ class LotteryController extends Controller
     public function showLotteryResults()
     {
         $lotteries = Lottery::with(['result', 'lotteryType'])
-            ->orderBy('name', 'asc')
+            ->orderBy('draw_date', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
         
         return view('lottery.lottery_results', compact('lotteries'));
@@ -766,5 +775,70 @@ class LotteryController extends Controller
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Buscar tipo de sorteo por código simple (J, X, S, N, B, V)
+     */
+    private function findOrCreateLotteryType($typeIdentifier, $sorteoData)
+    {
+        // Extraer solo el código simple del identificador completo
+        $simpleCode = $sorteoData['tipoSorteo'] ?? 'S';
+        
+        // Buscar tipo existente por identificador simple
+        $existingType = LotteryType::where('identificador', $simpleCode)->first();
+        
+        if ($existingType) {
+            return $existingType;
+        }
+        
+        // Si no existe, crear uno nuevo basado en la configuración
+        $lotteryTypes = config('lotteryTypes');
+        $typeConfig = null;
+        
+        // Buscar configuración que coincida con el código
+        foreach ($lotteryTypes as $key => $config) {
+            if ($config['codigo_sorteo'] == $simpleCode) {
+                $typeConfig = $config;
+                break;
+            }
+        }
+        
+        if (!$typeConfig) {
+            // Si no hay configuración, crear un tipo genérico
+            $typeConfig = [
+                'nombre' => $this->getTypeNameByCode($simpleCode),
+                'descripcion' => 'Sorteo generado automáticamente',
+                'codigo_sorteo' => $simpleCode
+            ];
+        }
+        
+        // Crear el nuevo tipo de sorteo con identificador simple
+        $newType = LotteryType::create([
+            'name' => $typeConfig['nombre'],
+            'identificador' => $simpleCode, // Solo el código simple: J, X, S, N, B, V
+            'ticket_price' => 0, // Se establecerá en cada sorteo individual
+            'prize_categories' => [], // Se calculará dinámicamente
+            'is_active' => true
+        ]);
+        
+        return $newType;
+    }
+
+    /**
+     * Obtener nombre del tipo por código
+     */
+    private function getTypeNameByCode($code)
+    {
+        $names = [
+            'J' => 'Sorteo de Jueves',
+            'X' => 'Sorteo de Sábado', 
+            'S' => 'Sorteo Extraordinario',
+            'N' => 'Sorteo de Navidad',
+            'B' => 'Sorteo del Niño',
+            'V' => 'Sorteo de Vacaciones'
+        ];
+        
+        return $names[$code] ?? 'Sorteo ' . $code;
     }
 } 

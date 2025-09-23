@@ -124,6 +124,50 @@
 
                                     <div class="col-2">
                                         <div class="form-group mt-2 mb-3">
+                                            <label class="label-control">Código Sorteo</label>
+
+                                            <div class="input-group input-group-merge group-form">
+
+                                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                    <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
+                                                </div>
+
+                                                <select class="form-control" name="lottery_type_code" style="border-radius: 0 30px 30px 0;" required>
+                                                    <option value="">Seleccionar código</option>
+                                                    <option value="J" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'J' ? 'selected' : '' }}>J - Jueves</option>
+                                                    <option value="X" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'X' ? 'selected' : '' }}>X - Sábado</option>
+                                                    <option value="S" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'S' ? 'selected' : '' }}>S - Extraordinario</option>
+                                                    <option value="N" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'N' ? 'selected' : '' }}>N - Navidad</option>
+                                                    <option value="B" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'B' ? 'selected' : '' }}>B - Niño</option>
+                                                    <option value="V" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'V' ? 'selected' : '' }}>V - Vacaciones</option>
+                                                </select>
+                                            </div>
+                                            @error('lottery_type_code')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-2">
+                                        <div class="form-group mt-2 mb-3">
+                                            <label class="label-control">¿Es Especial?</label>
+
+                                            <div style="padding-top: 8px;">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" name="is_special" value="1" id="is_special_edit" {{ old('is_special', $lottery->is_special) ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="is_special_edit">
+                                                        Sorteo Especial
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            @error('is_special')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-2">
+                                        <div class="form-group mt-2 mb-3">
                                             <label class="label-control">Fecha Sorteo</label>
                                             <div class="input-group input-group-merge group-form">
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">

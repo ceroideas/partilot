@@ -117,7 +117,7 @@ class ScrutinyEntityResult extends Model
             $winningNumbers[] = $lotteryResult->premio_especial['decimo'];
             $prizeBreakdown['otros_premios']['numbers'][] = $lotteryResult->premio_especial['decimo'];
             $prizeAmount = ($lotteryResult->premio_especial['prize'] ?? 0) / 100;
-            $prizeBreakdown['otros_premios']['amount'] += $prizeAmount;
+            $prizeBreakdown['otros_premios']['total_amount'] += $prizeAmount;
             $totalPrizeAmount += $prizeAmount;
         }*/
 
@@ -144,7 +144,7 @@ class ScrutinyEntityResult extends Model
             $winningNumbers[] = $lotteryResult->segundo_premio['decimo'];
             $prizeBreakdown['segundo_premio']['numbers'][] = $lotteryResult->segundo_premio['decimo'];
             $prizeAmount = ($lotteryResult->segundo_premio['prize'] ?? 0) / 100;
-            $prizeBreakdown['segundo_premio']['amount'] += $prizeAmount;
+            $prizeBreakdown['segundo_premio']['total_amount'] += $prizeAmount;
             $totalPrizeAmount += $prizeAmount;
         }
 
@@ -155,7 +155,7 @@ class ScrutinyEntityResult extends Model
                     $winningNumbers[] = $premio['decimo'];
                     $prizeBreakdown['terceros_premios']['numbers'][] = $premio['decimo'];
                     $prizeAmount = ($premio['prize'] ?? 0) / 100;
-                    $prizeBreakdown['terceros_premios']['amount'] += $prizeAmount;
+                    $prizeBreakdown['terceros_premios']['total_amount'] += $prizeAmount;
                     $totalPrizeAmount += $prizeAmount;
                 }
             }
@@ -168,7 +168,7 @@ class ScrutinyEntityResult extends Model
                     $winningNumbers[] = $premio['decimo'];
                     $prizeBreakdown['cuartos_premios']['numbers'][] = $premio['decimo'];
                     $prizeAmount = ($premio['prize'] ?? 0) / 100;
-                    $prizeBreakdown['cuartos_premios']['amount'] += $prizeAmount;
+                    $prizeBreakdown['cuartos_premios']['total_amount'] += $prizeAmount;
                     $totalPrizeAmount += $prizeAmount;
                 }
             }
@@ -181,7 +181,7 @@ class ScrutinyEntityResult extends Model
                     $winningNumbers[] = $premio['decimo'];
                     $prizeBreakdown['quintos_premios']['numbers'][] = $premio['decimo'];
                     $prizeAmount = ($premio['prize'] ?? 0) / 100;
-                    $prizeBreakdown['quintos_premios']['amount'] += $prizeAmount;
+                    $prizeBreakdown['quintos_premios']['total_amount'] += $prizeAmount;
                     $totalPrizeAmount += $prizeAmount;
                 }
             }
@@ -195,7 +195,7 @@ class ScrutinyEntityResult extends Model
                         $winningNumbers[] = $number;
                         $prizeBreakdown['extracciones_cinco_cifras']['numbers'][] = $number;
                         $prizeAmount = ($premio['prize'] ?? 0) / 100;
-                        $prizeBreakdown['extracciones_cinco_cifras']['amount'] += $prizeAmount;
+                        $prizeBreakdown['extracciones_cinco_cifras']['total_amount'] += $prizeAmount;
                         $totalPrizeAmount += $prizeAmount;
                     }
                 }
@@ -210,7 +210,7 @@ class ScrutinyEntityResult extends Model
                         $winningNumbers[] = $number;
                         $prizeBreakdown['extracciones_cuatro_cifras']['numbers'][] = $number;
                         $prizeAmount = ($premio['prize'] ?? 0) / 100;
-                        $prizeBreakdown['extracciones_cuatro_cifras']['amount'] += $prizeAmount;
+                        $prizeBreakdown['extracciones_cuatro_cifras']['total_amount'] += $prizeAmount;
                         $totalPrizeAmount += $prizeAmount;
                     }
                 }
@@ -225,7 +225,7 @@ class ScrutinyEntityResult extends Model
                         $winningNumbers[] = $number;
                         $prizeBreakdown['extracciones_tres_cifras']['numbers'][] = $number;
                         $prizeAmount = ($premio['prize'] ?? 0) / 100;
-                        $prizeBreakdown['extracciones_tres_cifras']['amount'] += $prizeAmount;
+                        $prizeBreakdown['extracciones_tres_cifras']['total_amount'] += $prizeAmount;
                         $totalPrizeAmount += $prizeAmount;
                     }
                 }
@@ -240,7 +240,7 @@ class ScrutinyEntityResult extends Model
                         $winningNumbers[] = $number;
                         $prizeBreakdown['extracciones_dos_cifras']['numbers'][] = $number;
                         $prizeAmount = ($premio['prize'] ?? 0) / 100;
-                        $prizeBreakdown['extracciones_dos_cifras']['amount'] += $prizeAmount;
+                        $prizeBreakdown['extracciones_dos_cifras']['total_amount'] += $prizeAmount;
                         $totalPrizeAmount += $prizeAmount;
                     }
                 }
@@ -256,7 +256,7 @@ class ScrutinyEntityResult extends Model
                         $winningNumbers[] = $number;
                         $prizeBreakdown['reintegros']['numbers'][] = $number;
                         $prizeAmount = ($reintegro['prize'] ?? 0) / 100;
-                        $prizeBreakdown['reintegros']['amount'] += $prizeAmount;
+                        $prizeBreakdown['reintegros']['total_amount'] += $prizeAmount;
                         $totalPrizeAmount += $prizeAmount;
                     }
                 }
@@ -348,27 +348,27 @@ class ScrutinyEntityResult extends Model
         $breakdown = $this->prize_breakdown;
 
         if (!empty($breakdown['primer_premio']['numbers'])) {
-            $summary[] = "1º Premio: " . count($breakdown['primer_premio']['numbers']) . " número(s) - " . number_format($breakdown['primer_premio']['amount'], 2) . "€";
+            $summary[] = "1º Premio: " . count($breakdown['primer_premio']['numbers']) . " número(s) - " . number_format($breakdown['primer_premio']['total_amount'], 2) . "€";
         }
 
         if (!empty($breakdown['segundo_premio']['numbers'])) {
-            $summary[] = "2º Premio: " . count($breakdown['segundo_premio']['numbers']) . " número(s) - " . number_format($breakdown['segundo_premio']['amount'], 2) . "€";
+            $summary[] = "2º Premio: " . count($breakdown['segundo_premio']['numbers']) . " número(s) - " . number_format($breakdown['segundo_premio']['total_amount'], 2) . "€";
         }
 
         if (!empty($breakdown['terceros_premios']['numbers'])) {
-            $summary[] = "3º Premios: " . count($breakdown['terceros_premios']['numbers']) . " número(s) - " . number_format($breakdown['terceros_premios']['amount'], 2) . "€";
+            $summary[] = "3º Premios: " . count($breakdown['terceros_premios']['numbers']) . " número(s) - " . number_format($breakdown['terceros_premios']['total_amount'], 2) . "€";
         }
 
         if (!empty($breakdown['cuartos_premios']['numbers'])) {
-            $summary[] = "4º Premios: " . count($breakdown['cuartos_premios']['numbers']) . " número(s) - " . number_format($breakdown['cuartos_premios']['amount'], 2) . "€";
+            $summary[] = "4º Premios: " . count($breakdown['cuartos_premios']['numbers']) . " número(s) - " . number_format($breakdown['cuartos_premios']['total_amount'], 2) . "€";
         }
 
         if (!empty($breakdown['quintos_premios']['numbers'])) {
-            $summary[] = "5º Premios: " . count($breakdown['quintos_premios']['numbers']) . " número(s) - " . number_format($breakdown['quintos_premios']['amount'], 2) . "€";
+            $summary[] = "5º Premios: " . count($breakdown['quintos_premios']['numbers']) . " número(s) - " . number_format($breakdown['quintos_premios']['total_amount'], 2) . "€";
         }
 
         if (!empty($breakdown['reintegros']['numbers'])) {
-            $summary[] = "Reintegros: " . count($breakdown['reintegros']['numbers']) . " número(s) - " . number_format($breakdown['reintegros']['amount'], 2) . "€";
+            $summary[] = "Reintegros: " . count($breakdown['reintegros']['numbers']) . " número(s) - " . number_format($breakdown['reintegros']['total_amount'], 2) . "€";
         }
 
         return $summary;

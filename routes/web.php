@@ -9,6 +9,7 @@ use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\LotteryController;
 use App\Http\Controllers\LotteryTypeController;
 use App\Http\Controllers\LotteryScrutinyController;
+use App\Http\Controllers\ScrutinyController;
 use App\Http\Controllers\ReserveController;
 use App\Http\Controllers\SetController;
 use App\Http\Controllers\SellerController;
@@ -261,5 +262,10 @@ Route::get('requests',function() {
 Route::get('communications',function() {
     return view('communications.index');
 });
+
+// Rutas de Escrutinio
+Route::get('scrutiny', [ScrutinyController::class, 'index'])->name('scrutiny.index');
+Route::post('scrutiny/generate', [ScrutinyController::class, 'generateScrutiny'])->name('scrutiny.generate');
+Route::post('scrutiny/export', [ScrutinyController::class, 'exportScrutiny'])->name('scrutiny.export');
 
 }); // Cierre del middleware auth

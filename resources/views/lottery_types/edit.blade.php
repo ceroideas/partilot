@@ -246,11 +246,15 @@
                 $('#added-prizes').removeClass('d-none');
                 $('#empty-prizes').addClass('d-none');
                 
-                selectedPrizes.forEach(function(prize) {
+                selectedPrizes.forEach(function(category) {
+                    // Manejar tanto formato antiguo (string) como nuevo (objeto)
+                    let nombre = typeof category === 'string' ? category : category.nombre;
+                    let key = typeof category === 'string' ? category : category.key;
+                    
                     let html = `<li style="list-style: none;" class="mb-2">
-                                    <label style="position: relative; top: 4px;">${prize}</label>
+                                    <label style="position: relative; top: 4px;">${nombre}</label>
                                     <div class="float-end">
-                                        <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize" data-prize="${prize}"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize" data-key="${key}"><i class="ri-delete-bin-6-line"></i></button>
                                     </div>
                                     <div class="clearfix"></div>
                                 </li>`;
@@ -273,11 +277,15 @@
                             $('#added-prizes').removeClass('d-none');
                             $('#empty-prizes').addClass('d-none');
                             
-                            selectedPrizes.forEach(function(prize) {
+                            selectedPrizes.forEach(function(category) {
+                                // Manejar tanto formato antiguo (string) como nuevo (objeto)
+                                let nombre = typeof category === 'string' ? category : category.nombre;
+                                let key = typeof category === 'string' ? category : category.key;
+                                
                                 let html = `<li style="list-style: none;" class="mb-2">
-                                                <label style="position: relative; top: 4px;">${prize}</label>
+                                                <label style="position: relative; top: 4px;">${nombre}</label>
                                                 <div class="float-end">
-                                                    <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize" data-prize="${prize}"><i class="ri-delete-bin-6-line"></i></button>
+                                                    <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize" data-key="${key}"><i class="ri-delete-bin-6-line"></i></button>
                                                 </div>
                                                 <div class="clearfix"></div>
                                             </li>`;
@@ -300,17 +308,17 @@
         let html = '';
         console.log('Mostrando categorías disponibles. Premios seleccionados:', selectedPrizes);
         
-        availablePrizes.forEach(function(prize) {
-            if (!selectedPrizes.includes(prize)) {
+        availablePrizes.forEach(function(category) {
+            if (!selectedPrizes.some(selected => selected.key === category.key)) {
                 html += `<li style="list-style: none;" class="mb-2">
-                            <label style="position: relative; top: 4px;">${prize}</label>
+                            <label style="position: relative; top: 4px;">${category.nombre}</label>
                             <div class="float-end">
-                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize" data-prize="${prize}">Añadir</button>
+                                <button style="border-radius: 30px; width: 100px; background-color: #e78307; color: #333; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-light add-prize" data-nombre="${category.nombre}" data-key="${category.key}">Añadir</button>
                             </div>
                             <div class="clearfix"></div>
                         </li>`;
             } else {
-                console.log(`Premio "${prize}" ya está seleccionado, no se muestra en disponibles`);
+                console.log(`Premio "${category.nombre}" ya está seleccionado, no se muestra en disponibles`);
             }
         });
         $('#availablePrizes').html(html);
@@ -321,16 +329,19 @@
     $(document).on('click', '.add-prize', function(e) {
         e.preventDefault();
         
-        let prize = $(this).data('prize');
-        selectedPrizes.push(prize);
+        let nombre = $(this).data('nombre');
+        let key = $(this).data('key');
+        let category = { nombre: nombre, key: key };
+        
+        selectedPrizes.push(category);
         
         $('#added-prizes').removeClass('d-none');
         $('#empty-prizes').addClass('d-none');
 
         let html = `<li style="list-style: none;" class="mb-2">
-                        <label style="position: relative; top: 4px;">${prize}</label>
+                        <label style="position: relative; top: 4px;">${nombre}</label>
                         <div class="float-end">
-                            <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize" data-prize="${prize}"><i class="ri-delete-bin-6-line"></i></button>
+                            <button style="border-radius: 4px; width:28px; padding: 2px; font-weight: bolder; position: relative;" class="btn btn-sm btn-danger remove-prize" data-key="${key}"><i class="ri-delete-bin-6-line"></i></button>
                         </div>
                         <div class="clearfix"></div>
                     </li>`;
@@ -346,8 +357,8 @@
 
     // Función para remover premio
     $(document).on('click', '.remove-prize', function() {
-        let prize = $(this).data('prize');
-        let index = selectedPrizes.indexOf(prize);
+        let key = $(this).data('key');
+        let index = selectedPrizes.findIndex(item => item.key === key);
         if (index > -1) {
             selectedPrizes.splice(index, 1);
         }

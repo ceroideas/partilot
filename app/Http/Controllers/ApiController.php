@@ -12,167 +12,191 @@ class ApiController extends Controller
 {
     public function test()
     {
-        Schema::table('scrutiny_entity_results', function (Blueprint $table) {
-            $table->integer('total_non_winning')->default(0)->after('total_returned');
-        });
-
-        return;
-
-        Schema::dropIfExists('administration_lottery_scrutinies');
-        Schema::create('administration_lottery_scrutinies', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('administration_id')->onDelete('cascade');
-            $table->foreignId('lottery_id')->onDelete('cascade');
-            $table->foreignId('lottery_result_id')->nullable()->onDelete('cascade');
-            
-            // Metadatos del escrutinio
-            $table->timestamp('scrutiny_date')->nullable();
-            $table->boolean('is_scrutinized')->default(false);
-            $table->json('scrutiny_summary')->nullable(); // Resumen: total premiadas, no premiadas, importe total
-            
-            // Información del usuario que realizó el escrutinio
-            $table->foreignId('scrutinized_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->text('comments')->nullable();
-            
-            $table->timestamps();
-            
-            // Índices
-            /*$table->index(['administration_id', 'lottery_id']);
-            $table->index(['lottery_id', 'is_scrutinized']);
-            $table->unique(['administration_id', 'lottery_id']); // Un escrutinio por administración por sorteo*/
-        });
-
-        Schema::dropIfExists('scrutiny_entity_results');
-        Schema::create('scrutiny_entity_results', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('administration_lottery_scrutiny_id')->onDelete('cascade');
-            $table->foreignId('entity_id')->onDelete('cascade');
-            
-            // Datos de las reservas de la entidad
-            $table->json('reserved_numbers')->nullable(); // Números reservados por la entidad
-            $table->integer('total_reserved')->default(0); // Total de números reservados
-            $table->integer('total_issued')->default(0); // Total emitidos
-            $table->integer('total_sold')->default(0); // Total vendidos
-            $table->integer('total_returned')->default(0); // Total devueltos
-            
-            // Resultados del escrutinio
-            $table->json('winning_numbers')->nullable(); // Números ganadores de esta entidad
-            $table->integer('total_winning')->default(0); // Total de números premiados
-            $table->decimal('total_prize_amount', 15, 2)->default(0); // Importe total de premios
-            $table->decimal('prize_per_participation', 10, 2)->default(0); // Premio por participación
-            
-            // Detalles de premios por categoría
-            $table->json('prize_breakdown')->nullable(); // Desglose de premios: {tipo_premio: {numeros: [], importe: 0}}
-            
-            $table->timestamps();
-            
-            // Índices
-            /*$table->index(['administration_lottery_scrutiny_id', 'entity_id']);
-            $table->index(['entity_id', 'total_winning']);*/
-        });
-
-
-        return;
-        // Primero, actualizar la estructura de la tabla users
-        $this->updateUsersTable();
-        
-        // Luego, eliminar las restricciones de clave foránea existentes si existen
-        $this->dropForeignKeys();
-        
-        // Crear tablas temporales para guardar los datos existentes
-        Schema::create('sellers_temp', function (Blueprint $table) {
-            $table->id();
-            $table->integer('user_id')->nullable();
-            $table->string("image")->nullable();
-            $table->string("name")->nullable();
-            $table->string("last_name")->nullable();
-            $table->string("last_name2")->nullable();
-            $table->string("nif_cif")->nullable();
-            $table->string("birthday")->nullable();
-            $table->string("email")->nullable();
-            $table->string("phone")->nullable();
-            $table->string("comment")->nullable();
-            $table->integer("status")->nullable();
-            $table->integer('entity_id')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('managers_temp', function (Blueprint $table) {
-            $table->id();
-            $table->integer('user_id')->nullable();
-            $table->string("image")->nullable();
-            $table->string("name")->nullable();
-            $table->string("last_name")->nullable();
-            $table->string("last_name2")->nullable();
-            $table->string("nif_cif")->nullable();
-            $table->string("birthday")->nullable();
-            $table->string("email")->nullable();
-            $table->string("phone")->nullable();
-            $table->string("comment")->nullable();
-            $table->timestamps();
-        });
-
-        // Copiar datos existentes a tablas temporales
-        if (Schema::hasTable('sellers')) {
-            DB::statement('INSERT INTO sellers_temp (id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, status, entity_id, created_at, updated_at) 
-                          SELECT id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, status, entity_id, created_at, updated_at FROM sellers');
-        }
-        
-        if (Schema::hasTable('managers')) {
-            DB::statement('INSERT INTO managers_temp (id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, created_at, updated_at) 
-                          SELECT id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, created_at, updated_at FROM managers');
-        }
-
-        // Migrar datos de managers a users
-        $this->migrateManagersToUsers();
-        
-        // Migrar datos de sellers a users
-        $this->migrateSellersToUsers();
-        
-        // Eliminar las tablas existentes
-        Schema::dropIfExists('sellers');
-        Schema::dropIfExists('managers');
-        
-        // Crear la nueva estructura de sellers
-        Schema::create('sellers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('entity_id')->constrained()->onDelete('cascade');
-            $table->timestamps();
-            $table->unique(['user_id', 'entity_id']);
-        });
-
-        // Crear la nueva estructura de managers
-        Schema::create('managers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('entity_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('administration_id')->nullable()->constrained()->onDelete('cascade');
-            $table->timestamps();
-            $table->unique(['user_id', 'entity_id']);
-            $table->unique(['user_id', 'administration_id']);
-        });
-
-        // Migrar las relaciones
-        $this->migrateRelations();
-        
-        // Eliminar tablas temporales
-        Schema::dropIfExists('sellers_temp');
-        Schema::dropIfExists('managers_temp');
-
-        // Eliminar la columna manager_id de entities si existe
-        if (Schema::hasColumn('entities', 'manager_id')) {
-            Schema::table('entities', function (Blueprint $table) {
-                $table->dropColumn('manager_id');
+        // Añadir campos lottery_type_code e is_special a la tabla lotteries
+        if (!Schema::hasColumn('lotteries', 'lottery_type_code')) {
+            Schema::table('lotteries', function (Blueprint $table) {
+                $table->string('lottery_type_code', 2)->nullable()->after('lottery_type_id')
+                      ->comment('Código del tipo de sorteo: J, X, S, N, B, V');
             });
         }
 
-        // Agregar la columna administration_id a managers si no existe
-        if (!Schema::hasColumn('managers', 'administration_id')) {
-            Schema::table('managers', function (Blueprint $table) {
-                $table->foreignId('administration_id')->nullable()->constrained()->onDelete('cascade');
+        if (!Schema::hasColumn('lotteries', 'is_special')) {
+            Schema::table('lotteries', function (Blueprint $table) {
+                $table->boolean('is_special')->default(false)->after('lottery_type_code')
+                      ->comment('Indica si es un sorteo especial (ej: 15€ Especial)');
             });
         }
+
+        return response()->json([
+            'message' => 'Migración completada exitosamente',
+            'fields_added' => [
+                'lottery_type_code' => 'string(2) nullable - Código del tipo de sorteo',
+                'is_special' => 'boolean default(false) - Indica si es sorteo especial'
+            ],
+            'note' => 'lottery_types.identificador mantiene códigos simples (J,X,S,N,B,V) para compatibilidad'
+        ]);
+
+        // Schema::table('scrutiny_entity_results', function (Blueprint $table) {
+        //     $table->integer('total_non_winning')->default(0)->after('total_returned');
+        // });
+
+        // return;
+
+        // Schema::dropIfExists('administration_lottery_scrutinies');
+        // Schema::create('administration_lottery_scrutinies', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('administration_id')->onDelete('cascade');
+        //     $table->foreignId('lottery_id')->onDelete('cascade');
+        //     $table->foreignId('lottery_result_id')->nullable()->onDelete('cascade');
+            
+        //     // Metadatos del escrutinio
+        //     $table->timestamp('scrutiny_date')->nullable();
+        //     $table->boolean('is_scrutinized')->default(false);
+        //     $table->json('scrutiny_summary')->nullable(); // Resumen: total premiadas, no premiadas, importe total
+            
+        //     // Información del usuario que realizó el escrutinio
+        //     $table->foreignId('scrutinized_by')->nullable()->constrained('users')->onDelete('set null');
+        //     $table->text('comments')->nullable();
+            
+        //     $table->timestamps();
+            
+        //     // Índices
+        //     /*$table->index(['administration_id', 'lottery_id']);
+        //     $table->index(['lottery_id', 'is_scrutinized']);
+        //     $table->unique(['administration_id', 'lottery_id']); // Un escrutinio por administración por sorteo*/
+        // });
+
+        // Schema::dropIfExists('scrutiny_entity_results');
+        // Schema::create('scrutiny_entity_results', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('administration_lottery_scrutiny_id')->onDelete('cascade');
+        //     $table->foreignId('entity_id')->onDelete('cascade');
+            
+        //     // Datos de las reservas de la entidad
+        //     $table->json('reserved_numbers')->nullable(); // Números reservados por la entidad
+        //     $table->integer('total_reserved')->default(0); // Total de números reservados
+        //     $table->integer('total_issued')->default(0); // Total emitidos
+        //     $table->integer('total_sold')->default(0); // Total vendidos
+        //     $table->integer('total_returned')->default(0); // Total devueltos
+            
+        //     // Resultados del escrutinio
+        //     $table->json('winning_numbers')->nullable(); // Números ganadores de esta entidad
+        //     $table->integer('total_winning')->default(0); // Total de números premiados
+        //     $table->decimal('total_prize_amount', 15, 2)->default(0); // Importe total de premios
+        //     $table->decimal('prize_per_participation', 10, 2)->default(0); // Premio por participación
+            
+        //     // Detalles de premios por categoría
+        //     $table->json('prize_breakdown')->nullable(); // Desglose de premios: {tipo_premio: {numeros: [], importe: 0}}
+            
+        //     $table->timestamps();
+            
+        //     // Índices
+        //     /*$table->index(['administration_lottery_scrutiny_id', 'entity_id']);
+        //     $table->index(['entity_id', 'total_winning']);*/
+        // });
+
+
+        // return;
+        // // Primero, actualizar la estructura de la tabla users
+        // $this->updateUsersTable();
+        
+        // // Luego, eliminar las restricciones de clave foránea existentes si existen
+        // $this->dropForeignKeys();
+        
+        // // Crear tablas temporales para guardar los datos existentes
+        // Schema::create('sellers_temp', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->integer('user_id')->nullable();
+        //     $table->string("image")->nullable();
+        //     $table->string("name")->nullable();
+        //     $table->string("last_name")->nullable();
+        //     $table->string("last_name2")->nullable();
+        //     $table->string("nif_cif")->nullable();
+        //     $table->string("birthday")->nullable();
+        //     $table->string("email")->nullable();
+        //     $table->string("phone")->nullable();
+        //     $table->string("comment")->nullable();
+        //     $table->integer("status")->nullable();
+        //     $table->integer('entity_id')->nullable();
+        //     $table->timestamps();
+        // });
+
+        // Schema::create('managers_temp', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->integer('user_id')->nullable();
+        //     $table->string("image")->nullable();
+        //     $table->string("name")->nullable();
+        //     $table->string("last_name")->nullable();
+        //     $table->string("last_name2")->nullable();
+        //     $table->string("nif_cif")->nullable();
+        //     $table->string("birthday")->nullable();
+        //     $table->string("email")->nullable();
+        //     $table->string("phone")->nullable();
+        //     $table->string("comment")->nullable();
+        //     $table->timestamps();
+        // });
+
+        // // Copiar datos existentes a tablas temporales
+        // if (Schema::hasTable('sellers')) {
+        //     DB::statement('INSERT INTO sellers_temp (id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, status, entity_id, created_at, updated_at) 
+        //                   SELECT id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, status, entity_id, created_at, updated_at FROM sellers');
+        // }
+        
+        // if (Schema::hasTable('managers')) {
+        //     DB::statement('INSERT INTO managers_temp (id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, created_at, updated_at) 
+        //                   SELECT id, user_id, image, name, last_name, last_name2, nif_cif, birthday, email, phone, comment, created_at, updated_at FROM managers');
+        // }
+
+        // // Migrar datos de managers a users
+        // $this->migrateManagersToUsers();
+        
+        // // Migrar datos de sellers a users
+        // $this->migrateSellersToUsers();
+        
+        // // Eliminar las tablas existentes
+        // Schema::dropIfExists('sellers');
+        // Schema::dropIfExists('managers');
+        
+        // // Crear la nueva estructura de sellers
+        // Schema::create('sellers', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('user_id')->constrained()->onDelete('cascade');
+        //     $table->foreignId('entity_id')->constrained()->onDelete('cascade');
+        //     $table->timestamps();
+        //     $table->unique(['user_id', 'entity_id']);
+        // });
+
+        // // Crear la nueva estructura de managers
+        // Schema::create('managers', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+        //     $table->foreignId('entity_id')->nullable()->constrained()->onDelete('cascade');
+        //     $table->foreignId('administration_id')->nullable()->constrained()->onDelete('cascade');
+        //     $table->timestamps();
+        //     $table->unique(['user_id', 'entity_id']);
+        //     $table->unique(['user_id', 'administration_id']);
+        // });
+
+        // // Migrar las relaciones
+        // $this->migrateRelations();
+        
+        // // Eliminar tablas temporales
+        // Schema::dropIfExists('sellers_temp');
+        // Schema::dropIfExists('managers_temp');
+
+        // // Eliminar la columna manager_id de entities si existe
+        // if (Schema::hasColumn('entities', 'manager_id')) {
+        //     Schema::table('entities', function (Blueprint $table) {
+        //         $table->dropColumn('manager_id');
+        //     });
+        // }
+
+        // // Agregar la columna administration_id a managers si no existe
+        // if (!Schema::hasColumn('managers', 'administration_id')) {
+        //     Schema::table('managers', function (Blueprint $table) {
+        //         $table->foreignId('administration_id')->nullable()->constrained()->onDelete('cascade');
+        //     });
+        // }
 
         return response()->json(['message' => 'Migración completada exitosamente']);
     }

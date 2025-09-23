@@ -192,6 +192,16 @@
                             </a>
                         </li>
 
+                        <li class="menu-item @if (Request::is('scrutiny/*') || Request::is('scrutiny')) menuitem-active @php $selected = 1; @endphp @endif">
+                            <a href="{{url('/scrutiny')}}" class="menu-link">
+                                <span class="menu-icon">
+                                    <img src="{{url('icons')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                </span>
+                                <span class="menu-text"> Escrutinio </span>
+                                @php $selected = null; @endphp
+                            </a>
+                        </li>
+
                         <li class="menu-item @if (Request::is('reserves/*') || Request::is('reserves')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/reserves')}}" class="menu-link">
                                 <span class="menu-icon">

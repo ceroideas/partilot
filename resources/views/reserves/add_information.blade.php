@@ -257,7 +257,7 @@
 
                                                     <div class="input-group input-group-merge group-form">
 
-                                                        <input class="form-control @error('reservation_amount') is-invalid @enderror" type="number" step="0.01" name="reservation_amount" value="{{old('reservation_amount')}}" placeholder="0.00" style="border-radius: 30px;" required>
+                                                        <input class="form-control @error('reservation_amount') is-invalid @enderror" id="reservation_amount" type="number" step="0.01" name="reservation_amount" value="{{old('reservation_amount')}}" placeholder="0.00" style="border-radius: 30px;" required>
                                                     </div>
                                                     @error('reservation_amount')
                                                         <div class="text-danger small">{{$message}}</div>
@@ -271,9 +271,23 @@
 
                                                     <div class="input-group input-group-merge group-form">
 
-                                                        <input class="form-control @error('reservation_tickets') is-invalid @enderror" type="number" name="reservation_tickets" value="{{old('reservation_tickets')}}" placeholder="0" style="border-radius: 30px;" required>
+                                                        <input class="form-control @error('reservation_tickets') is-invalid @enderror" id="reservation_tickets" type="number" name="reservation_tickets" value="{{old('reservation_tickets')}}" placeholder="0" style="border-radius: 30px;" required>
                                                     </div>
                                                     @error('reservation_tickets')
+                                                        <div class="text-danger small">{{$message}}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+
+                                            <div class="col-3 offset-3">
+                                                <div class="form-group mt-2 mb-3">
+                                                    <label class="label-control">Total</label>
+
+                                                    <div class="input-group input-group-merge group-form">
+
+                                                        <input class="form-control" id="total_amount" type="number" step="0.01" placeholder="0.00" style="border-radius: 30px;" readonly>
+                                                    </div>
+                                                    @error('total')
                                                         <div class="text-danger small">{{$message}}</div>
                                                     @enderror
                                                 </div>
@@ -356,18 +370,49 @@ $(document).on('input', '.reservation-number', function() {
     calculateTotal();
 });
 
+// Calcular total cuando cambie el importe a reservar
+$('#reservation_amount').on('input', function() {
+    calculateTicketsFromAmount();
+    calculateTotal();
+});
+
+// Calcular importe cuando cambien los décimos
+$('#reservation_tickets').on('input', function() {
+    calculateAmountFromTickets();
+    calculateTotal();
+});
+
+// Función para calcular décimos basado en el importe
+function calculateTicketsFromAmount() {
+    const reservationAmount = parseFloat($('#reservation_amount').val()) || 0;
+    const ticketPrice = {{session('selected_lottery')->ticket_price ?? 0}};
+    
+    if (ticketPrice > 0) {
+        const tickets = Math.floor(reservationAmount / ticketPrice); // Sin decimales
+        $('#reservation_tickets').val(tickets);
+    }
+}
+
+// Función para calcular importe basado en los décimos
+function calculateAmountFromTickets() {
+    const tickets = parseInt($('#reservation_tickets').val()) || 0;
+    const ticketPrice = {{session('selected_lottery')->ticket_price ?? 0}};
+    
+    const amount = tickets * ticketPrice;
+    $('#reservation_amount').val(amount.toFixed(2));
+}
+
 function calculateTotal() {
     const numbers = $('.reservation-number').map(function() {
         return $(this).val().trim();
     }).get().filter(val => val !== '');
 
-    const ticketPrice = {{session('selected_lottery')->ticket_price ?? 0}};
-    const totalTickets = numbers.length;
-    const totalAmount = totalTickets * ticketPrice;
+    const reservationAmount = parseFloat($('#reservation_amount').val()) || 0;
+    const totalNumbers = numbers.length;
+    const totalAmount = totalNumbers * reservationAmount;
 
-    // Actualizar campos readonly
-    $('input[readonly]').eq(0).val(totalAmount.toFixed(2) + '€');
-    $('input[readonly]').eq(1).val(totalTickets);
+    // Actualizar campo total
+    $('#total_amount').val(totalAmount.toFixed(2));
 }
 
 </script>

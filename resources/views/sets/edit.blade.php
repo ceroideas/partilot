@@ -143,7 +143,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="played_amount" type="number" step="0.01" value="{{$set->played_amount}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="played_amount" name="played_amount" type="number" step="0.01" value="{{$set->played_amount}}" style="border-radius: 0 30px 30px 0;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -154,7 +154,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="donation_amount" type="number" step="0.01" value="{{$set->donation_amount}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="donation_amount" name="donation_amount" type="number" step="0.01" value="{{$set->donation_amount}}" style="border-radius: 0 30px 30px 0;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -165,7 +165,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="total_participation_amount" type="number" step="0.01" value="{{$set->total_participation_amount}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="total_participation_amount" name="total_participation_amount" type="number" step="0.01" value="{{$set->total_participation_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -176,7 +176,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="total_participations" type="number" value="{{$set->total_participations}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="total_participations" name="total_participations" type="number" value="{{$set->total_participations}}" style="border-radius: 0 30px 30px 0;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -187,7 +187,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="total_amount" type="number" value="{{$set->total_amount}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" value="{{$set->total_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -214,7 +214,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="physical_participations" type="number" value="{{$set->physical_participations}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="physical_participations" name="physical_participations" type="number" value="{{$set->physical_participations}}" style="border-radius: 0 30px 30px 0;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -225,7 +225,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="digital_participations" type="number" value="{{$set->digital_participations}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="digital_participations" name="digital_participations" type="number" value="{{$set->digital_participations}}" style="border-radius: 0 30px 30px 0;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -246,4 +246,119 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+
+<script>
+
+// Función para calcular el Importe Total Participación
+function calculateTotalParticipationAmount() {
+    const playedAmount = parseFloat($('#played_amount').val()) || 0;
+    const donationAmount = parseFloat($('#donation_amount').val()) || 0;
+    
+    // Obtener la cantidad de números reservados
+    const reservedNumbers = @json($set->reserve->reservation_numbers ?? []);
+    const numbersCount = reservedNumbers.length;
+    
+    let totalParticipationAmount;
+    
+    if (numbersCount <= 1) {
+        // Si hay 1 número o menos: Importe Jugado + Importe Donativo
+        totalParticipationAmount = playedAmount + donationAmount;
+    } else {
+        // Si hay 2 o más números: (Importe Jugado × Cantidad de números) + Importe Donativo
+        totalParticipationAmount = (playedAmount * numbersCount) + donationAmount;
+    }
+    
+    $('#total_participation_amount').val(totalParticipationAmount.toFixed(2));
+}
+
+// Función para calcular el Importe Total
+function calculateTotalAmount() {
+    const totalParticipations = parseInt($('#total_participations').val()) || 0;
+    const playedAmount = parseFloat($('#played_amount').val()) || 0;
+    const totalAmount = totalParticipations * playedAmount;
+    
+    $('#total_amount').val(totalAmount.toFixed(2));
+}
+
+// Función para calcular participaciones digitales cuando cambian las físicas
+function calculateDigitalParticipations() {
+    const totalParticipations = parseInt($('#total_participations').val()) || 0;
+    const physicalParticipations = parseInt($('#physical_participations').val()) || 0;
+    
+    if (physicalParticipations > totalParticipations) {
+        $('#physical_participations').val(totalParticipations);
+        $('#digital_participations').val(0);
+    } else {
+        const digitalParticipations = totalParticipations - physicalParticipations;
+        $('#digital_participations').val(digitalParticipations);
+    }
+}
+
+// Función para calcular participaciones físicas cuando cambian las digitales
+function calculatePhysicalParticipations() {
+    const totalParticipations = parseInt($('#total_participations').val()) || 0;
+    const digitalParticipations = parseInt($('#digital_participations').val()) || 0;
+    
+    if (digitalParticipations > totalParticipations) {
+        $('#digital_participations').val(totalParticipations);
+        $('#physical_participations').val(0);
+    } else {
+        const physicalParticipations = totalParticipations - digitalParticipations;
+        $('#physical_participations').val(physicalParticipations);
+    }
+}
+
+// Event listeners para los cálculos automáticos
+$(document).ready(function() {
+    
+    // Calcular Importe Total Participación cuando cambian Importe Jugado o Importe Donativo
+    $('#played_amount, #donation_amount').on('input', function() {
+        calculateTotalParticipationAmount();
+    });
+    
+    // Calcular Importe Total cuando cambian Participaciones Totales o Importe Jugado
+    $('#total_participations, #played_amount').on('input', function() {
+        calculateTotalAmount();
+        calculateDigitalParticipations();
+        calculatePhysicalParticipations();
+    });
+    
+    // Calcular participaciones digitales cuando cambian las físicas
+    $('#physical_participations').on('input', function() {
+        calculateDigitalParticipations();
+    });
+    
+    // Calcular participaciones físicas cuando cambian las digitales
+    $('#digital_participations').on('input', function() {
+        calculatePhysicalParticipations();
+    });
+    
+    // Validación adicional para Participaciones Totales
+    $('#total_participations').on('input', function() {
+        const totalParticipations = parseInt($(this).val()) || 0;
+        const physicalParticipations = parseInt($('#physical_participations').val()) || 0;
+        const digitalParticipations = parseInt($('#digital_participations').val()) || 0;
+        
+        // Si las participaciones físicas o digitales superan el total, ajustarlas
+        if (physicalParticipations > totalParticipations) {
+            $('#physical_participations').val(totalParticipations);
+            $('#digital_participations').val(0);
+        }
+        if (digitalParticipations > totalParticipations) {
+            $('#digital_participations').val(totalParticipations);
+            $('#physical_participations').val(0);
+        }
+    });
+    
+    // Calcular valores iniciales
+    calculateTotalParticipationAmount();
+    calculateTotalAmount();
+    
+});
+
+</script>
+
 @endsection 

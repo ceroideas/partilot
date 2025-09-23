@@ -22,7 +22,9 @@ class Lottery extends Model
         'prize_value',
         'image',
         'status',
-        'lottery_type_id'
+        'lottery_type_id',
+        'lottery_type_code', // J, X, S, N, B, V
+        'is_special' // Para sorteos especiales como 15€ Especial
     ];
 
     protected $casts = [
@@ -31,6 +33,7 @@ class Lottery extends Model
         'draw_time' => 'datetime',
         'ticket_price' => 'decimal:2',
         'prize_value' => 'decimal:2',
+        'is_special' => 'boolean',
     ];
 
     // Relación con Tipo de Lotería
@@ -82,5 +85,83 @@ class Lottery extends Model
         return $this->administrationScrutinies()
             ->where('administration_id', $administrationId)
             ->first();
+    }
+
+    /**
+     * Obtener el identificador único del tipo de sorteo
+     * Combina precio + código + especial para identificar exactamente el tipo
+     */
+    public function getLotteryTypeIdentifier()
+    {
+        // Convertir ticket_price a entero para evitar decimales
+        $ticketPrice = intval($this->ticket_price);
+        $identifier = $ticketPrice . '_' . $this->lottery_type_code;
+        
+        // Manejar casos especiales
+        if ($this->is_special && $this->lottery_type_code == 'S' && $ticketPrice == 15) {
+            $identifier .= '_ESPECIAL';
+        }
+        
+        return $identifier;
+    }
+
+    /**
+     * Obtener la configuración del tipo de sorteo
+     */
+    public function getLotteryTypeConfig()
+    {
+        $identifier = $this->getLotteryTypeIdentifier();
+        $lotteryTypes = config('lotteryTypes');
+        
+        return $lotteryTypes[$identifier] ?? null;
+    }
+
+    /**
+     * Obtener las categorías de premios aplicables para este sorteo
+     */
+    public function getApplicablePrizeCategories()
+    {
+        $identifier = $this->getLotteryTypeIdentifier();
+        $categories = config('lotteryCategories');
+        
+        $applicableCategories = [];
+        
+        foreach ($categories as $category) {
+            $prizeAmount = $category['importe_por_tipo'][$identifier] ?? 0;
+            $prizeCount = is_array($category['cantidad_premios']) 
+                ? ($category['cantidad_premios'][$identifier] ?? 0)
+                : $category['cantidad_premios'];
+            
+            if ($prizeAmount > 0 && $prizeCount > 0) {
+                $applicableCategories[] = array_merge($category, [
+                    'importe_aplicable' => $prizeAmount,
+                    'cantidad_aplicable' => $prizeCount
+                ]);
+            }
+        }
+        
+        return $applicableCategories;
+    }
+
+    /**
+     * Verificar si este sorteo tiene un tipo específico de premio
+     */
+    public function hasPrizeCategory($categoryKey)
+    {
+        $identifier = $this->getLotteryTypeIdentifier();
+        $categories = config('lotteryCategories');
+        
+        $category = collect($categories)->firstWhere('key_categoria', $categoryKey);
+        
+        if (!$category) {
+            return false;
+        }
+        
+        $prizeAmount = $category['importe_por_tipo'][$identifier] ?? 0;
+        $prizeCount = is_array($category['cantidad_premios']) 
+            ? ($category['cantidad_premios'][$identifier] ?? 0)
+            : $category['cantidad_premios'];
+        
+        return $prizeAmount > 0 && $prizeCount > 0;
     }
 }

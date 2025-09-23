@@ -405,7 +405,20 @@
 function calculateTotalParticipationAmount() {
     const playedAmount = parseFloat($('#played_amount').val()) || 0;
     const donationAmount = parseFloat($('#donation_amount').val()) || 0;
-    const totalParticipationAmount = playedAmount + donationAmount;
+    
+    // Obtener la cantidad de números reservados
+    const reservedNumbers = @json($reserve->reservation_numbers ?? []);
+    const numbersCount = reservedNumbers.length;
+    
+    let totalParticipationAmount;
+    
+    if (numbersCount <= 1) {
+        // Si hay 1 número o menos: Importe Jugado + Importe Donativo
+        totalParticipationAmount = playedAmount + donationAmount;
+    } else {
+        // Si hay 2 o más números: (Importe Jugado × Cantidad de números) + Importe Donativo
+        totalParticipationAmount = (playedAmount * numbersCount) + donationAmount;
+    }
     
     $('#total_participation_amount').val(totalParticipationAmount.toFixed(2));
 }

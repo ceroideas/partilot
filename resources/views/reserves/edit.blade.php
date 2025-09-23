@@ -158,7 +158,7 @@
                                                 <div class="form-group mt-2 mb-3">
                                                     <label class="label-control">Importe a Reservar</label>
                                                     <div class="input-group input-group-merge group-form">
-                                                        <input class="form-control" type="number" step="0.01" name="reservation_amount" value="{{$reserve->reservation_amount}}" style="border-radius: 30px;">
+                                                        <input class="form-control" id="reservation_amount" type="number" step="0.01" name="reservation_amount" value="{{$reserve->reservation_amount}}" style="border-radius: 30px;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -166,7 +166,15 @@
                                                 <div class="form-group mt-2 mb-3">
                                                     <label class="label-control">Cantidad de décimos</label>
                                                     <div class="input-group input-group-merge group-form">
-                                                        <input class="form-control" type="number" name="reservation_tickets" value="{{$reserve->reservation_tickets}}" style="border-radius: 30px;">
+                                                        <input class="form-control" id="reservation_tickets" type="number" name="reservation_tickets" value="{{$reserve->reservation_tickets}}" style="border-radius: 30px;">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-3 offset-3">
+                                                <div class="form-group mt-2 mb-3">
+                                                    <label class="label-control">Total</label>
+                                                    <div class="input-group input-group-merge group-form">
+                                                        <input class="form-control" id="total_amount" type="number" step="0.01" placeholder="0.00" style="border-radius: 30px;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -222,5 +230,69 @@
     });
     // Inicializar listeners para los existentes
     addRemoveListeners();
+    
+    // Función para calcular el total
+    function calculateTotal() {
+        const numbers = document.querySelectorAll('.reservation-number');
+        const reservationAmount = parseFloat(document.getElementById('reservation_amount').value) || 0;
+        let totalNumbers = 0;
+        
+        numbers.forEach(function(numberInput) {
+            if (numberInput.value.trim() !== '') {
+                totalNumbers++;
+            }
+        });
+        
+        const total = totalNumbers * reservationAmount;
+        document.getElementById('total_amount').value = total.toFixed(2);
+    }
+    
+    // Event listeners para calcular total y cálculos bidireccionales
+    document.getElementById('reservation_amount').addEventListener('input', function() {
+        calculateTicketsFromAmount();
+        calculateTotal();
+    });
+    
+    document.getElementById('reservation_tickets').addEventListener('input', function() {
+        calculateAmountFromTickets();
+        calculateTotal();
+    });
+    
+    // Event listener para números (incluyendo los que se añadan dinámicamente)
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('reservation-number')) {
+            calculateTotal();
+        }
+    });
+    
+    // Event listener para cuando se eliminen números
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-number')) {
+            setTimeout(calculateTotal, 100); // Delay para que se elimine el elemento primero
+        }
+    });
+    
+    // Función para calcular décimos basado en el importe
+    function calculateTicketsFromAmount() {
+        const reservationAmount = parseFloat(document.getElementById('reservation_amount').value) || 0;
+        const ticketPrice = {{$reserve->lottery->ticket_price ?? 0}};
+        
+        if (ticketPrice > 0) {
+            const tickets = Math.floor(reservationAmount / ticketPrice); // Sin decimales
+            document.getElementById('reservation_tickets').value = tickets;
+        }
+    }
+    
+    // Función para calcular importe basado en los décimos
+    function calculateAmountFromTickets() {
+        const tickets = parseInt(document.getElementById('reservation_tickets').value) || 0;
+        const ticketPrice = {{$reserve->lottery->ticket_price ?? 0}};
+        
+        const amount = tickets * ticketPrice;
+        document.getElementById('reservation_amount').value = amount.toFixed(2);
+    }
+    
+    // Calcular total inicial
+    calculateTotal();
 </script>
 @endsection 

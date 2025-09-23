@@ -22,7 +22,16 @@ class LotteryTypeController extends Controller
      */
     public function create()
     {
-        return view('lottery_types.add');
+        $lotteryCategories = config('lotteryCategories');
+        
+        $prizeCategories = collect($lotteryCategories)->map(function($category) {
+            return [
+                'nombre' => $category['nombre_categoria'],
+                'key' => $category['key_categoria']
+            ];
+        })->values()->toArray();
+
+        return view('lottery_types.add', compact('prizeCategories'));
     }
 
     /**
@@ -71,7 +80,16 @@ class LotteryTypeController extends Controller
      */
     public function edit(LotteryType $lotteryType)
     {
-        return view('lottery_types.edit', compact('lotteryType'));
+        $lotteryCategories = config('lotteryCategories');
+        
+        $prizeCategories = collect($lotteryCategories)->map(function($category) {
+            return [
+                'nombre' => $category['nombre_categoria'],
+                'key' => $category['key_categoria']
+            ];
+        })->values()->toArray();
+
+        return view('lottery_types.edit', compact('lotteryType', 'prizeCategories'));
     }
 
     /**
@@ -123,19 +141,87 @@ class LotteryTypeController extends Controller
     }
 
     /**
-     * Obtener categorías de premios disponibles (hardcodeadas)
+     * Obtener categorías de premios disponibles desde configuración
      */
     public function getAvailablePrizeCategories()
     {
-        $categories = [
-            'Primer Premio',
-            'Segundo Premio', 
-            'Tercer Premio',
-            'Cuarto Premio',
-            'Quinto Premio'
-        ];
+        $lotteryCategories = config('lotteryCategories');
+        
+        $categories = collect($lotteryCategories)->map(function($category) {
+            return [
+                'nombre' => $category['nombre_categoria'],
+                'key' => $category['key_categoria'],
+                'descripcion' => $this->getCategoryDescription($category)
+            ];
+        })->values()->toArray();
 
         return response()->json($categories);
+    }
+
+    /**
+     * Obtener tipos de sorteo disponibles
+     */
+    public function getAvailableLotteryTypes()
+    {
+        $lotteryTypes = config('lotteryTypes');
+        
+        $types = collect($lotteryTypes)->map(function($type, $key) {
+            return [
+                'identifier' => $key,
+                'nombre' => $type['nombre'],
+                'precio_decimo' => $type['precio_decimo'],
+                'codigo_sorteo' => $type['codigo_sorteo'],
+                'descripcion' => $type['descripcion'],
+                'es_especial' => $type['es_especial'] ?? false
+            ];
+        })->values()->toArray();
+
+        return response()->json($types);
+    }
+
+    /**
+     * Obtener categorías de premios para un tipo específico de sorteo
+     */
+    public function getPrizeCategoriesForLotteryType($lotteryTypeIdentifier)
+    {
+        $lotteryCategories = config('lotteryCategories');
+        
+        $applicableCategories = collect($lotteryCategories)->filter(function($category) use ($lotteryTypeIdentifier) {
+            $prizeAmount = $category['importe_por_tipo'][$lotteryTypeIdentifier] ?? 0;
+            $prizeCount = is_array($category['cantidad_premios']) 
+                ? ($category['cantidad_premios'][$lotteryTypeIdentifier] ?? 0)
+                : $category['cantidad_premios'];
+            
+            return $prizeAmount > 0 && $prizeCount > 0;
+        })->map(function($category) use ($lotteryTypeIdentifier) {
+            $prizeAmount = $category['importe_por_tipo'][$lotteryTypeIdentifier] ?? 0;
+            $prizeCount = is_array($category['cantidad_premios']) 
+                ? ($category['cantidad_premios'][$lotteryTypeIdentifier] ?? 0)
+                : $category['cantidad_premios'];
+            
+            return [
+                'nombre' => $category['nombre_categoria'],
+                'key' => $category['key_categoria'],
+                'importe' => $prizeAmount,
+                'cantidad' => $prizeCount
+            ];
+        })->values()->toArray();
+
+        return response()->json($applicableCategories);
+    }
+
+    /**
+     * Obtener descripción de una categoría
+     */
+    private function getCategoryDescription($category)
+    {
+        $tipos = array_filter($category['importe_por_tipo'], function($importe) {
+            return $importe > 0;
+        });
+        
+        $tiposTexto = implode(', ', array_keys($tipos));
+        
+        return "Aplica a: " . $tiposTexto;
     }
 
     /**
