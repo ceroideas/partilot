@@ -242,19 +242,8 @@ class NavidadScrapingService
             return false;
         }
         
-        // Verificar que no sea un número de premio principal conocido
-        $premiosPrincipales = [
-            '72480', // Primer premio
-            '40014', // Segundo premio
-            '11840', // Tercer premio
-            '48020', '77768', // Cuartos premios
-            '37876', '45225', '45456', '60622', '72853', '74778', '75143', '97345' // Quintos premios
-        ];
-        
-        if (in_array($numero, $premiosPrincipales)) {
-            return false;
-        }
-        
+        // No filtrar aquí los premios principales, se hará en el controlador
+        // para tener acceso a los datos reales del sorteo
         return true;
     }
     

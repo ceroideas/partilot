@@ -621,14 +621,75 @@ class LotteryController extends Controller
             // Formatear pedreas para el sistema
             $formattedPedreas = $scrapingService->formatPedreasForSystem($pedreas);
             
-            \Log::info("Pedreas obtenidas para sorteo de Navidad $drawId: " . count($formattedPedreas));
+            // Filtrar números que ya tienen premios principales
+            $filteredPedreas = $this->filterPedreasExcludingMainPrizes($formattedPedreas, $data);
             
-            return $formattedPedreas;
+            \Log::info("Pedreas obtenidas para sorteo de Navidad $drawId: " . count($filteredPedreas) . " (filtradas de " . count($formattedPedreas) . ")");
+            
+            return $filteredPedreas;
             
         } catch (\Exception $e) {
             \Log::error("Error obteniendo pedreas para sorteo de Navidad: " . $e->getMessage());
             return [];
         }
+    }
+    
+    /**
+     * Filtrar pedreas excluyendo números que ya tienen premios principales
+     */
+    private function filterPedreasExcludingMainPrizes($pedreas, $data)
+    {
+        // Obtener números de premios principales
+        $mainPrizeNumbers = [];
+        
+        // Primer premio
+        if (isset($data['primerPremio']['decimo'])) {
+            $mainPrizeNumbers[] = $data['primerPremio']['decimo'];
+        }
+        
+        // Segundo premio
+        if (isset($data['segundoPremio']['decimo'])) {
+            $mainPrizeNumbers[] = $data['segundoPremio']['decimo'];
+        }
+        
+        // Terceros premios
+        if (isset($data['tercerosPremios']) && is_array($data['tercerosPremios'])) {
+            foreach ($data['tercerosPremios'] as $tercero) {
+                if (isset($tercero['decimo'])) {
+                    $mainPrizeNumbers[] = $tercero['decimo'];
+                }
+            }
+        }
+        
+        // Cuartos premios
+        if (isset($data['cuartosPremios']) && is_array($data['cuartosPremios'])) {
+            foreach ($data['cuartosPremios'] as $cuarto) {
+                if (isset($cuarto['decimo'])) {
+                    $mainPrizeNumbers[] = $cuarto['decimo'];
+                }
+            }
+        }
+        
+        // Quintos premios
+        if (isset($data['quintosPremios']) && is_array($data['quintosPremios'])) {
+            foreach ($data['quintosPremios'] as $quinto) {
+                if (isset($quinto['decimo'])) {
+                    $mainPrizeNumbers[] = $quinto['decimo'];
+                }
+            }
+        }
+        
+        // Filtrar pedreas que no estén en premios principales
+        $filteredPedreas = [];
+        foreach ($pedreas as $pedrea) {
+            if (!in_array($pedrea['decimo'], $mainPrizeNumbers)) {
+                $filteredPedreas[] = $pedrea;
+            }
+        }
+        
+        \Log::info("Números de premios principales excluidos: " . implode(', ', $mainPrizeNumbers));
+        
+        return $filteredPedreas;
     }
 
     /**
