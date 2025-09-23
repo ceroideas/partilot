@@ -455,6 +455,9 @@ class ScrutinyController extends Controller
         
         // 4. Verificar reintegros
         $this->checkReintegros($number, $lotteryResult, $typeIdentifier, $categories, $prizeInfo);
+        
+        // 5. Verificar pedreas (solo para sorteos de Navidad)
+        $this->checkPedreas($number, $lotteryResult, $typeIdentifier, $categories, $prizeInfo);
 
         return $prizeInfo;
     }
@@ -818,6 +821,32 @@ class ScrutinyController extends Controller
         }
         
         return false;
+    }
+
+    /**
+     * Verificar pedreas (solo para sorteos de Navidad)
+     */
+    private function checkPedreas($number, $lotteryResult, $typeIdentifier, $categories, &$prizeInfo)
+    {
+        // Solo verificar pedreas si existen en el resultado
+        if (!$lotteryResult->pedreas || !is_array($lotteryResult->pedreas)) {
+            return;
+        }
+        
+        foreach ($lotteryResult->pedreas as $pedrea) {
+            if (isset($pedrea['decimo']) && $this->compareNumbers($number, $pedrea['decimo'])) {
+                $prizeAmount = $this->getPrizeAmount('pedrea', $typeIdentifier, $categories);
+                if ($prizeAmount > 0) {
+                    $prizeInfo['total_prize'] += $prizeAmount;
+                    $prizeInfo['prizes'][] = [
+                        'category' => 'Pedrea',
+                        'amount' => $prizeAmount,
+                        'type' => 'pedrea'
+                    ];
+                }
+                break; // Solo sumar una vez por número
+            }
+        }
     }
 
     /**

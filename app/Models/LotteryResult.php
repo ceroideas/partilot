@@ -22,6 +22,7 @@ class LotteryResult extends Model
         'extracciones_tres_cifras',
         'extracciones_dos_cifras',
         'reintegros',
+        'pedreas',
         'results_date',
         'is_published'
     ];
@@ -38,11 +39,12 @@ class LotteryResult extends Model
         'extracciones_tres_cifras' => 'array',
         'extracciones_dos_cifras' => 'array',
         'reintegros' => 'array',
+        'pedreas' => 'array',
         'results_date' => 'datetime',
         'is_published' => 'boolean',
     ];
 
-    protected $appends = ['refunds','thirds','fourths','fifths','5figures','4figures','3figures','2figures'];
+    protected $appends = ['refunds','thirds','fourths','fifths','5figures','4figures','3figures','2figures','pedreas'];
 
     // Relación con Lottery
     public function lottery()
@@ -75,6 +77,7 @@ class LotteryResult extends Model
             'extraccionesDeTresCifras' => $this->extracciones_tres_cifras ?? [],
             'extraccionesDeDosCifras' => $this->extracciones_dos_cifras ?? [],
             'reintegros' => $this->reintegros ?? [],
+            'pedreas' => $this->pedreas ?? [],
         ];
     }
 
@@ -169,6 +172,18 @@ class LotteryResult extends Model
             return $arr;
         }
         foreach ($this->extracciones_dos_cifras as $key => $value) {
+            $arr[] = $value['decimo'];
+        }
+        return $arr;
+    }
+
+    public function getPedreasAttribute()
+    {
+        $arr = [];
+        if (!$this->pedreas) {
+            return $arr;
+        }
+        foreach ($this->pedreas as $key => $value) {
             $arr[] = $value['decimo'];
         }
         return $arr;

@@ -6,6 +6,7 @@ use App\Models\Lottery;
 use App\Models\LotteryType;
 use App\Models\Administration;
 use App\Models\LotteryResult;
+use App\Services\NavidadScrapingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
@@ -544,6 +545,13 @@ class LotteryController extends Controller
 
         // Procesar reintegros
         $resultData['reintegros'] = $data['reintegros'] ?? [];
+        
+        // Procesar pedreas para sorteos de Navidad
+        if (isset($data['tipoSorteo']) && $data['tipoSorteo'] === 'N') {
+            $resultData['pedreas'] = $this->getPedreasForNavidadSorteo($data);
+        } else {
+            $resultData['pedreas'] = [];
+        }
 
         LotteryResult::create($resultData);
     }
@@ -577,8 +585,50 @@ class LotteryController extends Controller
 
         // Procesar reintegros
         $updateData['reintegros'] = $data['reintegros'] ?? [];
+        
+        // Procesar pedreas para sorteos de Navidad
+        if (isset($data['tipoSorteo']) && $data['tipoSorteo'] === 'N') {
+            $updateData['pedreas'] = $this->getPedreasForNavidadSorteo($data);
+        } else {
+            $updateData['pedreas'] = [];
+        }
 
         $result->update($updateData);
+    }
+
+    /**
+     * Obtener pedreas para sorteos de Navidad mediante web scraping
+     */
+    private function getPedreasForNavidadSorteo($data)
+    {
+        try {
+            // Verificar si es un sorteo de Navidad
+            if (!isset($data['tipoSorteo']) || $data['tipoSorteo'] !== 'N') {
+                return [];
+            }
+            
+            // Obtener drawId del sorteo
+            $drawId = $data['id_sorteo'] ?? null;
+            if (!$drawId) {
+                \Log::warning('No se encontró drawId para sorteo de Navidad');
+                return [];
+            }
+            
+            // Usar el servicio de scraping
+            $scrapingService = new NavidadScrapingService();
+            $pedreas = $scrapingService->getPedreasFromNavidadSorteo($drawId);
+            
+            // Formatear pedreas para el sistema
+            $formattedPedreas = $scrapingService->formatPedreasForSystem($pedreas);
+            
+            \Log::info("Pedreas obtenidas para sorteo de Navidad $drawId: " . count($formattedPedreas));
+            
+            return $formattedPedreas;
+            
+        } catch (\Exception $e) {
+            \Log::error("Error obteniendo pedreas para sorteo de Navidad: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**
