@@ -370,7 +370,7 @@ $(document).ready(function() {
         
         // Mostrar total de premios si está disponible
         if (response.total_prizes) {
-            $('#total-winning-numbers').parent().append(`<br><small class="text-info">Total premios: ${response.total_prizes.toLocaleString()}</small>`);
+            $('#total-winning-numbers').parent().append(`\nTotal premios: ${response.total_prizes.toLocaleString()}`);
         }
         
         // Mostrar información del rango de búsqueda
@@ -418,7 +418,7 @@ $(document).ready(function() {
             <tr>
                 <td colspan="4" class="text-center text-muted">
                     <em>Mostrando resultados ${startResult.toLocaleString()} - ${endResult.toLocaleString()} de ${totalWinning.toLocaleString()} números con premios</em>
-                    ${response.total_prizes ? `<br><strong>Total de premios: ${response.total_prizes.toLocaleString()}</strong>` : ''}
+                    ${response.total_prizes ? `\nTotal de premios: ${response.total_prizes.toLocaleString()}` : ''}
                 </td>
             </tr>
         `);
