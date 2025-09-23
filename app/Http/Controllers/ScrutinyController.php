@@ -468,6 +468,22 @@ class ScrutinyController extends Controller
             }
         }
 
+        // 4 últimas cifras del primer premio (solo para 3€)
+        if ($lotteryResult->primer_premio && isset($lotteryResult->primer_premio['decimo'])) {
+            $primerPremio = $lotteryResult->primer_premio['decimo'];
+            if (substr($number, -4) === substr($primerPremio, -4) && !$this->compareNumbers($number, $primerPremio)) {
+                $prizeAmount = $this->getPrizeAmount('cuatroUltimasCifrasPrimerPremio', $typeIdentifier, $categories);
+                if ($prizeAmount > 0) { // Solo aplicar si tiene premio para este tipo de lotería
+                    $prizeInfo['total_prize'] += $prizeAmount;
+                    $prizeInfo['prizes'][] = [
+                        'category' => '4 Últimas Cifras del Primer Premio',
+                        'amount' => $prizeAmount,
+                        'type' => 'derived'
+                    ];
+                }
+            }
+        }
+
     }
 
     /**
@@ -629,17 +645,26 @@ class ScrutinyController extends Controller
             'posteriorPrimerPremio' => 'posteriorPrimerPremio',
             'anteriorSegundoPremio' => 'anteriorSegundoPremio',
             'posteriorSegundoPremio' => 'posteriorSegundoPremio',
+            'anteriorTercerosPremios' => 'anteriorTercerosPremios',
+            'posteriorTercerosPremios' => 'posteriorTercerosPremios',
             'centenasPrimerPremio' => 'centenasPrimerPremio',
             'centenasSegundoPremio' => 'centenasSegundoPremio',
             'centenasTercerosPremios' => 'centenasTercerosPremios',
+            'centenasCuartosPremios' => 'centenasCuartosPremios',
+            'premioFraccionSeriePrimerPremio' => 'premioFraccionSeriePrimerPremio',
+            'cuatroUltimasCifrasPrimerPremio' => 'cuatroUltimasCifrasPrimerPremio',
             'tresUltimasCifrasPrimerPremio' => 'tresUltimasCifrasPrimerPremio',
             'dosUltimasCifrasPrimerPremio' => 'dosUltimasCifrasPrimerPremio',
             'ultimaCifraPrimerPremio' => 'ultimaCifraPrimerPremio',
+            'tresUltimasCifrasSegundoPremio' => 'tresUltimasCifrasSegundoPremio',
+            'dosUltimasCifrasSegundoPremio' => 'dosUltimasCifrasSegundoPremio',
+            'dosUltimasCifrasTercerPremio' => 'dosUltimasCifrasTercerPremio',
             'extraccionesDeCincoCifras' => 'extraccionesDeCincoCifras',
             'extraccionesDeCuatroCifras' => 'extraccionesDeCuatroCifras',
             'extraccionesDeTresCifras' => 'extraccionesDeTresCifras',
             'extraccionesDeDosCifras' => 'extraccionesDeDosCifras',
-            'reintegros' => 'reintegros'
+            'reintegros' => 'reintegros',
+            'pedrea' => 'pedrea'
         ];
         
         $mappedKey = $keyMapping[$categoryKey] ?? $categoryKey;
