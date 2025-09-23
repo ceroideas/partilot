@@ -362,6 +362,27 @@ class ScrutinyController extends Controller
             }
         }
 
+        // Centenas del tercer premio
+        if ($lotteryResult->terceros_premios && is_array($lotteryResult->terceros_premios)) {
+            foreach ($lotteryResult->terceros_premios as $tercerPremio) {
+                if (isset($tercerPremio['decimo'])) {
+                    $tercerPremioNum = $tercerPremio['decimo'];
+                    if ($this->isInCentena($number, $tercerPremioNum) && !$this->compareNumbers($number, $tercerPremioNum)) {
+                        $prizeAmount = $this->getPrizeAmount('centenasTercerosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) { // Solo aplicar si tiene premio para este tipo de lotería
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => 'Centenas del Tercer Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                        break; // Solo sumar una vez por tercer premio
+                    }
+                }
+            }
+        }
+
         // Anterior y posterior al primer premio
         if ($lotteryResult->primer_premio && isset($lotteryResult->primer_premio['decimo'])) {
             $primerPremio = $lotteryResult->primer_premio['decimo'];
