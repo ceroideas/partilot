@@ -64,6 +64,12 @@ class ScrutinyController extends Controller
             $scrutinyResults = $this->calculateAllNumbers($lottery);
         }
         
+        // Calcular total de premios de forma consistente
+        $totalPrizes = 0;
+        foreach ($scrutinyResults as $result) {
+            $totalPrizes += count($result['prizes']);
+        }
+        
         // Ordenamiento
         if ($sortOrder === 'asc') {
             usort($scrutinyResults, function($a, $b) {
@@ -83,12 +89,6 @@ class ScrutinyController extends Controller
         $total = count($scrutinyResults);
         $offset = ($page - 1) * $perPage;
         $paginatedResults = array_slice($scrutinyResults, $offset, $perPage);
-        
-        // Calcular total de premios
-        $totalPrizes = 0;
-        foreach ($scrutinyResults as $result) {
-            $totalPrizes += count($result['prizes']);
-        }
         
         \Log::info("=== TOTAL PREMIOS CALCULADO: {$totalPrizes} ===");
         
@@ -523,6 +523,7 @@ class ScrutinyController extends Controller
                         'amount' => $prizeAmount,
                         'type' => 'extraction'
                     ];
+                    break; // Solo sumar una vez por número
                 }
             }
         }
@@ -538,6 +539,7 @@ class ScrutinyController extends Controller
                         'amount' => $prizeAmount,
                         'type' => 'extraction'
                     ];
+                    break; // Solo sumar una vez por número
                 }
             }
         }
@@ -553,6 +555,7 @@ class ScrutinyController extends Controller
                         'amount' => $prizeAmount,
                         'type' => 'extraction'
                     ];
+                    break; // Solo sumar una vez por número
                 }
             }
         }
@@ -568,6 +571,7 @@ class ScrutinyController extends Controller
                         'amount' => $prizeAmount,
                         'type' => 'extraction'
                     ];
+                    break; // Solo sumar una vez por número
                 }
             }
         }

@@ -370,7 +370,9 @@ $(document).ready(function() {
         
         // Mostrar total de premios si está disponible
         if (response.total_prizes) {
-            $('#total-winning-numbers').parent().append(`<br><small class="text-info">Total premios: ${response.total_prizes.toLocaleString()}</small>`);
+            // Limpiar contenido anterior y añadir el total de premios
+            const totalNumbersText = $('#total-winning-numbers').text();
+            $('#total-winning-numbers').parent().html(`<span id="total-winning-numbers">${totalNumbersText}</span><br><small class="text-info">Total premios: ${response.total_prizes.toLocaleString()}</small>`);
         }
         
         // Mostrar información del rango de búsqueda
@@ -414,6 +416,7 @@ $(document).ready(function() {
         const startResult = (currentPage - 1) * perPage + 1;
         const endResult = Math.min(currentPage * perPage, totalWinning);
         
+        // Añadir información de paginación
         $('#scrutiny-table-body').append(`
             <tr>
                 <td colspan="4" class="text-center text-muted">
