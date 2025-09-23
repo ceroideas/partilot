@@ -370,7 +370,7 @@ $(document).ready(function() {
         
         // Mostrar total de premios si está disponible
         if (response.total_prizes) {
-            $('#total-winning-numbers').parent().append(`\nTotal premios: ${response.total_prizes.toLocaleString()}`);
+            $('#total-winning-numbers').parent().append(`<br><small class="text-info">Total premios: ${response.total_prizes.toLocaleString()}</small>`);
         }
         
         // Mostrar información del rango de búsqueda
@@ -418,7 +418,7 @@ $(document).ready(function() {
             <tr>
                 <td colspan="4" class="text-center text-muted">
                     <em>Mostrando resultados ${startResult.toLocaleString()} - ${endResult.toLocaleString()} de ${totalWinning.toLocaleString()} números con premios</em>
-                    ${response.total_prizes ? `\nTotal de premios: ${response.total_prizes.toLocaleString()}` : ''}
+                    ${response.total_prizes ? `<br><strong>Total de premios: ${response.total_prizes.toLocaleString()}</strong>` : ''}
                 </td>
             </tr>
         `);
@@ -569,11 +569,10 @@ $(document).ready(function() {
 
 // Función global para mostrar detalles de premios
 function showPrizeDetails(number, prizes) {
-    let details = `<h6>Número: ${number}</h6><ul class="list-unstyled">`;
+    let details = `Número: ${number}\n\n`;
     prizes.forEach(prize => {
-        details += `<li><strong>${prize.category}:</strong> ${formatCurrency(prize.amount)}</li>`;
+        details += `${prize.category}: ${formatCurrency(prize.amount)}\n`;
     });
-    details += '</ul>';
     
     // Mostrar en un modal o alert
     alert(details);
