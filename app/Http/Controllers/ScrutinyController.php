@@ -53,38 +53,17 @@ class ScrutinyController extends Controller
         $endRange = $request->get('end_range', 99999);
         $sortOrder = $request->get('sort_order', 'desc');
         
-        // Crear clave única para el caché
-        $cacheKey = "scrutiny_{$lottery->id}_{$startRange}_{$endRange}_{$sortOrder}";
-        
-        // Verificar si existe en caché
-        if (session()->has($cacheKey)) {
-            $cachedData = session($cacheKey);
-            $scrutinyResults = $cachedData['results'];
-            $totalPrizes = $cachedData['total_prizes'];
-            \Log::info("=== USANDO CACHÉ PARA ESCRUTINIO ===");
+        // Calcular resultados (sin caché)
+        if ($startRange > 0 || $endRange < 99999) {
+            $scrutinyResults = $this->calculateNumbersInRange($lottery, $startRange, $endRange);
         } else {
-            // Calcular resultados
-            if ($startRange > 0 || $endRange < 99999) {
-                $scrutinyResults = $this->calculateNumbersInRange($lottery, $startRange, $endRange);
-            } else {
-                $scrutinyResults = $this->calculateAllNumbers($lottery);
-            }
-            
-            // Calcular total de premios
-            $totalPrizes = 0;
-            foreach ($scrutinyResults as $result) {
-                $totalPrizes += count($result['prizes']);
-            }
-            
-            // Guardar en caché (solo para rangos completos)
-            if ($startRange == 0 && $endRange == 99999) {
-                session([$cacheKey => [
-                    'results' => $scrutinyResults,
-                    'total_prizes' => $totalPrizes,
-                    'timestamp' => time()
-                ]]);
-                \Log::info("=== GUARDANDO EN CACHÉ ===");
-            }
+            $scrutinyResults = $this->calculateAllNumbers($lottery);
+        }
+        
+        // Calcular total de premios
+        $totalPrizes = 0;
+        foreach ($scrutinyResults as $result) {
+            $totalPrizes += count($result['prizes']);
         }
         
         // Ordenamiento
@@ -299,13 +278,33 @@ class ScrutinyController extends Controller
             }
         }
         
-        // 3. Extracciones
-        $extractionTypes = ['extracciones_cinco_cifras', 'extracciones_cuatro_cifras', 'extracciones_tres_cifras', 'extracciones_dos_cifras'];
-        foreach ($extractionTypes as $extractionType) {
+        // 3. Extracciones - generar TODOS los números que terminan en cada extracción
+        $extractionTypes = [
+            'extracciones_cinco_cifras' => 1,    // 1 número por extracción (el número exacto)
+            'extracciones_cuatro_cifras' => 10,  // 10 números por extracción
+            'extracciones_tres_cifras' => 100,   // 100 números por extracción
+            'extracciones_dos_cifras' => 1000    // 1000 números por extracción
+        ];
+        
+        foreach ($extractionTypes as $extractionType => $multiplier) {
             if ($lotteryResult->$extractionType && is_array($lotteryResult->$extractionType)) {
                 foreach ($lotteryResult->$extractionType as $extraccion) {
                     if (isset($extraccion['decimo'])) {
-                        $numbers[] = $extraccion['decimo'];
+                        $extraccionDecimo = $extraccion['decimo'];
+                        $cifras = strlen($extraccionDecimo);
+                        
+                        if ($extractionType === 'extracciones_cinco_cifras') {
+                            // Para extracciones de 5 cifras, solo el número exacto
+                            $numbers[] = str_pad($extraccionDecimo, 5, '0', STR_PAD_LEFT);
+                        } else {
+                            // Para otras extracciones, generar todos los números que terminan en esa extracción
+                            for ($i = 0; $i < $multiplier; $i++) {
+                                $number = str_pad($i, 5 - $cifras, '0', STR_PAD_LEFT) . $extraccionDecimo;
+                                if (intval($number) <= 99999) {
+                                    $numbers[] = $number;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -315,13 +314,17 @@ class ScrutinyController extends Controller
         $derivedNumbers = $this->getDerivedNumbers($lotteryResult);
         $numbers = array_merge($numbers, $derivedNumbers);
         
-        // 5. Números con reintegros
+        // Eliminar duplicados después de agregar números derivados
+        $numbers = array_unique($numbers);
+        
+        // 5. Números con reintegros - generar TODOS los números que terminan en cada reintegro
         if ($lotteryResult->reintegros && is_array($lotteryResult->reintegros)) {
             foreach ($lotteryResult->reintegros as $reintegro) {
                 if (isset($reintegro['decimo'])) {
-                    // Agregar todos los números que terminan en esta cifra
+                    $reintegroDecimo = $reintegro['decimo'];
+                    // Generar todos los números que terminan en esta cifra (10000 números por reintegro)
                     for ($i = 0; $i <= 99999; $i += 10) {
-                        $number = $i + intval($reintegro['decimo']);
+                        $number = $i + intval($reintegroDecimo);
                         if ($number <= 99999) {
                             $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
                         }
@@ -333,6 +336,8 @@ class ScrutinyController extends Controller
         // Eliminar duplicados y ordenar
         $numbers = array_unique($numbers);
         sort($numbers);
+        
+        \Log::info("Números potenciales generados: " . count($numbers) . " (después de eliminar duplicados)");
         
         return $numbers;
     }
@@ -397,6 +402,51 @@ class ScrutinyController extends Controller
             }
         }
         
+        // Anterior y posterior a terceros premios
+        if ($lotteryResult->terceros_premios && is_array($lotteryResult->terceros_premios)) {
+            foreach ($lotteryResult->terceros_premios as $tercerPremio) {
+                if (isset($tercerPremio['decimo'])) {
+                    $tercerPremioNum = intval($tercerPremio['decimo']);
+                    if ($tercerPremioNum > 0) {
+                        $numbers[] = str_pad($tercerPremioNum - 1, 5, '0', STR_PAD_LEFT);
+                    }
+                    if ($tercerPremioNum < 99999) {
+                        $numbers[] = str_pad($tercerPremioNum + 1, 5, '0', STR_PAD_LEFT);
+                    }
+                }
+            }
+        }
+        
+        // Anterior y posterior a cuartos premios
+        if ($lotteryResult->cuartos_premios && is_array($lotteryResult->cuartos_premios)) {
+            foreach ($lotteryResult->cuartos_premios as $cuartoPremio) {
+                if (isset($cuartoPremio['decimo'])) {
+                    $cuartoPremioNum = intval($cuartoPremio['decimo']);
+                    if ($cuartoPremioNum > 0) {
+                        $numbers[] = str_pad($cuartoPremioNum - 1, 5, '0', STR_PAD_LEFT);
+                    }
+                    if ($cuartoPremioNum < 99999) {
+                        $numbers[] = str_pad($cuartoPremioNum + 1, 5, '0', STR_PAD_LEFT);
+                    }
+                }
+            }
+        }
+        
+        // Anterior y posterior a quintos premios
+        if ($lotteryResult->quintos_premios && is_array($lotteryResult->quintos_premios)) {
+            foreach ($lotteryResult->quintos_premios as $quintoPremio) {
+                if (isset($quintoPremio['decimo'])) {
+                    $quintoPremioNum = intval($quintoPremio['decimo']);
+                    if ($quintoPremioNum > 0) {
+                        $numbers[] = str_pad($quintoPremioNum - 1, 5, '0', STR_PAD_LEFT);
+                    }
+                    if ($quintoPremioNum < 99999) {
+                        $numbers[] = str_pad($quintoPremioNum + 1, 5, '0', STR_PAD_LEFT);
+                    }
+                }
+            }
+        }
+        
         // Números con terminaciones del primer premio
         if ($lotteryResult->primer_premio && isset($lotteryResult->primer_premio['decimo'])) {
             $primerPremio = $lotteryResult->primer_premio['decimo'];
@@ -404,26 +454,26 @@ class ScrutinyController extends Controller
             $lastTwoDigits = substr($primerPremio, -2);
             $lastThreeDigits = substr($primerPremio, -3);
             
-            // Última cifra (10,000 números)
+            // Última cifra (10,000 números) - excluir el número principal
             for ($i = 0; $i <= 99999; $i += 10) {
                 $number = $i + intval($lastDigit);
-                if ($number <= 99999) {
+                if ($number <= 99999 && $number != intval($primerPremio)) {
                     $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
                 }
             }
             
-            // 2 últimas cifras (1,000 números)
+            // 2 últimas cifras (1,000 números) - excluir el número principal
             for ($i = 0; $i <= 99999; $i += 100) {
                 $number = $i + intval($lastTwoDigits);
-                if ($number <= 99999) {
+                if ($number <= 99999 && $number != intval($primerPremio)) {
                     $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
                 }
             }
             
-            // 3 últimas cifras (100 números)
+            // 3 últimas cifras (100 números) - excluir el número principal
             for ($i = 0; $i <= 99999; $i += 1000) {
                 $number = $i + intval($lastThreeDigits);
-                if ($number <= 99999) {
+                if ($number <= 99999 && $number != intval($primerPremio)) {
                     $numbers[] = str_pad($number, 5, '0', STR_PAD_LEFT);
                 }
             }
@@ -620,6 +670,111 @@ class ScrutinyController extends Controller
             }
         }
 
+        // Anterior y posterior a terceros premios
+        if ($lotteryResult->terceros_premios && is_array($lotteryResult->terceros_premios)) {
+            foreach ($lotteryResult->terceros_premios as $tercerPremio) {
+                if (isset($tercerPremio['decimo'])) {
+                    $tercerPremioNum = $tercerPremio['decimo'];
+                    $tercerPremioInt = intval($tercerPremioNum);
+                    $numberInt = intval($number);
+                    
+                    if ($numberInt === $tercerPremioInt - 1) {
+                        $prizeAmount = $this->getPrizeAmount('anteriorTercerosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => 'Anterior al Tercer Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                    }
+                    
+                    if ($numberInt === $tercerPremioInt + 1) {
+                        $prizeAmount = $this->getPrizeAmount('posteriorTercerosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => 'Posterior al Tercer Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Anterior y posterior a cuartos premios
+        if ($lotteryResult->cuartos_premios && is_array($lotteryResult->cuartos_premios)) {
+            foreach ($lotteryResult->cuartos_premios as $cuartoPremio) {
+                if (isset($cuartoPremio['decimo'])) {
+                    $cuartoPremioNum = $cuartoPremio['decimo'];
+                    $cuartoPremioInt = intval($cuartoPremioNum);
+                    $numberInt = intval($number);
+                    
+                    if ($numberInt === $cuartoPremioInt - 1) {
+                        $prizeAmount = $this->getPrizeAmount('anteriorCuartosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => 'Anterior al Cuarto Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                    }
+                    
+                    if ($numberInt === $cuartoPremioInt + 1) {
+                        $prizeAmount = $this->getPrizeAmount('posteriorCuartosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => 'Posterior al Cuarto Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Anterior y posterior a quintos premios
+        if ($lotteryResult->quintos_premios && is_array($lotteryResult->quintos_premios)) {
+            foreach ($lotteryResult->quintos_premios as $quintoPremio) {
+                if (isset($quintoPremio['decimo'])) {
+                    $quintoPremioNum = $quintoPremio['decimo'];
+                    $quintoPremioInt = intval($quintoPremioNum);
+                    $numberInt = intval($number);
+                    
+                    if ($numberInt === $quintoPremioInt - 1) {
+                        $prizeAmount = $this->getPrizeAmount('anteriorQuintosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => 'Anterior al Quinto Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                    }
+                    
+                    if ($numberInt === $quintoPremioInt + 1) {
+                        $prizeAmount = $this->getPrizeAmount('posteriorQuintosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => 'Posterior al Quinto Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
         // Aproximaciones (2, 3, 4 últimas cifras)
         $this->checkApproximations($number, $lotteryResult, $typeIdentifier, $categories, $prizeInfo);
     }
@@ -684,6 +839,85 @@ class ScrutinyController extends Controller
                         'amount' => $prizeAmount,
                         'type' => 'derived'
                     ];
+                }
+            }
+        }
+
+        // 2 últimas cifras del segundo premio
+        if ($lotteryResult->segundo_premio && isset($lotteryResult->segundo_premio['decimo'])) {
+            $segundoPremio = $lotteryResult->segundo_premio['decimo'];
+            if (substr($number, -2) === substr($segundoPremio, -2) && !$this->compareNumbers($number, $segundoPremio)) {
+                $prizeAmount = $this->getPrizeAmount('dosUltimasCifrasSegundoPremio', $typeIdentifier, $categories);
+                if ($prizeAmount > 0) {
+                    $prizeInfo['total_prize'] += $prizeAmount;
+                    $prizeInfo['prizes'][] = [
+                        'category' => '2 Últimas Cifras del Segundo Premio',
+                        'amount' => $prizeAmount,
+                        'type' => 'derived'
+                    ];
+                }
+            }
+        }
+
+        // 2 últimas cifras del tercer premio
+        if ($lotteryResult->terceros_premios && is_array($lotteryResult->terceros_premios)) {
+            foreach ($lotteryResult->terceros_premios as $tercerPremio) {
+                if (isset($tercerPremio['decimo'])) {
+                    $tercerPremioNum = $tercerPremio['decimo'];
+                    if (substr($number, -2) === substr($tercerPremioNum, -2) && !$this->compareNumbers($number, $tercerPremioNum)) {
+                        $prizeAmount = $this->getPrizeAmount('dosUltimasCifrasTercerosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => '2 Últimas Cifras del Tercer Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                        break; // Solo sumar una vez por tercer premio
+                    }
+                }
+            }
+        }
+
+        // 2 últimas cifras del cuarto premio
+        if ($lotteryResult->cuartos_premios && is_array($lotteryResult->cuartos_premios)) {
+            foreach ($lotteryResult->cuartos_premios as $cuartoPremio) {
+                if (isset($cuartoPremio['decimo'])) {
+                    $cuartoPremioNum = $cuartoPremio['decimo'];
+                    if (substr($number, -2) === substr($cuartoPremioNum, -2) && !$this->compareNumbers($number, $cuartoPremioNum)) {
+                        $prizeAmount = $this->getPrizeAmount('dosUltimasCifrasCuartosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => '2 Últimas Cifras del Cuarto Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                        break; // Solo sumar una vez por cuarto premio
+                    }
+                }
+            }
+        }
+
+        // 2 últimas cifras del quinto premio
+        if ($lotteryResult->quintos_premios && is_array($lotteryResult->quintos_premios)) {
+            foreach ($lotteryResult->quintos_premios as $quintoPremio) {
+                if (isset($quintoPremio['decimo'])) {
+                    $quintoPremioNum = $quintoPremio['decimo'];
+                    if (substr($number, -2) === substr($quintoPremioNum, -2) && !$this->compareNumbers($number, $quintoPremioNum)) {
+                        $prizeAmount = $this->getPrizeAmount('dosUltimasCifrasQuintosPremios', $typeIdentifier, $categories);
+                        if ($prizeAmount > 0) {
+                            $prizeInfo['total_prize'] += $prizeAmount;
+                            $prizeInfo['prizes'][] = [
+                                'category' => '2 Últimas Cifras del Quinto Premio',
+                                'amount' => $prizeAmount,
+                                'type' => 'derived'
+                            ];
+                        }
+                        break; // Solo sumar una vez por quinto premio
+                    }
                 }
             }
         }

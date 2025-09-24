@@ -491,19 +491,51 @@ class LotteryController extends Controller
 
             if ($existingResult) {
                 // Actualizar resultado existente
+                \Log::info("Actualizando resultados para sorteo: " . $lottery->name . " (ID: " . $lottery->id . ")");
                 $this->updateLotteryResult($existingResult, $filteredData);
                 $message = 'Resultados actualizados exitosamente';
             } else {
                 // Crear nuevo resultado
+                \Log::info("Creando nuevos resultados para sorteo: " . $lottery->name . " (ID: " . $lottery->id . ")");
                 $this->createLotteryResult($lottery, $filteredData);
                 $message = 'Resultados guardados exitosamente';
+            }
+
+            // Obtener los datos guardados de la base de datos para incluir las pedreas
+            $savedResult = LotteryResult::where('lottery_id', $lottery->id)->first();
+            
+            // Eliminar duplicados de las extracciones antes de devolver los datos
+            $responseData = $filteredData; // Datos originales de la API
+            
+            // Aplicar eliminación de duplicados a las extracciones
+            if (isset($responseData['extraccionesDeCincoCifras'])) {
+                $responseData['extraccionesDeCincoCifras'] = $this->removeDuplicateExtractions($responseData['extraccionesDeCincoCifras']);
+            }
+            if (isset($responseData['extraccionesDeCuatroCifras'])) {
+                $responseData['extraccionesDeCuatroCifras'] = $this->removeDuplicateExtractions($responseData['extraccionesDeCuatroCifras']);
+            }
+            if (isset($responseData['extraccionesDeTresCifras'])) {
+                $responseData['extraccionesDeTresCifras'] = $this->removeDuplicateExtractions($responseData['extraccionesDeTresCifras']);
+            }
+            if (isset($responseData['extraccionesDeDosCifras'])) {
+                $responseData['extraccionesDeDosCifras'] = $this->removeDuplicateExtractions($responseData['extraccionesDeDosCifras']);
+            }
+            
+            if ($savedResult) {
+                // Agregar las pedreas a la respuesta si existen
+                if (!empty($savedResult->pedreas)) {
+                    $responseData['pedreas'] = $savedResult->pedreas;
+                    \Log::info("Pedreas agregadas a la respuesta: " . count($savedResult->pedreas) . " elementos");
+                } else {
+                    \Log::info("No hay pedreas en el resultado guardado");
+                }
             }
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
                 'lottery_id' => $lottery->id,
-                'data' => $filteredData
+                'data' => $responseData
             ]);
 
         } catch (\Exception $e) {
@@ -537,19 +569,21 @@ class LotteryController extends Controller
         $resultData['cuartos_premios'] = $data['cuartosPremios'] ?? [];
         $resultData['quintos_premios'] = $data['quintosPremios'] ?? [];
 
-        // Procesar extracciones
-        $resultData['extracciones_cinco_cifras'] = $data['extraccionesDeCincoCifras'] ?? [];
-        $resultData['extracciones_cuatro_cifras'] = $data['extraccionesDeCuatroCifras'] ?? [];
-        $resultData['extracciones_tres_cifras'] = $data['extraccionesDeTresCifras'] ?? [];
-        $resultData['extracciones_dos_cifras'] = $data['extraccionesDeDosCifras'] ?? [];
+        // Procesar extracciones (eliminar duplicados)
+        $resultData['extracciones_cinco_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeCincoCifras'] ?? []);
+        $resultData['extracciones_cuatro_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeCuatroCifras'] ?? []);
+        $resultData['extracciones_tres_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeTresCifras'] ?? []);
+        $resultData['extracciones_dos_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeDosCifras'] ?? []);
 
         // Procesar reintegros
         $resultData['reintegros'] = $data['reintegros'] ?? [];
         
         // Procesar pedreas para sorteos de Navidad
         if (isset($data['tipoSorteo']) && $data['tipoSorteo'] === 'N') {
+            \Log::info("Sorteo de Navidad detectado, obteniendo pedreas...");
             $resultData['pedreas'] = $this->getPedreasForNavidadSorteo($data);
         } else {
+            \Log::info("No es sorteo de Navidad (tipoSorteo: " . ($data['tipoSorteo'] ?? 'no definido') . "), saltando pedreas");
             $resultData['pedreas'] = [];
         }
 
@@ -577,19 +611,21 @@ class LotteryController extends Controller
         $updateData['cuartos_premios'] = $data['cuartosPremios'] ?? [];
         $updateData['quintos_premios'] = $data['quintosPremios'] ?? [];
 
-        // Procesar extracciones
-        $updateData['extracciones_cinco_cifras'] = $data['extraccionesDeCincoCifras'] ?? [];
-        $updateData['extracciones_cuatro_cifras'] = $data['extraccionesDeCuatroCifras'] ?? [];
-        $updateData['extracciones_tres_cifras'] = $data['extraccionesDeTresCifras'] ?? [];
-        $updateData['extracciones_dos_cifras'] = $data['extraccionesDeDosCifras'] ?? [];
+        // Procesar extracciones (eliminar duplicados)
+        $updateData['extracciones_cinco_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeCincoCifras'] ?? []);
+        $updateData['extracciones_cuatro_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeCuatroCifras'] ?? []);
+        $updateData['extracciones_tres_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeTresCifras'] ?? []);
+        $updateData['extracciones_dos_cifras'] = $this->removeDuplicateExtractions($data['extraccionesDeDosCifras'] ?? []);
 
         // Procesar reintegros
         $updateData['reintegros'] = $data['reintegros'] ?? [];
         
         // Procesar pedreas para sorteos de Navidad
         if (isset($data['tipoSorteo']) && $data['tipoSorteo'] === 'N') {
+            \Log::info("Sorteo de Navidad detectado en actualización, obteniendo pedreas...");
             $updateData['pedreas'] = $this->getPedreasForNavidadSorteo($data);
         } else {
+            \Log::info("No es sorteo de Navidad en actualización (tipoSorteo: " . ($data['tipoSorteo'] ?? 'no definido') . "), saltando pedreas");
             $updateData['pedreas'] = [];
         }
 
@@ -951,5 +987,32 @@ class LotteryController extends Controller
         ];
         
         return $names[$code] ?? 'Sorteo ' . $code;
+    }
+    
+    /**
+     * Eliminar duplicados de las extracciones
+     */
+    private function removeDuplicateExtractions($extractions)
+    {
+        if (!is_array($extractions) || empty($extractions)) {
+            return [];
+        }
+        
+        $unique = [];
+        $seen = [];
+        
+        foreach ($extractions as $extraction) {
+            if (isset($extraction['decimo'])) {
+                $decimo = $extraction['decimo'];
+                if (!in_array($decimo, $seen)) {
+                    $unique[] = $extraction;
+                    $seen[] = $decimo;
+                }
+            }
+        }
+        
+        \Log::info("Extracciones filtradas: " . count($extractions) . " -> " . count($unique) . " (eliminados " . (count($extractions) - count($unique)) . " duplicados)");
+        
+        return $unique;
     }
 } 

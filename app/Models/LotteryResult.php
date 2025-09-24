@@ -180,12 +180,14 @@ class LotteryResult extends Model
     public function getPedreasAttribute()
     {
         $arr = [];
-        if (!$this->pedreas) {
+        if (!$this->attributes['pedreas']) {
             return $arr;
         }
-        foreach ($this->pedreas as $key => $value) {
-            $arr[] = $value['decimo'];
+        $pedreas = json_decode($this->attributes['pedreas'], true);
+        if (!$pedreas) {
+            return $arr;
         }
-        return $arr;
+        // Devolver los objetos completos de las pedreas, no solo los números
+        return $pedreas;
     }
 }

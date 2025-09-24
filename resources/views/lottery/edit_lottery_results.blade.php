@@ -436,7 +436,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Pedrea</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                            	<textarea class="form-control result-field" name="pedrea" readonly style="border-radius: 30px;" rows="6">{{-- {{ $lottery->result && $lottery->result->reintegros ? 'Reintegros: ' . implode(', ', $lottery->result->reintegros) : '' }} --}}</textarea>
+	                                            	<textarea class="form-control result-field" name="pedrea" readonly="" style="border-radius: 30px;" rows="6">{{ $lottery->result && $lottery->result->pedreas ? implode('-', $lottery->result->pedreas) : '' }}</textarea>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -545,6 +545,14 @@ $(document).ready(function() {
         $('input[name="extracciones_4_cifras"]').val(data.extraccionesDeCuatroCifras ? data.extraccionesDeCuatroCifras.map(item => item.decimo || item).join('-') : '');
         $('input[name="extracciones_3_cifras"]').val(data.extraccionesDeTresCifras ? data.extraccionesDeTresCifras.map(item => item.decimo || item).join('-') : '');
         $('input[name="extracciones_2_cifras"]').val(data.extraccionesDeDosCifras ? data.extraccionesDeDosCifras.map(item => item.decimo || item).join('-') : '');
+        
+        // Procesar pedreas si existen
+        if (data.pedreas && Array.isArray(data.pedreas)) {
+            const pedreasText = data.pedreas.map(item => item.decimo || item).join('-');
+            $('textarea[name="pedrea"]').val(pedreasText);
+        } else {
+            $('textarea[name="pedrea"]').val('');
+        }
     }
     
     // Toggle modo edición

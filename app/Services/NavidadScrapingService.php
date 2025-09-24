@@ -272,7 +272,7 @@ class NavidadScrapingService
             
             $formattedPedreas[] = [
                 'decimo' => $numero,
-                'premio' => $premio,
+                'prize' => $premio,
                 'tipo' => 'pedrea',
                 'categoria' => 'Pedrea',
                 'literalPremio' => [
