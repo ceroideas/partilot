@@ -28,12 +28,44 @@
                     <p class="text-muted mb-0">Selecciona un sorteo para generar el escrutinio completo</p>
                 </div>
                 <div class="card-body">
+                    
+                    <!-- Buscador de sorteos -->
+                    <div class="row mb-4">
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="ri-search-line"></i>
+                                </span>
+                                <input type="text" class="form-control" id="lotterySearch" placeholder="Buscar por nombre, fecha o tipo de sorteo...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="lotteryTypeFilter">
+                                <option value="">Todos los tipos</option>
+                                @foreach($lotteryTypes as $type)
+                                    <option value="{{ $type->name }}">{{ $type->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" id="lotteryDateFilter" placeholder="Filtrar por fecha">
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-outline-secondary w-100" type="button" id="clearFiltersBtn" title="Limpiar filtros">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
+                    </div>
 
                     @if($lotteries->count() > 0)
 
-                        <div class="row">
+                        <div class="row" id="lotteriesContainer">
                             @foreach($lotteries as $lottery)
-                            <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="col-md-6 col-lg-4 mb-3 lottery-card" 
+                                 data-name="{{ strtolower($lottery->name) }}"
+                                 data-date="{{ $lottery->draw_date ? \Carbon\Carbon::parse($lottery->draw_date)->format('d/m/Y') : '' }}"
+                                 data-date-iso="{{ $lottery->draw_date ? \Carbon\Carbon::parse($lottery->draw_date)->format('Y-m-d') : '' }}"
+                                 data-type="{{ strtolower($lottery->lotteryType->name ?? '') }}">
                                 <div class="card border">
                                     <div class="card-body">
                                         <h5 class="card-title">
@@ -316,6 +348,83 @@ $(document).ready(function() {
     // Variables globales para mantener el rango de búsqueda
     let currentStartRange = null;
     let currentEndRange = null;
+    
+    // Funcionalidad del buscador de sorteos
+    function filterLotteries() {
+        const searchTerm = $('#lotterySearch').val().toLowerCase();
+        const typeFilter = $('#lotteryTypeFilter').val().toLowerCase();
+        const dateFilter = $('#lotteryDateFilter').val();
+        
+        $('.lottery-card').each(function() {
+            const $card = $(this);
+            const name = $card.data('name');
+            const date = $card.data('date');
+            const dateIso = $card.data('date-iso');
+            const type = $card.data('type');
+            
+            let showCard = true;
+            
+            // Filtro por texto de búsqueda
+            if (searchTerm) {
+                showCard = name.includes(searchTerm) || 
+                          date.includes(searchTerm) || 
+                          type.includes(searchTerm);
+            }
+            
+            // Filtro por tipo
+            if (typeFilter && showCard) {
+                showCard = type.includes(typeFilter);
+            }
+            
+            // Filtro por fecha
+            if (dateFilter && showCard) {
+                showCard = dateIso === dateFilter;
+            }
+            
+            // Mostrar/ocultar tarjeta
+            if (showCard) {
+                $card.show();
+            } else {
+                $card.hide();
+            }
+        });
+        
+        // Mostrar mensaje si no hay resultados
+        const visibleCards = $('.lottery-card:visible').length;
+        if (visibleCards === 0) {
+            if ($('#noResultsMessage').length === 0) {
+                $('#lotteriesContainer').append(`
+                    <div class="col-12" id="noResultsMessage">
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="ri-search-line" style="font-size: 48px; color: #ccc;"></i>
+                            </div>
+                            <h5 class="text-muted">No se encontraron sorteos</h5>
+                            <p class="text-muted">Intenta con otros términos de búsqueda o filtros.</p>
+                        </div>
+                    </div>
+                `);
+            }
+        } else {
+            $('#noResultsMessage').remove();
+        }
+    }
+    
+    // Eventos del buscador
+    $('#lotterySearch').on('input', filterLotteries);
+    $('#lotteryTypeFilter').on('change', filterLotteries);
+    $('#lotteryDateFilter').on('change', filterLotteries);
+    
+    // Limpiar filtros
+    function clearFilters() {
+        $('#lotterySearch').val('');
+        $('#lotteryTypeFilter').val('');
+        $('#lotteryDateFilter').val('');
+        $('.lottery-card').show();
+        $('#noResultsMessage').remove();
+    }
+    
+    $('#clearFiltersBtn').on('click', clearFilters);
     
     // Función para cargar página específica
     function loadScrutinyPage(lotteryId, page, perPage, startRange = null, endRange = null, sortOrder = 'desc') {

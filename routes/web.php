@@ -33,6 +33,7 @@ Route::get('/participation-ticket', [ApiController::class, 'showParticipationTic
 
 // Rutas de autenticación
 Route::get('/', function () {
+    return phpinfo();
     return redirect('/dashboard');
 });
 
@@ -149,8 +150,11 @@ Route::group(['prefix' => 'lottery'], function() {
     // Rutas de escrutinio
     Route::get('/scrutiny/{lottery}', [LotteryScrutinyController::class, 'show'])->name('lottery.scrutiny');
     Route::post('/scrutiny/{lottery}/process', [LotteryScrutinyController::class, 'process'])->name('lottery.process-scrutiny');
+    Route::post('/scrutiny/{lottery}/save', [LotteryScrutinyController::class, 'save'])->name('lottery.save-scrutiny');
     Route::get('/scrutiny/{lottery}/administration/{administration}', [LotteryScrutinyController::class, 'showResults'])->name('lottery.show-administration-scrutiny');
     Route::delete('/scrutiny/{lottery}/administration/{administration}', [LotteryScrutinyController::class, 'delete'])->name('lottery.delete-scrutiny');
+    // Ruta para escrutinio por categoría (números individuales)
+    Route::get('/scrutiny/{lottery}/category', [LotteryScrutinyController::class, 'showByCategory'])->name('lottery.scrutiny-category');
     Route::get('/results/edit/{id}', [LotteryController::class, 'editLotteryResults'])->name('lottery.edit-results');
     
     // Rutas para resultados de lotería

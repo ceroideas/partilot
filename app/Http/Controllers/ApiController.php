@@ -463,38 +463,151 @@ class ApiController extends Controller
         $prizeInfo = null;
         
         if ($request->has('ref')) {
-            $response = $this->checkParticipation($request);
-            $data = $response->getData(true);
-            if (empty($data['success'])) {
-                $error = $data['message'] ?? 'Error desconocido.';
+            $ref = $request->query('ref');
+            
+            // Buscar el set que contiene la referencia en tickets
+            $set = \App\Models\Set::whereNotNull('tickets')
+                ->with(['reserve.lottery', 'reserve.entity'])
+                ->get()
+                ->first(function($set) use ($ref) {
+                    if (!is_array($set->tickets)) return false;
+                    foreach ($set->tickets as $ticket) {
+                        if (isset($ticket['r']) && $ticket['r'] == $ref) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+            
+            if (!$set) {
+                $error = 'No se encontró ninguna participación con esa referencia.';
             } else {
-                $set = $data['set'];
-                $reserve = $data['reserve'];
-                $lottery = $data['lottery'];
-                $ref = $request->query('ref');
-                $ticketData = null;
-                if (isset($set['tickets']) && is_array($set['tickets'])) {
-                    foreach ($set['tickets'] as $t) {
-                        if (isset($t['r']) && $t['r'] == $ref) {
-                            $ticketData = $t;
+                // Encontrar el número de participación correspondiente a la referencia
+                $participationNumber = null;
+                foreach ($set->tickets as $ticket) {
+                    if (isset($ticket['r']) && $ticket['r'] == $ref) {
+                        $participationNumber = $ticket['n'];
                             break;
+                        }
+                }
+                
+                /*\Log::info("Set Tickets: " . json_encode($set->tickets));
+                \Log::info("Looking for ref: " . $ref);
+                \Log::info("Found participation number: " . ($participationNumber ?? 'NULL'));*/
+                
+                // Buscar la participación por set_id y participation_number
+                $participation = \App\Models\Participation::where('set_id', $set->id)
+                    ->where('participation_number', $participationNumber)
+                    ->first();
+                
+                if (!$participation) {
+                    $error = 'No se encontró la participación correspondiente a esa referencia.';
+                } else if ($participation->status !== 'asignada') {
+                    \Log::info("Participation Status: " . $participation->status);
+                    $error = 'Esta participación no está asignada.';
+                } else {
+                    \Log::info("Participation Status: " . $participation->status . " (OK)");
+                    $reserve = $set->reserve;
+                    $lottery = $reserve->lottery;
+                    
+                    // Obtener los números ganadores desde reservation_numbers
+                    $reservedNumbers = $reserve->reservation_numbers ?? [];
+                    
+                    // Manejar todos los números reservados como posibles ganadores
+                    $winningNumbers = [];
+                    
+                    // Si reservation_numbers tiene solo 1 número, todas las participaciones
+                    // del set tienen el mismo número ganador
+                    if (count($reservedNumbers) == 1) {
+                        $winningNumbers = $reservedNumbers;
+                    } else {
+                        // Si hay múltiples números, usar todos los números reservados
+                        $winningNumbers = $reservedNumbers;
+                    }
+                    
+                    /*\Log::info("Reserved Numbers: " . json_encode($reservedNumbers));
+                    \Log::info("Participation Number: " . $participationNumber);
+                    \Log::info("Winning Number Index: " . ($participationNumber - 1));
+                    \Log::info("Reserved Numbers Count: " . count($reservedNumbers));
+                    \Log::info("Winning Number: " . ($winningNumber ?? 'NULL'));*/
+                
+                // Debug: Log de información
+                /*\Log::info("=== DEBUG PARTICIPATION TICKET ===");
+                \Log::info("Winning Number: " . ($winningNumber ?? 'NULL'));
+                \Log::info("Set ID: " . $set->id);
+                \Log::info("Participation Number: " . $participationNumber);*/
+                
+                // Buscar en los resultados del escrutinio guardado para todos los números ganadores
+                $scrutinyResults = [];
+                $totalPrizeAmount = 0;
+                $allWinningCategories = [];
+                
+                if (!empty($winningNumbers)) {
+                    $scrutinyResults = DB::table('scrutiny_detailed_results')
+                        ->join('administration_lottery_scrutinies', 'scrutiny_detailed_results.scrutiny_id', '=', 'administration_lottery_scrutinies.id')
+                        ->whereIn('scrutiny_detailed_results.winning_number', $winningNumbers)
+                        ->where('scrutiny_detailed_results.set_id', $set->id)
+                        ->where('administration_lottery_scrutinies.is_scrutinized', true) // Buscar en escrutinios procesados, no solo guardados
+                        ->select('scrutiny_detailed_results.*')
+                        ->get();
+                    
+                    \Log::info("Scrutiny Results Found: " . $scrutinyResults->count());
+                    
+                    // Calcular premio total y categorías ganadoras
+                    foreach ($scrutinyResults as $result) {
+                        $totalPrizeAmount += $result->premio_por_participacion;
+                        $categories = json_decode($result->winning_categories, true);
+                        if (is_array($categories)) {
+                            // Construir estructura correcta para la vista
+                            foreach ($categories as $category) {
+                                if (is_array($category) && isset($category['categoria']) && isset($category['premio_decimo'])) {
+                                    $allWinningCategories[] = $category;
+                                } elseif (is_string($category) && !empty(trim($category))) {
+                                    // Si es solo un string, crear estructura básica
+                                    $allWinningCategories[] = [
+                                        'categoria' => $category,
+                                        'premio_decimo' => $result->premio_por_decimo ?? 0
+                                    ];
+                                }
+                            }
                         }
                     }
                 }
                 
-                // Verificar si el sorteo tiene resultados
-                $lotteryModel = \App\Models\Lottery::find($lottery['id']);
-                if ($lotteryModel && $lotteryModel->results) {
-                    $prizeInfo = $this->checkWinningNumbers($lotteryModel, $ticketData['numbers'] ?? [], $ticketData['total_participations'] ?? 0);
+                if ($scrutinyResults->count() > 0) {
+                    // Usar datos del escrutinio guardado
+                    $prizeInfo = [
+                        'has_won' => true,
+                        'prize_category' => 'Premio del Escrutinio',
+                        'prize_amount' => $totalPrizeAmount,
+                        'matching_numbers' => $winningNumbers,
+                        'winning_categories' => $allWinningCategories,
+                        'scrutiny_results_count' => $scrutinyResults->count()
+                    ];
+                } else {
+                    // No hay premio en el escrutinio guardado
+                    $prizeInfo = [
+                        'has_won' => false,
+                        'prize_category' => null,
+                        'prize_amount' => 0,
+                        'matching_numbers' => $winningNumbers,
+                        'winning_categories' => []
+                    ];
                 }
                 
                 $ticket = [
-                    'data' => $ticketData,
+                        'data' => [
+                            'participation_code' => $participation->participation_code, // El participation_code de la participación (1/00046)
+                            'participation_number' => $ref, // La referencia original buscada (000100061758806276046)
+                            'numbers' => $reservedNumbers,
+                            'winning_numbers' => $winningNumbers
+                        ],
                     'set' => $set,
                     'reserve' => $reserve,
                     'lottery' => $lottery,
                     'prize_info' => $prizeInfo
                 ];
+                }
             }
         }
         
@@ -503,11 +616,11 @@ class ApiController extends Controller
 
     private function checkWinningNumbers($lottery, $ticketNumbers, $totalParticipations)
     {
-        if (!$lottery->results || !$ticketNumbers) {
+        if (!$lottery->result || !$ticketNumbers) {
             return null;
         }
 
-        $results = $lottery->results;
+        $result = $lottery->result;
         $prizeInfo = [
             'has_won' => false,
             'prize_category' => null,
@@ -519,24 +632,74 @@ class ApiController extends Controller
         foreach ($ticketNumbers as $number) {
             $numberStr = str_pad($number, 5, '0', STR_PAD_LEFT);
             
-            // Verificar premios
-            if (isset($results['premios'])) {
-                foreach ($results['premios'] as $category => $prize) {
-                    if (isset($prize['numero']) && $prize['numero'] == $numberStr) {
+            // Verificar primer premio
+            if ($result->primer_premio && isset($result->primer_premio['decimo']) && $result->primer_premio['decimo'] == $numberStr) {
+                $prizeInfo['has_won'] = true;
+                $prizeInfo['prize_category'] = 'Primer Premio';
+                $prizeInfo['prize_amount'] = ($result->primer_premio['prize'] ?? 0) / 100; // Convertir de céntimos a euros
+                $prizeInfo['matching_numbers'][] = $number;
+                continue;
+            }
+            
+            // Verificar segundo premio
+            if ($result->segundo_premio && isset($result->segundo_premio['decimo']) && $result->segundo_premio['decimo'] == $numberStr) {
+                $prizeInfo['has_won'] = true;
+                $prizeInfo['prize_category'] = 'Segundo Premio';
+                $prizeInfo['prize_amount'] = ($result->segundo_premio['prize'] ?? 0) / 100;
+                $prizeInfo['matching_numbers'][] = $number;
+                continue;
+            }
+            
+            // Verificar terceros premios
+            if ($result->terceros_premios) {
+                foreach ($result->terceros_premios as $premio) {
+                    if (isset($premio['decimo']) && $premio['decimo'] == $numberStr) {
                         $prizeInfo['has_won'] = true;
-                        $prizeInfo['prize_category'] = $category;
-                        $prizeInfo['prize_amount'] = $prize['importe'] ?? 0;
+                        $prizeInfo['prize_category'] = 'Tercer Premio';
+                        $prizeInfo['prize_amount'] = ($premio['prize'] ?? 0) / 100;
                         $prizeInfo['matching_numbers'][] = $number;
+                        break;
+                    }
+                }
+            }
+            
+            // Verificar cuartos premios
+            if ($result->cuartos_premios) {
+                foreach ($result->cuartos_premios as $premio) {
+                    if (isset($premio['decimo']) && $premio['decimo'] == $numberStr) {
+                        $prizeInfo['has_won'] = true;
+                        $prizeInfo['prize_category'] = 'Cuarto Premio';
+                        $prizeInfo['prize_amount'] = ($premio['prize'] ?? 0) / 100;
+                        $prizeInfo['matching_numbers'][] = $number;
+                        break;
+                    }
+                }
+            }
+            
+            // Verificar quintos premios
+            if ($result->quintos_premios) {
+                foreach ($result->quintos_premios as $premio) {
+                    if (isset($premio['decimo']) && $premio['decimo'] == $numberStr) {
+                        $prizeInfo['has_won'] = true;
+                        $prizeInfo['prize_category'] = 'Quinto Premio';
+                        $prizeInfo['prize_amount'] = ($premio['prize'] ?? 0) / 100;
+                        $prizeInfo['matching_numbers'][] = $number;
+                        break;
                     }
                 }
             }
 
             // Verificar reintegros
-            if (isset($results['reintegros']) && in_array($numberStr, $results['reintegros'])) {
+            if ($result->reintegros) {
+                foreach ($result->reintegros as $reintegro) {
+                    if (isset($reintegro['decimo']) && $reintegro['decimo'] == substr($numberStr, -1)) {
                 $prizeInfo['has_won'] = true;
-                $prizeInfo['prize_category'] = 'reintegro';
-                $prizeInfo['prize_amount'] = 20; // Valor del reintegro
+                        $prizeInfo['prize_category'] = 'Reintegro';
+                        $prizeInfo['prize_amount'] = ($reintegro['prize'] ?? 0) / 100;
                 $prizeInfo['matching_numbers'][] = $number;
+                        break;
+                    }
+                }
             }
         }
 

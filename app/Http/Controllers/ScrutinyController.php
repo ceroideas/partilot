@@ -19,7 +19,9 @@ class ScrutinyController extends Controller
             ->orderBy('draw_date', 'desc')
             ->get();
 
-        return view('scrutiny.index', compact('lotteries'));
+        $lotteryTypes = LotteryType::orderBy('name')->get();
+
+        return view('scrutiny.index', compact('lotteries', 'lotteryTypes'));
     }
 
     /**

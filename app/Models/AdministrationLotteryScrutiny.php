@@ -15,6 +15,9 @@ class AdministrationLotteryScrutiny extends Model
         'lottery_result_id',
         'scrutiny_date',
         'is_scrutinized',
+        'is_saved',
+        'saved_at',
+        'saved_by',
         'scrutiny_summary',
         'scrutinized_by',
         'comments'
@@ -23,6 +26,8 @@ class AdministrationLotteryScrutiny extends Model
     protected $casts = [
         'scrutiny_date' => 'datetime',
         'is_scrutinized' => 'boolean',
+        'is_saved' => 'boolean',
+        'saved_at' => 'datetime',
         'scrutiny_summary' => 'array'
     ];
 
@@ -59,11 +64,19 @@ class AdministrationLotteryScrutiny extends Model
     }
 
     /**
-     * Relación con los resultados de entidades
+     * Relación con el usuario que guardó el escrutinio
      */
-    public function entityResults()
+    public function savedBy()
     {
-        return $this->hasMany(ScrutinyEntityResult::class);
+        return $this->belongsTo(User::class, 'saved_by');
+    }
+
+    /**
+     * Relación con los resultados detallados del escrutinio
+     */
+    public function detailedResults()
+    {
+        return $this->hasMany(ScrutinyDetailedResult::class, 'scrutiny_id');
     }
 
     /**
@@ -103,6 +116,22 @@ class AdministrationLotteryScrutiny extends Model
     public function scopePending($query)
     {
         return $query->where('is_scrutinized', false);
+    }
+
+    /**
+     * Scope para escrutinios guardados
+     */
+    public function scopeSaved($query)
+    {
+        return $query->where('is_saved', true);
+    }
+
+    /**
+     * Scope para escrutinios no guardados
+     */
+    public function scopeNotSaved($query)
+    {
+        return $query->where('is_saved', false);
     }
 
     /**

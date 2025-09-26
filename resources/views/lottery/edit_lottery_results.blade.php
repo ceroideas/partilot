@@ -436,7 +436,7 @@
 	                                        <div class="form-group mt-1 mb-2">
 	                                            <label class="label-control">Pedrea</label>
 	                                            <div class="input-group input-group-merge group-form">
-	                                            	<textarea class="form-control result-field" name="pedrea" readonly="" style="border-radius: 30px;" rows="6">{{ $lottery->result && $lottery->result->pedreas ? implode('-', $lottery->result->pedreas) : '' }}</textarea>
+	                                            	<textarea class="form-control result-field" name="pedrea" readonly="" style="border-radius: 30px;" rows="6">{{ $lottery->result && $lottery->result['pedreas'] ? implode('-', array_column($lottery->result['pedreas'], 'decimo')) : '' }}</textarea>
 	                                            </div>
 	                                        </div>
 	                                    </div>

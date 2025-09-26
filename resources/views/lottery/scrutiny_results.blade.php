@@ -17,17 +17,41 @@
                         <li class="breadcrumb-item active">Escrutinio Realizado</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Escrutinio de Sorteo</h4>
+                <h4 class="page-title">Resultados del Escrutinio</h4>
             </div>
         </div>
     </div>
-{{-- 
-    @if(session('success'))
+
+    {{-- @if(session('success'))
         <div class="row">
             <div class="col-12">
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="ri-check-line me-2"></i>
                     {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="ri-error-warning-line me-2"></i>
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="ri-information-line me-2"></i>
+                    {{ session('info') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </div>
@@ -40,8 +64,12 @@
                 <div class="card-body">
 
                     <h4 class="header-title">
-                        Escrutinio Completado
-                        <span class="badge bg-success float-end">ESCRUTADO</span>
+                        Realizar Escrutinio
+                        @if($scrutiny->is_saved)
+                            <span class="badge bg-success float-end">GUARDADO</span>
+                        @else
+                            <span class="badge bg-warning float-end">ESCRUTADO</span>
+                        @endif
                     </h4>
 
                     <br>
@@ -51,9 +79,9 @@
                         <div class="col-md-12">
                             <div class="form-card bs" style="min-height: 658px;">
                                 <h4 class="mb-0 mt-1">
-                                    Resultados del Escrutinio
+                                    Datos del Sorteo y Administración
                                 </h4>
-                                <small><i>Escrutinio realizado el {{ $scrutiny->scrutiny_date->format('d/m/Y H:i') }}</i></small>
+                                <small><i>Verificar que los datos sean correctos antes de procesar</i></small>
 
                                 <div class="form-group mt-2 mb-3">
 
@@ -61,9 +89,9 @@
 
                                         <div class="col-4">
 
-                                            <div class="photo-preview" style="width: 200px; background-image: url({{ $lottery->image ? url('uploads/' . $lottery->image) : '' }});">
-                                                @if(!$lottery->image)
-                                                    <i class="ri-image-add-line"></i>
+                                            <div style="width: 150px; height: 80px; border-radius: 8px; background-color: silver; float: left; margin-right: 20px;">
+                                                @if($lottery->image)
+                                                    <img src="{{ url('storage/' . $lottery->image) }}" alt="Sorteo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
                                                 @endif
                                             </div>
 
@@ -96,10 +124,9 @@
                                         <div class="col-6">
 
                                                                                          <div class="mt-2">
-                                                 Participaciones Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_winning_participations'] ?? 0 }} Números</b> <br>
-                                                 Participaciones No Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_non_winning_participations'] ?? 0 }} Números</b> <br>
-                                                 Importe Premios Repartidos: <b>{{ number_format($scrutiny->scrutiny_summary['total_prize_amount'] ?? 0, 2) }}€</b> <br>
-                                                 <small><i>Escrutado por: {{ $scrutiny->scrutinizedBy->name ?? 'N/A' }}</i></small>
+                                                Participaciones Asignadas Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_winning_participations'] ?? 0 }} Números</b> <br>
+                                                Participaciones Asignadas No Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_non_winning_participations'] ?? 0 }} Números</b> <br>
+                                                Importe Premios Repartidos: <b>{{ number_format($scrutiny->detailedResults->sum('premio_total'), 2) }}€</b>
                                              </div>
                                             
                                         </div>
@@ -108,7 +135,7 @@
                                 </div>
 
                                 <h4 class="mb-0 mt-1">
-                                    Lista de participaciones por entidad
+                                    Lista de entidades y sus participaciones asignadas
                                 </h4>
 
                                 <div style="min-height: 400px; height: 400px; overflow: auto;">
@@ -125,129 +152,86 @@
                                         </thead>
 
                                         <tbody class="text-center">
-                                            @forelse($scrutiny->entityResults as $entityResult)
-                                            <tr>
-                                                <td><b>{{ $entityResult->entity->name }}</b></td>
+                                            @forelse($scrutiny->detailedResults->groupBy('entity_id') as $entityId => $entityResults)
+                                                @php
+                                                    $entity = $entityResults->first()->entity;
+                                                    $totalEntityPrize = $entityResults->sum('premio_total');
+                                                    $totalWinningNumbers = $entityResults->count();
+                                                @endphp
+                                                <tr>
+                                                    <td><b>{{ $entity->name }}</b></td>
 
-                                                <td>
-                                                    Reservadas: <b>{{ $entityResult->total_reserved }}</b> <br>
-                                                    Vendidas: <b>{{ $entityResult->total_sold + ($entityResult->total_non_winning ?? 0) }}</b> <br>
-                                                    Devueltas: <b>{{ $entityResult->total_returned }}</b> <br>
-                                                                                                         <span class="badge bg-{{ $entityResult->total_winning > 0 ? 'success' : 'secondary' }}">
-                                                         Premiadas: {{ $entityResult->total_winning }} Números
+                                                    <td>
+                                                        @php
+                                                            // Calcular datos correctos desde la base de datos
+                                                            $totalEmitidas = \App\Models\Participation::whereHas('set.reserve', function($query) use ($lottery) {
+                                                                $query->where('lottery_id', $lottery->id);
+                                                            })
+                                                            ->whereHas('entity', function($query) use ($entity) {
+                                                                $query->where('id', $entity->id);
+                                                            })
+                                                            ->count();
+                                                            
+                                                            $totalVendidas = \App\Models\Participation::whereHas('set.reserve', function($query) use ($lottery) {
+                                                                $query->where('lottery_id', $lottery->id);
+                                                            })
+                                                            ->whereHas('entity', function($query) use ($entity) {
+                                                                $query->where('id', $entity->id);
+                                                            })
+                                                            ->where('status', 'asignada')
+                                                            ->count();
+                                                        @endphp
+                                                        Emitidas: <b>{{ $totalEmitidas }}</b> <br>
+                                                        Vendidas: <b>{{ $totalVendidas }}</b> <br>
+                                                        Devueltas: <b>0</b> <br>
+                                                        <span class="badge bg-{{ $totalWinningNumbers > 0 ? 'success' : 'secondary' }}">
+                                                            Premiadas: {{ $totalWinningNumbers }} Números
                                                      </span>
                                                 </td>
                                                 <td>
-                                                    <b>{{ number_format($entityResult->total_prize_amount, 2) }}€</b>
+                                                        <b>{{ number_format($totalEntityPrize, 2) }}€</b>
                                                 </td>
                                                 <td>
-                                                    <b>{{ number_format($entityResult->prize_per_participation, 2) }}€</b>
+                                                        <b>-</b>
                                                 </td>
                                             </tr>
                                             
-                                                                                         @if($entityResult->total_winning > 0)
-                                                @php
-                                                    $prizeBreakdown = $entityResult->prize_breakdown;
-                                                @endphp
-                                                
-                                                {{-- Premio Especial --}}
-                                                @if(!empty($prizeBreakdown['otros_premios']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #fff3cd;">
-                                                            <b>Premio Especial: {{ implode(', ', $prizeBreakdown['otros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['otros_premios']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                                                                 {{-- Primer Premio --}}
-                                                 @if(!empty($prizeBreakdown['primer_premio']['numbers']))
-                                                     <tr>
-                                                         <td colspan="4" style="border-bottom: 1px solid #333; background-color: #d1ecf1;">
-                                                             <b>Número: {{ implode(', ', $prizeBreakdown['primer_premio']['numbers']) }} - Premiado con {{ number_format($prizeBreakdown['primer_premio']['prize_per_ticket'], 0) }}€ × {{ $prizeBreakdown['primer_premio']['total_tickets'] }} décimos = {{ number_format($prizeBreakdown['primer_premio']['total_amount'], 0) }}€</b>
-                                                         </td>
-                                                     </tr>
-                                                 @endif
-
-                                                {{-- Segundo Premio --}}
-                                                @if(!empty($prizeBreakdown['segundo_premio']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #d1ecf1;">
-                                                            <b>Segundo Premio: {{ implode(', ', $prizeBreakdown['segundo_premio']['numbers']) }} - {{ number_format($prizeBreakdown['segundo_premio']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                {{-- Terceros Premios --}}
-                                                @if(!empty($prizeBreakdown['terceros_premios']['numbers']))
+                                                @if($totalWinningNumbers > 0)
+                                                    @foreach($entityResults as $result)
                                                     <tr>
                                                         <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                            <b>Terceros Premios: {{ implode(', ', $prizeBreakdown['terceros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['terceros_premios']['total_amount'], 2) }}€</b>
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        @php
+                                                                            // Recalcular los datos correctos usando la misma lógica que scrutiny.blade.php
+                                                                            $lottery = $scrutiny->lottery;
+                                                                            $ticketPrice = $lottery->ticket_price ?? 0;
+                                                                            
+                                                                            // Obtener el set para recalcular
+                                                                            $set = $result->set;
+                                                                            $pricePerParticipation = $set->played_amount ?? 0;
+                                                                            
+                                                                            // Recalcular décimos usando la misma fórmula
+                                                                            $totalParticipations = $result->total_participations;
+                                                                            $participacionesPorDecimo = $ticketPrice / $pricePerParticipation;
+                                                                            $decimosRecalculados = $totalParticipations / $participacionesPorDecimo;
+                                                                            $decimosRedondeados = round($decimosRecalculados);
+                                                                            
+                                                                            // Recalcular premio total
+                                                                            $premioTotalRecalculado = $result->premio_por_decimo * $decimosRedondeados;
+                                                                        @endphp
+                                                                        <b>Número: {{ $result->winning_number }} - Premiado con {{ number_format($result->premio_por_decimo, 2) }}€ X {{ $decimosRedondeados }} Décimos = {{ number_format($premioTotalRecalculado, 2) }}€</b>
+                                                                    </div>
+                                                                    <div class="text-end">
+                                                                        <span class="me-2">{{ number_format($result->premio_por_participacion, 2) }}€</span>
+                                                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="showPrizeDetails('{{ $result->winning_number }}', {{ json_encode($result->winning_categories) }}, {{ $decimosRedondeados }}, {{ $result->premio_por_decimo }}, {{ $result->premio_por_participacion }})">
+                                                                            <i class="ri-eye-line"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
                                                         </td>
                                                     </tr>
-                                                @endif
-
-                                                {{-- Cuartos Premios --}}
-                                                @if(!empty($prizeBreakdown['cuartos_premios']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                            <b>Cuartos Premios: {{ implode(', ', $prizeBreakdown['cuartos_premios']['numbers']) }} - {{ number_format($prizeBreakdown['cuartos_premios']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                {{-- Quintos Premios --}}
-                                                @if(!empty($prizeBreakdown['quintos_premios']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                            <b>Quintos Premios: {{ implode(', ', $prizeBreakdown['quintos_premios']['numbers']) }} - {{ number_format($prizeBreakdown['quintos_premios']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                {{-- Extracciones de Cinco Cifras --}}
-                                                @if(!empty($prizeBreakdown['extracciones_cinco_cifras']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
-                                                            <b>Extracciones 5 Cifras: {{ count($prizeBreakdown['extracciones_cinco_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_cinco_cifras']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                {{-- Extracciones de Cuatro Cifras --}}
-                                                @if(!empty($prizeBreakdown['extracciones_cuatro_cifras']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
-                                                            <b>Extracciones 4 Cifras: {{ count($prizeBreakdown['extracciones_cuatro_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_cuatro_cifras']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                {{-- Extracciones de Tres Cifras --}}
-                                                @if(!empty($prizeBreakdown['extracciones_tres_cifras']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
-                                                            <b>Extracciones 3 Cifras: {{ count($prizeBreakdown['extracciones_tres_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_tres_cifras']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                {{-- Extracciones de Dos Cifras --}}
-                                                @if(!empty($prizeBreakdown['extracciones_dos_cifras']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #e2e3e5;">
-                                                            <b>Extracciones 2 Cifras: {{ count($prizeBreakdown['extracciones_dos_cifras']['numbers']) }} números - {{ number_format($prizeBreakdown['extracciones_dos_cifras']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
-                                                {{-- Reintegros --}}
-                                                @if(!empty($prizeBreakdown['reintegros']['numbers']))
-                                                    <tr>
-                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                            <b>Reintegros: {{ count($prizeBreakdown['reintegros']['numbers']) }} números - {{ number_format($prizeBreakdown['reintegros']['total_amount'], 2) }}€</b>
-                                                        </td>
-                                                    </tr>
-                                                @endif
+                                                    @endforeach
                                             @endif
 
                                             @empty
@@ -255,7 +239,7 @@
                                                 <td colspan="4" class="text-center">
                                                     <div class="alert alert-info">
                                                         <i class="ri-information-line me-2"></i>
-                                                        No hay resultados de entidades para mostrar
+                                                        No hay entidades con reservas para este sorteo
                                                     </div>
                                                 </td>
                                             </tr>
@@ -277,12 +261,28 @@
 
                                 <div class="row">
 
-                                    <div class="col-6 text-start">
+                                    <div class="col-4 text-start">
                                         <a href="{{route('lottery.results')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">
                                             <i style="top: 5px; left: 10%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Volver a Resultados</span></a>
                                     </div>
                                     
-                                    <div class="col-6 text-end">
+                                    <div class="col-4 text-center">
+                                        @if(!$scrutiny->is_saved)
+                                            <form action="{{ route('lottery.save-scrutiny', $lottery->id) }}" method="POST" style="display: inline;">
+                                                @csrf
+                                                <button type="submit" style="border-radius: 30px; width: 200px; background-color: #28a745; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-success mt-2" onclick="return confirm('¿Está seguro de que desea guardar el escrutinio? Esta acción no se puede deshacer.')">
+                                                    {{-- <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i> --}}Guardar Escrutinio
+                                                </button>
+                                            </form>
+                                        @else
+                                            <div class="alert alert-success mt-2" style="border-radius: 30px; width: 200px; margin: 0 auto;">
+                                                <i class="ri-check-line me-2"></i>Escrutinio Guardado
+                                                <br><small>Guardado el {{ $scrutiny->saved_at->format('d/m/Y H:i') }}</small>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="col-4 text-end">
                                         <button onclick="window.print()" style="border-radius: 30px; width: 200px; background-color: #17a2b8; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-info mt-2">Imprimir Escrutinio
                                             <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-printer-line"></i></button>
                                     </div>
@@ -301,14 +301,80 @@
     </div>
     <!-- end row-->
 
+
 </div> <!-- container -->
+
+<!-- Modal para mostrar detalles de premios -->
+<div class="modal fade" id="prizeDetailsModal" tabindex="-1" aria-labelledby="prizeDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="prizeDetailsModalLabel">Detalles de Premios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="prizeDetailsContent">
+                <!-- Contenido se llenará dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
 @section('scripts')
 
 <script>
-// Funcionalidad adicional para la vista de resultados
+// Función para mostrar detalles de premios
+function showPrizeDetails(number, categories, totalDecimos, premioPorDecimo, premioPorParticipacion) {
+    let content = `<h6>Número: <strong class="text-primary">${number}</strong></h6>`;
+    content += `<p><strong>Décimos:</strong> ${totalDecimos} | <strong>Premio por Décimo:</strong> ${formatCurrency(premioPorDecimo)}</p>`;
+    content += `<p><strong>Premio por Participación:</strong> ${formatCurrency(premioPorParticipacion)}</p><hr>`;
+    
+    let totalPrize = 0;
+    if (categories && Array.isArray(categories)) {
+        categories.forEach(category => {
+            const prize = parseFloat(category.premio_decimo || 0);
+            totalPrize += prize;
+            content += `
+                <div class="row mb-2">
+                    <div class="col-8">
+                        <strong>${category.categoria || 'Premio'}</strong>
+                    </div>
+                    <div class="col-4 text-end">
+                        <strong class="text-success">${formatCurrency(prize)}</strong>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    const premioTotal = premioPorDecimo * totalDecimos;
+    content += `<hr><div class="row">
+        <div class="col-8"><strong>Total por Décimo:</strong></div>
+        <div class="col-4 text-end"><strong class="text-success">${formatCurrency(totalPrize)}</strong></div>
+    </div>`;
+    content += `<div class="row">
+        <div class="col-8"><strong>Total con ${totalDecimos} Décimos:</strong></div>
+        <div class="col-4 text-end"><strong class="text-success">${formatCurrency(premioTotal)}</strong></div>
+    </div>`;
+    
+    document.getElementById('prizeDetailsContent').innerHTML = content;
+    document.getElementById('prizeDetailsModalLabel').textContent = `Detalles de Premios - Número ${number}`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('prizeDetailsModal'));
+    modal.show();
+}
+
+// Función para formatear moneda
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR'
+    }).format(amount);
+}
 </script>
 
 @endsection

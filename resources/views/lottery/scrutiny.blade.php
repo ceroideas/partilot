@@ -112,27 +112,47 @@
 
                                                 <div class="mt-2">
                                                     @php
-                                                        // Usar los datos del resumen calculado en el controlador
-                                                        $summary = $scrutinyData['summary'] ?? null;
-                                                        if ($summary) {
-                                                            $totalWinning = $summary['unique_winning_numbers'];
-                                                            $totalNonWinning = $summary['unique_non_winning_numbers'];
-                                                            $totalPrizeAmount = $summary['total_prize_amount'];
-                                                        } else {
-                                                            // Fallback al cálculo anterior si no hay resumen
-                                                            $totalWinning = 0;
-                                                            $totalNonWinning = 0;
-                                                            $totalPrizeAmount = 0;
-                                                            
-                                                            foreach($scrutinyData['entities'] ?? $scrutinyData as $data) {
-                                                                $totalWinning += $data['result']->total_winning;
-                                                                $totalNonWinning += count($data['result']->reserved_numbers) - $data['result']->total_winning;
-                                                                $totalPrizeAmount += $data['result']->total_prize_amount;
+                                                        // Calcular desde los datos reales de la tabla (scrutinyResultsByEntity)
+                                                        $totalWinning = 0;
+                                                        $totalNonWinning = 0;
+                                                        $totalPrizeAmount = 0;
+                                                        $totalAsignadas = 0;
+                                                        
+                                                        // Sumar participaciones ganadoras desde los resultados por categoría
+                                                        foreach($scrutinyResultsByEntity as $entityId => $entityResults) {
+                                                            foreach($entityResults as $categoryResult) {
+                                                                $decimosInfo = $categoryResult['decimos_info'] ?? [];
+                                                                $totalParticipations = $decimosInfo['total_participations'] ?? 0;
+                                                                $totalWinning += $totalParticipations;
+                                                                
+                                                                // Calcular premio total
+                                                                $totalDecimos = $decimosInfo['total_decimos'] ?? 0;
+                                                                $premioPorDecimo = $categoryResult['total_prize'];
+                                                                $premioTotal = $premioPorDecimo * $totalDecimos;
+                                                                $totalPrizeAmount += $premioTotal;
                                                             }
                                                         }
+                                                        
+                                                        // Obtener total de participaciones asignadas de TODAS las entidades
+                                                        // (no solo las que tienen premios)
+                                                        $administrationId = session('selected_administration.id');
+                                                        $lotteryId = $lottery->id;
+                                                        
+                                                        $totalAsignadas = \App\Models\Participation::whereHas('set.reserve', function($query) use ($lotteryId) {
+                                                                $query->where('lottery_id', $lotteryId);
+                                                            })
+                                                            ->whereHas('entity', function($query) use ($administrationId) {
+                                                                $query->where('administration_id', $administrationId);
+                                                            })
+                                                            ->where('status', 'asignada')
+                                                            ->count();
+                                                        
+                                                        // Participaciones no ganadoras = total asignadas - ganadoras
+                                                        $totalNonWinning = $totalAsignadas - $totalWinning;
                                                     @endphp
-                                                    Participaciones Asignadas Premiadas: <b>{{ $totalWinning }} Números</b> <br>
-                                                    Participaciones Asignadas No Premiadas: <b>{{ $totalNonWinning }} Números</b> <br>
+                                                    Participaciones Asignadas: <b>{{ $totalAsignadas }} Participaciones</b> <br>
+                                                    Participaciones Asignadas Premiadas: <b>{{ $totalWinning }} Participaciones</b> <br>
+                                                    Participaciones Asignadas No Premiadas: <b>{{ $totalNonWinning }} Participaciones</b> <br>
                                                     Importe Premios Repartidos: <b>{{ number_format($totalPrizeAmount, 2) }}€</b>
                                                 </div>
                                                 
@@ -177,48 +197,91 @@
                                                             </span>
                                                         </td>
                                                         <td>
-                                                            <b>{{ number_format($result->total_prize_amount, 2) }}€</b>
+                                                            @php
+                                                                // Obtener el premio total de la entidad desde los resultados por categoría
+                                                                $premioTotalEntidad = 0;
+                                                                if (isset($scrutinyResultsByEntity[$entity->id])) {
+                                                                    foreach ($scrutinyResultsByEntity[$entity->id] as $categoryResult) {
+                                                                        $decimosInfo = $categoryResult['decimos_info'] ?? [];
+                                                                        $totalDecimos = $decimosInfo['total_decimos'] ?? 0;
+                                                                        $premioPorDecimo = $categoryResult['total_prize'];
+                                                                        $premioTotalEntidad += $premioPorDecimo * $totalDecimos;
+                                                                    }
+                                                                }
+                                                            @endphp
+                                                            <b>{{ number_format($premioTotalEntidad, 2) }}€</b>
                                                         </td>
                                                         <td>
-                                                            <b>{{ number_format($result->prize_per_participation, 2) }}€</b>
+                                                            <b>-</b>
                                                         </td>
                                                     </tr>
                                                     
                                                     @if($result->total_winning > 0)
-                                                        {{-- Primer Premio --}}
-                                                        @if(!empty($prizeBreakdown['primer_premio']['numbers']))
-                                                            <tr>
-                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Número: {{ implode(', ', $prizeBreakdown['primer_premio']['numbers']) }} - Premiado con {{ number_format($prizeBreakdown['primer_premio']['prize_per_ticket'], 0) }}€ × {{ $prizeBreakdown['primer_premio']['total_tickets'] }} décimos = {{ number_format($prizeBreakdown['primer_premio']['total_amount'], 0) }}€</b>
-                                                                </td>
-                                                            </tr>
-                                                        @endif
-
-                                                        {{-- Segundo Premio --}}
-                                                        @if(!empty($prizeBreakdown['segundo_premio']['numbers']))
-                                                            <tr>
-                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Segundo Premio: {{ implode(', ', $prizeBreakdown['segundo_premio']['numbers']) }} - {{ number_format($prizeBreakdown['segundo_premio']['total_amount'], 2) }}€</b>
-                                                                </td>
-                                                            </tr>
-                                                        @endif
-
-                                                        {{-- Terceros Premios --}}
-                                                        @if(!empty($prizeBreakdown['terceros_premios']['numbers']))
-                                                            <tr>
-                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Terceros Premios: {{ implode(', ', $prizeBreakdown['terceros_premios']['numbers']) }} - {{ number_format($prizeBreakdown['terceros_premios']['total_amount'], 2) }}€</b>
-                                                                </td>
-                                                            </tr>
-                                                        @endif
-
-                                                        {{-- Reintegros --}}
-                                                        @if(!empty($prizeBreakdown['reintegros']['numbers']))
-                                                            <tr>
-                                                                <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
-                                                                    <b>Reintegros: {{ count($prizeBreakdown['reintegros']['numbers']) }} números - {{ number_format($prizeBreakdown['reintegros']['total_amount'], 2) }}€</b>
-                                                                </td>
-                                                            </tr>
+                                                        {{-- Escrutinio por Categoría para esta entidad --}}
+                                                        @if(isset($scrutinyResultsByEntity[$entity->id]))
+                                                            @foreach($scrutinyResultsByEntity[$entity->id] as $categoryResult)
+                                                                @php
+                                                                    $decimosInfo = $categoryResult['decimos_info'] ?? [];
+                                                                    $setsInfo = $decimosInfo['sets_info'] ?? [];
+                                                                    $premioPorDecimo = $categoryResult['total_prize'];
+                                                                    $ticketPrice = $decimosInfo['ticket_price'] ?? 0;
+                                                                @endphp
+                                                                
+                                                                {{-- Mostrar por cada set individual --}}
+                                                                @if(!empty($setsInfo))
+                                                                    @foreach($setsInfo as $setInfo)
+                                                                        <tr>
+                                                                            <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                                    <div>
+                                                                                        @php
+                                                                                            $decimosDeEsteSet = $setInfo['decimos'] ?? 0;
+                                                                                            $premioTotalSet = $premioPorDecimo * $decimosDeEsteSet;
+                                                                                            
+                                                                                            // Calcular premio por participación para este set específico
+                                                                                            $premioPorParticipacion = 0;
+                                                                                            $importeJugado = $setInfo['importe_jugado'] ?? 0;
+                                                                                            
+                                                                                            if ($ticketPrice > 0 && $importeJugado > 0) {
+                                                                                                $porcentajeParticipacion = $importeJugado / $ticketPrice;
+                                                                                                $premioPorParticipacion = $premioPorDecimo * $porcentajeParticipacion;
+                                                                                            }
+                                                                                        @endphp
+                                                                                        <b>Número: {{ $categoryResult['number_str'] }} - Premiado con {{ number_format($premioPorDecimo, 2) }}€ X {{ $decimosDeEsteSet }} Décimos = {{ number_format($premioTotalSet, 2) }}€</b>
+                                                                                    </div>
+                                                                                    <div class="text-end">
+                                                                                        <span class="me-2">{{ number_format($premioPorParticipacion, 2) }}€</span>
+                                                                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="showPrizeDetails('{{ $categoryResult['number_str'] }}', {{ json_encode($categoryResult['categories']) }}, {{ $decimosDeEsteSet }}, {{ $premioPorDecimo }}, {{ $premioPorParticipacion }})">
+                                                                                            <i class="ri-eye-line"></i>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                @else
+                                                                    {{-- Fallback si no hay sets_info --}}
+                                                                    <tr>
+                                                                        <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
+                                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                                <div>
+                                                                                    @php
+                                                                                        $totalDecimos = $decimosInfo['total_decimos'] ?? 0;
+                                                                                        $premioTotal = $premioPorDecimo * $totalDecimos;
+                                                                                    @endphp
+                                                                                    <b>Número: {{ $categoryResult['number_str'] }} - Premiado con {{ number_format($premioPorDecimo, 2) }}€ X {{ $totalDecimos }} Décimos = {{ number_format($premioTotal, 2) }}€</b>
+                                                                                </div>
+                                                                                <div class="text-end">
+                                                                                    <span class="me-2">{{ number_format($premioPorDecimo, 2) }}€</span>
+                                                                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="showPrizeDetails('{{ $categoryResult['number_str'] }}', {{ json_encode($categoryResult['categories']) }}, {{ $totalDecimos }}, {{ $premioPorDecimo }}, {{ $premioPorDecimo }})">
+                                                                                        <i class="ri-eye-line"></i>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                @endif
+                                                            @endforeach
                                                         @endif
                                                     @endif
 
@@ -270,7 +333,26 @@
     </div>
     <!-- end row-->
 
+
 </div> <!-- container -->
+
+<!-- Modal para mostrar detalles de premios -->
+<div class="modal fade" id="prizeDetailsModal" tabindex="-1" aria-labelledby="prizeDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="prizeDetailsModalLabel">Detalles de Premios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="prizeDetailsContent">
+                <!-- Contenido se llenará dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
@@ -283,6 +365,81 @@ document.querySelector('form').addEventListener('submit', function(e) {
         e.preventDefault();
     }
 });
+
+// Función para mostrar detalles de premios
+function showPrizeDetails(number, categories, totalDecimos, premioPorDecimo, premioPorParticipacion) {
+    let content = `<h6>Número: <strong class="text-primary">${number}</strong></h6>`;
+    content += `<p><strong>Décimos:</strong> ${totalDecimos} | <strong>Premio por Décimo:</strong> ${formatCurrency(premioPorDecimo)}</p>`;
+    content += `<p><strong>Premio por Participación:</strong> ${formatCurrency(premioPorParticipacion)}</p><hr>`;
+    
+    let totalPrize = 0;
+    categories.forEach(category => {
+        const prize = parseFloat(category.premio_decimo);
+        totalPrize += prize;
+        content += `
+            <div class="row mb-2">
+                <div class="col-8">
+                    <strong>${category.categoria}</strong>
+                </div>
+                <div class="col-4 text-end">
+                    <strong class="text-success">${formatCurrency(prize)}</strong>
+                </div>
+            </div>
+        `;
+    });
+    
+    const premioTotal = premioPorDecimo * totalDecimos;
+    content += `<hr><div class="row">
+        <div class="col-8"><strong>Total por Décimo:</strong></div>
+        <div class="col-4 text-end"><strong class="text-success">${formatCurrency(totalPrize)}</strong></div>
+    </div>`;
+    content += `<div class="row">
+        <div class="col-8"><strong>Total con ${totalDecimos} Décimos:</strong></div>
+        <div class="col-4 text-end"><strong class="text-success">${formatCurrency(premioTotal)}</strong></div>
+    </div>`;
+    
+    document.getElementById('prizeDetailsContent').innerHTML = content;
+    document.getElementById('prizeDetailsModalLabel').textContent = `Detalles de Premios - Número ${number}`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('prizeDetailsModal'));
+    modal.show();
+}
+
+// Función para formatear moneda
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR'
+    }).format(amount);
+}
 </script>
+
+@php
+    // Helper para obtener color del badge según la categoría
+    function getCategoryBadgeColor($key) {
+        $colors = [
+            'primerPremio' => 'danger',
+            'segundoPremio' => 'warning', 
+            'tercerosPremios' => 'info',
+            'cuartosPremios' => 'info',
+            'quintosPremios' => 'info',
+            'anteriorPrimerPremio' => 'secondary',
+            'posteriorPrimerPremio' => 'secondary',
+            'anteriorSegundoPremio' => 'secondary',
+            'posteriorSegundoPremio' => 'secondary',
+            'centenasPrimerPremio' => 'dark',
+            'centenasSegundoPremio' => 'dark',
+            'dosUltimasCifrasPrimerPremio' => 'primary',
+            'tresUltimasCifrasPrimerPremio' => 'primary',
+            'ultimaCifraPrimerPremio' => 'primary',
+            'extraccionesDeCuatroCifras' => 'primary',
+            'extraccionesDeTresCifras' => 'primary',
+            'extraccionesDeDosCifras' => 'primary',
+            'reintegros' => 'success',
+            'pedrea' => 'warning'
+        ];
+        return $colors[$key] ?? 'secondary';
+    }
+@endphp
 
 @endsection
