@@ -33,7 +33,6 @@ Route::get('/participation-ticket', [ApiController::class, 'showParticipationTic
 
 // Rutas de autenticación
 Route::get('/', function () {
-    return phpinfo();
     return redirect('/dashboard');
 });
 
