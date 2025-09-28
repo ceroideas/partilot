@@ -232,17 +232,36 @@
 
                                             <div class="col-11">
                                                 <div class="row" id="numbers">
-                                                    <div class="col-3 number-input-group">
-                                                        <div class="form-group mt-2 mb-3">
-                                                            <label class="label-control">Número</label>
-                                                            <div class="input-group input-group-merge group-form">
-                                                                <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px 0 0 30px;" required>
-                                                                <div class="input-group-text remove-number" style="border-radius: 0 30px 30px 0; cursor:pointer;">
-                                                                    <i class="ri-close-line"></i>
+                                                    @php
+                                                        $oldNumbers = old('reservation_numbers', []);
+                                                    @endphp
+                                                    @if(count($oldNumbers) > 0)
+                                                        @foreach($oldNumbers as $num)
+                                                        <div class="col-3 number-input-group">
+                                                            <div class="form-group mt-2 mb-3">
+                                                                <label class="label-control">Número</label>
+                                                                <div class="input-group input-group-merge group-form">
+                                                                    <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px 0 0 30px;" value="{{ $num }}" required>
+                                                                    <div class="input-group-text remove-number" style="border-radius: 0 30px 30px 0; cursor:pointer;">
+                                                                        <i class="ri-close-line"></i>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                        @endforeach
+                                                    @else
+                                                        <div class="col-3 number-input-group">
+                                                            <div class="form-group mt-2 mb-3">
+                                                                <label class="label-control">Número</label>
+                                                                <div class="input-group input-group-merge group-form">
+                                                                    <input class="form-control reservation-number" type="text" name="reservation_numbers[]" placeholder="Número" style="border-radius: 30px 0 0 30px;" required>
+                                                                    <div class="input-group-text remove-number" style="border-radius: 0 30px 30px 0; cursor:pointer;">
+                                                                        <i class="ri-close-line"></i>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endif
                                                 </div>  
 
                                             </div>

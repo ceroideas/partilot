@@ -14,7 +14,9 @@ class LotteryType extends Model
         'identificador',
         'ticket_price',
         'prize_categories',
-        'is_active'
+        'is_active',
+        'series',
+        'billetes_serie',
     ];
 
     protected $casts = [

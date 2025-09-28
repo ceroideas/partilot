@@ -44,6 +44,8 @@ class LotteryTypeController extends Controller
             'name' => 'required|string|max:255',
             'identificador' => 'required|string|max:2',
             'ticket_price' => 'required|numeric|min:0',
+            'series' => 'required|integer|min:1',
+            'billetes_serie' => 'required|integer|min:1',
             'prize_categories' => 'required|string',
         ]);
 
@@ -55,13 +57,21 @@ class LotteryTypeController extends Controller
 
         $data = $request->all();
         $data['is_active'] = true;
-
         // Convertir prize_categories de JSON string a array
         if (isset($data['prize_categories'])) {
             $data['prize_categories'] = json_decode($data['prize_categories'], true);
         }
-
-        LotteryType::create($data);
+        // Solo guardar los campos necesarios
+        $lotteryTypeData = [
+            'name' => $data['name'],
+            'identificador' => $data['identificador'],
+            'ticket_price' => $data['ticket_price'],
+            'series' => $data['series'],
+            'billetes_serie' => $data['billetes_serie'],
+            'prize_categories' => $data['prize_categories'],
+            'is_active' => $data['is_active'],
+        ];
+        LotteryType::create($lotteryTypeData);
 
         return redirect()->route('lottery-types.index')
             ->with('success', 'Tipo de lotería creado exitosamente');
@@ -101,6 +111,8 @@ class LotteryTypeController extends Controller
             'name' => 'required|string|max:255',
             'identificador' => 'required|string|max:2',
             'ticket_price' => 'required|numeric|min:0',
+            'series' => 'required|integer|min:1',
+            'billetes_serie' => 'required|integer|min:1',
             'prize_categories' => 'required|string',
         ]);
 
@@ -111,13 +123,20 @@ class LotteryTypeController extends Controller
         }
 
         $data = $request->all();
-
         // Convertir prize_categories de JSON string a array
         if (isset($data['prize_categories'])) {
             $data['prize_categories'] = json_decode($data['prize_categories'], true);
         }
-
-        $lotteryType->update($data);
+        // Solo actualizar los campos necesarios
+        $lotteryTypeData = [
+            'name' => $data['name'],
+            'identificador' => $data['identificador'],
+            'ticket_price' => $data['ticket_price'],
+            'series' => $data['series'],
+            'billetes_serie' => $data['billetes_serie'],
+            'prize_categories' => $data['prize_categories'],
+        ];
+        $lotteryType->update($lotteryTypeData);
 
         return redirect()->route('lottery-types.index')
             ->with('success', 'Tipo de lotería actualizado exitosamente');
@@ -238,4 +257,4 @@ class LotteryTypeController extends Controller
         return redirect()->back()
             ->with('success', 'Estado del tipo de lotería actualizado');
     }
-} 
+}

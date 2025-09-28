@@ -136,7 +136,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" readonly type="text" value="{{$reserve->lottery ? $reserve->lottery->lottery_number : 'Sin número'}}" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" readonly type="text" value="{{$reserve->lottery ? $reserve->lottery->name : 'Sin número'}}" placeholder="46/25" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -235,7 +235,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/19.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="set_name" type="text" placeholder="Set de ejemplo" style="border-radius: 0 30px 30px 0;" required>
+	                                                <input class="form-control" name="set_name" type="text" placeholder="Set de ejemplo" style="border-radius: 0 30px 30px 0;" required value="{{ old('set_name') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -250,7 +250,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="played_amount" name="played_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="played_amount" name="played_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" max="{{ $reserve->reservation_amount ?? 0 }}" required value="{{ old('played_amount') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -265,7 +265,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="donation_amount" name="donation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="donation_amount" name="donation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" value="{{ old('donation_amount') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -280,7 +280,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="total_participation_amount" name="total_participation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly>
+	                                                <input class="form-control" id="total_participation_amount" name="total_participation_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly value="{{ old('total_participation_amount') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -295,7 +295,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="total_participations" name="total_participations" type="number" placeholder="0" style="border-radius: 0 30px 30px 0;" required>
+	                                                <input class="form-control" id="total_participations" name="total_participations" type="number" placeholder="0" style="border-radius: 0 30px 30px 0;" required value="{{ old('total_participations') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -310,7 +310,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly required>
+	                                                <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly required max="{{ $availableAmount ?? 0 }}" value="{{ old('total_amount') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -325,7 +325,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" name="deadline_date" type="date" value="2025/07/06" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" name="deadline_date" type="date" value="{{ old('deadline_date', '2025/07/06') }}" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -349,7 +349,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="physical_participations" name="physical_participations" type="number" placeholder="600" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="physical_participations" name="physical_participations" type="number" placeholder="600" style="border-radius: 0 30px 30px 0;" value="{{ old('physical_participations') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -364,7 +364,7 @@
 	                                                    <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="digital_participations" name="digital_participations" type="number" placeholder="150" style="border-radius: 0 30px 30px 0;">
+	                                                <input class="form-control" id="digital_participations" name="digital_participations" type="number" placeholder="150" style="border-radius: 0 30px 30px 0;" value="{{ old('digital_participations') }}">
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -499,6 +499,25 @@ $(document).ready(function() {
         if (digitalParticipations > totalParticipations) {
             $('#digital_participations').val(totalParticipations);
             $('#physical_participations').val(0);
+        }
+    });
+    
+    // Validación de Importe Jugado (Número) antes de enviar
+    $('form').on('submit', function(e) {
+        var maxPlayed = parseFloat({{ $reserve->total_amount ?? 0 }});
+        var playedAmount = parseFloat($('#played_amount').val()) || 0;
+        if (playedAmount > maxPlayed) {
+            alert('El Importe Jugado (Número) no puede ser mayor al precio del décimo (' + maxPlayed.toFixed(2) + ' €)');
+            e.preventDefault();
+            return false;
+        }
+        // Validación de importe total existente
+        var maxAmount = parseFloat({{ $availableAmount ?? 0 }});
+        var totalAmount = parseFloat($('#total_amount').val()) || 0;
+        if (totalAmount > maxAmount) {
+            alert('El importe total supera el disponible para esta reserva (máx: ' + maxAmount.toFixed(2) + ' €)');
+            e.preventDefault();
+            return false;
         }
     });
     

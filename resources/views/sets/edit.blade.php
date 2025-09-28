@@ -187,7 +187,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" value="{{$set->total_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                        <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" value="{{$set->total_amount}}" style="border-radius: 0 30px 30px 0;" readonly max="{{ $availableAmount }}">
                                                     </div>
                                                 </div>
                                             </div>
@@ -359,6 +359,17 @@ $(document).ready(function() {
     
 });
 
+// Validación de importe disponible antes de enviar
+$('form').on('submit', function(e) {
+    var maxAmount = parseFloat({{ $availableAmount }});
+    var totalAmount = parseFloat($('#total_amount').val()) || 0;
+    if (totalAmount > maxAmount) {
+        alert('El importe total supera el disponible para esta reserva (máx: ' + maxAmount.toFixed(2) + ' €)');
+        e.preventDefault();
+        return false;
+    }
+});
+
 </script>
 
-@endsection 
+@endsection

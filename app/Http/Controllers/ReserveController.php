@@ -43,9 +43,10 @@ class ReserveController extends Controller
         $entity = Entity::with(['administration', 'manager'])->find($request->entity_id);
         $request->session()->put('selected_entity', $entity);
 
-        // Obtener sorteos activos
+        // Volver a retornar la vista de selección de sorteo como antes
         $lotteries = Lottery::where('status', 1)
             ->with(['lotteryType'])
+            ->orderBy('draw_date','desc')
             ->get();
 
         return view('reserves.add_lottery', compact('lotteries'));
@@ -78,7 +79,8 @@ class ReserveController extends Controller
         $lottery = Lottery::with(['lotteryType'])->find($request->lottery_id);
         $request->session()->put('selected_lottery', $lottery);
 
-        return view('reserves.add_information');
+        // Redirigir a la ruta GET donde está el formulario final
+        return redirect()->route('reserves.add-information');
     }
 
     /**
@@ -97,6 +99,47 @@ class ReserveController extends Controller
     }
 
     /**
+     * Validar que la suma de décimos reservados para cada número no exceda el máximo permitido
+     * @param array $reservationNumbers
+     * @param int $lotteryId
+     * @param int $reservationTickets
+     * @param int|null $excludeReserveId (opcional, para edición)
+     * @return array ['success' => bool, 'messages' => array]
+     */
+    private function validateReservationTickets(array $reservationNumbers, int $lotteryId, int $reservationTickets, $excludeReserveId = null)
+    {
+        $lottery = \App\Models\Lottery::with('lotteryType')->find($lotteryId);
+        if (!$lottery || !$lottery->lotteryType) {
+            return [
+                'success' => false,
+                'messages' => ['No se encontró el sorteo o su tipo.']
+            ];
+        }
+        $series = $lottery->lotteryType->series;
+        $maxTicketsPerNumber = $series * 10;
+        $messages = [];
+        foreach ($reservationNumbers as $number) {
+            // Sumar todos los décimos reservados para este número en este sorteo
+            $query = Reserve::where('lottery_id', $lotteryId)
+                ->whereJsonContains('reservation_numbers', $number);
+            if ($excludeReserveId) {
+                $query->where('id', '!=', $excludeReserveId);
+            }
+            $alreadyReserved = $query->sum('reservation_tickets');
+            // Si estamos editando, sumar los tickets de la reserva actual
+            $totalAfter = $alreadyReserved + $reservationTickets;
+            if ($totalAfter > $maxTicketsPerNumber) {
+                $disponibles = max(0, $maxTicketsPerNumber - $alreadyReserved);
+                $messages[] = "El número $number solo tiene $disponibles décimos disponibles para reservar en este sorteo.";
+            }
+        }
+        return [
+            'success' => count($messages) === 0,
+            'messages' => $messages
+        ];
+    }
+
+    /**
      * Guardar reserva completa - Paso final
      */
     public function store_information(Request $request)
@@ -107,16 +150,17 @@ class ReserveController extends Controller
             'reservation_amount' => 'required|numeric|min:0',
             'reservation_tickets' => 'required|integer|min:1'
         ]);
-
-        // Obtener datos de sesión
         $entity = $request->session()->get('selected_entity');
         $lottery = $request->session()->get('selected_lottery');
-
         if (!$entity || !$lottery) {
             return redirect()->route('reserves.create')
                 ->with('error', 'Error: No se encontraron los datos de entidad o sorteo');
         }
-
+        // Validar décimos disponibles
+        $validation = $this->validateReservationTickets($validated['reservation_numbers'], $lottery->id, $validated['reservation_tickets']);
+        if (!$validation['success']) {
+            return redirect()->back()->withErrors($validation['messages'])->withInput();
+        }
         // Calcular total
         $totalTickets = count($validated['reservation_numbers']);
         $totalAmount = $totalTickets * $lottery->ticket_price;
@@ -171,7 +215,11 @@ class ReserveController extends Controller
             'reservation_amount' => 'required|numeric|min:0',
             'reservation_tickets' => 'required|integer|min:1'
         ]);
-
+        // Validar décimos disponibles (excluyendo la reserva actual)
+        $validation = $this->validateReservationTickets($validated['reservation_numbers'], $reserve->lottery_id, $validated['reservation_tickets'], $reserve->id);
+        if (!$validation['success']) {
+            return redirect()->back()->withErrors($validation['messages'])->withInput();
+        }
         $reserve->update($validated);
 
         return redirect()->route('reserves.show',$reserve->id)
@@ -219,4 +267,17 @@ class ReserveController extends Controller
 
         return response()->json($lotteries);
     }
-} 
+
+    /**
+     * Mostrar formulario para agregar información de la reserva (números a reservar)
+     */
+    public function add_information(Request $request)
+    {
+        $entity = $request->session()->get('selected_entity');
+        $lottery = $request->session()->get('selected_lottery');
+        if (!$entity || !$lottery) {
+            return redirect()->route('reserves.create')->with('error', 'Debe seleccionar entidad y sorteo primero.');
+        }
+        return view('reserves.add_information');
+    }
+}

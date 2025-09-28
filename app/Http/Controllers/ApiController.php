@@ -13,28 +13,28 @@ class ApiController extends Controller
     public function test()
     {
         // Añadir campos lottery_type_code e is_special a la tabla lotteries
-        if (!Schema::hasColumn('lotteries', 'lottery_type_code')) {
-            Schema::table('lotteries', function (Blueprint $table) {
-                $table->string('lottery_type_code', 2)->nullable()->after('lottery_type_id')
-                      ->comment('Código del tipo de sorteo: J, X, S, N, B, V');
-            });
-        }
+        // if (!Schema::hasColumn('lotteries', 'lottery_type_code')) {
+        //     Schema::table('lotteries', function (Blueprint $table) {
+        //         $table->string('lottery_type_code', 2)->nullable()->after('lottery_type_id')
+        //               ->comment('Código del tipo de sorteo: J, X, S, N, B, V');
+        //     });
+        // }
 
-        if (!Schema::hasColumn('lotteries', 'is_special')) {
-            Schema::table('lotteries', function (Blueprint $table) {
-                $table->boolean('is_special')->default(false)->after('lottery_type_code')
-                      ->comment('Indica si es un sorteo especial (ej: 15€ Especial)');
-            });
-        }
+        // if (!Schema::hasColumn('lotteries', 'is_special')) {
+        //     Schema::table('lotteries', function (Blueprint $table) {
+        //         $table->boolean('is_special')->default(false)->after('lottery_type_code')
+        //               ->comment('Indica si es un sorteo especial (ej: 15€ Especial)');
+        //     });
+        // }
 
-        return response()->json([
-            'message' => 'Migración completada exitosamente',
-            'fields_added' => [
-                'lottery_type_code' => 'string(2) nullable - Código del tipo de sorteo',
-                'is_special' => 'boolean default(false) - Indica si es sorteo especial'
-            ],
-            'note' => 'lottery_types.identificador mantiene códigos simples (J,X,S,N,B,V) para compatibilidad'
-        ]);
+        // return response()->json([
+        //     'message' => 'Migración completada exitosamente',
+        //     'fields_added' => [
+        //         'lottery_type_code' => 'string(2) nullable - Código del tipo de sorteo',
+        //         'is_special' => 'boolean default(false) - Indica si es sorteo especial'
+        //     ],
+        //     'note' => 'lottery_types.identificador mantiene códigos simples (J,X,S,N,B,V) para compatibilidad'
+        // ]);
 
         // Schema::table('scrutiny_entity_results', function (Blueprint $table) {
         //     $table->integer('total_non_winning')->default(0)->after('total_returned');
@@ -198,7 +198,29 @@ class ApiController extends Controller
         //     });
         // }
 
-        return response()->json(['message' => 'Migración completada exitosamente']);
+        // Agregar campos 'series' y 'billetes_serie' a la tabla lottery_types si no existen
+        $fieldsAdded = [];
+        if (!Schema::hasColumn('lottery_types', 'series')) {
+            Schema::table('lottery_types', function (Blueprint $table) {
+                $table->integer('series')->default(10)->after('ticket_price')->comment('Cantidad de series para el tipo de sorteo');
+            });
+            $fieldsAdded[] = 'series';
+        }
+        if (!Schema::hasColumn('lottery_types', 'billetes_serie')) {
+            Schema::table('lottery_types', function (Blueprint $table) {
+                $table->integer('billetes_serie')->default(100000)->after('series')->comment('Billetes por cada serie');
+            });
+            $fieldsAdded[] = 'billetes_serie';
+        }
+
+        if (!empty($fieldsAdded)) {
+            return response()->json([
+                'message' => 'Migración completada exitosamente',
+                'fields_added' => $fieldsAdded
+            ]);
+        }
+
+        return response()->json(['message' => 'No se realizaron cambios en la estructura de la base de datos']);
     }
 
     /**
@@ -596,12 +618,12 @@ class ApiController extends Controller
                 }
                 
                 $ticket = [
-                        'data' => [
-                            'participation_code' => $participation->participation_code, // El participation_code de la participación (1/00046)
-                            'participation_number' => $ref, // La referencia original buscada (000100061758806276046)
-                            'numbers' => $reservedNumbers,
-                            'winning_numbers' => $winningNumbers
-                        ],
+                    'data' => [
+                        'participation_code' => $participation->participation_code, // El participation_code de la participación (1/00046)
+                        'participation_number' => $ref, // La referencia original buscada (000100061758806276046)
+                        'numbers' => $reservedNumbers,
+                        'winning_numbers' => $winningNumbers
+                    ],
                     'set' => $set,
                     'reserve' => $reserve,
                     'lottery' => $lottery,
@@ -705,4 +727,4 @@ class ApiController extends Controller
 
         return $prizeInfo;
     }
-} 
+}

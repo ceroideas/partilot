@@ -47,7 +47,10 @@ class SetController extends Controller
         $reserves = Reserve::where('entity_id', $entity->id)
             ->where('status', 1) // confirmed
             ->with(['lottery'])
-            ->get();
+            ->get()
+             ->sortByDesc(function ($reserve) {
+                return $reserve->lottery->draw_date ?? now(); // fallback si null
+            });;
 
         return view('sets.add_reserve', compact('reserves'));
     }
@@ -83,6 +86,7 @@ class SetController extends Controller
         $reserves = Reserve::where('entity_id', $entity->id)
             ->where('status', 1) // confirmed
             ->with(['lottery'])
+            ->orderBy('lottery.draw_date','desc')
             ->get();
 
         return view('sets.add_reserve', compact('reserves'));
@@ -108,7 +112,8 @@ class SetController extends Controller
                 ->with('error', 'Error: No se encontraron los datos de entidad o reserva');
         }
 
-        return view('sets.add_information', compact('entity', 'reserve'));
+        // return view('sets.add_information', compact('entity', 'reserve'));
+        return redirect('sets/add/information');
     }
 
     /**
@@ -139,6 +144,11 @@ class SetController extends Controller
                 ->with('error', 'Error: No se encontraron los datos de entidad o reserva. Por favor, selecciona una entidad y reserva.');
         }
 
+        // Calcular importe disponible para la reserva
+        $usedAmount = Set::where('reserve_id', $reserve->id)->sum('total_amount');
+        $availableAmount = $reserve->reservation_amount - $usedAmount;
+        if ($availableAmount < 0) $availableAmount = 0;
+
         // Cargar las relaciones necesarias si no están cargadas
         if (!$reserve->relationLoaded('lottery')) {
             $reserve->load('lottery');
@@ -147,7 +157,7 @@ class SetController extends Controller
             $entity->load('administration');
         }
 
-        return view('sets.add_information', compact('entity', 'reserve'));
+        return view('sets.add_information', compact('entity', 'reserve', 'availableAmount'));
     }
 
     /**
@@ -176,10 +186,17 @@ class SetController extends Controller
                 ->with('error', 'Error: No se encontraron los datos de entidad o reserva');
         }
 
+        // Calcular importe disponible
+        $usedAmount = Set::where('reserve_id', $reserve->id)->sum('total_amount');
+        $availableAmount = $reserve->reservation_amount - $usedAmount;
+        if ($availableAmount < 0) $availableAmount = 0;
+        if ($validated['total_amount'] > $availableAmount) {
+            // Volver a la vista con el valor correcto de $availableAmount
+            return back()->withInput()->withErrors(['reservation_amount' => 'El importe total supera el disponible para esta reserva (máx: ' . number_format($availableAmount,2) . ' €)'])
+                ->with(['availableAmount' => $availableAmount, 'entity' => $entity, 'reserve' => $reserve]);
+        }
         $createdAt = now();
         $tickets = \App\Models\Set::generateTickets($entity->id, $reserve->id, $createdAt, $validated['total_participations']);
-
-        // Crear set
         $setData = array_merge($validated, [
             'entity_id' => $entity->id,
             'reserve_id' => $reserve->id,
@@ -213,7 +230,13 @@ class SetController extends Controller
     {
         $entities = Entity::all();
         $reserves = Reserve::all();
-        return view('sets.edit', compact('set', 'entities', 'reserves'));
+        // Calcular importe disponible para la reserva, sumando el importe del set actual
+        $usedAmount = Set::where('reserve_id', $set->reserve_id)
+            ->where('id', '!=', $set->id)
+            ->sum('total_amount');
+        $availableAmount = $set->reserve->reservation_amount - $usedAmount + $set->total_amount;
+        if ($availableAmount < 0) $availableAmount = 0;
+        return view('sets.edit', compact('set', 'entities', 'reserves', 'availableAmount'));
     }
 
     /**
@@ -232,6 +255,16 @@ class SetController extends Controller
             'digital_participations' => 'nullable|integer|min:0',
             'deadline_date' => 'nullable|date'
         ]);
+
+        // Calcular importe disponible para la reserva, sumando el importe del set actual
+        $usedAmount = Set::where('reserve_id', $set->reserve_id)
+            ->where('id', '!=', $set->id)
+            ->sum('total_amount');
+        $availableAmount = $set->reserve->reservation_amount - $usedAmount + $set->total_amount;
+        if ($availableAmount < 0) $availableAmount = 0;
+        if ($validated['total_amount'] > $availableAmount) {
+            return back()->withInput()->withErrors(['total_amount' => 'El importe total supera el disponible para esta reserva (máx: ' . number_format($availableAmount,2) . ' €)']);
+        }
 
         // Regenerar tickets manteniendo los existentes
         $tickets = \App\Models\Set::generateTickets($set->entity_id, $set->reserve_id, $set->created_at, $validated['total_participations'], $set->tickets ?? []);
@@ -402,4 +435,4 @@ class SetController extends Controller
 
         return redirect()->route('sets.edit', $set->id)->with('success', 'XML importado correctamente.');
     }
-} 
+}

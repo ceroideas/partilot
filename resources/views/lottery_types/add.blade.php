@@ -105,6 +105,35 @@
                                                     @enderror
                                                 </div>
                                             </div>
+                                            <!-- NUEVOS CAMPOS -->
+                                            <div class="col-3">
+                                                <div class="form-group mt-2 mb-3">
+                                                    <label class="label-control">Series</label>
+                                                    <div class="input-group input-group-merge group-form">
+                                                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                            <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+                                                        </div>
+                                                        <input class="form-control" type="number" name="series" placeholder="Ej: 100" style="border-radius: 0 30px 30px 0;" value="{{ old('series') }}" required>
+                                                    </div>
+                                                    @error('series')
+                                                        <small class="text-danger">{{ $message }}</small>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="form-group mt-2 mb-3">
+                                                    <label class="label-control">Billetes por serie</label>
+                                                    <div class="input-group input-group-merge group-form">
+                                                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                            <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+                                                        </div>
+                                                        <input class="form-control" type="number" name="billetes_serie" placeholder="Ej: 1000" style="border-radius: 0 30px 30px 0;" value="{{ old('billetes_serie') }}" required>
+                                                    </div>
+                                                    @error('billetes_serie')
+                                                        <small class="text-danger">{{ $message }}</small>
+                                                    @enderror
+                                                </div>
+                                            </div>
                                         </div>
                                         
                                     </div>
