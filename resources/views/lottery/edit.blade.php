@@ -122,7 +122,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-2">
+                                    <div class="col-2 d-none">
                                         <div class="form-group mt-2 mb-3">
                                             <label class="label-control">Código Sorteo</label>
 
@@ -148,7 +148,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-2">
+                                    <div class="col-2 d-none">
                                         <div class="form-group mt-2 mb-3">
                                             <label class="label-control">¿Es Especial?</label>
 

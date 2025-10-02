@@ -8,6 +8,9 @@ use App\Models\Lottery;
 use App\Models\Set;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\DesignFormat;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
+use App\Services\ImageOptimizationService;
 
 class DesignController extends Controller
 {
@@ -211,8 +214,26 @@ class DesignController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $html = $request->input('participation_html'); // o el campo que corresponda
+        // Aumentar límites para PDFs grandes
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '1024M');
+        
+        $html = $request->input('participation_html');
+        
+        // Optimizar HTML antes de generar PDF
+        $publicPath = public_path();
+        $html = str_replace(url('/'), $publicPath, $html);
+        $html = $this->adjustWidthsForDomPdf($html);
+        
+        // Configurar opciones de DomPDF para mejor rendimiento
         $pdf = Pdf::loadHTML($html);
+        $pdf->getDomPDF()->setOptions([
+            'defaultFont' => 'Arial',
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+        
         return $pdf->download('diseño.pdf');
     }
 
@@ -250,23 +271,27 @@ class DesignController extends Controller
         // Aumentar límites para PDFs grandes
         ini_set('max_execution_time', 300); // 5 minutos
         ini_set('memory_limit', '1024M');   // 1GB
+        
         $design = DesignFormat::findOrFail($id);
-        $participation_html = $design->participation_html;
-
-        // Reemplazar la URL base por la ruta absoluta del sistema de archivos
-        $publicPath = public_path();
-        $participation_html = str_replace(url('/'), $publicPath, $participation_html);
-
-        // Ajustar widths para DomPDF
-        $participation_html = $this->adjustWidthsForDomPdf($participation_html);
+        
+        // Cache del HTML procesado para evitar reprocesar
+        $cacheKey = 'participation_html_' . $id;
+        $participation_html = cache()->remember($cacheKey, 3600, function() use ($design) {
+            $html = $design->participation_html;
+            // Reemplazar la URL base por la ruta absoluta del sistema de archivos
+            $publicPath = public_path();
+            $html = str_replace(url('/'), $publicPath, $html);
+            // Ajustar widths para DomPDF
+            return $this->adjustWidthsForDomPdf($html);
+        });
 
         // Determinar tamaño y orientación
         $page = $design->page ?? 'a3';
         $orientation = $design->orientation ?? 'h';
         $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
 
-        // Obtener tickets del set
-        $set = $design->set_id ? Set::find($design->set_id) : null;
+        // Obtener tickets del set con eager loading optimizado
+        $set = $design->set_id ? Set::select('id', 'tickets', 'total_participations')->find($design->set_id) : null;
         $tickets = $set && $set->tickets ? $set->tickets : [];
         $total_participations = $set->total_participations ?? 0;
 
@@ -279,30 +304,27 @@ class DesignController extends Controller
             $from = $design->output['participation_from'] ?? 1;
             $to = $design->output['participation_to'] ?? $total_participations;
         }
-        $tickets_to_print = array_slice($tickets, $from - 1, $to - $from + 1);
-
+        
         // Calcular filas y columnas
         $rows = $design->rows ?? 1;
         $cols = $design->cols ?? 1;
         $per_page = $rows * $cols;
-        $total = count($tickets_to_print);
+        $total = $to - $from + 1;
         $total_pages = ceil($total / $per_page);
 
-        // Ordenar tickets en modo guillotina (correcto)
-        $pages = [];
-        for ($p = 0; $p < $total_pages; $p++) {
-            $pages[$p] = [];
-            for ($i = 0; $i < $per_page; $i++) {
-                $ticket_index = $p + ($i * $total_pages);
-                if (isset($tickets_to_print[$ticket_index])) {
-                    $pages[$p][$i] = $tickets_to_print[$ticket_index];
-                }
-            }
+        // Obtener tickets a imprimir
+        $tickets_to_print = array_slice($tickets, $from - 1, $to - $from + 1);
+
+        // Optimizar HTML de participación con detección de imágenes duplicadas
+        $participation_html = $this->optimizeParticipationHtml($participation_html, $tickets_to_print);
+
+        // Para PDFs muy grandes (>500 participaciones), usar procesamiento por lotes
+        if ($total > 500) {
+            return $this->generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation);
         }
-
-        // return $pages;
-
-        // return view('design.pdf_participation', ['pages' => $pages,'participation_html' => $participation_html,'rows' => $rows,'cols' => $cols,]);
+        
+        // Ordenar tickets en modo guillotina (optimizado)
+        $pages = $this->generatePagesOptimized($tickets_to_print, $total_pages, $per_page);
 
         return Pdf::loadView('design.pdf_participation', [
             'pages' => $pages,
@@ -314,26 +336,70 @@ class DesignController extends Controller
 
     public function exportCoverPdf($id)
     {
-        $design = DesignFormat::findOrFail($id);
-        $html = $design->cover_html;
-        $page = $design->page ?? 'a3';
-        $orientation = $design->orientation ?? 'h';
-        $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
-        $pdf = Pdf::loadHTML($html);
-        $pdf->setPaper($page, $pdfOrientation);
-        return $pdf->download('portada.pdf');
+        return $this->generateOptimizedPdf($id, 'cover_html', 'portada.pdf');
     }
 
     public function exportBackPdf($id)
     {
+        return $this->generateOptimizedPdf($id, 'back_html', 'trasera.pdf');
+    }
+
+    /**
+     * Método genérico optimizado para generar PDFs
+     */
+    private function generateOptimizedPdf($id, $htmlField, $filename)
+    {
+        // Aumentar límites para PDFs grandes
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '1024M');
+        
         $design = DesignFormat::findOrFail($id);
-        $html = $design->back_html;
+        
+        // Cache del HTML procesado con optimización de imágenes
+        $cacheKey = $htmlField . '_' . $id;
+        $html = cache()->remember($cacheKey, 3600, function() use ($design, $htmlField) {
+            $html = $design->$htmlField;
+            
+            // Usar servicio de optimización de imágenes
+            $imageService = new ImageOptimizationService();
+            $html = $imageService->optimizeHtmlImages($html);
+            
+            // Reemplazar la URL base por la ruta absoluta del sistema de archivos
+            $publicPath = public_path();
+            $html = str_replace(url('/'), $publicPath, $html);
+            // Ajustar widths para DomPDF
+            return $this->adjustWidthsForDomPdf($html);
+        });
+
+        // Determinar tamaño y orientación
         $page = $design->page ?? 'a3';
         $orientation = $design->orientation ?? 'h';
         $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
-        $pdf = Pdf::loadHTML($html);
+
+        // Determinar la vista a usar según el tipo de PDF
+        $viewName = 'design.pdf_base'; // Vista por defecto
+        if ($htmlField === 'cover_html') {
+            $viewName = 'design.pdf_cover';
+        } elseif ($htmlField === 'back_html') {
+            $viewName = 'design.pdf_back';
+        }
+
+        // Usar vista optimizada para mejor rendimiento
+        $pdf = Pdf::loadView($viewName, ['html' => $html]);
         $pdf->setPaper($page, $pdfOrientation);
-        return $pdf->download('trasera.pdf');
+        
+        // Configurar opciones de DomPDF para mejor rendimiento
+        $pdf->getDomPDF()->setOptions([
+            'defaultFont' => 'Arial',
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+            'enable_remote' => true,
+            'enable_html5_parser' => true,
+            'enable_php' => true,
+        ]);
+        
+        return $pdf->download($filename);
     }
 
     /**
@@ -383,6 +449,361 @@ class DesignController extends Controller
             }
         // }
         // return response()->json(['success' => false], 200);
+    }
+
+    /**
+     * Generar páginas optimizado para evitar bucles anidados costosos
+     */
+    private function generatePagesOptimized($tickets_to_print, $total_pages, $per_page)
+    {
+        $pages = [];
+        $ticket_count = count($tickets_to_print);
+        
+        for ($p = 0; $p < $total_pages; $p++) {
+            $pages[$p] = [];
+            for ($i = 0; $i < $per_page; $i++) {
+                $ticket_index = $p + ($i * $total_pages);
+                if ($ticket_index < $ticket_count) {
+                    $pages[$p][$i] = $tickets_to_print[$ticket_index];
+                }
+            }
+        }
+        
+        return $pages;
+    }
+
+    /**
+     * Generar PDF en lotes para PDFs muy grandes
+     */
+    private function generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation)
+    {
+        $per_page = $rows * $cols;
+        $chunk_size = 100; // Procesar de 100 en 100
+        $total = $to - $from + 1;
+        $total_pages = ceil($total / $per_page);
+        
+        // Crear archivo temporal para combinar PDFs
+        $temp_files = [];
+        
+        for ($chunk_start = $from - 1; $chunk_start < $to; $chunk_start += $chunk_size) {
+            $chunk_end = min($chunk_start + $chunk_size, $to);
+            $chunk_tickets = array_slice($tickets, $chunk_start, $chunk_end - $chunk_start);
+            
+            // Calcular páginas para este chunk
+            $chunk_pages = ceil(count($chunk_tickets) / $per_page);
+            $pages = $this->generatePagesOptimized($chunk_tickets, $chunk_pages, $per_page);
+            
+            // Generar PDF para este chunk
+            $pdf = Pdf::loadView('design.pdf_participation', [
+                'pages' => $pages,
+                'participation_html' => $participation_html,
+                'rows' => $rows,
+                'cols' => $cols,
+            ])->setPaper($page, $pdfOrientation);
+            
+            // Guardar en archivo temporal
+            $temp_file = storage_path('app/temp_pdf_' . $chunk_start . '.pdf');
+            $pdf->save($temp_file);
+            $temp_files[] = $temp_file;
+        }
+        
+        // Combinar PDFs usando una librería como TCPDF o FPDI
+        return $this->combinePdfFiles($temp_files, 'participacion.pdf');
+    }
+
+    /**
+     * Combinar múltiples archivos PDF en uno solo
+     */
+    private function combinePdfFiles($temp_files, $filename)
+    {
+        // Usar FPDI para combinar PDFs
+        $pdf = new \setasign\Fpdi\Fpdi();
+        
+        foreach ($temp_files as $file) {
+            $pageCount = $pdf->setSourceFile($file);
+            for ($i = 1; $i <= $pageCount; $i++) {
+                $pdf->AddPage();
+                $pdf->useTemplate($pdf->importPage($i));
+            }
+        }
+        
+        // Limpiar archivos temporales
+        foreach ($temp_files as $file) {
+            if (file_exists($file)) {
+                unlink($file);
+            }
+        }
+        
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+        ]);
+    }
+
+    /**
+     * Método alternativo para PDFs muy grandes usando colas
+     */
+    public function exportParticipationPdfAsync($id)
+    {
+        $design = DesignFormat::findOrFail($id);
+        
+        // Para PDFs muy grandes (>1000 participaciones), usar procesamiento asíncrono
+        $set = $design->set_id ? Set::select('id', 'total_participations')->find($design->set_id) : null;
+        $total_participations = $set->total_participations ?? 0;
+        
+        if ($total_participations > 1000) {
+            // Generar un ID único para el trabajo
+            $job_id = 'pdf_' . $id . '_' . time();
+            
+            // Dispatch job para procesar en background
+            Queue::push(new \App\Jobs\GenerateParticipationPdfJob($id, $job_id));
+            
+            return response()->json([
+                'status' => 'processing',
+                'job_id' => $job_id,
+                'message' => 'El PDF se está generando en segundo plano. Te notificaremos cuando esté listo.',
+                'check_url' => route('design.checkPdfStatus', $job_id)
+            ]);
+        }
+        
+        // Para PDFs pequeños, usar el método normal
+        return $this->exportParticipationPdf($id);
+    }
+
+    /**
+     * Verificar el estado de un PDF en procesamiento
+     */
+    public function checkPdfStatus($job_id)
+    {
+        $file_path = storage_path('app/generated_pdfs/' . $job_id . '.pdf');
+        
+        if (file_exists($file_path)) {
+            return response()->json([
+                'status' => 'completed',
+                'download_url' => route('design.downloadPdf', $job_id)
+            ]);
+        }
+        
+        return response()->json([
+            'status' => 'processing',
+            'message' => 'El PDF aún se está generando...'
+        ]);
+    }
+
+    /**
+     * Descargar PDF generado
+     */
+    public function downloadPdf($job_id)
+    {
+        $file_path = storage_path('app/generated_pdfs/' . $job_id . '.pdf');
+        
+        if (!file_exists($file_path)) {
+            abort(404, 'PDF no encontrado');
+        }
+        
+        return response()->download($file_path, 'participacion.pdf')->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Optimizar imágenes reutilizables en el HTML
+     */
+    private function optimizeReusableImages($html)
+    {
+        // Detectar todas las imágenes en el HTML
+        preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $html, $matches);
+        $images = $matches[1];
+        
+        if (empty($images)) {
+            return $html;
+        }
+
+        // Agrupar imágenes por hash de contenido (imágenes idénticas)
+        $imageGroups = [];
+        $optimizedImages = [];
+        
+        foreach ($images as $imagePath) {
+            $fullPath = $this->getImageFullPath($imagePath);
+            if (file_exists($fullPath)) {
+                $imageHash = md5_file($fullPath);
+                if (!isset($imageGroups[$imageHash])) {
+                    $imageGroups[$imageHash] = [
+                        'original_path' => $imagePath,
+                        'full_path' => $fullPath,
+                        'optimized_path' => $this->optimizeImage($fullPath, $imageHash),
+                        'count' => 0
+                    ];
+                }
+                $imageGroups[$imageHash]['count']++;
+                $optimizedImages[$imagePath] = $imageGroups[$imageHash]['optimized_path'];
+            }
+        }
+
+        // Reemplazar todas las referencias a imágenes con las optimizadas
+        foreach ($optimizedImages as $originalPath => $optimizedPath) {
+            $html = str_replace($originalPath, $optimizedPath, $html);
+        }
+
+        return $html;
+    }
+
+    /**
+     * Obtener la ruta completa de una imagen
+     */
+    private function getImageFullPath($imagePath)
+    {
+        // Si ya es una ruta absoluta
+        if (strpos($imagePath, public_path()) === 0) {
+            return $imagePath;
+        }
+        
+        // Si es una URL relativa
+        if (strpos($imagePath, '/') === 0) {
+            return public_path() . $imagePath;
+        }
+        
+        // Si es una URL completa
+        if (strpos($imagePath, 'http') === 0) {
+            return $imagePath;
+        }
+        
+        // Ruta relativa desde public
+        return public_path() . '/' . ltrim($imagePath, '/');
+    }
+
+    /**
+     * Optimizar una imagen individual
+     */
+    private function optimizeImage($imagePath, $imageHash)
+    {
+        $cacheDir = storage_path('app/optimized_images');
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+
+        $optimizedPath = $cacheDir . '/' . $imageHash . '.jpg';
+        
+        // Si ya existe la imagen optimizada, devolverla
+        if (file_exists($optimizedPath)) {
+            return $optimizedPath;
+        }
+
+        // Optimizar la imagen
+        $this->compressImage($imagePath, $optimizedPath);
+        
+        return $optimizedPath;
+    }
+
+    /**
+     * Comprimir imagen para reducir tamaño
+     */
+    private function compressImage($sourcePath, $destinationPath)
+    {
+        $imageInfo = getimagesize($sourcePath);
+        if (!$imageInfo) {
+            copy($sourcePath, $destinationPath);
+            return;
+        }
+
+        $mimeType = $imageInfo['mime'];
+        
+        switch ($mimeType) {
+            case 'image/jpeg':
+                $sourceImage = imagecreatefromjpeg($sourcePath);
+                break;
+            case 'image/png':
+                $sourceImage = imagecreatefrompng($sourcePath);
+                break;
+            case 'image/gif':
+                $sourceImage = imagecreatefromgif($sourcePath);
+                break;
+            default:
+                copy($sourcePath, $destinationPath);
+                return;
+        }
+
+        if (!$sourceImage) {
+            copy($sourcePath, $destinationPath);
+            return;
+        }
+
+        // Comprimir a JPEG con calidad 85% (balance entre calidad y tamaño)
+        imagejpeg($sourceImage, $destinationPath, 85);
+        imagedestroy($sourceImage);
+    }
+
+    /**
+     * Optimizar HTML de participación para detectar y reutilizar imágenes
+     */
+    private function optimizeParticipationHtml($html, $tickets)
+    {
+        // Detectar todas las imágenes en el HTML base
+        preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $html, $matches);
+        $baseImages = $matches[1];
+        
+        if (empty($baseImages)) {
+            return $html;
+        }
+
+        // Usar servicio de optimización
+        $imageService = new ImageOptimizationService();
+        
+        // Optimizar imágenes base
+        $optimizedBaseImages = [];
+        foreach ($baseImages as $imagePath) {
+            $optimizedPath = $imageService->optimizeImage($imagePath);
+            if ($optimizedPath) {
+                $optimizedBaseImages[$imagePath] = $optimizedPath;
+            }
+        }
+
+        // Reemplazar imágenes en el HTML base
+        foreach ($optimizedBaseImages as $original => $optimized) {
+            $html = str_replace($original, $optimized, $html);
+        }
+
+        return $html;
+    }
+
+    /**
+     * Versiones asíncronas para cover y back PDFs
+     */
+    public function exportCoverPdfAsync($id)
+    {
+        return $this->generateOptimizedPdfAsync($id, 'cover_html', 'portada.pdf');
+    }
+
+    public function exportBackPdfAsync($id)
+    {
+        return $this->generateOptimizedPdfAsync($id, 'back_html', 'trasera.pdf');
+    }
+
+    /**
+     * Método genérico para PDFs asíncronos
+     */
+    private function generateOptimizedPdfAsync($id, $htmlField, $filename)
+    {
+        $design = DesignFormat::findOrFail($id);
+        
+        // Para PDFs simples, usar procesamiento asíncrono solo si es muy grande
+        $html = $design->$htmlField;
+        $htmlSize = strlen($html);
+        
+        if ($htmlSize > 500000) { // Si el HTML es muy grande (>500KB)
+            $job_id = 'pdf_' . $htmlField . '_' . $id . '_' . time();
+            
+            // Dispatch job para procesar en background
+            Queue::push(new \App\Jobs\GenerateSimplePdfJob($id, $htmlField, $job_id, $filename));
+            
+            return response()->json([
+                'status' => 'processing',
+                'job_id' => $job_id,
+                'message' => 'El PDF se está generando en segundo plano. Te notificaremos cuando esté listo.',
+                'check_url' => route('design.checkPdfStatus', $job_id)
+            ]);
+        }
+        
+        // Para PDFs pequeños, usar el método normal optimizado
+        return $this->generateOptimizedPdf($id, $htmlField, $filename);
     }
 
     /**

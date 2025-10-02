@@ -250,8 +250,14 @@ Route::group(['prefix' => 'design'], function() {
 });
 
 Route::get('/design/pdf/participation/{id}', [App\Http\Controllers\DesignController::class, 'exportParticipationPdf']);
+Route::get('/design/pdf/participation-async/{id}', [App\Http\Controllers\DesignController::class, 'exportParticipationPdfAsync'])->name('design.exportParticipationPdfAsync');
+Route::get('/design/pdf/status/{job_id}', [App\Http\Controllers\DesignController::class, 'checkPdfStatus'])->name('design.checkPdfStatus');
+Route::get('/design/pdf/download/{job_id}', [App\Http\Controllers\DesignController::class, 'downloadPdf'])->name('design.downloadPdf');
 Route::get('/design/pdf/cover/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverPdf']);
+Route::get('/design/pdf/cover-async/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverPdfAsync'])->name('design.exportCoverPdfAsync');
 Route::get('/design/pdf/back/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdf']);
+Route::get('/design/pdf/back-async/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdfAsync'])->name('design.exportBackPdfAsync');
+Route::get('/design/pdf/export-async', [App\Http\Controllers\DesignController::class, 'exportPdf'])->name('design.exportPdfAsync');
 Route::post('/design/export-pdf', [App\Http\Controllers\DesignController::class, 'exportPdf']);
 Route::get('/design/format/edit/{id}', [App\Http\Controllers\DesignController::class, 'editFormat'])->name('design.editFormat');
 Route::put('/design/format/update/{id}', [App\Http\Controllers\DesignController::class, 'updateFormat'])->name('design.updateFormat');

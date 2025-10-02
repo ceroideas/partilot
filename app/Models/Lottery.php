@@ -23,7 +23,7 @@ class Lottery extends Model
         'image',
         'status',
         'lottery_type_id',
-        'lottery_type_code', // J, X, S, N, B, V
+        // 'lottery_type_code', // J, X, S, N, B, V
         'is_special' // Para sorteos especiales como 15€ Especial
     ];
 
@@ -95,10 +95,10 @@ class Lottery extends Model
     {
         // Convertir ticket_price a entero para evitar decimales
         $ticketPrice = intval($this->ticket_price);
-        $identifier = $ticketPrice . '_' . $this->lottery_type_code;
+        $identifier = $ticketPrice . '_' . $this->lotteryType->identificador;
         
         // Manejar casos especiales
-        if ($this->is_special && $this->lottery_type_code == 'S' && $ticketPrice == 15) {
+        if ($this->is_special && $this->lotteryType->identificador == 'S' && $ticketPrice == 15) {
             $identifier .= '_ESPECIAL';
         }
         
