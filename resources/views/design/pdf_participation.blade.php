@@ -72,6 +72,14 @@
         .cke_notifications_area {
             display: none !important;
         }
+        /* Optimizaciones para QR codes */
+        .qr-code {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+        
         /* Aquí puedes pegar estilos de Bootstrap en el futuro si lo necesitas */
     </style>
 </head>
@@ -81,15 +89,19 @@
         @for($i = 0; $i < count($page); $i++)
             @php
                 $ticket = $page[$i];
-                // Optimización: usar str_replace múltiple en una sola operación
+                // Procesar HTML base
                 $html = $participation_html;
                 $html = str_replace(['00000000000000000000', '1/0001'], [$ticket['r'], '1/'.str_pad($ticket['n'], 4,'0',STR_PAD_LEFT)], $html);
                 
-                // Optimización adicional: cache de HTML procesado por ticket
-                $ticketCacheKey = 'ticket_html_' . md5($html . $ticket['r'] . $ticket['n']);
-                $html = cache()->remember($ticketCacheKey, 1800, function() use ($html, $ticket) {
-                    return str_replace(['00000000000000000000', '1/0001'], [$ticket['r'], '1/'.str_pad($ticket['n'], 4,'0',STR_PAD_LEFT)], $html);
-                });
+                // Obtener QR code desde el array pre-generado (ya está en $qrCodes)
+                $qrCodeBase64 = $qrCodes[$ticket['r']] ?? '';
+                
+                // Método simple: Reemplazar el span ui-draggable-handle con el QR code
+                $html = str_replace(
+                    '<span class="ui-draggable-handle"></span>',
+                    '<img src="' . $qrCodeBase64 . '" class="qr-code" style="width: 60px; height: 60px; display: block;" alt="QR Code" />',
+                    $html
+                );
             @endphp
             <div class="participation-box" style="width: {{ 100/$cols }}%; float: left;">
                 {!! $html !!}

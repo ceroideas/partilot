@@ -11,6 +11,8 @@ use App\Models\DesignFormat;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ImageOptimizationService;
+use App\Services\QrCodeService;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class DesignController extends Controller
 {
@@ -208,6 +210,7 @@ class DesignController extends Controller
     // Utilidad para renderizar PDF desde HTML crudo
     protected function renderPdfFromHtml($html, $filename = 'document.pdf')
     {
+        return view('design.pdf_base', ['html' => $html]);
         $pdf = \PDF::loadView('design.pdf_base', ['html' => $html]);
         return $pdf->download($filename);
     }
@@ -315,23 +318,55 @@ class DesignController extends Controller
         // Obtener tickets a imprimir
         $tickets_to_print = array_slice($tickets, $from - 1, $to - $from + 1);
 
-        // Optimizar HTML de participación con detección de imágenes duplicadas
-        $participation_html = $this->optimizeParticipationHtml($participation_html, $tickets_to_print);
+        // Optimizar HTML de participación (configurable)
+        if (config('qr_optimization.optimize_images', false)) {
+            $participation_html = $this->optimizeParticipationHtml($participation_html, $tickets_to_print);
+        }
+
+        // Generar QR codes en lote para todas las referencias únicas (usando Endroid - ultra-optimizado)
+        $qrService = new \App\Services\EndroidQrCodeService();
+        $uniqueReferences = [];
+        foreach ($tickets_to_print as $ticket) {
+            if (isset($ticket['r']) && !in_array($ticket['r'], $uniqueReferences)) {
+                $uniqueReferences[] = $ticket['r'];
+            }
+        }
+        
+        // Usar el método más eficiente según la cantidad
+        // if (count($uniqueReferences) > 200) {
+            $qrCodes = $qrService->generateUltraFastQrCodes($uniqueReferences);
+        /*} else {
+            $qrCodes = $qrService->generateMultipleQrCodes($uniqueReferences);
+        }*/
 
         // Para PDFs muy grandes (>500 participaciones), usar procesamiento por lotes
         if ($total > 500) {
-            return $this->generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation);
+            return $this->generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation, $qrCodes);
         }
         
         // Ordenar tickets en modo guillotina (optimizado)
         $pages = $this->generatePagesOptimized($tickets_to_print, $total_pages, $per_page);
 
-        return Pdf::loadView('design.pdf_participation', [
+        /*return view('design.pdf_participation', [
             'pages' => $pages,
             'participation_html' => $participation_html,
             'rows' => $rows,
             'cols' => $cols,
-        ])->setPaper($page, $pdfOrientation)->stream('participacion.pdf');
+            'qrCodes' => $qrCodes,
+        ]);*/
+
+        $pdf = Pdf::loadView('design.pdf_participation', [
+            'pages' => $pages,
+            'participation_html' => $participation_html,
+            'rows' => $rows,
+            'cols' => $cols,
+            'qrCodes' => $qrCodes,
+        ])->setPaper($page, $pdfOrientation);
+        
+        // Limpiar QR codes temporales después de generar el PDF
+        $this->cleanupTempQrCodes();
+        
+        return $pdf->stream('participacion.pdf');
     }
 
     public function exportCoverPdf($id)
@@ -475,7 +510,7 @@ class DesignController extends Controller
     /**
      * Generar PDF en lotes para PDFs muy grandes
      */
-    private function generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation)
+    private function generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation, $qrCodes = [])
     {
         $per_page = $rows * $cols;
         $chunk_size = 100; // Procesar de 100 en 100
@@ -499,6 +534,7 @@ class DesignController extends Controller
                 'participation_html' => $participation_html,
                 'rows' => $rows,
                 'cols' => $cols,
+                'qrCodes' => $qrCodes,
             ])->setPaper($page, $pdfOrientation);
             
             // Guardar en archivo temporal
@@ -603,6 +639,7 @@ class DesignController extends Controller
         
         return response()->download($file_path, 'participacion.pdf')->deleteFileAfterSend(true);
     }
+
 
     /**
      * Optimizar imágenes reutilizables en el HTML
@@ -732,36 +769,60 @@ class DesignController extends Controller
     }
 
     /**
-     * Optimizar HTML de participación para detectar y reutilizar imágenes
+     * Optimizar HTML de participación (simplificado - solo si es necesario)
      */
     private function optimizeParticipationHtml($html, $tickets)
     {
-        // Detectar todas las imágenes en el HTML base
+        // Solo optimizar imágenes si hay muchas (para evitar ralentizar)
         preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $html, $matches);
         $baseImages = $matches[1];
         
-        if (empty($baseImages)) {
-            return $html;
-        }
-
-        // Usar servicio de optimización
-        $imageService = new ImageOptimizationService();
-        
-        // Optimizar imágenes base
-        $optimizedBaseImages = [];
-        foreach ($baseImages as $imagePath) {
-            $optimizedPath = $imageService->optimizeImage($imagePath);
-            if ($optimizedPath) {
-                $optimizedBaseImages[$imagePath] = $optimizedPath;
+        // Solo optimizar si hay pocas imágenes (para no ralentizar)
+        if (count($baseImages) <= 5) {
+            $imageService = new ImageOptimizationService();
+            
+            foreach ($baseImages as $imagePath) {
+                $optimizedPath = $imageService->optimizeImage($imagePath);
+                if ($optimizedPath) {
+                    $html = str_replace($imagePath, $optimizedPath, $html);
+                }
             }
         }
 
-        // Reemplazar imágenes en el HTML base
-        foreach ($optimizedBaseImages as $original => $optimized) {
-            $html = str_replace($original, $optimized, $html);
+        return $html;
+    }
+
+    /**
+     * Preparar QR codes para todas las participaciones (simplificado)
+     */
+    private function prepareQrCodesForTickets($tickets)
+    {
+        if (empty($tickets)) {
+            return;
         }
 
-        return $html;
+        // Solo generar QR codes únicos para evitar duplicados
+        $uniqueReferences = [];
+        foreach ($tickets as $ticket) {
+            if (isset($ticket['r']) && !in_array($ticket['r'], $uniqueReferences)) {
+                $uniqueReferences[] = $ticket['r'];
+            }
+        }
+
+        // Pre-generar QR codes únicos en lote (mucho más eficiente)
+        $qrService = new QrCodeService();
+        $qrService->generateMultipleQrCodes($uniqueReferences);
+    }
+
+    /**
+     * Limpiar QR codes temporales después de generar PDF (deshabilitado)
+     */
+    private function cleanupTempQrCodes()
+    {
+        // Los QR codes se mantienen para reutilización
+        // Solo se limpian manualmente con el comando
+        // $qrService = new QrCodeService();
+        // $qrService->clearOldQrCodes(0);
     }
 
     /**

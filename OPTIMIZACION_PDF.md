@@ -40,6 +40,11 @@ La función `exportParticipationPdf` era muy lenta al generar PDFs con muchas pa
 - **Solución**: Cache individual por ticket procesado
 - **Beneficio**: Aceleración en generaciones subsecuentes
 
+### 8. QR Codes Dinámicos
+- **Problema**: Necesidad de QR codes únicos por participación
+- **Solución**: Generación automática de QR codes con cache
+- **Beneficio**: Verificación rápida de participaciones, mejor UX
+
 ## Uso
 
 ### Para PDFs de Participación
@@ -150,6 +155,21 @@ php artisan images:optimize --clear
 php artisan images:optimize --test
 ```
 
+### Gestionar QR Codes
+```bash
+# Ver estadísticas de QR codes
+php artisan qr:manage --stats
+
+# Limpiar QR codes antiguos
+php artisan qr:manage --clear
+
+# Limpiar QR codes más antiguos de 12 horas
+php artisan qr:manage --clear --hours=12
+
+# Probar generación de QR code
+php artisan qr:manage --test
+```
+
 ### Programar Limpieza Automática
 Agregar a `app/Console/Kernel.php`:
 ```php
@@ -190,6 +210,29 @@ composer require predis/predis  # Para Redis
 | 100-500 | Síncrono | 10-30 segundos | < 512MB | 60-70% menor |
 | 500-1000 | Chunking | 30-60 segundos | < 1GB | 65-75% menor |
 | > 1000 | Asíncrono | 1-5 minutos | Variable | 70-80% menor |
+
+## Gestión de QR Codes
+
+### Sistema de Persistencia
+Los QR codes se guardan como archivos PNG en `storage/app/qr_codes/` para reutilización:
+- **Ventajas**: No se regeneran si ya existen
+- **Eficiencia**: Reutilización automática en PDFs posteriores
+- **Espacio**: Archivos PNG pequeños (~2-5KB cada uno)
+
+### Comandos de Gestión
+```bash
+# Ver estadísticas de QR codes guardados
+php artisan qr:manage stats
+
+# Limpiar todos los QR codes guardados
+php artisan qr:manage clear
+
+# Probar velocidad de generación
+php artisan qr:manage test
+
+# Limpiar QR codes antiguos (más de X horas)
+php artisan qr:clear --hours=24
+```
 
 ## Troubleshooting
 
