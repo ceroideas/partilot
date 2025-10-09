@@ -16,6 +16,7 @@ use App\Http\Controllers\SellerController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\ParticipationController;
+use App\Http\Controllers\DevolutionsController;
 use App\Models\Administration;
 /*
 |--------------------------------------------------------------------------
@@ -276,5 +277,17 @@ Route::get('communications',function() {
 Route::get('scrutiny', [ScrutinyController::class, 'index'])->name('scrutiny.index');
 Route::post('scrutiny/generate', [ScrutinyController::class, 'generateScrutiny'])->name('scrutiny.generate');
 Route::post('scrutiny/export', [ScrutinyController::class, 'exportScrutiny'])->name('scrutiny.export');
+
+// Rutas de Devoluciones
+// Rutas específicas ANTES del resource para evitar conflictos
+Route::get('devolutions-data', [DevolutionsController::class, 'data'])->name('devolutions.data');
+Route::get('devolutions/entities', [DevolutionsController::class, 'getEntities'])->name('devolutions.entities');
+Route::get('devolutions/lotteries', [DevolutionsController::class, 'getLotteriesByEntity'])->name('devolutions.lotteries');
+Route::get('devolutions/sellers', [DevolutionsController::class, 'getSellersByEntity'])->name('devolutions.sellers');
+Route::get('devolutions/participations', [DevolutionsController::class, 'getParticipationsBySellerAndLottery'])->name('devolutions.participations');
+Route::post('devolutions/validate', [DevolutionsController::class, 'validateParticipations'])->name('devolutions.validate');
+
+// Resource routes (deben ir AL FINAL para evitar conflictos)
+Route::resource('devolutions', DevolutionsController::class);
 
 }); // Cierre del middleware auth
