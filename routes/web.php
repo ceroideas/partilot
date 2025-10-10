@@ -17,6 +17,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\ParticipationController;
 use App\Http\Controllers\DevolutionsController;
+use App\Http\Controllers\UserController;
 use App\Models\Administration;
 /*
 |--------------------------------------------------------------------------
@@ -289,5 +290,9 @@ Route::post('devolutions/validate', [DevolutionsController::class, 'validatePart
 
 // Resource routes (deben ir AL FINAL para evitar conflictos)
 Route::resource('devolutions', DevolutionsController::class);
+
+// Rutas de Usuarios
+Route::get('users-data', [UserController::class, 'data'])->name('users.data');
+Route::resource('users', UserController::class);
 
 }); // Cierre del middleware auth

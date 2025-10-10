@@ -199,28 +199,47 @@ class ApiController extends Controller
         // }
 
         // Agregar campos 'series' y 'billetes_serie' a la tabla lottery_types si no existen
-        $fieldsAdded = [];
-        if (!Schema::hasColumn('lottery_types', 'series')) {
-            Schema::table('lottery_types', function (Blueprint $table) {
-                $table->integer('series')->default(10)->after('ticket_price')->comment('Cantidad de series para el tipo de sorteo');
-            });
-            $fieldsAdded[] = 'series';
-        }
-        if (!Schema::hasColumn('lottery_types', 'billetes_serie')) {
-            Schema::table('lottery_types', function (Blueprint $table) {
-                $table->integer('billetes_serie')->default(100000)->after('series')->comment('Billetes por cada serie');
-            });
-            $fieldsAdded[] = 'billetes_serie';
-        }
+        // $fieldsAdded = [];
+        // if (!Schema::hasColumn('lottery_types', 'series')) {
+        //     Schema::table('lottery_types', function (Blueprint $table) {
+        //         $table->integer('series')->default(10)->after('ticket_price')->comment('Cantidad de series para el tipo de sorteo');
+        //     });
+        //     $fieldsAdded[] = 'series';
+        // }
+        // if (!Schema::hasColumn('lottery_types', 'billetes_serie')) {
+        //     Schema::table('lottery_types', function (Blueprint $table) {
+        //         $table->integer('billetes_serie')->default(100000)->after('series')->comment('Billetes por cada serie');
+        //     });
+        //     $fieldsAdded[] = 'billetes_serie';
+        // }
 
-        if (!empty($fieldsAdded)) {
-            return response()->json([
-                'message' => 'Migración completada exitosamente',
-                'fields_added' => $fieldsAdded
-            ]);
-        }
+        // if (!empty($fieldsAdded)) {
+        //     return response()->json([
+        //         'message' => 'Migración completada exitosamente',
+        //         'fields_added' => $fieldsAdded
+        //     ]);
+        // }
 
-        return response()->json(['message' => 'No se realizaron cambios en la estructura de la base de datos']);
+        // return response()->json(['message' => 'No se realizaron cambios en la estructura de la base de datos']);
+
+        Schema::table('sellers', function (Blueprint $table) {
+            // Campos para vendedores externos (replicando users)
+            $table->string('email')->nullable()->after('entity_id');
+            $table->string('name')->nullable()->after('email');
+            $table->string('last_name')->nullable()->after('name');
+            $table->string('last_name2')->nullable()->after('last_name');
+            $table->string('nif_cif')->nullable()->after('last_name2');
+            $table->date('birthday')->nullable()->after('nif_cif');
+            $table->boolean('status')->default(true)->after('birthday');
+            $table->string('phone')->nullable()->after('status');
+            $table->string('image')->nullable()->after('phone');
+            
+            // Campo para diferenciar tipo de vendedor
+            $table->enum('seller_type', ['partilot', 'externo'])->default('partilot')->after('status');
+            
+            // Comentarios adicionales
+            $table->text('comment')->nullable()->after('seller_type');
+        });
     }
 
     /**

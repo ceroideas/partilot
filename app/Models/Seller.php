@@ -11,7 +11,23 @@ class Seller extends Model
 
     protected $fillable = [
         'user_id',
-        'entity_id'
+        'entity_id',
+        'email',
+        'name',
+        'last_name',
+        'last_name2',
+        'nif_cif',
+        'birthday',
+        'phone',
+        'comment',
+        'image',
+        'status',
+        'seller_type'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean',
+        'birthday' => 'date',
     ];
 
     /**
@@ -30,80 +46,83 @@ class Seller extends Model
         return $this->belongsTo(Entity::class);
     }
 
+
     /**
-     * Obtener el nombre completo del vendedor desde el usuario
+     * Accesores para obtener datos (prioridad: datos directos > usuario vinculado)
      */
     public function getFullNameAttribute()
     {
-        return $this->user ? $this->user->full_name : '';
+        if ($this->seller_type === 'externo') {
+            $name = trim(($this->attributes['name'] ?? '') . ' ' . ($this->attributes['last_name'] ?? '') . ' ' . ($this->attributes['last_name2'] ?? ''));
+            return !empty($name) ? $name : 'Sin nombre';
+        }
+        return $this->user ? $this->user->full_name : 'Sin nombre';
     }
 
-    /**
-     * Obtener el estado como texto desde el usuario
-     */
     public function getStatusTextAttribute()
     {
+        if ($this->seller_type === 'externo') {
+            return $this->attributes['status'] ? 'Activo' : 'Inactivo';
+        }
         return $this->user && $this->user->status ? 'Activo' : 'Inactivo';
     }
 
-    /**
-     * Obtener el estado como clase CSS desde el usuario
-     */
     public function getStatusClassAttribute()
     {
+        if ($this->seller_type === 'externo') {
+            return $this->attributes['status'] ? 'success' : 'danger';
+        }
         return $this->user && $this->user->status ? 'success' : 'danger';
     }
 
     /**
-     * Accesores para los datos del usuario
+     * Métodos para obtener datos según el tipo de vendedor
      */
-    public function getNameAttribute()
+    public function getDisplayNameAttribute()
     {
-        return $this->user ? $this->user->name : '';
+        if ($this->seller_type === 'externo') {
+            return $this->attributes['name'] ?? 'Sin nombre';
+        }
+        return $this->user ? $this->user->name : 'Sin nombre';
     }
 
-    public function getLastNameAttribute()
+    public function getDisplayLastNameAttribute()
     {
+        if ($this->seller_type === 'externo') {
+            return $this->attributes['last_name'] ?? '';
+        }
         return $this->user ? $this->user->last_name : '';
     }
 
-    public function getLastName2Attribute()
+    public function getDisplayEmailAttribute()
     {
-        return $this->user ? $this->user->last_name2 : '';
-    }
-
-    public function getNifCifAttribute()
-    {
-        return $this->user ? $this->user->nif_cif : '';
-    }
-
-    public function getBirthdayAttribute()
-    {
-        return $this->user ? $this->user->birthday : '';
-    }
-
-    public function getEmailAttribute()
-    {
+        if ($this->seller_type === 'externo') {
+            return $this->attributes['email'] ?? '';
+        }
         return $this->user ? $this->user->email : '';
     }
 
-    public function getPhoneAttribute()
+    public function getDisplayPhoneAttribute()
     {
+        if ($this->seller_type === 'externo') {
+            return $this->attributes['phone'] ?? '';
+        }
         return $this->user ? $this->user->phone : '';
     }
 
-    public function getCommentAttribute()
+    /**
+     * Verificar si el vendedor está vinculado a un usuario
+     */
+    public function isLinkedToUser()
     {
-        return $this->user ? $this->user->comment : '';
+        return $this->user_id > 0;
     }
 
-    public function getImageAttribute()
+    /**
+     * Verificar si el vendedor está pendiente de vinculación
+     */
+    public function isPendingLink()
     {
-        return $this->user ? $this->user->image : '';
-    }
-
-    public function getStatusAttribute()
-    {
-        return $this->user ? $this->user->status : false;
+        return $this->user_id === 0; // Tanto PARTILOT pendientes como EXTERNO
     }
 }

@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Entity;
 use App\Models\Reserve;
 use App\Models\Set;
+use App\Services\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -64,37 +65,31 @@ class SellerController extends Controller
     public function store_existing_user(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'entity_id' => 'required|exists:entities,id'
+            'email' => 'required|email',
+            'entity_id' => 'required|exists:entities,id',
+            'name' => 'nullable|string|max:255', // No requerido, puede estar vacío
+            'last_name' => 'nullable|string|max:255',
+            'last_name2' => 'nullable|string|max:255',
+            'nif_cif' => 'nullable|string|max:255',
+            'birthday' => 'nullable|date',
+            'phone' => 'nullable|string|max:255',
+            'comment' => 'nullable|string'
         ]);
 
         try {
-            DB::beginTransaction();
-
-            $user = User::where('email', $request->email)->first();
-            $entity = Entity::findOrFail($request->entity_id);
-
-            // Crear el vendedor con los datos del usuario existente
-            $seller = Seller::create([
-                'user_id' => $user->id,
-                'name' => $user->name,
-                'last_name' => $user->last_name,
-                'last_name2' => $user->last_name2,
-                'nif_cif' => $user->nif_cif,
-                'birthday' => $user->birthday,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'status' => 1, // Activo por defecto
-                'entity_id' => $entity->id
-            ]);
-
-            DB::commit();
+            $sellerService = new SellerService();
+            $seller = $sellerService->createSeller($request->all(), $request->entity_id, 'partilot');
 
             session()->forget('selected_entity');
-            return redirect()->route('sellers.index')->with('success', 'Vendedor creado exitosamente');
+            
+            // Determinar el mensaje según si se vinculó o quedó pendiente
+            $message = $seller->isLinkedToUser() 
+                ? 'Vendedor PARTILOT creado y vinculado exitosamente'
+                : 'Vendedor PARTILOT creado pendiente de vinculación';
+                
+            return redirect()->route('sellers.index')->with('success', $message);
 
         } catch (\Exception $e) {
-            DB::rollback();
             return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()]);
         }
     }
@@ -105,54 +100,24 @@ class SellerController extends Controller
     public function store_new_user(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255', // No requerido
+            'last_name' => 'nullable|string|max:255', // No requerido
             'last_name2' => 'nullable|string|max:255',
             'nif_cif' => 'nullable|string|max:255',
             'birthday' => 'nullable|date',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email',
             'phone' => 'nullable|string|max:255',
             'entity_id' => 'required|exists:entities,id'
         ]);
 
         try {
-            DB::beginTransaction();
-
-            $entity = Entity::findOrFail($request->entity_id);
-
-            // Crear el usuario
-            $user = User::create([
-                'name' => $request->name,
-                'last_name' => $request->last_name,
-                'last_name2' => $request->last_name2,
-                'nif_cif' => $request->nif_cif,
-                'birthday' => $request->birthday,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make('password123'), // Contraseña temporal
-            ]);
-
-            // Crear el vendedor
-            $seller = Seller::create([
-                'user_id' => $user->id,
-                'name' => $request->name,
-                'last_name' => $request->last_name,
-                'last_name2' => $request->last_name2,
-                'nif_cif' => $request->nif_cif,
-                'birthday' => $request->birthday,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'status' => 1, // Activo por defecto
-                'entity_id' => $entity->id
-            ]);
-
-            DB::commit();
+            $sellerService = new SellerService();
+            $seller = $sellerService->createSeller($request->all(), $request->entity_id, 'externo');
 
             session()->forget('selected_entity');
-            return redirect()->route('sellers.index')->with('success', 'Vendedor creado exitosamente');
+            return redirect()->route('sellers.index')->with('success', 'Vendedor EXTERNO creado exitosamente');
 
         } catch (\Exception $e) {
-            DB::rollback();
             return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()]);
         }
     }
