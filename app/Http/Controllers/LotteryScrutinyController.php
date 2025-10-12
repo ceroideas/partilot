@@ -155,7 +155,7 @@ class LotteryScrutinyController extends Controller
                 ->whereHas('entity', function($query) use ($administrationId) {
                     $query->where('administration_id', $administrationId);
                 })
-                ->where('status', 'asignada')
+                ->where('status', 'vendida')
                 ->count();
             
             // Participaciones no ganadoras = total asignadas - ganadoras
@@ -412,7 +412,7 @@ class LotteryScrutinyController extends Controller
                 ->whereHas('set.reserve', function ($query) use ($lottery) {
                     $query->where('lottery_id', $lottery->id);
                 })
-                ->where('status', 'asignada')
+                ->where('status', 'vendida')
                 ->get();
 
             // Obtener todas las participaciones disponibles de esta entidad para este sorteo
@@ -420,7 +420,7 @@ class LotteryScrutinyController extends Controller
                 ->whereHas('set.reserve', function ($query) use ($lottery) {
                     $query->where('lottery_id', $lottery->id);
                 })
-                ->whereIn('status', ['disponible', 'asignada', 'devuelta'])
+                ->whereIn('status', ['vendida', 'disponible', 'asignada', 'devuelta'])
                 ->get();
 
             // Obtener participaciones devueltas de esta entidad para este sorteo
@@ -436,8 +436,14 @@ class LotteryScrutinyController extends Controller
             foreach ($allAssignedParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
-                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                        $assignedNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                    // Si solo hay un número reservado, todas las participaciones del set tienen ese número
+                    if (count($reservedNumbers) === 1) {
+                        $assignedNumbers[] = $reservedNumbers[0];
+                    } else {
+                        // Si hay múltiples números, usar el índice correspondiente
+                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                            $assignedNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                        }
                     }
                 }
             }
@@ -480,12 +486,18 @@ class LotteryScrutinyController extends Controller
                         $winningParticipations[] = $participation;
                         
                         // Calcular participaciones ganadoras por número específico
-                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                            $number = $reservedNumbers[$participation->participation_number - 1];
-                            if (in_array($number, $tempEntityResult->winning_numbers)) {
-                                $totalWinningParticipations++;
-                                $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
+                        $number = null;
+                        if (count($reservedNumbers) === 1) {
+                            $number = $reservedNumbers[0];
+                        } else {
+                            if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                                $number = $reservedNumbers[$participation->participation_number - 1];
                             }
+                        }
+                        
+                        if ($number && in_array($number, $tempEntityResult->winning_numbers)) {
+                            $totalWinningParticipations++;
+                            $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
                         }
                     }
                 }
@@ -496,8 +508,14 @@ class LotteryScrutinyController extends Controller
             foreach ($winningParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
-                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                        $winningNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                    // Si solo hay un número reservado, todas las participaciones del set tienen ese número
+                    if (count($reservedNumbers) === 1) {
+                        $winningNumbers[] = $reservedNumbers[0];
+                    } else {
+                        // Si hay múltiples números, usar el índice correspondiente
+                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                            $winningNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                        }
                     }
                 }
             }
@@ -509,7 +527,7 @@ class LotteryScrutinyController extends Controller
             // Crear el resultado final con solo las participaciones de sets ganadores
             $entityResult = new ScrutinyEntityResult([
                 'entity_id' => $entity->id,
-                'reserved_numbers' => $winningNumbers,
+                'reserved_numbers' => $assignedNumbers, // Usar todos los números de participaciones vendidas
                 'total_reserved' => count($winningParticipations), // Solo participaciones de sets ganadores
                 'total_issued' => $allParticipations->count(), // Total de participaciones emitidas
                 'total_sold' => count($winningParticipations), // Solo participaciones de sets ganadores
@@ -582,7 +600,7 @@ class LotteryScrutinyController extends Controller
                 ->whereHas('set.reserve', function ($query) use ($lottery) {
                     $query->where('lottery_id', $lottery->id);
                 })
-                ->where('status', 'asignada')
+                ->where('status', 'vendida')
                 ->get();
 
             // Obtener todas las participaciones disponibles de esta entidad para este sorteo
@@ -598,8 +616,14 @@ class LotteryScrutinyController extends Controller
             foreach ($allAssignedParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
-                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                        $assignedNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                    // Si solo hay un número reservado, todas las participaciones del set tienen ese número
+                    if (count($reservedNumbers) === 1) {
+                        $assignedNumbers[] = $reservedNumbers[0];
+                    } else {
+                        // Si hay múltiples números, usar el índice correspondiente
+                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                            $assignedNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                        }
                     }
                 }
             }
@@ -642,12 +666,18 @@ class LotteryScrutinyController extends Controller
                         $winningParticipations[] = $participation;
                         
                         // Calcular participaciones ganadoras por número específico
-                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                            $number = $reservedNumbers[$participation->participation_number - 1];
-                            if (in_array($number, $tempEntityResult->winning_numbers)) {
-                                $totalWinningParticipations++;
-                                $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
+                        $number = null;
+                        if (count($reservedNumbers) === 1) {
+                            $number = $reservedNumbers[0];
+                        } else {
+                            if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                                $number = $reservedNumbers[$participation->participation_number - 1];
                             }
+                        }
+                        
+                        if ($number && in_array($number, $tempEntityResult->winning_numbers)) {
+                            $totalWinningParticipations++;
+                            $winningParticipationsByNumber[$number] = ($winningParticipationsByNumber[$number] ?? 0) + 1;
                         }
                     }
                 }
@@ -658,8 +688,14 @@ class LotteryScrutinyController extends Controller
             foreach ($winningParticipations as $participation) {
                 if ($participation->set && $participation->set->reserve) {
                     $reservedNumbers = $participation->set->reserve->reservation_numbers ?? [];
-                    if (isset($reservedNumbers[$participation->participation_number - 1])) {
-                        $winningNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                    // Si solo hay un número reservado, todas las participaciones del set tienen ese número
+                    if (count($reservedNumbers) === 1) {
+                        $winningNumbers[] = $reservedNumbers[0];
+                    } else {
+                        // Si hay múltiples números, usar el índice correspondiente
+                        if (isset($reservedNumbers[$participation->participation_number - 1])) {
+                            $winningNumbers[] = $reservedNumbers[$participation->participation_number - 1];
+                        }
                     }
                 }
             }
@@ -1313,11 +1349,20 @@ class LotteryScrutinyController extends Controller
                         \Log::info("Precio del set: {$set->price_per_participation}");
                         \Log::info("Donativo del set: {$set->donation_amount}");
                         
-                        // Obtener todas las participaciones vendidas (asignadas) para este número específico
-                        // Buscar todas las participaciones del set que correspondan a este número
+                        // Obtener todas las participaciones vendidas para este número específico
+                        // Si la reserva tiene solo un número, todas las participaciones del set tienen ese número
+                        // Si la reserva tiene múltiples números, filtrar por el número específico
                         $participations = Participation::where('set_id', $set->id)
-                            ->where('status', 'asignada')
-                            ->get();
+                            ->where('status', 'vendida');
+                        
+                        // Si la reserva tiene múltiples números, necesitamos filtrar por participación específica
+                        if (count($reserve->reservation_numbers) > 1) {
+                            // Para reservas con múltiples números, filtrar por el número de participación correspondiente
+                            $participations = $participations->where('participation_number', $numberIndex + 1);
+                        }
+                        // Si la reserva tiene un solo número, todas las participaciones del set tienen ese número
+                        
+                        $participations = $participations->get();
                         
                         $participationsVendidas = $participations->count();
                         \Log::info("Participaciones vendidas para número {$number} en set {$set->id}: {$participationsVendidas}");

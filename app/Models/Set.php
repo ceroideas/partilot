@@ -14,6 +14,7 @@ class Set extends Model
         'reserve_id',
         'set_name',
         'set_description',
+        'set_number',
         'total_participations',
         'participation_price',
         'total_amount',
@@ -30,6 +31,7 @@ class Set extends Model
     ];
 
     protected $casts = [
+        'set_number' => 'integer',
         'total_participations' => 'integer',
         'participation_price' => 'decimal:2',
         'total_amount' => 'decimal:2',
@@ -156,5 +158,56 @@ class Set extends Model
             ];
         }
         return $tickets;
+    }
+
+    /**
+     * Boot del modelo para eventos automáticos
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Asignar automáticamente el número de set al crear
+        static::creating(function ($set) {
+            if (!$set->set_number) {
+                $set->set_number = self::getNextSetNumber($set->reserve_id);
+            }
+        });
+
+        // Renumerar sets cuando se elimina uno
+        static::deleted(function ($deletedSet) {
+            self::renumberSetsInReserve($deletedSet->reserve_id);
+        });
+    }
+
+    /**
+     * Obtener el siguiente número de set para una reserva
+     */
+    private static function getNextSetNumber($reserveId)
+    {
+        $lastSet = self::where('reserve_id', $reserveId)
+            ->orderBy('set_number', 'desc')
+            ->first();
+        
+        return ($lastSet ? $lastSet->set_number : 0) + 1;
+    }
+
+    /**
+     * Renumerar sets en una reserva después de eliminar uno
+     */
+    private static function renumberSetsInReserve($reserveId)
+    {
+        // Obtener todos los sets de la reserva ordenados por ID (orden de creación)
+        $sets = self::where('reserve_id', $reserveId)
+            ->orderBy('id')
+            ->get();
+        
+        // Renumerar secuencialmente
+        foreach ($sets as $index => $set) {
+            $newNumber = $index + 1;
+            if ($set->set_number != $newNumber) {
+                $set->update(['set_number' => $newNumber]);
+            }
+        }
     }
 }

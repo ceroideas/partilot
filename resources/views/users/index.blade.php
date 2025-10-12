@@ -86,7 +86,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/view.svg')}}" alt="" width="12"></a>
+                                            <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                             <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                             <form action="{{ route('users.destroy', $user->id) }}" method="POST" style="display: inline;">
                                                 @csrf

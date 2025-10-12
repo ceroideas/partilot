@@ -345,19 +345,10 @@ class DesignFormat extends Model
     }
 
     /**
-     * Obtener el número de set basado en la fecha de creación
+     * Obtener el número de set desde el modelo Set
      */
     private function getSetNumber()
     {
-        if (!$this->set) {
-            return 1;
-        }
-
-        // Contar cuántos sets hay para la misma reserva, ordenados por fecha de creación
-        $setNumber = Set::where('reserve_id', $this->set->reserve_id)
-            ->where('created_at', '<=', $this->set->created_at)
-            ->count();
-        
-        return $setNumber;
+        return $this->set ? $this->set->set_number : 1;
     }
 }

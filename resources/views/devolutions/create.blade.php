@@ -252,7 +252,7 @@
 
                     <div class="row">
                         <div class="col-md-3" style="position: relative;">
-                            <!-- Pasos del proceso -->
+                            <!-- Pasos del proceso (sin vendedor - 5 pasos) -->
                             <ul class="form-card bs mb-3 nav">
                                 <li class="nav-item">
                                     <div class="form-wizard-element active" id="step-1">
@@ -271,26 +271,19 @@
                                 <li class="nav-item">
                                     <div class="form-wizard-element" id="step-3">
                                         <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/vendedores.svg')}}" alt="">
-                                        <label>Seleccionar Vendedor</label>
+                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                                        <label>Seleccionar Participaciones</label>
                                     </div>
                                 </li>
                                 <li class="nav-item">
                                     <div class="form-wizard-element" id="step-4">
                                         <span>&nbsp;&nbsp;</span>
                                         <img src="{{url('icons/participaciones.svg')}}" alt="">
-                                        <label>Asignar Participaciones</label>
-                                    </div>
-                                </li>
-                                <li class="nav-item">
-                                    <div class="form-wizard-element" id="step-5">
-                                        <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
                                         <label>Resumen Devolución</label>
                                     </div>
                                 </li>
                                 <li class="nav-item">
-                                    <div class="form-wizard-element" id="step-6">
+                                    <div class="form-wizard-element" id="step-5">
                                         <span>&nbsp;&nbsp;</span>
                                         <img src="{{url('icons/participaciones.svg')}}" alt="">
                                         <label>Liquidación</label>
@@ -309,21 +302,6 @@
                                     <div class="col-8 text-center mt-2">
                                         <h3 class="mt-2 mb-0" id="entity-name">Entidad</h3>
                                         <i class="ri-map-pin-line"></i> <span id="entity-location">Ubicación</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Información del vendedor seleccionado -->
-                            <div class="form-card bs mb-3" id="seller-info" style="display: none;">
-                                <div class="row">
-                                    <div class="col-4">
-                                        <div class="photo-preview-3">
-                                            <i class="ri-user-line"></i>
-                                        </div>
-                                    </div>
-                                    <div class="col-8 text-center mt-2">
-                                        <h3 class="mt-2 mb-0" id="seller-name">Vendedor</h3>
-                                        <i class="ri-mail-line"></i> <span id="seller-email">Email</span>
                                     </div>
                                 </div>
                             </div>
@@ -423,65 +401,47 @@
                                         </div>
                                     </div>
 
-                                    <!-- Paso 3: Selección de Vendedor -->
-                                    <div class="tab-pane fade" id="paso-vendedor">
+                                    <!-- Paso 3: Asignación de Participaciones -->
+                                    <div class="tab-pane fade" id="paso-participaciones">
                                         <div class="form-card bs" style="min-height: 658px;">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    <h4 class="mb-0 mt-1">Seleccionar Vendedor</h4>
-                                                    <small><i>Elige el vendedor para la devolución</i></small>
+                                                    <h4 class="mb-0 mt-1">Indica las participaciones</h4>
+                                                    <small><i>Individual o por rango</i></small>
                                                 </div>
-                                                <button id="btn-volver-sorteo" class="btn btn-secondary btn-sm">
+                                                <button id="btn-volver-sorteo-desde-participaciones" class="btn btn-secondary btn-sm">
                                                     <i class="ri-arrow-left-line"></i> Volver a Sorteos
                                                 </button>
                                             </div>
 
                                             <br>
 
-                                            <div class="table-responsive">
-                                                <table id="tabla-vendedores" class="table table-striped nowrap w-100">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>ID</th>
-                                                            <th>Vendedor</th>
-                                                            <th>Email</th>
-                                                            <th>Teléfono</th>
-                                                            <th>Seleccionar</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <!-- Los datos se cargarán dinámicamente -->
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
                                             <div class="row">
-                                                <div class="col-12 text-end">
-                                                    <button type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="btn-siguiente-vendedor" disabled>
-                                                        Siguiente
-                                                        <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i>
-                                                    </button>
+                                                <!-- Sección: Selección de Set -->
+                                                <div class="col-md-12 mb-3">
+                                                    <div class="form-card bs">
+                                                        <div class="d-flex align-items-center p-3">
+                                                            <div class="me-3">
+                                                                <img src="{{url('icons/sets.svg')}}" alt="" width="40px">
+                                                            </div>
+                                                            <div class="flex-grow-1">
+                                                                <h4 class="m-0 fw-bold">Seleccionar Set</h4>
+                                                                <small class="text-muted">Elige el set de participaciones</small>
+                                                                <br>
+                                                                <small class="text-info"><i class="ri-information-line"></i> Puedes cambiar de set sin perder las selecciones anteriores</small>
+                                                            </div>
+                                                            <div style="width: 40%;">
+                                                                <label class="form-label small mb-1">Set</label>
+                                                                <div class="input-group input-group-merge group-form">
+                                                                    <select class="form-select" id="selector-set" style="border-radius: 30px;">
+                                                                        <option value="">Seleccionar set...</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <!-- Paso 4: Asignación de Participaciones -->
-                                    <div class="tab-pane fade" id="paso-participaciones">
-                                        <div class="form-card bs" style="min-height: 658px;">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h4 class="mb-0 mt-1">Asignar Participaciones</h4>
-                                                    <small><i>Individual o por rango</i></small>
-                                                </div>
-                                                <button id="btn-volver-vendedor" class="btn btn-secondary btn-sm">
-                                                    <i class="ri-arrow-left-line"></i> Volver a Vendedores
-                                                </button>
-                                            </div>
-
-                                            <br>
-
-                                            <div class="row">
                                                 <!-- Sección: Participaciones Por Rango -->
                                                 <div class="col-md-12 mb-3">
                                                     <div class="form-card bs">
@@ -563,23 +523,35 @@
                                                         </div>
                                                     </div>
                                                     
-                                                    <div class="d-flex justify-content-between align-items-center mt-3">
-                                                        <div class="d-flex align-items-center gap-3">
-                                                            <span class="fw-bold">Total Asignadas:</span>
-                                                            <div class="form-card bs px-3 py-2">
-                                                                <span id="total-asignadas" class="fw-bold fs-4">0</span>
-                                                            </div>
-                                                        </div>
-                                                        <button type="button" class="btn btn-warning" id="btn-terminar-asignacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold; padding: 10px 30px;">
-                                                            Siguiente
-                                                        </button>
-                                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <span class="fw-bold">Total Asignadas:</span>
+                                            <div class="form-card bs px-3 py-2">
+                                                <span id="total-asignadas" class="fw-bold fs-4">0</span>
+                                            </div>
+                                            <span class="text-muted">|</span>
+                                            <span class="fw-bold">Sets:</span>
+                                            <div class="form-card bs px-3 py-2">
+                                                <span id="total-sets" class="fw-bold fs-4">0</span>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-warning" id="btn-terminar-asignacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold; padding: 10px 30px;">
+                                            Siguiente
+                                        </button>
+                                    </div>
+                                                </div>
+
+                                                <!-- Botón para continuar sin participaciones -->
+                                                <div id="btn-continuar-sin-participaciones-container" class="text-end mt-3" style="display: none;">
+                                                    <button type="button" class="btn btn-info" id="btn-continuar-sin-participaciones" style="border-radius: 30px; font-weight: bold; padding: 10px 30px;">
+                                                        <i class="ri-arrow-right-line"></i> Continuar sin participaciones
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Paso 5: Resumen de Devolución -->
+                                    <!-- Paso 4: Resumen de Devolución -->
                                     <div class="tab-pane fade" id="paso-resumen">
                                         <div class="form-card bs" style="min-height: 658px;">
                                             <div class="d-flex justify-content-between align-items-center">
@@ -605,10 +577,6 @@
                                                     <span id="resumen-sorteo">-</span>
                                                 </div>
                                                 <div class="resumen-item">
-                                                    <span>Vendedor:</span>
-                                                    <span id="resumen-vendedor">-</span>
-                                                </div>
-                                                <div class="resumen-item">
                                                     <span>Total Participaciones:</span>
                                                     <span id="resumen-total">0</span>
                                                 </div>
@@ -625,13 +593,13 @@
                                         </div>
                                     </div>
 
-                                    <!-- Paso 6: Liquidación -->
+                                    <!-- Paso 5: Liquidación -->
                                     <div class="tab-pane fade" id="paso-liquidacion">
                                         <div class="form-card bs" style="min-height: 658px;">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <h4 class="mb-0 mt-1">Liquidación</h4>
-                                                    <small><i>Marca las participaciones como devueltas o vendidas</i></small>
+                                                    <small><i>Procesa la liquidación de participaciones</i></small>
                                                 </div>
                                                 <button id="btn-volver-resumen-final" class="btn btn-secondary btn-sm">
                                                     <i class="ri-arrow-left-line"></i> Volver a Resumen
@@ -640,18 +608,142 @@
 
                                             <br>
 
-                                            <div id="liquidacion-participaciones">
-                                                <!-- Las participaciones para liquidar se cargarán aquí -->
-                                            </div>
+                                            <!-- Resumen Devolución -->
+                                                    <!-- Resumen Devolución -->
+                                                    <div class="card mb-3">
+                                                        <div class="card-body">
+                                                            <h5 class="card-title">Resumen Devolución</h5>
+                                                            <small class="text-muted">Resumen Devolución Entidad</small>
+                                                            
+                                                            <div class="text-center my-3">
+                                                                <img src="{{url('assets/ticket.svg')}}" alt="" width="60px">
+                                                                <div class="mt-2">
+                                                                    <strong id="liquidacion-ticket-number">-</strong>
+                                                                </div>
+                                                            </div>
 
-                                            <div class="d-flex justify-content-between align-items-center mt-4">
-                                                <button type="button" class="btn btn-secondary" id="btn-cancelar-liquidacion" style="border-radius: 30px;">
-                                                    <i class="ri-close-line me-2"></i>Cancelar
-                                                </button>
-                                                <button type="button" class="btn btn-success" id="btn-procesar-liquidacion" style="border-radius: 30px; font-weight: bold;">
-                                                    <i class="ri-check-line me-2"></i>Procesar Liquidación
-                                                </button>
-                                            </div>
+                                                            <div class="row">
+                                                                <div class="col-6">
+                                                                    <div class="mb-2">
+                                                                        <strong>Total Participaciones:</strong>
+                                                                        <span id="liquidacion-total-participaciones">0</span>
+                                                                    </div>
+                                                                    <div class="mb-2">
+                                                                        <strong>Ventas registradas:</strong>
+                                                                        <span id="liquidacion-ventas-registradas">0</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <div class="mb-2">
+                                                                        <strong>Participaciones Devueltas:</strong>
+                                                                        <span id="liquidacion-participaciones-devueltas">0</span>
+                                                                    </div>
+                                                                    <div class="mb-2">
+                                                                        <strong>Disponibles:</strong>
+                                                                        <span id="liquidacion-disponibles">0</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Liquidación Actual -->
+                                                    <div class="card mb-3">
+                                                        <div class="card-body">
+                                                            <h5 class="card-title">Liquidación Actual</h5>
+                                                            <div class="row">
+                                                                <div class="col-4">
+                                                                    <div class="mb-2">
+                                                                        <strong>Total Liquidación:</strong>
+                                                                        <span id="liquidacion-total-liquidacion">0,00€</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-4">
+                                                                    <div class="mb-2">
+                                                                        <strong>Pagos Registrados:</strong>
+                                                                        <span id="liquidacion-pagos-registrados">0,00€</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-4">
+                                                                    <div class="mb-2">
+                                                                        <strong>Total a Pagar:</strong>
+                                                                        <span id="liquidacion-total-pagar">0,00€</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Forma de Pago -->
+                                                    <div class="card">
+                                                        <div class="card-body">
+                                                            <h5 class="card-title">Formas de Pago</h5>
+                                                            <small class="text-muted">Puedes registrar múltiples formas de pago</small>
+                                                            
+                                                            <div class="row mt-3">
+                                                                <div class="col-8">
+                                                                    <!-- Pago en Efectivo -->
+                                                                    <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                        <div class="me-3">
+                                                                            <i class="ri-wallet-line text-success" style="font-size: 24px;"></i>
+                                                                        </div>
+                                                                        <div class="flex-grow-1">
+                                                                            <strong>Pago en Efectivo</strong>
+                                                                        </div>
+                                                                        <div class="col-3">
+                                                                            <input type="number" step="0.01" class="form-control payment-input" placeholder="0.00" id="pago-efectivo-monto">
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Pago por Bizum -->
+                                                                    <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                        <div class="me-3">
+                                                                            <i class="ri-percent-line text-info" style="font-size: 24px;"></i>
+                                                                        </div>
+                                                                        <div class="flex-grow-1">
+                                                                            <strong>Pago por Bizum</strong>
+                                                                        </div>
+                                                                        <div class="col-3">
+                                                                            <input type="number" step="0.01" class="form-control payment-input" placeholder="0.00" id="pago-bizum-monto">
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Pago por Transferencia -->
+                                                                    <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                        <div class="me-3">
+                                                                            <i class="ri-building-line text-primary" style="font-size: 24px;"></i>
+                                                                        </div>
+                                                                        <div class="flex-grow-1">
+                                                                            <strong>Pago por Transferencia</strong>
+                                                                        </div>
+                                                                        <div class="col-3">
+                                                                            <input type="number" step="0.01" class="form-control payment-input" placeholder="0.00" id="pago-transferencia-monto">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="col-4">
+                                                                    <div class="text-center">
+                                                                        <div class="border rounded p-3 mb-3 bg-light">
+                                                                            <small class="text-muted">Total a Pagar</small>
+                                                                            <div class="text-danger h4" id="liquidacion-importe-total">0,00€</div>
+                                                                        </div>
+                                                                        <div class="border rounded p-3 mb-3 bg-success bg-opacity-10">
+                                                                            <small class="text-muted">Total Pagado</small>
+                                                                            <div class="text-success h4" id="total-pagado">0,00€</div>
+                                                                        </div>
+                                                                        <div class="border rounded p-3 mb-3" id="pendiente-container" style="display: none;">
+                                                                            <small class="text-muted">Pendiente</small>
+                                                                            <div class="h5" id="total-pendiente">0,00€</div>
+                                                                        </div>
+                                                                        <button type="button" class="btn btn-warning" id="btn-aceptar-liquidacion" style="border-radius: 30px; width: 100%;">
+                                                                            Aceptar Liquidación
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                         </div>
                                     </div>
 
@@ -673,16 +765,15 @@
 
 <script>
 $(document).ready(function() {
-    // Variables globales
+    // Variables globales (sin vendedor)
     let entidadSeleccionada = null;
     let sorteoSeleccionado = null;
-    let vendedorSeleccionado = null;
+    let setSeleccionado = null;
     let participacionesAsignadas = [];
     
     // DataTables
     let tablaEntidades = null;
     let tablaSorteos = null;
-    let tablaVendedores = null;
 
     // Asegurar que el primer paso esté activo al cargar
     $('#step-1').addClass('active');
@@ -717,17 +808,16 @@ $(document).ready(function() {
         console.log('=== FIN MOSTRAR PASO ===');
     }
 
-    // Función para actualizar los indicadores de pasos
+    // Función para actualizar los indicadores de pasos (5 pasos)
     function actualizarIndicadoresPasos(pasoActual) {
         console.log('=== ACTUALIZANDO INDICADORES ===');
         console.log('Paso actual recibido:', pasoActual);
         console.log('pasoActualGlobal:', pasoActualGlobal);
         
-        // Definir el orden de los pasos
+        // Definir el orden de los pasos (sin vendedor - 5 pasos)
         const pasosOrden = [
             'paso-entidad',
-            'paso-sorteo', 
-            'paso-vendedor',
+            'paso-sorteo',
             'paso-participaciones',
             'paso-resumen',
             'paso-liquidacion'
@@ -742,19 +832,11 @@ $(document).ready(function() {
             return;
         }
         
-        // Mostrar estado antes de cambiar
-        console.log('Estado ANTES de cambiar:');
-        for (let i = 0; i < pasosOrden.length; i++) {
-            const stepId = `step-${i + 1}`; // Corregir: usar step-1, step-2, etc.
-            const elemento = $('#' + stepId);
-            console.log(`  ${stepId}: ${elemento.hasClass('active')}`);
-        }
-        
         // Limpiar todas las clases activas primero
         $('.form-wizard-element').removeClass('active');
         
         // Activar SOLO el paso actual
-        const stepId = `step-${indiceActual + 1}`; // Corregir: usar step-1, step-2, etc.
+        const stepId = `step-${indiceActual + 1}`;
         const elemento = $('#' + stepId);
         
         console.log('Activando elemento:', stepId, 'Elemento encontrado:', elemento.length > 0);
@@ -763,13 +845,6 @@ $(document).ready(function() {
             elemento.addClass('active');
         }
         
-        // Mostrar estado después de cambiar
-        console.log('Estado DESPUÉS de cambiar:');
-        for (let i = 0; i < pasosOrden.length; i++) {
-            const stepId = `step-${i + 1}`; // Corregir: usar step-1, step-2, etc.
-            const elemento = $('#' + stepId);
-            console.log(`  ${stepId}: ${elemento.hasClass('active')}`);
-        }
         console.log('=== FIN ACTUALIZACIÓN ===');
     }
 
@@ -821,11 +896,9 @@ $(document).ready(function() {
                 }
             ],
             "initComplete": function(settings, json) {
-                // Restaurar los indicadores después de que se inicialice el DataTable
                 actualizarIndicadoresPasos(pasoActualGlobal);
             },
             "drawCallback": function(settings) {
-                // Restaurar los indicadores después de cada redibujado
                 actualizarIndicadoresPasos(pasoActualGlobal);
             }
         });
@@ -878,63 +951,9 @@ $(document).ready(function() {
                 }
             ],
             "initComplete": function(settings, json) {
-                // Restaurar los indicadores después de que se inicialice el DataTable
                 actualizarIndicadoresPasos(pasoActualGlobal);
             },
             "drawCallback": function(settings) {
-                // Restaurar los indicadores después de cada redibujado
-                actualizarIndicadoresPasos(pasoActualGlobal);
-            }
-        });
-    }
-
-    // Función para inicializar DataTable de vendedores
-    function inicializarDataTableVendedores() {
-        if (tablaVendedores) return;
-        
-        tablaVendedores = $('#tabla-vendedores').DataTable({
-            "select": { style: "single" },
-            "ordering": true,
-            "sorting": true,
-            "scrollX": true,
-            "scrollCollapse": true,
-            "language": {
-                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-            },
-            "pageLength": 10,
-            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
-            "ajax": {
-                "url": "{{ route('devolutions.sellers') }}",
-                "type": "GET",
-                "data": function(d) {
-                    d.entity_id = entidadSeleccionada.id;
-                },
-                "dataSrc": "sellers"
-            },
-            "columns": [
-                { "data": "id" },
-                { "data": "name" },
-                { "data": "email" },
-                { "data": "phone", "defaultContent": "N/A" },
-                {
-                    "data": null,
-                    "render": function(data, type, row) {
-                        return `
-                            <div class="form-check">
-                                <input class="form-check-input seleccionar-vendedor" type="radio" name="seller_id" value="${row.id}" id="seller_${row.id}" data-seller-id="${row.id}">
-                                <label class="form-check-label" for="seller_${row.id}">Seleccionar</label>
-                            </div>
-                        `;
-                    },
-                    "orderable": false
-                }
-            ],
-            "initComplete": function(settings, json) {
-                // Restaurar los indicadores después de que se inicialice el DataTable
-                actualizarIndicadoresPasos(pasoActualGlobal);
-            },
-            "drawCallback": function(settings) {
-                // Restaurar los indicadores después de cada redibujado
                 actualizarIndicadoresPasos(pasoActualGlobal);
             }
         });
@@ -954,6 +973,10 @@ $(document).ready(function() {
         $('#entity-location').text(entityLocation);
         $('#entity-info').show();
         
+        // También actualizar info para liquidación
+        $('#liquidacion-entity-name').text(entityName);
+        $('#liquidacion-entity-location').text(entityLocation);
+        
         $('#btn-siguiente-entidad').prop('disabled', false);
     });
 
@@ -961,22 +984,6 @@ $(document).ready(function() {
         const lotteryId = $(this).data('lottery-id');
         sorteoSeleccionado = { id: lotteryId };
         $('#btn-siguiente-sorteo').prop('disabled', false);
-    });
-
-    $(document).on('change', '.seleccionar-vendedor', function() {
-        const sellerId = $(this).data('seller-id');
-        vendedorSeleccionado = { id: sellerId };
-        
-        // Mostrar información del vendedor
-        const row = $(this).closest('tr');
-        const sellerName = row.find('td:eq(1)').text();
-        const sellerEmail = row.find('td:eq(2)').text();
-        
-        $('#seller-name').text(sellerName);
-        $('#seller-email').text(sellerEmail);
-        $('#seller-info').show();
-        
-        $('#btn-siguiente-vendedor').prop('disabled', false);
     });
 
     // Navegación entre pasos
@@ -989,14 +996,9 @@ $(document).ready(function() {
 
     $('#btn-siguiente-sorteo').click(function() {
         if (sorteoSeleccionado) {
-            mostrarPaso('paso-vendedor');
-            inicializarDataTableVendedores();
-        }
-    });
-
-    $('#btn-siguiente-vendedor').click(function() {
-        if (vendedorSeleccionado) {
             mostrarPaso('paso-participaciones');
+            // Cargar sets de la entidad (no del vendedor)
+            cargarSetsEntidad();
         }
     });
 
@@ -1005,12 +1007,8 @@ $(document).ready(function() {
         mostrarPaso('paso-entidad');
     });
 
-    $('#btn-volver-sorteo').click(function() {
+    $('#btn-volver-sorteo-desde-participaciones').click(function() {
         mostrarPaso('paso-sorteo');
-    });
-
-    $('#btn-volver-vendedor').click(function() {
-        mostrarPaso('paso-vendedor');
     });
 
     $('#btn-volver-participaciones').click(function() {
@@ -1021,7 +1019,7 @@ $(document).ready(function() {
         mostrarPaso('paso-resumen');
     });
 
-    // Funcionalidad de asignación de participaciones (similar a sellers/show.blade.php)
+    // Funcionalidad de asignación de participaciones
     function actualizarResumenAsignacion() {
         $('#resumen-asignacion').show();
         $('#estado-vacio-resumen').addClass('d-none');
@@ -1029,9 +1027,24 @@ $(document).ready(function() {
         if (participacionesAsignadas.length === 0) {
             $('#estado-vacio-resumen').removeClass('d-none');
             $('#lista-participaciones-asignadas').hide();
+            // Mostrar botón para continuar sin participaciones si hay set seleccionado
+            if (setSeleccionado) {
+                $('#btn-continuar-sin-participaciones-container').show();
+            } else {
+                $('#btn-continuar-sin-participaciones-container').hide();
+            }
+            actualizarResumenLiquidacion();
         } else {
             $('#lista-participaciones-asignadas').show();
+            $('#btn-continuar-sin-participaciones-container').hide();
             $('#total-asignadas').text(participacionesAsignadas.length);
+            
+            // Calcular cuántos sets diferentes se han seleccionado
+            const setsUnicos = [...new Set(participacionesAsignadas.map(p => p.set_id))];
+            $('#total-sets').text(setsUnicos.length);
+            
+            // Actualizar resumen de liquidación
+            actualizarResumenLiquidacion();
             
             // Generar grid de participaciones
             const gridHtml = participacionesAsignadas.map(participation => {
@@ -1050,6 +1063,10 @@ $(document).ready(function() {
                                 <div class="participacion-fecha">
                                     <i class="ri-calendar-line"></i>
                                     <span>${fechaStr} - ${horaStr}h</span>
+                                </div>
+                                <div class="participacion-fecha">
+                                    <i class="ri-folder-line"></i>
+                                    <span style="font-size: 0.85em; color: #888;">${participation.set_name || 'Set desconocido'}</span>
                                 </div>
                                 <span class="participacion-estado">Asignada</span>
                             </div>
@@ -1071,15 +1088,136 @@ $(document).ready(function() {
         actualizarResumenAsignacion();
     };
 
-    // Función para validar participaciones
+    // Función para actualizar el resumen de liquidación
+    function actualizarResumenLiquidacion() {
+        console.log('=== ACTUALIZANDO RESUMEN LIQUIDACIÓN ===');
+        console.log('entidadSeleccionada:', entidadSeleccionada);
+        console.log('sorteoSeleccionado:', sorteoSeleccionado);
+        console.log('participacionesAsignadas:', participacionesAsignadas);
+        
+        // Validar solo que haya entidad y sorteo seleccionados (las participaciones pueden estar vacías)
+        if (!entidadSeleccionada || !sorteoSeleccionado) {
+            console.log('Limpiando resumen - no hay entidad o sorteo seleccionado');
+            // Limpiar resumen si no hay datos básicos
+            $('#liquidacion-total-participaciones').text('0');
+            $('#liquidacion-ventas-registradas').text('0');
+            $('#liquidacion-participaciones-devueltas').text('0');
+            $('#liquidacion-disponibles').text('0');
+            $('#liquidacion-total-liquidacion').text('0,00€');
+            $('#liquidacion-pagos-registrados').text('0,00€');
+            $('#liquidacion-total-pagar').text('0,00€');
+            $('#liquidacion-importe-total').text('0,00€');
+            return;
+        }
+
+        // Permitir continuar sin participaciones (solo para registrar pago)
+        const participationIds = participacionesAsignadas.length > 0 ? participacionesAsignadas.map(p => p.id) : [];
+        console.log('Enviando IDs de participaciones:', participationIds);
+        console.log('Set seleccionado:', setSeleccionado);
+
+        // Obtener resumen del servidor
+        $.ajax({
+            url: "{{ route('devolutions.liquidation-summary') }}",
+            method: 'GET',
+            data: {
+                entity_id: entidadSeleccionada.id,
+                lottery_id: sorteoSeleccionado.id,
+                set_id: setSeleccionado ? setSeleccionado.id : null, // Enviar set_id para calcular liquidación sin participaciones
+                participations: participationIds
+            },
+            success: function(response) {
+                console.log('Respuesta del servidor:', response);
+                if (response.success) {
+                    const summary = response.summary;
+                    console.log('Resumen calculado:', summary);
+                    
+                    $('#liquidacion-total-participaciones').text(summary.total_participations);
+                    $('#liquidacion-ventas-registradas').text(summary.sold_participations);
+                    $('#liquidacion-participaciones-devueltas').text(summary.returned_participations);
+                    $('#liquidacion-disponibles').text(summary.available_participations);
+                    $('#liquidacion-total-liquidacion').text(summary.total_liquidation.toFixed(2) + '€');
+                    $('#liquidacion-pagos-registrados').text(summary.registered_payments.toFixed(2) + '€');
+                    $('#liquidacion-total-pagar').text(summary.total_to_pay.toFixed(2) + '€');
+                    $('#liquidacion-importe-total').text(summary.total_to_pay.toFixed(2) + '€');
+                    
+                    // Actualizar información del ticket
+                    $('#liquidacion-ticket-number').text('#' + summary.total_participations);
+                    
+                    console.log('Resumen actualizado en la interfaz');
+                } else {
+                    console.error('Error en respuesta del servidor:', response);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al cargar resumen de liquidación:', error);
+                console.error('Detalles del error:', xhr.responseText);
+            }
+        });
+    }
+
+    // Función para cargar sets de la entidad
+    function cargarSetsEntidad() {
+        if (!entidadSeleccionada || !sorteoSeleccionado) return;
+        
+        $.ajax({
+            url: "{{ route('devolutions.sets-by-entity') }}",
+            method: 'GET',
+            data: {
+                entity_id: entidadSeleccionada.id,
+                lottery_id: sorteoSeleccionado.id
+            },
+            success: function(response) {
+                const selector = $('#selector-set');
+                selector.empty().append('<option value="">Seleccionar set...</option>');
+                
+                if (response.success && response.sets && response.sets.length > 0) {
+                    response.sets.forEach(set => {
+                        // Obtener los números de reserva desde la relación reserve
+                        let reservationNumbers = '';
+                        if (set.reserve && set.reserve.reservation_numbers && Array.isArray(set.reserve.reservation_numbers) && set.reserve.reservation_numbers.length > 0) {
+                            reservationNumbers = set.reserve.reservation_numbers.join(' - ');
+                        } else {
+                            reservationNumbers = set.reserve_id.toString().padStart(5, '0');
+                        }
+                        
+                        const setNumber = set.set_number.toString().padStart(2, '0');
+                        const displayText = `${set.set_name} (${reservationNumbers} - ${setNumber})`;
+                        
+                        selector.append(`<option value="${set.id}">${displayText}</option>`);
+                    });
+                } else {
+                    mostrarMensaje('No hay sets disponibles para devolver en este sorteo', 'warning');
+                }
+                
+                // NO reiniciar las participaciones asignadas al cargar sets
+                actualizarResumenAsignacion();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al cargar sets:', error);
+                mostrarMensaje('Error al cargar los sets de la entidad', 'error');
+            }
+        });
+    }
+
+    // Event listener para selección de set
+    $('#selector-set').on('change', function() {
+        const setId = $(this).val();
+        setSeleccionado = setId ? { id: setId, name: $(this).find('option:selected').text() } : null;
+        
+        // NO reiniciar las participaciones asignadas para permitir selección de múltiples sets
+        actualizarResumenAsignacion();
+    });
+
+    // Función para validar participaciones (sin vendedor)
     function validarParticipacionesDisponibles(desde, hasta, participationId) {
         return new Promise((resolve, reject) => {
             $.ajax({
                 url: "{{ route('devolutions.validate') }}",
                 method: 'POST',
                 data: {
-                    seller_id: vendedorSeleccionado.id,
+                    entity_id: entidadSeleccionada.id,
                     lottery_id: sorteoSeleccionado.id,
+                    set_id: setSeleccionado.id,
                     desde: desde,
                     hasta: hasta,
                     participation_id: participationId,
@@ -1101,12 +1239,16 @@ $(document).ready(function() {
 
     // Event listener para asignar participaciones
     $('#btn-asignar-participacion').click(function() {
+        if (!setSeleccionado) {
+            mostrarMensaje('Por favor selecciona un set antes de asignar participaciones', 'warning');
+            return;
+        }
+
         const desde = $('#rango-desde').val();
         const hasta = $('#rango-hasta').val();
         const unidad = $('#participacion-unidad').val();
 
         if (desde && hasta) {
-            // Asignación por rango
             $('#btn-asignar-participacion').prop('disabled', true).text('Validando...');
             
             validarParticipacionesDisponibles(desde, hasta, null)
@@ -1119,6 +1261,8 @@ $(document).ready(function() {
                                     id: participation.id,
                                     number: participation.number,
                                     participation_code: participation.participation_code,
+                                    set_id: setSeleccionado.id,
+                                    set_name: setSeleccionado.name,
                                     assigned_at: new Date().toISOString()
                                 });
                             }
@@ -1138,7 +1282,6 @@ $(document).ready(function() {
                     $('#rango-hasta').val('');
                 });
         } else if (unidad) {
-            // Asignación individual
             $('#btn-asignar-participacion').prop('disabled', true).text('Validando...');
             
             validarParticipacionesDisponibles(null, null, unidad)
@@ -1152,6 +1295,8 @@ $(document).ready(function() {
                                 id: participation.id,
                                 number: participation.number,
                                 participation_code: participation.participation_code,
+                                set_id: setSeleccionado.id,
+                                set_name: setSeleccionado.name,
                                 assigned_at: new Date().toISOString()
                             });
                             actualizarResumenAsignacion();
@@ -1177,16 +1322,33 @@ $(document).ready(function() {
 
     // Event listener para terminar asignación
     $('#btn-terminar-asignacion').click(function() {
+        // Permitir continuar sin participaciones (solo para liquidación)
         if (participacionesAsignadas.length === 0) {
-            alert('No hay participaciones para continuar');
+            const confirmContinue = confirm('No has seleccionado participaciones para devolver. ¿Deseas continuar solo para registrar una liquidación?');
+            if (!confirmContinue) {
+                return;
+            }
+        }
+
+        // Actualizar resumen (sin vendedor)
+        $('#resumen-entidad').text($('#entity-name').text());
+        $('#resumen-sorteo').text('Sorteo #' + sorteoSeleccionado.id);
+        $('#resumen-total').text(participacionesAsignadas.length);
+
+        mostrarPaso('paso-resumen');
+    });
+
+    // Event listener para continuar sin participaciones
+    $('#btn-continuar-sin-participaciones').click(function() {
+        const confirmContinue = confirm('¿Deseas continuar sin seleccionar participaciones? Solo podrás registrar un pago de liquidación.');
+        if (!confirmContinue) {
             return;
         }
 
-        // Actualizar resumen
+        // Actualizar resumen (sin vendedor)
         $('#resumen-entidad').text($('#entity-name').text());
         $('#resumen-sorteo').text('Sorteo #' + sorteoSeleccionado.id);
-        $('#resumen-vendedor').text($('#seller-name').text());
-        $('#resumen-total').text(participacionesAsignadas.length);
+        $('#resumen-total').text('0');
 
         mostrarPaso('paso-resumen');
     });
@@ -1195,62 +1357,66 @@ $(document).ready(function() {
     $('#btn-continuar-liquidacion').click(function() {
         mostrarPaso('paso-liquidacion');
         cargarParticipacionesParaLiquidacion();
+        actualizarResumenLiquidacion();
     });
 
     // Función para cargar participaciones para liquidación
     function cargarParticipacionesParaLiquidacion() {
         let html = '';
         
-        participacionesAsignadas.forEach(participation => {
-            html += `
-                <div class="liquidacion-card">
-                    <div class="liquidacion-header">
-                        <div class="liquidacion-icon">
-                            <img src="{{url('assets/ticket.svg')}}" alt="" width="25px">
-                        </div>
-                        <div class="liquidacion-info">
-                            <h5>${participation.participation_code}</h5>
-                            <small>Participación #${participation.number}</small>
-                        </div>
-                    </div>
-                    <div class="liquidacion-stats">
-                        <div class="stat-item">
-                            <div class="stat-number">5€</div>
-                            <div class="stat-label">Valor</div>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <div class="form-check">
-                            <input class="form-check-input liquidacion-option" type="radio" name="liquidacion_${participation.id}" value="devolver" id="devolver_${participation.id}" checked>
-                            <label class="form-check-label" for="devolver_${participation.id}">
-                                <i class="ri-arrow-go-back-line me-1"></i>Devolver
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input liquidacion-option" type="radio" name="liquidacion_${participation.id}" value="vender" id="vender_${participation.id}">
-                            <label class="form-check-label" for="vender_${participation.id}">
-                                <i class="ri-money-dollar-circle-line me-1"></i>Vender
-                            </label>
-                        </div>
-                    </div>
+        if (participacionesAsignadas.length === 0) {
+            html = `
+                <div class="alert alert-info" role="alert">
+                    <i class="ri-information-line me-2"></i>
+                    No hay participaciones seleccionadas. Puedes continuar para registrar solo un pago de liquidación.
                 </div>
             `;
-        });
+        } else {
+            participacionesAsignadas.forEach(participation => {
+                html += `
+                    <div class="liquidacion-card">
+                        <div class="liquidacion-header">
+                            <div class="liquidacion-icon">
+                                <img src="{{url('assets/ticket.svg')}}" alt="" width="25px">
+                            </div>
+                            <div class="liquidacion-info">
+                                <h5>${participation.participation_code}</h5>
+                                <small>Participación #${participation.number}</small>
+                            </div>
+                        </div>
+                        <div class="liquidacion-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">5€</div>
+                                <div class="stat-label">Valor</div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input liquidacion-option" type="radio" name="liquidacion_${participation.id}" value="devolver" id="devolver_${participation.id}" checked>
+                                <label class="form-check-label" for="devolver_${participation.id}">
+                                    <i class="ri-arrow-go-back-line me-1"></i>Devolver
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input liquidacion-option" type="radio" name="liquidacion_${participation.id}" value="vender" id="vender_${participation.id}">
+                                <label class="form-check-label" for="vender_${participation.id}">
+                                    <i class="ri-money-dollar-circle-line me-1"></i>Vender
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
         
         $('#liquidacion-participaciones').html(html);
     }
 
     // Event listener para procesar liquidación
     $('#btn-procesar-liquidacion').click(function() {
-        if (participacionesAsignadas.length === 0) {
-            alert('No hay participaciones para procesar');
-            return;
-        }
-
-        // Mostrar loading
+        // Permitir procesar liquidación sin participaciones (solo para registrar pago)
         $('#btn-procesar-liquidacion').prop('disabled', true).text('Procesando...');
 
-        // Recopilar datos de liquidación
         const liquidacion = {
             devolver: [],
             vender: []
@@ -1265,16 +1431,15 @@ $(document).ready(function() {
             }
         });
 
-        // Enviar datos al servidor
+        // Enviar datos al servidor (sin seller_id)
         $.ajax({
             url: "{{ route('devolutions.store') }}",
             method: 'POST',
             data: {
                 entity_id: entidadSeleccionada.id,
                 lottery_id: sorteoSeleccionado.id,
-                seller_id: vendedorSeleccionado.id,
                 participations: participacionesAsignadas.map(p => p.id),
-                return_reason: 'Devolución por liquidación',
+                return_reason: 'Devolución de entidad a administración',
                 liquidacion: liquidacion,
                 _token: '{{ csrf_token() }}'
             },
@@ -1338,7 +1503,123 @@ $(document).ready(function() {
             $('#rango-desde, #rango-hasta').prop('disabled', false);
         }
     });
+
+    // Función para actualizar el total pagado
+    function actualizarTotalPagado() {
+        const efectivoMonto = parseFloat($('#pago-efectivo-monto').val()) || 0;
+        const bizumMonto = parseFloat($('#pago-bizum-monto').val()) || 0;
+        const transferenciaMonto = parseFloat($('#pago-transferencia-monto').val()) || 0;
+        
+        const totalPagado = efectivoMonto + bizumMonto + transferenciaMonto;
+        $('#total-pagado').text(totalPagado.toFixed(2) + '€');
+        
+        // Calcular pendiente
+        const totalAPagar = parseFloat($('#liquidacion-total-pagar').text().replace('€', '').replace(',', '.')) || 0;
+        const pendiente = totalAPagar - totalPagado;
+        
+        $('#total-pendiente').text(pendiente.toFixed(2) + '€');
+        
+        if (totalPagado > 0) {
+            $('#pendiente-container').show();
+            // Cambiar color según si está completo o no
+            if (pendiente <= 0) {
+                $('#total-pendiente').removeClass('text-warning').addClass('text-success');
+            } else {
+                $('#total-pendiente').removeClass('text-success').addClass('text-warning');
+            }
+        } else {
+            $('#pendiente-container').hide();
+        }
+    }
+    
+    // Event listeners para actualizar total al cambiar montos
+    $('.payment-input').on('input', actualizarTotalPagado);
+
+    // Event listener para aceptar liquidación
+    $('#btn-aceptar-liquidacion').click(function() {
+        // Recopilar todos los pagos
+        const pagos = [];
+        
+        // Pago en efectivo
+        const efectivoMonto = parseFloat($('#pago-efectivo-monto').val()) || 0;
+        if (efectivoMonto > 0) {
+            pagos.push({
+                payment_method: 'efectivo',
+                amount: efectivoMonto
+            });
+        }
+        
+        // Pago por Bizum
+        const bizumMonto = parseFloat($('#pago-bizum-monto').val()) || 0;
+        if (bizumMonto > 0) {
+            pagos.push({
+                payment_method: 'bizum',
+                amount: bizumMonto
+            });
+        }
+        
+        // Pago por transferencia
+        const transferenciaMonto = parseFloat($('#pago-transferencia-monto').val()) || 0;
+        if (transferenciaMonto > 0) {
+            pagos.push({
+                payment_method: 'transferencia',
+                amount: transferenciaMonto
+            });
+        }
+
+        // Validar que al menos haya participaciones o un pago
+        if (participacionesAsignadas.length === 0 && pagos.length === 0) {
+            mostrarMensaje('Debes seleccionar participaciones o registrar al menos un pago', 'warning');
+            return;
+        }
+
+        // Preparar datos para la liquidación (sin seller_id)
+        const liquidacionData = {
+            entity_id: entidadSeleccionada.id,
+            lottery_id: sorteoSeleccionado.id,
+            set_id: setSeleccionado ? setSeleccionado.id : null, // Enviar set_id para liquidar set completo sin devoluciones
+            participations: participacionesAsignadas.map(p => p.id),
+            return_reason: 'Devolución de entidad a administración',
+            liquidacion: {
+                pagos: pagos, // Array de pagos múltiples
+                devolver: participacionesAsignadas.map(p => p.id), // Las seleccionadas se devuelven (puede estar vacío)
+                vender: [] // Se calculará en el backend
+            },
+            _token: '{{ csrf_token() }}'
+        };
+
+        $(this).prop('disabled', true).text('Procesando...');
+
+        $.ajax({
+            url: "{{ route('devolutions.store') }}",
+            method: 'POST',
+            data: liquidacionData,
+            success: function(response) {
+                if (response.success) {
+                    mostrarMensaje('Liquidación procesada correctamente', 'success');
+                    setTimeout(() => {
+                        window.location.href = "{{ route('devolutions.index') }}";
+                    }, 2000);
+                } else {
+                    mostrarMensaje(response.message || 'Error al procesar la liquidación', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en liquidación:', error);
+                mostrarMensaje('Error al procesar la liquidación', 'error');
+            },
+            complete: function() {
+                $('#btn-aceptar-liquidacion').prop('disabled', false).text('Aceptar');
+            }
+        });
+    });
+
+    // Event listener para cerrar liquidación
+    $('#btn-cerrar-liquidacion').click(function() {
+        window.location.href = "{{ route('devolutions.index') }}";
+    });
 });
 </script>
 
 @endsection
+

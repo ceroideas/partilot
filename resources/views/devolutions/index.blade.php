@@ -5,148 +5,6 @@
 @section('content')
 
 <style>
-    .form-wizard-element, .form-wizard-element label {
-        cursor: pointer;
-    }
-    .form-check-input:checked {
-        border-color: #333;
-    }
-
-    .devolucion-paso {
-        transition: all 0.3s ease;
-    }
-
-    .devolucion-paso table {
-        margin-top: 20px;
-    }
-
-    .devolucion-paso .btn-seleccionar {
-        border-radius: 20px;
-        font-size: 12px;
-        padding: 5px 15px;
-    }
-
-    .devolucion-paso .btn-volver {
-        border-radius: 20px;
-        font-size: 12px;
-        padding: 5px 15px;
-    }
-
-    /* Animación para transiciones entre pasos */
-    .devolucion-paso.fade-in {
-        animation: fadeIn 0.3s ease-in;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Estilos para las participaciones a devolver */
-    .participacion-item {
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        transition: all 0.3s ease;
-    }
-
-    .participacion-item:hover {
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .participacion-icon {
-        width: 40px;
-        height: 40px;
-        background: #333;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 12px;
-    }
-
-    .participacion-info {
-        flex-grow: 1;
-    }
-
-    .participacion-numero {
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 4px;
-    }
-
-    .participacion-fecha {
-        color: #666;
-        font-size: 0.9em;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .participacion-estado {
-        background: #dc3545;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.8em;
-        font-weight: bold;
-        margin-top: 4px;
-        display: inline-block;
-    }
-
-    .btn-eliminar-participacion {
-        background: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .btn-eliminar-participacion:hover {
-        background: #c82333;
-        transform: scale(1.1);
-    }
-
-    .grid-participaciones {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 15px;
-    }
-
-    /* Estilos para el resumen de devolución */
-    .resumen-devolucion {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .resumen-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .resumen-item:last-child {
-        border-bottom: none;
-        font-weight: bold;
-        font-size: 1.1em;
-    }
-
-    /* Estilos para estado vacío */
     .empty-tables {
         text-align: center;
         padding: 40px 20px;
@@ -191,49 +49,101 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <!-- Tabla de devoluciones -->
+                    <div class="{{ count($devolutions ?? []) > 0 ? '' : 'd-none' }}">
                         <h4 class="header-title">
-                            Gestión de Devoluciones
-                        </h4>
-                    </div>
-
-                    <br>
-
-                    <!-- Estado vacío (se mostrará cuando no hay devoluciones) -->
-                    <div id="estado-vacio" class="d-flex align-items-center justify-content-center" style="min-height: 400px;">
-                        <div class="empty-tables text-center">
-                            <div>
-                                <img src="{{url('icons/participaciones.svg')}}" alt="" width="120px" style="margin-top: 20px; opacity: 0.3;">
+                            <div class="float-start d-flex align-items-start">
+                                <input type="text" class="form-control" style="margin-right: 8px;" placeholder="Entidad">
+                                <input type="text" class="form-control" style="margin-right: 8px;" placeholder="Sorteo">
+                                <input type="text" class="form-control" style="margin-right: 8px;" placeholder="Participaciones">
+                                <input type="text" class="form-control" placeholder="Liquidación">
                             </div>
-                            <h3 class="mb-0 mt-3">No hay Devoluciones</h3>
-                            <small class="text-muted">Gestiona Devoluciones</small>
-                            <br>
-                            <a href="{{ route('devolutions.create') }}" class="btn btn-dark mt-3" style="border-radius: 30px; width: 150px;">
-                                <i class="ri-add-line me-2"></i>Nueva
+                            <a href="{{ route('devolutions.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end">
+                                <i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir
                             </a>
-                        </div>
-                    </div>
+                        </h4>
 
-                    <!-- Tabla de devoluciones (se mostrará cuando haya datos) -->
-                    <div id="tabla-contenido" style="display: none;">
+                        <div style="clear: both;"></div>
+
+                        <br>
+
                         <div class="table-responsive">
                             <table id="tabla-devoluciones" class="table table-striped nowrap w-100">
-                                <thead>
+                                <thead class="filters">
                                     <tr>
                                         <th>ID</th>
                                         <th>Entidad</th>
                                         <th>Sorteo</th>
-                                        <th>Vendedor</th>
-                                        <th>Participaciones</th>
+                                        <th>Total Participaciones</th>
+                                        <th>Participaciones Devueltas</th>
                                         <th>Fecha Devolución</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
+                                        <th>Total Liquidación</th>
+                                        <th>Total Pagos Registrados</th>
+                                        <th class="no-filter">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Los datos se cargarán dinámicamente -->
+                                    @if(isset($devolutions))
+                                        @foreach($devolutions as $devolution)
+                                            @php
+                                                $totalLiquidacion = $devolution->details()
+                                                    ->where('action', 'vender')
+                                                    ->with('participation.set')
+                                                    ->get()
+                                                    ->sum(function($detail) {
+                                                        return $detail->participation->set->played_amount ?? 0;
+                                                    });
+                                                $totalPagos = $devolution->payments->sum('amount');
+                                            @endphp
+                                            <tr>
+                                                <td><a href="{{ route('devolutions.show', $devolution->id) }}">#DEV{{ str_pad($devolution->id, 4, '0', STR_PAD_LEFT) }}</a></td>
+                                                <td>{{ $devolution->entity->name ?? 'N/A' }}</td>
+                                                <td>{{ $devolution->lottery->name ?? 'N/A' }}</td>
+                                                <td>{{ $devolution->total_participations }}</td>
+                                                <td>{{ $devolution->details()->where('action', 'devolver')->count() }}</td>
+                                                <td>{{ \Carbon\Carbon::parse($devolution->devolution_date)->format('d/m/Y') }}</td>
+                                                <td><span style="color: green; font-weight: bold;">{{ number_format($totalLiquidacion, 2) }}€</span></td>
+                                                <td><span style="color: blue; font-weight: bold;">{{ number_format($totalPagos, 2) }}€</span></td>
+                                                <td>
+                                                    <a href="{{ route('devolutions.show', $devolution->id) }}" class="btn btn-sm btn-light" title="Ver detalle">
+                                                        <img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12">
+                                                    </a>
+                                                    <a href="{{ route('devolutions.edit', $devolution->id) }}" class="btn btn-sm btn-light" title="Editar">
+                                                        <img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12">
+                                                    </a>
+                                                    <button type="button" class="btn btn-sm btn-danger btn-eliminar-devolucion" 
+                                                            data-id="{{ $devolution->id }}" data-name="Devolución #{{ $devolution->id }}" title="Eliminar">
+                                                        <i class="ri-delete-bin-6-line"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endif
                                 </tbody>
                             </table>
+                        </div>
+
+                        <br>
+                    </div>
+
+                    <div class="{{ count($devolutions ?? []) == 0 ? '' : 'd-none' }}">
+                        <div class="d-flex align-items-center gap-1">
+
+                            
+                            <div class="empty-tables">
+
+                                <div style="padding: 44px 12px">
+                                    <img src="{{url('icons/participaciones.svg')}}" alt="" width="110px">
+                                </div>
+
+                                <h3 class="mb-0">No hay Devoluciones</h3>
+                                <small>Añade Devoluciones</small>
+
+                                <br>
+
+                                <a href="{{ route('devolutions.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            </div>
+
                         </div>
                     </div>
 
@@ -250,76 +160,65 @@
 
 <script>
 $(document).ready(function() {
-    // Inicializar DataTable
+    console.log('Inicializando DataTable de devoluciones');
+    
+    // Inicializar DataTable con datos ya cargados en el HTML
     let tablaDevoluciones = $('#tabla-devoluciones').DataTable({
-        "select": { style: "single" },
-        "ordering": true,
-        "sorting": true,
+        "ordering": false,
         "scrollX": true,
         "scrollCollapse": true,
+        orderCellsTop: true,
+        fixedHeader: true,
         "language": {
             url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
         },
         "pageLength": 25,
         "lengthMenu": [[25, 50, 100, -1], [25, 50, 100, "Todos"]],
-        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
-               '<"row"<"col-sm-12"tr>>' +
-               '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        "columnDefs": [
-            {
-                "targets": -1, // Última columna (Acciones)
-                "orderable": false,
-                "searchable": false
-            }
-        ],
-        "ajax": {
-            "url": "{{ route('devolutions.data') }}",
-            "type": "GET",
-            "dataSrc": function(json) {
-                // Si no hay datos, mostrar estado vacío
-                if (!json.data || json.data.length === 0) {
-                    $('#estado-vacio').show();
-                    $('#tabla-contenido').hide();
-                    return [];
+        "initComplete": function(settings, json) {
+            console.log('DataTable inicializado');
+            
+            // Configurar filtros inline
+            var api = this.api();
+            
+            api.columns().eq(0).each(function (colIdx) {
+                var cell = $('.filters th').eq($(api.column(colIdx).header()).index());
+                var title = $(cell).text();
+                if ($(cell).hasClass('no-filter')) {
+                    $(cell).addClass('sorting_disabled').html(title);
                 } else {
-                    // Si hay datos, mostrar tabla
-                    $('#estado-vacio').hide();
-                    $('#tabla-contenido').show();
-                    return json.data;
+                    $(cell).addClass('sorting_disabled').html('<input type="text" class="inline-fields" placeholder="' + title + '" />');
                 }
-            },
-            "error": function(xhr, error, thrown) {
-                console.error('Error al cargar devoluciones:', error);
-                $('#estado-vacio').show();
-                $('#tabla-contenido').hide();
-                mostrarMensaje('Error al cargar los datos de devoluciones', 'error');
-            }
-        },
-        "columns": [
-            { "data": "id" },
-            { "data": "entity_name" },
-            { "data": "lottery_name" },
-            { "data": "seller_name" },
-            { "data": "participations_count" },
-            { "data": "return_date" },
-            { "data": "status" },
-            { "data": "actions", "orderable": false }
-        ]
-    });
 
-    // Función para recargar la tabla
-    window.reloadDevoluciones = function() {
-        tablaDevoluciones.ajax.reload(null, false); // false = mantener la página actual
-    };
+                $('input', $('.filters th').eq($(api.column(colIdx).header()).index()))
+                    .off('keyup change')
+                    .on('keyup change', function (e) {
+                        e.stopPropagation();
+                        $(this).attr('title', $(this).val());
+                        var regexr = '({search})';
+                        var cursorPosition = this.selectionStart;
+                        
+                        api.column(colIdx).search(
+                            (this.value != ''
+                                ? regexr.replace('{search}', '(((' + this.value + ')))')
+                                : ''),
+                            this.value != '',
+                            this.value == ''
+                        ).draw();
+
+                        $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
+                    });
+            });
+        }
+    });
 
     // Event listener para eliminar devolución
     $(document).on('click', '.btn-eliminar-devolucion', function() {
         const devolutionId = $(this).data('id');
         const devolutionName = $(this).data('name');
         
-        if (confirm(`¿Estás seguro de que quieres eliminar la devolución "${devolutionName}"?`)) {
+        if (confirm(`¿Estás seguro de que deseas eliminar ${devolutionName}?`)) {
             $.ajax({
-                url: `{{ url('devolutions') }}/${devolutionId}`,
+                url: `/devolutions/${devolutionId}`,
                 method: 'DELETE',
                 data: {
                     _token: '{{ csrf_token() }}'
@@ -327,18 +226,21 @@ $(document).ready(function() {
                 success: function(response) {
                     if (response.success) {
                         mostrarMensaje('Devolución eliminada correctamente', 'success');
-                        tablaDevoluciones.ajax.reload();
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
                     } else {
                         mostrarMensaje(response.message || 'Error al eliminar la devolución', 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    mostrarMensaje('Error de conexión al eliminar la devolución', 'error');
+                    console.error('Error al eliminar:', error);
+                    mostrarMensaje('Error al eliminar la devolución', 'error');
                 }
             });
         }
     });
-
+    
     // Función para mostrar mensajes
     function mostrarMensaje(mensaje, tipo) {
         const alertClass = tipo === 'success' ? 'alert-success' : 
@@ -352,10 +254,8 @@ $(document).ready(function() {
             </div>
         `;
         
-        // Insertar alerta en la parte superior de la página
         $('.page-title-box').after(alertHtml);
         
-        // Auto-remover después de 5 segundos
         setTimeout(() => {
             $('.alert').fadeOut();
         }, 5000);

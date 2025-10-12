@@ -540,10 +540,12 @@ class ApiController extends Controller
                 $participation = \App\Models\Participation::where('set_id', $set->id)
                     ->where('participation_number', $participationNumber)
                     ->first();
+
+                    // return $participation;
                 
                 if (!$participation) {
                     $error = 'No se encontró la participación correspondiente a esa referencia.';
-                } else if ($participation->status !== 'asignada') {
+                } else if ($participation->status !== 'vendida') {
                     \Log::info("Participation Status: " . $participation->status);
                     $error = 'Esta participación no está asignada.';
                 } else {

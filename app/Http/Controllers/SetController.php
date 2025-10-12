@@ -17,7 +17,7 @@ class SetController extends Controller
     {
         $sets = Set::with(['entity', 'reserve'])
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->get();
 
         return view('sets.index', compact('sets'));
     }

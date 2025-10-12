@@ -1,225 +1,344 @@
 @extends('layouts.layout')
 
-@section('title','Editar Devolución')
+@section('title', 'Editar Devolución')
 
 @section('content')
-
-<style>
-    .form-wizard-element, .form-wizard-element label {
-        cursor: pointer;
-    }
-    .form-check-input:checked {
-        border-color: #333;
-    }
-
-    /* Estilos para el resumen de devolución */
-    .resumen-devolucion {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .resumen-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .resumen-item:last-child {
-        border-bottom: none;
-        font-weight: bold;
-        font-size: 1.1em;
-    }
-</style>
-
-<!-- Start Content-->
+<div class="main-content">
+    <div class="page-content">
 <div class="container-fluid">
-    
+            <!-- start page title -->
     <div class="row">
         <div class="col-12">
-            <div class="page-title-box">
+                    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                        <h4 class="mb-sm-0">Editar Devolución</h4>
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="{{ route('devolutions.index') }}">Devoluciones</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('devolutions.show', $id) }}">Ver Devolución</a></li>
-                        <li class="breadcrumb-item active">Editar Devolución</li>
+                                <li class="breadcrumb-item active">Editar</li>
                     </ol>
+                        </div>
+                    </div>
                 </div>
-                <h4 class="page-title">Devoluciones</h4>
             </div>
-        </div>
-    </div>     
+            <!-- end page title -->
 
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 class="header-title">
-                            Editar Devolución
-                        </h4>
-                        <div>
-                            <a href="{{ route('devolutions.show', $id) }}" class="btn btn-info me-2" style="border-radius: 30px;">
-                                <i class="ri-eye-line me-2"></i>Ver
-                            </a>
-                            <a href="{{ route('devolutions.index') }}" class="btn btn-secondary" style="border-radius: 30px;">
-                                <i class="ri-arrow-left-line me-2"></i>Volver
-                            </a>
-                        </div>
-                    </div>
-
-                    <br>
-
-                    <!-- Formulario de edición -->
-                    <form id="edit-devolution-form">
-                        @csrf
-                        @method('PUT')
-                        
-                        <div class="resumen-devolucion">
-                            <h5>Información de la Devolución</h5>
-                            <div class="resumen-item">
-                                <span>ID Devolución:</span>
-                                <span>{{ $id }}</span>
-                            </div>
-                            <div class="resumen-item">
-                                <span>Estado:</span>
-                                <span class="badge bg-warning">En Edición</span>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Configuración</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            <label class="form-label">Motivo de Devolución</label>
-                                            <textarea class="form-control" name="return_reason" rows="3" placeholder="Ingresa el motivo de la devolución..."></textarea>
+                            <!-- Información de la Devolución -->
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Información de la Devolución</h6>
+                                            <p><strong>ID:</strong> <span id="devolution-id">{{ $devolution->id }}</span></p>
+                                            <p><strong>Entidad:</strong> <span id="devolution-entity">{{ $devolution->entity->name }}</span></p>
+                                            <p><strong>Sorteo:</strong> <span id="devolution-lottery">{{ $devolution->lottery->name }}</span></p>
+                                            <p><strong>Fecha:</strong> <span id="devolution-date">{{ $devolution->devolution_date->format('d/m/Y') }}</span></p>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            <label class="form-label">Comentarios Adicionales</label>
-                                            <textarea class="form-control" name="comments" rows="3" placeholder="Comentarios adicionales..."></textarea>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Resumen de Participaciones</h6>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="text-center">
+                                                        <h4 class="text-primary" id="total-participations">{{ $devolution->total_participations }}</h4>
+                                                        <small>Total Participaciones</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="text-center">
+                                                        <h4 class="text-warning" id="returned-participations">{{ $devolution->details()->where('action', 'devolver')->count() }}</h4>
+                                                        <small>Devueltas</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="text-center">
+                                                        <h4 class="text-success" id="sold-participations">{{ $devolution->details()->where('action', 'vender')->count() }}</h4>
+                                                        <small>Vendidas</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="text-center">
+                                                        <h4 class="text-info" id="total-liquidation">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }), 2) }}€</h4>
+                                                        <small>Total Liquidación</small>
+                                                    </div>
+                        </div>
+                    </div>
+                            </div>
+                            </div>
+                        </div>
+                            </div>
+
+                            <!-- Resumen Devolución -->
+                            <div class="card mb-3">
+                            <div class="card-body">
+                                    <h5 class="card-title">Resumen Devolución</h5>
+                                    <small class="text-muted">Resumen Devolución Entidad</small>
+                                    
+                                    <div class="text-center my-3">
+                                        <img src="{{url('assets/ticket.svg')}}" alt="" width="60px">
+                                        <div class="mt-2">
+                                            <strong id="liquidacion-ticket-number">Devolución #{{ $devolution->id }}</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-2">
+                                                <strong>Total Participaciones:</strong>
+                                                <span id="liquidacion-total-participaciones">{{ $devolution->total_participations }}</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <strong>Ventas registradas:</strong>
+                                                <span id="liquidacion-ventas-registradas">{{ $devolution->details()->where('action', 'vender')->count() }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-2">
+                                                <strong>Participaciones Devueltas:</strong>
+                                                <span id="liquidacion-participaciones-devueltas">{{ $devolution->details()->where('action', 'devolver')->count() }}</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <strong>Disponibles:</strong>
+                                                <span id="liquidacion-disponibles">0</span>
+                                            </div>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
                                 
+                            <!-- Liquidación Actual -->
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Liquidación Actual</h5>
                                 <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            <label class="form-label">Fecha de Devolución</label>
-                                            <input type="date" class="form-control" name="return_date" value="{{ date('Y-m-d') }}">
+                                        <div class="col-4">
+                                            <div class="mb-2">
+                                                <strong>Total Liquidación:</strong>
+                                                <span id="liquidacion-total-liquidacion">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }), 2) }}€</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="mb-2">
+                                                <strong>Pagos Registrados:</strong>
+                                                <span id="liquidacion-pagos-registrados">{{ number_format($devolution->payments()->sum('amount'), 2) }}€</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="mb-2">
+                                                <strong>Total a Pagar:</strong>
+                                                <span id="liquidacion-total-pagar">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            <label class="form-label">Hora de Devolución</label>
-                                            <input type="time" class="form-control" name="return_time" value="{{ date('H:i') }}">
+                                </div>
+                            </div>
+
+                            <!-- Formas de Pago -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Formas de Pago</h5>
+                                    <small class="text-muted">Puedes registrar múltiples formas de pago</small>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-8">
+                                            <!-- Pago en Efectivo -->
+                                            <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                <div class="me-3">
+                                                    <i class="ri-wallet-line text-success" style="font-size: 24px;"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <strong>Pago en Efectivo</strong>
+                                                </div>
+                                                <div class="col-3">
+                                                    <input type="number" step="0.01" class="form-control payment-input" placeholder="0.00" id="pago-efectivo-monto">
+                                                </div>
+                                            </div>
+
+                                            <!-- Pago por Bizum -->
+                                            <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                <div class="me-3">
+                                                    <i class="ri-percent-line text-info" style="font-size: 24px;"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <strong>Pago por Bizum</strong>
+                                                </div>
+                                                <div class="col-3">
+                                                    <input type="number" step="0.01" class="form-control payment-input" placeholder="0.00" id="pago-bizum-monto">
+                                                </div>
+                                            </div>
+
+                                            <!-- Pago por Transferencia -->
+                                            <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                <div class="me-3">
+                                                    <i class="ri-building-line text-primary" style="font-size: 24px;"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <strong>Pago por Transferencia</strong>
+                                                </div>
+                                                <div class="col-3">
+                                                    <input type="number" step="0.01" class="form-control payment-input" placeholder="0.00" id="pago-transferencia-monto">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-4">
+                                            <div class="text-center">
+                                                <div class="border rounded p-3 mb-3 bg-light">
+                                                    <small class="text-muted">Total a Pagar</small>
+                                                    <div class="text-danger h4" id="liquidacion-importe-total">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</div>
+                                                </div>
+                                                <div class="border rounded p-3 mb-3 bg-success bg-opacity-10">
+                                                    <small class="text-muted">Total a Pagar Ahora</small>
+                                                    <div class="text-success h4" id="total-pagar-ahora">0,00€</div>
+                                                </div>
+                                                <div class="border rounded p-3 mb-3" id="pendiente-container">
+                                                    <small class="text-muted">Quedará Pendiente</small>
+                                                    <div class="h5" id="total-pendiente">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</div>
+                                                </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center mt-4">
-                            <a href="{{ route('devolutions.show', $id) }}" class="btn btn-secondary" style="border-radius: 30px;">
-                                <i class="ri-close-line me-2"></i>Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-success" style="border-radius: 30px; font-weight: bold;">
-                                <i class="ri-save-line me-2"></i>Guardar Cambios
+                            <!-- Botones de Acción -->
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{{ route('devolutions.index') }}" class="btn btn-secondary">
+                                    <i class="ri-arrow-left-line"></i> Volver al Listado
+                                </a>
+                                <button type="button" class="btn btn-warning" id="btn-aceptar-liquidacion" style="border-radius: 30px; padding: 10px 30px;">
+                                    <i class="ri-add-line"></i> Agregar Pagos
                             </button>
+                            </div>
                         </div>
-                    </form>
-
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
 </div>
-
 @endsection
 
 @section('scripts')
-
 <script>
-$(document).ready(function() {
-    const devolutionId = {{ $id }};
+jQuery(document).ready(function($) {
+    console.log('Iniciando script de edición con jQuery');
     
-    // Cargar información existente de la devolución
-    cargarInformacionDevolucion();
-    
-    // Event listener para el formulario
-    $('#edit-devolution-form').on('submit', function(e) {
-        e.preventDefault();
-        guardarDevolucion();
-    });
-    
-    function cargarInformacionDevolucion() {
-        // Por ahora, cargar información básica
-        // En una implementación real, harías una llamada AJAX al backend
-        console.log('Cargando información de devolución ID:', devolutionId);
+    const devolutionId = {{ $devolution->id }};
+    console.log('Devolución ID:', devolutionId);
+
+    // Función para actualizar el total a pagar ahora
+    function actualizarTotalPagarAhora() {
+        console.log('Actualizando totales...');
+        const efectivoMonto = parseFloat($('#pago-efectivo-monto').val()) || 0;
+        const bizumMonto = parseFloat($('#pago-bizum-monto').val()) || 0;
+        const transferenciaMonto = parseFloat($('#pago-transferencia-monto').val()) || 0;
         
-        // Simular datos existentes
-        $('textarea[name="return_reason"]').val('Devolución por liquidación');
-        $('input[name="return_date"]').val('{{ date('Y-m-d') }}');
-        $('input[name="return_time"]').val('{{ date('H:i') }}');
+        console.log('Montos:', { efectivo: efectivoMonto, bizum: bizumMonto, transferencia: transferenciaMonto });
+        
+        const totalPagarAhora = efectivoMonto + bizumMonto + transferenciaMonto;
+        $('#total-pagar-ahora').text(totalPagarAhora.toFixed(2) + '€');
+        
+        // Calcular pendiente
+        const totalAPagarText = $('#liquidacion-importe-total').text();
+        const totalAPagar = parseFloat(totalAPagarText.replace('€', '').replace(',', '.').trim()) || 0;
+        const pendiente = totalAPagar - totalPagarAhora;
+        
+        console.log('Total a pagar:', totalAPagar, 'Pendiente:', pendiente);
+        
+        $('#total-pendiente').text(pendiente.toFixed(2) + '€');
+        
+        // Cambiar color según si está completo o no
+        if (pendiente <= 0 && totalPagarAhora > 0) {
+            $('#total-pendiente').removeClass('text-warning').addClass('text-success');
+        } else if (totalPagarAhora > 0) {
+            $('#total-pendiente').removeClass('text-success').addClass('text-warning');
+        } else {
+            $('#total-pendiente').removeClass('text-success text-warning');
+        }
     }
     
-    function guardarDevolucion() {
-        const formData = new FormData($('#edit-devolution-form')[0]);
+    // Event listeners para actualizar total al cambiar montos
+    $('#pago-efectivo-monto, #pago-bizum-monto, #pago-transferencia-monto').on('input keyup change', function() {
+        console.log('Input detectado en:', $(this).attr('id'));
+        actualizarTotalPagarAhora();
+    });
+
+    // Event listener para aceptar liquidación
+    $('#btn-aceptar-liquidacion').click(function() {
+        // Recopilar todos los pagos
+        const pagos = [];
         
-        // Mostrar loading
-        const submitBtn = $('#edit-devolution-form button[type="submit"]');
-        const originalText = submitBtn.html();
-        submitBtn.prop('disabled', true).html('<i class="ri-loader-4-line fa-spin me-2"></i>Guardando...');
+        // Pago en efectivo
+        const efectivoMonto = parseFloat($('#pago-efectivo-monto').val()) || 0;
+        if (efectivoMonto > 0) {
+            pagos.push({
+                payment_method: 'efectivo',
+                amount: efectivoMonto
+            });
+        }
         
-        // Simular envío
-        // En una implementación real, harías una llamada AJAX al backend
-        setTimeout(() => {
-            mostrarMensaje('Devolución actualizada correctamente', 'success');
-            
-            // Redirigir a la vista de detalle
-            setTimeout(() => {
-                window.location.href = "{{ route('devolutions.show', $id) }}";
-            }, 1500);
-            
-        }, 2000);
+        // Pago por Bizum
+        const bizumMonto = parseFloat($('#pago-bizum-monto').val()) || 0;
+        if (bizumMonto > 0) {
+            pagos.push({
+                payment_method: 'bizum',
+                amount: bizumMonto
+            });
+        }
         
-        /*
-        // Código real para envío AJAX:
+        // Pago por transferencia
+        const transferenciaMonto = parseFloat($('#pago-transferencia-monto').val()) || 0;
+        if (transferenciaMonto > 0) {
+            pagos.push({
+                payment_method: 'transferencia',
+                amount: transferenciaMonto
+            });
+        }
+
+        if (pagos.length === 0) {
+            mostrarMensaje('Debes ingresar al menos un monto de pago', 'warning');
+            return;
+        }
+
+        // Preparar datos para los pagos (ahora es un array)
+        const paymentData = {
+            pagos: pagos,
+            notes: 'Pago agregado desde edición',
+            _token: '{{ csrf_token() }}'
+        };
+
+        $(this).prop('disabled', true).text('Procesando...');
+
         $.ajax({
-            url: "{{ route('devolutions.update', $id) }}",
+            url: `/devolutions/${devolutionId}/payments`,
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
+            data: paymentData,
             success: function(response) {
                 if (response.success) {
-                    mostrarMensaje('Devolución actualizada correctamente', 'success');
+                    mostrarMensaje('Pago agregado correctamente', 'success');
                     setTimeout(() => {
-                        window.location.href = "{{ route('devolutions.show', $id) }}";
-                    }, 1500);
+                        window.location.reload();
+                    }, 2000);
                 } else {
-                    mostrarMensaje(response.message || 'Error al actualizar la devolución', 'error');
+                    mostrarMensaje(response.message || 'Error al agregar el pago', 'error');
                 }
             },
             error: function(xhr, status, error) {
-                mostrarMensaje('Error de conexión al actualizar la devolución', 'error');
+                console.error('Error al guardar pago:', error);
+                mostrarMensaje('Error al guardar el pago', 'error');
             },
             complete: function() {
-                submitBtn.prop('disabled', false).html(originalText);
+                $('#btn-aceptar-liquidacion').prop('disabled', false).text('Agregar Pagos');
             }
         });
-        */
-    }
+    });
     
     // Función para mostrar mensajes
     function mostrarMensaje(mensaje, tipo) {
@@ -236,11 +355,12 @@ $(document).ready(function() {
         
         $('.page-title-box').after(alertHtml);
         
-        setTimeout(() => {
+        setTimeout(function() {
             $('.alert').fadeOut();
         }, 5000);
     }
+    
+    console.log('Script de edición cargado completamente');
 });
 </script>
-
 @endsection

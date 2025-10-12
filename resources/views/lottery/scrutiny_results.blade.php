@@ -124,8 +124,8 @@
                                         <div class="col-6">
 
                                                                                          <div class="mt-2">
-                                                Participaciones Asignadas Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_winning_participations'] ?? 0 }} Números</b> <br>
-                                                Participaciones Asignadas No Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_non_winning_participations'] ?? 0 }} Números</b> <br>
+                                                Participaciones Vendidas Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_winning_participations'] ?? 0 }} Números</b> <br>
+                                                Participaciones Vendidas No Premiadas: <b>{{ $scrutiny->scrutiny_summary['total_non_winning_participations'] ?? 0 }} Números</b> <br>
                                                 Importe Premios Repartidos: <b>{{ number_format($scrutiny->detailedResults->sum('premio_total'), 2) }}€</b>
                                              </div>
                                             
@@ -178,12 +178,21 @@
                                                             ->whereHas('entity', function($query) use ($entity) {
                                                                 $query->where('id', $entity->id);
                                                             })
-                                                            ->where('status', 'asignada')
+                                                            ->where('status', 'vendida')
+                                                            ->count();
+
+                                                            $totalDevueltas = \App\Models\Participation::whereHas('set.reserve', function($query) use ($lottery) {
+                                                                $query->where('lottery_id', $lottery->id);
+                                                            })
+                                                            ->whereHas('entity', function($query) use ($entity) {
+                                                                $query->where('id', $entity->id);
+                                                            })
+                                                            ->where('status', 'devuelta')
                                                             ->count();
                                                         @endphp
                                                         Emitidas: <b>{{ $totalEmitidas }}</b> <br>
                                                         Vendidas: <b>{{ $totalVendidas }}</b> <br>
-                                                        Devueltas: <b>0</b> <br>
+                                                        Devueltas: <b>{{ $totalDevueltas }}</b> <br>
                                                         <span class="badge bg-{{ $totalWinningNumbers > 0 ? 'success' : 'secondary' }}">
                                                             Premiadas: {{ $totalWinningNumbers }} Números
                                                      </span>
@@ -198,28 +207,29 @@
                                             
                                                 @if($totalWinningNumbers > 0)
                                                     @foreach($entityResults as $result)
+                                                    @php
+                                                        // Recalcular los datos correctos usando la misma lógica que scrutiny.blade.php
+                                                        $lottery = $scrutiny->lottery;
+                                                        $ticketPrice = $lottery->ticket_price ?? 0;
+                                                        
+                                                        // Obtener el set para recalcular
+                                                        $set = $result->set;
+                                                        $pricePerParticipation = $set->played_amount ?? 0;
+                                                        
+                                                        // Recalcular décimos usando la misma fórmula
+                                                        $totalParticipations = $result->total_participations;
+                                                        $participacionesPorDecimo = $ticketPrice / $pricePerParticipation;
+                                                        $decimosRecalculados = $totalParticipations / $participacionesPorDecimo;
+                                                        $decimosRedondeados = round($decimosRecalculados);
+                                                        
+                                                        // Recalcular premio total
+                                                        $premioTotalRecalculado = $result->premio_por_decimo * $decimosRedondeados;
+                                                    @endphp
+                                                    @if ($decimosRedondeados > 0)
                                                     <tr>
                                                         <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
                                                                 <div class="d-flex justify-content-between align-items-center">
                                                                     <div>
-                                                                        @php
-                                                                            // Recalcular los datos correctos usando la misma lógica que scrutiny.blade.php
-                                                                            $lottery = $scrutiny->lottery;
-                                                                            $ticketPrice = $lottery->ticket_price ?? 0;
-                                                                            
-                                                                            // Obtener el set para recalcular
-                                                                            $set = $result->set;
-                                                                            $pricePerParticipation = $set->played_amount ?? 0;
-                                                                            
-                                                                            // Recalcular décimos usando la misma fórmula
-                                                                            $totalParticipations = $result->total_participations;
-                                                                            $participacionesPorDecimo = $ticketPrice / $pricePerParticipation;
-                                                                            $decimosRecalculados = $totalParticipations / $participacionesPorDecimo;
-                                                                            $decimosRedondeados = round($decimosRecalculados);
-                                                                            
-                                                                            // Recalcular premio total
-                                                                            $premioTotalRecalculado = $result->premio_por_decimo * $decimosRedondeados;
-                                                                        @endphp
                                                                         <b>Número: {{ $result->winning_number }} - Premiado con {{ number_format($result->premio_por_decimo, 2) }}€ X {{ $decimosRedondeados }} Décimos = {{ number_format($premioTotalRecalculado, 2) }}€</b>
                                                                     </div>
                                                                     <div class="text-end">
@@ -231,6 +241,7 @@
                                                                 </div>
                                                         </td>
                                                     </tr>
+                                                    @endif
                                                     @endforeach
                                             @endif
 

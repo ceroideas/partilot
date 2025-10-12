@@ -243,7 +243,7 @@
                         </li>
 
                         <li class="menu-item">
-                            <a href="{{url('returns')}}" class="menu-link">
+                            <a href="{{url('devolutions')}}" class="menu-link">
                                 <span class="menu-icon">
                                     <img style="width: 19.5px;" src="{{url('icons')}}/devolucion{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>

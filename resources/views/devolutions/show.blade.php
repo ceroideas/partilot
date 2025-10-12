@@ -133,7 +133,7 @@
                             Detalles de la Devolución
                         </h4>
                         <div>
-                            <a href="{{ route('devolutions.edit', $id) }}" class="btn btn-warning me-2" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">
+                            <a href="{{ route('devolutions.edit', $devolution->id) }}" class="btn btn-warning me-2" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">
                                 <i class="ri-edit-line me-2"></i>Editar
                             </a>
                             <a href="{{ route('devolutions.index') }}" class="btn btn-secondary" style="border-radius: 30px;">
@@ -149,66 +149,128 @@
                         <h5>Información General</h5>
                         <div class="resumen-item">
                             <span>ID Devolución:</span>
-                            <span id="devolution-id">{{ $id }}</span>
+                            <span>{{ $devolution->id }}</span>
                         </div>
                         <div class="resumen-item">
                             <span>Entidad:</span>
-                            <span id="entity-name">Cargando...</span>
+                            <span>{{ $devolution->entity->name ?? 'N/A' }}</span>
                         </div>
                         <div class="resumen-item">
                             <span>Sorteo:</span>
-                            <span id="lottery-name">Cargando...</span>
+                            <span>{{ $devolution->lottery->name ?? 'N/A' }}</span>
                         </div>
                         <div class="resumen-item">
                             <span>Vendedor:</span>
-                            <span id="seller-name">Cargando...</span>
+                            <span>{{ $devolution->seller->name ?? 'Sin vendedor' }}</span>
                         </div>
                         <div class="resumen-item">
                             <span>Fecha de Procesamiento:</span>
-                            <span id="processing-date">Cargando...</span>
+                            <span>{{ \Carbon\Carbon::parse($devolution->devolution_date)->format('d/m/Y') }}</span>
                         </div>
                         <div class="resumen-item">
                             <span>Total Participaciones:</span>
-                            <span id="total-participations">Cargando...</span>
+                            <span>{{ $devolution->total_participations }}</span>
                         </div>
                         <div class="resumen-item">
                             <span>Participaciones Devueltas:</span>
-                            <span id="returned-count" class="text-danger">Cargando...</span>
+                            <span class="text-danger">{{ $devolution->details()->where('action', 'devolver')->count() }}</span>
                         </div>
                         <div class="resumen-item">
                             <span>Participaciones Vendidas:</span>
-                            <span id="sold-count" class="text-success">Cargando...</span>
+                            <span class="text-success">{{ $devolution->details()->where('action', 'vender')->count() }}</span>
                         </div>
                     </div>
 
-                    <!-- Participaciones de la devolución -->
+                    <!-- Resumen de Pagos -->
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">Participaciones</h5>
+                            <h5 class="card-title mb-0">Resumen de Pagos</h5>
                         </div>
                         <div class="card-body">
-                            <div id="loading-participations" class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Cargando...</span>
+                            @php
+                                $totalLiquidacion = $devolution->details()
+                                    ->where('action', 'vender')
+                                    ->with('participation.set')
+                                    ->get()
+                                    ->sum(function($detail) {
+                                        return $detail->participation->set->played_amount ?? 0;
+                                    });
+                                $totalPagado = $devolution->payments()->sum('amount');
+                                $pendiente = $totalLiquidacion - $totalPagado;
+                            @endphp
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="border rounded p-3 text-center bg-light">
+                                        <small class="text-muted">Total Liquidación</small>
+                                        <h4 class="text-primary mb-0">{{ number_format($totalLiquidacion, 2) }}€</h4>
+                                    </div>
                                 </div>
-                                <p class="mt-2">Cargando participaciones...</p>
+                                <div class="col-md-4">
+                                    <div class="border rounded p-3 text-center bg-success bg-opacity-10">
+                                        <small class="text-muted">Total Pagado</small>
+                                        <h4 class="text-success mb-0">{{ number_format($totalPagado, 2) }}€</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="border rounded p-3 text-center {{ $pendiente > 0 ? 'bg-warning bg-opacity-10' : 'bg-success bg-opacity-10' }}">
+                                        <small class="text-muted">Pendiente</small>
+                                        <h4 class="mb-0 {{ $pendiente > 0 ? 'text-warning' : 'text-success' }}">{{ number_format($pendiente, 2) }}€</h4>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div id="participations-content" style="display: none;">
-                                <div class="grid-participaciones" id="grid-participations">
-                                    <!-- Las participaciones se cargarán aquí -->
+                            @if($devolution->payments->count() > 0)
+                                <h6 class="mb-3">Detalle de Pagos</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Método</th>
+                                                <th class="text-end">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($devolution->payments as $payment)
+                                                <tr>
+                                                    <td>{{ \Carbon\Carbon::parse($payment->payment_date)->format('d/m/Y H:i') }}</td>
+                                                    <td>
+                                                        @if($payment->payment_method == 'efectivo')
+                                                            <i class="ri-wallet-line text-success"></i> Efectivo
+                                                        @elseif($payment->payment_method == 'bizum')
+                                                            <i class="ri-smartphone-line text-info"></i> Bizum
+                                                        @elseif($payment->payment_method == 'transferencia')
+                                                            <i class="ri-bank-line text-primary"></i> Transferencia
+                                                        @else
+                                                            {{ ucfirst($payment->payment_method) }}
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <strong>{{ number_format($payment->amount, 2) }}€</strong>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <th colspan="2">TOTAL PAGADO</th>
+                                                <th class="text-end text-success">{{ number_format($totalPagado, 2) }}€</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
-                            </div>
-
-                            <div id="no-participations" style="display: none;" class="text-center py-4">
-                                <div class="empty-tables">
-                                    <div>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px; opacity: 0.3;">
+                            @else
+                                <div class="text-center py-4">
+                                    <div class="empty-tables">
+                                        <div>
+                                            <i class="ri-money-dollar-circle-line" style="font-size: 48px; opacity: 0.3;"></i>
+                                        </div>
+                                        <h5 class="mb-0 mt-2">No hay pagos registrados</h5>
+                                        <small class="text-muted">Aún no se han registrado pagos para esta devolución</small>
                                     </div>
-                                    <h3 class="mb-0">No hay participaciones</h3>
-                                    <small class="text-muted">Esta devolución no tiene participaciones asociadas</small>
                                 </div>
-                            </div>
+                            @endif
                         </div>
                     </div>
 
@@ -218,124 +280,5 @@
     </div>
 
 </div>
-
-@endsection
-
-@section('scripts')
-
-<script>
-$(document).ready(function() {
-    const devolutionId = {{ $id }};
-    
-    // Cargar información de la devolución
-    cargarInformacionDevolucion();
-    
-    // Cargar participaciones
-    cargarParticipaciones();
-    
-    function cargarInformacionDevolucion() {
-        // Por ahora, cargar información básica
-        // En una implementación real, harías una llamada AJAX al backend
-        $('#entity-name').text('Entidad de Prueba');
-        $('#lottery-name').text('Sorteo de Prueba');
-        $('#seller-name').text('Vendedor de Prueba');
-        $('#processing-date').text(new Date().toLocaleDateString('es-ES'));
-        $('#total-participations').text('0');
-        $('#returned-count').text('0');
-        $('#sold-count').text('0');
-    }
-    
-    function cargarParticipaciones() {
-        // Simular carga de participaciones
-        // En una implementación real, harías una llamada AJAX al backend
-        setTimeout(() => {
-            $('#loading-participations').hide();
-            
-            // Simular que no hay participaciones por ahora
-            $('#no-participations').show();
-            
-            // Si hubiera participaciones, se mostrarían así:
-            /*
-            const participaciones = [
-                {
-                    id: 1,
-                    participation_code: '1/00001',
-                    status: 'devuelto',
-                    date: '2024-01-15',
-                    time: '14:30:00'
-                },
-                {
-                    id: 2,
-                    participation_code: '1/00002',
-                    status: 'vendido',
-                    date: '2024-01-15',
-                    time: '14:31:00'
-                }
-            ];
-            
-            mostrarParticipaciones(participaciones);
-            */
-        }, 1500);
-    }
-    
-    function mostrarParticipaciones(participaciones) {
-        if (participaciones.length === 0) {
-            $('#no-participations').show();
-            return;
-        }
-        
-        $('#participations-content').show();
-        
-        const gridHtml = participaciones.map(participation => {
-            const fecha = new Date(participation.date + 'T' + participation.time);
-            const fechaStr = fecha.toLocaleDateString('es-ES');
-            const horaStr = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            
-            const estadoClass = participation.status === 'devuelto' ? 'estado-devuelto' : 'estado-vendido';
-            const estadoText = participation.status === 'devuelto' ? 'Devuelto' : 'Vendido';
-            
-            return `
-                <div class="participacion-item">
-                    <div class="d-flex align-items-center">
-                        <div class="participacion-icon">
-                            <img src="{{url('assets/ticket.svg')}}" alt="" width="20px">
-                        </div>
-                        <div class="participacion-info">
-                            <div class="participacion-numero">${participation.participation_code}</div>
-                            <div class="participacion-fecha">
-                                <i class="ri-calendar-line"></i>
-                                <span>${fechaStr} - ${horaStr}h</span>
-                            </div>
-                            <span class="participacion-estado ${estadoClass}">${estadoText}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        $('#grid-participations').html(gridHtml);
-    }
-    
-    // Función para mostrar mensajes
-    function mostrarMensaje(mensaje, tipo) {
-        const alertClass = tipo === 'success' ? 'alert-success' : 
-                          tipo === 'warning' ? 'alert-warning' : 
-                          tipo === 'error' ? 'alert-danger' : 'alert-info';
-       
-        const alertHtml = `
-            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                ${mensaje}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        
-        $('.page-title-box').after(alertHtml);
-        
-        setTimeout(() => {
-            $('.alert').fadeOut();
-        }, 5000);
-    }
-});
-</script>
 
 @endsection

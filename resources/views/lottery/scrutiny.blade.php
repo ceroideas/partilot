@@ -144,15 +144,15 @@
                                                             ->whereHas('entity', function($query) use ($administrationId) {
                                                                 $query->where('administration_id', $administrationId);
                                                             })
-                                                            ->where('status', 'asignada')
+                                                            ->where('status', 'vendida')
                                                             ->count();
                                                         
                                                         // Participaciones no ganadoras = total asignadas - ganadoras
                                                         $totalNonWinning = $totalAsignadas - $totalWinning;
                                                     @endphp
-                                                    Participaciones Asignadas: <b>{{ $totalAsignadas }} Participaciones</b> <br>
-                                                    Participaciones Asignadas Premiadas: <b>{{ $totalWinning }} Participaciones</b> <br>
-                                                    Participaciones Asignadas No Premiadas: <b>{{ $totalNonWinning }} Participaciones</b> <br>
+                                                    Participaciones Vendidas: <b>{{ $totalAsignadas }} Participaciones</b> <br>
+                                                    Participaciones Vendidas Premiadas: <b>{{ $totalWinning }} Participaciones</b> <br>
+                                                    Participaciones Vendidas No Premiadas: <b>{{ $totalNonWinning }} Participaciones</b> <br>
                                                     Importe Premios Repartidos: <b>{{ number_format($totalPrizeAmount, 2) }}€</b>
                                                 </div>
                                                 
@@ -230,23 +230,23 @@
                                                                 {{-- Mostrar por cada set individual --}}
                                                                 @if(!empty($setsInfo))
                                                                     @foreach($setsInfo as $setInfo)
+                                                                        @php
+                                                                            $decimosDeEsteSet = $setInfo['decimos'] ?? 0;
+                                                                            $premioTotalSet = $premioPorDecimo * $decimosDeEsteSet;
+                                                                            
+                                                                            // Calcular premio por participación para este set específico
+                                                                            $premioPorParticipacion = 0;
+                                                                            $importeJugado = $setInfo['importe_jugado'] ?? 0;
+                                                                            
+                                                                            if ($ticketPrice > 0 && $importeJugado > 0) {
+                                                                                $porcentajeParticipacion = $importeJugado / $ticketPrice;
+                                                                                $premioPorParticipacion = $premioPorDecimo * $porcentajeParticipacion;
+                                                                            }
+                                                                        @endphp
                                                                         <tr>
                                                                             <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
                                                                                 <div class="d-flex justify-content-between align-items-center">
                                                                                     <div>
-                                                                                        @php
-                                                                                            $decimosDeEsteSet = $setInfo['decimos'] ?? 0;
-                                                                                            $premioTotalSet = $premioPorDecimo * $decimosDeEsteSet;
-                                                                                            
-                                                                                            // Calcular premio por participación para este set específico
-                                                                                            $premioPorParticipacion = 0;
-                                                                                            $importeJugado = $setInfo['importe_jugado'] ?? 0;
-                                                                                            
-                                                                                            if ($ticketPrice > 0 && $importeJugado > 0) {
-                                                                                                $porcentajeParticipacion = $importeJugado / $ticketPrice;
-                                                                                                $premioPorParticipacion = $premioPorDecimo * $porcentajeParticipacion;
-                                                                                            }
-                                                                                        @endphp
                                                                                         <b>Número: {{ $categoryResult['number_str'] }} - Premiado con {{ number_format($premioPorDecimo, 2) }}€ X {{ $decimosDeEsteSet }} Décimos = {{ number_format($premioTotalSet, 2) }}€</b>
                                                                                     </div>
                                                                                     <div class="text-end">
@@ -261,7 +261,7 @@
                                                                     @endforeach
                                                                 @else
                                                                     {{-- Fallback si no hay sets_info --}}
-                                                                    <tr>
+                                                                    {{-- <tr>
                                                                         <td colspan="4" style="border-bottom: 1px solid #333; background-color: #f8f9fa;">
                                                                             <div class="d-flex justify-content-between align-items-center">
                                                                                 <div>
@@ -279,7 +279,7 @@
                                                                                 </div>
                                                                             </div>
                                                                         </td>
-                                                                    </tr>
+                                                                    </tr> --}}
                                                                 @endif
                                                             @endforeach
                                                         @endif

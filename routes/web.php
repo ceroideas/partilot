@@ -285,8 +285,17 @@ Route::get('devolutions-data', [DevolutionsController::class, 'data'])->name('de
 Route::get('devolutions/entities', [DevolutionsController::class, 'getEntities'])->name('devolutions.entities');
 Route::get('devolutions/lotteries', [DevolutionsController::class, 'getLotteriesByEntity'])->name('devolutions.lotteries');
 Route::get('devolutions/sellers', [DevolutionsController::class, 'getSellersByEntity'])->name('devolutions.sellers');
+Route::get('devolutions/sets', [DevolutionsController::class, 'getSetsBySellerAndLottery'])->name('devolutions.sets');
+Route::get('devolutions/sets-by-entity', [DevolutionsController::class, 'getSetsByEntityAndLottery'])->name('devolutions.sets-by-entity');
 Route::get('devolutions/participations', [DevolutionsController::class, 'getParticipationsBySellerAndLottery'])->name('devolutions.participations');
 Route::post('devolutions/validate', [DevolutionsController::class, 'validateParticipations'])->name('devolutions.validate');
+Route::get('devolutions/liquidation-summary', [DevolutionsController::class, 'getLiquidationSummary'])->name('devolutions.liquidation-summary');
+
+// Rutas para gestión de pagos de devoluciones
+Route::get('devolutions/{id}/payments', [DevolutionsController::class, 'getPayments'])->name('devolutions.payments');
+Route::post('devolutions/{id}/payments', [DevolutionsController::class, 'addPayment'])->name('devolutions.payments.store');
+Route::put('devolutions/{devolutionId}/payments/{paymentId}', [DevolutionsController::class, 'updatePayment'])->name('devolutions.payments.update');
+Route::delete('devolutions/{devolutionId}/payments/{paymentId}', [DevolutionsController::class, 'deletePayment'])->name('devolutions.payments.delete');
 
 // Resource routes (deben ir AL FINAL para evitar conflictos)
 Route::resource('devolutions', DevolutionsController::class);

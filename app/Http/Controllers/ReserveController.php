@@ -17,7 +17,7 @@ class ReserveController extends Controller
     {
         $reserves = Reserve::with(['entity', 'lottery'])
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->get();
 
         return view('reserves.index', compact('reserves'));
     }

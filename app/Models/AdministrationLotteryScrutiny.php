@@ -76,7 +76,7 @@ class AdministrationLotteryScrutiny extends Model
      */
     public function detailedResults()
     {
-        return $this->hasMany(ScrutinyDetailedResult::class, 'scrutiny_id');
+        return $this->hasMany(ScrutinyDetailedResult::class, 'scrutiny_id')->where('total_decimos','>',0);
     }
 
     /**
