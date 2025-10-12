@@ -125,6 +125,11 @@ Route::group(['prefix' => 'sellers'], function() {
     Route::post('/get-assigned-participations', [SellerController::class, 'getAssignedParticipations'])->name('sellers.get-assigned-participations');
     Route::post('/remove-assignment', [SellerController::class, 'removeAssignment'])->name('sellers.remove-assignment');
     Route::post('/get-participations-by-book', [SellerController::class, 'getParticipationsByBook'])->name('sellers.get-participations-by-book');
+    
+    // Rutas de liquidación de vendedores
+    Route::get('/settlement-summary', [SellerController::class, 'getSettlementSummary'])->name('sellers.settlement-summary');
+    Route::post('/settlement', [SellerController::class, 'storeSettlement'])->name('sellers.settlement.store');
+    Route::get('/settlement-history', [SellerController::class, 'getSettlementHistory'])->name('sellers.settlement-history');
 });
 Route::get('users',function() {
     return view('users.index');

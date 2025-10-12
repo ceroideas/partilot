@@ -297,8 +297,14 @@ class LotteryController extends Controller
                     }
 
                     // Preparar datos del sorteo
+                    // Generar nombre del sorteo: num_sorteo/últimas 2 cifras del año
+                    $numSorteo = $sorteo['num_sorteo'] ?? '';
+                    $anyo = $sorteo['anyo'] ?? date('Y');
+                    $anioCortado = substr($anyo, -2); // Últimas 2 cifras del año
+                    $nombreSorteo = str_pad($numSorteo, 3, '0', STR_PAD_LEFT) . '/' . $anioCortado;
+                    
                     $lotteryData = [
-                        'name' => '0' . ($sorteo['num_sorteo'] ?? ''),
+                        'name' => $nombreSorteo,
                         'description' => $sorteo['nombre'] ?? '', // Usar día de la semana como descripción
                         'draw_date' => $fechaSorteo,
                         'deadline_date' => $fechaSorteo,

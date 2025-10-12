@@ -16,10 +16,10 @@
                         <li class="breadcrumb-item"><a href="{{ route('devolutions.index') }}">Devoluciones</a></li>
                                 <li class="breadcrumb-item active">Editar</li>
                     </ol>
-                        </div>
-                    </div>
                 </div>
             </div>
+        </div>
+    </div>     
             <!-- end page title -->
 
     <div class="row">
@@ -72,7 +72,7 @@
                             </div>
                             </div>
                         </div>
-                            </div>
+                    </div>
 
                             <!-- Resumen Devolución -->
                             <div class="card mb-3">
@@ -84,8 +84,8 @@
                                         <img src="{{url('assets/ticket.svg')}}" alt="" width="60px">
                                         <div class="mt-2">
                                             <strong id="liquidacion-ticket-number">Devolución #{{ $devolution->id }}</strong>
-                                        </div>
-                                    </div>
+                            </div>
+                        </div>
 
                                     <div class="row">
                                         <div class="col-6">
@@ -102,12 +102,12 @@
                                             <div class="mb-2">
                                                 <strong>Participaciones Devueltas:</strong>
                                                 <span id="liquidacion-participaciones-devueltas">{{ $devolution->details()->where('action', 'devolver')->count() }}</span>
-                                            </div>
+                            </div>
                                             <div class="mb-2">
                                                 <strong>Disponibles:</strong>
                                                 <span id="liquidacion-disponibles">0</span>
-                                            </div>
                                         </div>
+                                    </div>
                                         </div>
                                     </div>
                                 </div>
@@ -127,17 +127,17 @@
                                             <div class="mb-2">
                                                 <strong>Pagos Registrados:</strong>
                                                 <span id="liquidacion-pagos-registrados">{{ number_format($devolution->payments()->sum('amount'), 2) }}€</span>
-                                            </div>
                                         </div>
+                                    </div>
                                         <div class="col-4">
                                             <div class="mb-2">
                                                 <strong>Total a Pagar:</strong>
                                                 <span id="liquidacion-total-pagar">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
                             <!-- Formas de Pago -->
                             <div class="card">
@@ -185,7 +185,7 @@
                                                     <input type="number" step="0.01" class="form-control payment-input" placeholder="0.00" id="pago-transferencia-monto">
                                                 </div>
                                             </div>
-                                        </div>
+                        </div>
 
                                         <div class="col-4">
                                             <div class="text-center">
@@ -202,10 +202,10 @@
                                                     <div class="h5" id="total-pendiente">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</div>
                                                 </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
                             <!-- Botones de Acción -->
                             <div class="d-flex justify-content-between mt-4">

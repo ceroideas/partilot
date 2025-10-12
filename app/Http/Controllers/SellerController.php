@@ -7,10 +7,15 @@ use App\Models\User;
 use App\Models\Entity;
 use App\Models\Reserve;
 use App\Models\Set;
+use App\Models\Participation;
+use App\Models\Lottery;
+use App\Models\SellerSettlement;
+use App\Models\SellerSettlementPayment;
 use App\Services\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class SellerController extends Controller
 {
@@ -626,5 +631,180 @@ class SellerController extends Controller
                 'message' => 'Error al obtener participaciones del taco: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Obtener resumen de liquidación para un vendedor y sorteo
+     */
+    public function getSettlementSummary(Request $request)
+    {
+        $sellerId = $request->get('seller_id');
+        $lotteryId = $request->get('lottery_id');
+
+        \Log::info('=== SELLER SETTLEMENT SUMMARY ===');
+        \Log::info('Seller ID:', [$sellerId]);
+        \Log::info('Lottery ID:', [$lotteryId]);
+
+        // Obtener todas las participaciones asignadas al vendedor para este sorteo
+        $participations = Participation::where('seller_id', $sellerId)
+            ->whereHas('set.reserve', function($query) use ($lotteryId) {
+                $query->where('lottery_id', $lotteryId);
+            })
+            ->whereIn('status', ['asignada', 'vendida'])
+            ->with('set')
+            ->get();
+
+        \Log::info('Participaciones asignadas encontradas:', [$participations->count()]);
+
+        $totalParticipations = $participations->count();
+        
+        // Calcular el total a liquidar (suma del precio de cada participación)
+        $totalAmount = $participations->sum(function($participation) {
+            return $participation->set->played_amount ?? 0;
+        });
+
+        // Obtener liquidaciones previas para este vendedor y sorteo
+        $previousSettlements = SellerSettlement::where('seller_id', $sellerId)
+            ->where('lottery_id', $lotteryId)
+            ->with('payments')
+            ->get();
+
+        $totalPaid = $previousSettlements->sum('paid_amount');
+        $pendingAmount = $totalAmount - $totalPaid;
+
+        // Calcular participaciones liquidadas (pagos / precio por participación)
+        $pricePerParticipation = $participations->first()->set->played_amount ?? 1;
+        $liquidatedParticipations = $pricePerParticipation > 0 ? ($totalPaid / $pricePerParticipation) : 0;
+
+        \Log::info('Resumen calculado:', [
+            'total_participations' => $totalParticipations,
+            'total_amount' => $totalAmount,
+            'total_paid' => $totalPaid,
+            'pending_amount' => $pendingAmount,
+            'liquidated_participations' => $liquidatedParticipations
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_participations' => $totalParticipations,
+                'price_per_participation' => $pricePerParticipation,
+                'total_amount' => $totalAmount,
+                'total_paid' => $totalPaid,
+                'pending_amount' => $pendingAmount,
+                'liquidated_participations' => round($liquidatedParticipations, 2),
+                'pending_participations' => $totalParticipations - round($liquidatedParticipations, 2)
+            ]
+        ]);
+    }
+
+    /**
+     * Guardar nueva liquidación de vendedor
+     */
+    public function storeSettlement(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $data = $request->validate([
+                'seller_id' => 'required|exists:sellers,id',
+                'lottery_id' => 'required|exists:lotteries,id',
+                'pagos' => 'required|array',
+                'pagos.*.payment_method' => 'required|string',
+                'pagos.*.amount' => 'required|numeric|min:0.01'
+            ]);
+
+            // Calcular totales
+            $totalPagoNuevo = collect($data['pagos'])->sum('amount');
+
+            // Obtener participaciones asignadas al vendedor para este sorteo
+            $participations = Participation::where('seller_id', $data['seller_id'])
+                ->whereHas('set.reserve', function($query) use ($data) {
+                    $query->where('lottery_id', $data['lottery_id']);
+                })
+                ->whereIn('status', ['asignada', 'vendida'])
+                ->with('set')
+                ->get();
+
+            $totalParticipations = $participations->count();
+            $pricePerParticipation = $participations->first()->set->played_amount ?? 0;
+            $totalAmount = $participations->sum(function($participation) {
+                return $participation->set->played_amount ?? 0;
+            });
+
+            // Obtener liquidaciones previas
+            $previousSettlements = SellerSettlement::where('seller_id', $data['seller_id'])
+                ->where('lottery_id', $data['lottery_id'])
+                ->sum('paid_amount');
+
+            $totalPaidWithNew = $previousSettlements + $totalPagoNuevo;
+            $pendingAmount = $totalAmount - $totalPaidWithNew;
+            $calculatedParticipations = $pricePerParticipation > 0 ? ($totalPagoNuevo / $pricePerParticipation) : 0;
+
+            $now = Carbon::now();
+
+            // Crear registro de liquidación
+            $settlement = SellerSettlement::create([
+                'seller_id' => $data['seller_id'],
+                'lottery_id' => $data['lottery_id'],
+                'user_id' => auth()->id(),
+                'total_amount' => $totalAmount,
+                'paid_amount' => $totalPagoNuevo,
+                'pending_amount' => $pendingAmount,
+                'total_participations' => $totalParticipations,
+                'calculated_participations' => round($calculatedParticipations, 2),
+                'settlement_date' => $now->format('Y-m-d'),
+                'settlement_time' => $now->format('H:i:s'),
+                'notes' => 'Liquidación de vendedor'
+            ]);
+
+            // Crear registros de pago
+            foreach ($data['pagos'] as $pago) {
+                SellerSettlementPayment::create([
+                    'seller_settlement_id' => $settlement->id,
+                    'amount' => $pago['amount'],
+                    'payment_method' => $pago['payment_method'],
+                    'notes' => 'Pago de liquidación - ' . ucfirst($pago['payment_method']),
+                    'payment_date' => $now
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Liquidación registrada correctamente',
+                'settlement_id' => $settlement->id
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar la liquidación: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener historial de liquidaciones de un vendedor
+     */
+    public function getSettlementHistory(Request $request)
+    {
+        $sellerId = $request->get('seller_id');
+        $lotteryId = $request->get('lottery_id');
+
+        $settlements = SellerSettlement::where('seller_id', $sellerId)
+            ->where('lottery_id', $lotteryId)
+            ->with(['payments', 'user'])
+            ->orderBy('settlement_date', 'desc')
+            ->orderBy('settlement_time', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'settlements' => $settlements
+        ]);
     }
 } 

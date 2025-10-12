@@ -76,17 +76,38 @@
                     			<div class="row">
                                             
                                     
-                                    <div class="col-2">
+                                    <div class="col-1">
                                         <div class="form-group mt-2 mb-3">
-                                            <label class="label-control">Número del Sorteo</label>
+                                            <label class="label-control">Nº Sorteo</label>
 
                                             <div class="input-group input-group-merge group-form">
+                                                <input class="form-control" type="text" id="num_sorteo" placeholder="56" style="border-radius: 30px;" value="{{ old('num_sorteo') }}" required>
+                                            </div>
+                                            @error('num_sorteo')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+                                    </div>
 
-                                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
-                                                </div>
+                                    <div class="col-1">
+                                        <div class="form-group mt-2 mb-3">
+                                            <label class="label-control">Año</label>
 
-                                                <input class="form-control" type="text" name="name" placeholder="46/25" style="border-radius: 0 30px 30px 0;" value="{{ old('name') }}" required>
+                                            <div class="input-group input-group-merge group-form">
+                                                <input class="form-control" type="text" id="anyo" placeholder="2025" style="border-radius: 30px;" value="{{ old('anyo', date('Y')) }}" required>
+                                            </div>
+                                            @error('anyo')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-2">
+                                        <div class="form-group mt-2 mb-3">
+                                            <label class="label-control">Código (Generado)</label>
+
+                                            <div class="input-group input-group-merge group-form">
+                                                <input class="form-control" type="text" name="name" id="name_generated" placeholder="056/25" style="border-radius: 30px; background-color: #f0f0f0;" readonly required>
                                             </div>
                                             @error('name')
                                                 <small class="text-danger">{{ $message }}</small>
@@ -325,6 +346,30 @@
 	        $('.photo-preview').css('background-image', 'none'); // Limpiar preview si se cancela la selección
 	    }
 	});
+
+	// Función para generar el nombre del sorteo automáticamente
+	function generarNombreSorteo() {
+	    const numSorteo = document.getElementById('num_sorteo').value;
+	    const anyo = document.getElementById('anyo').value;
+	    
+	    if (numSorteo && anyo) {
+	        // Rellenar con ceros a la izquierda (3 dígitos)
+	        const numSorteoPadded = numSorteo.padStart(3, '0');
+	        // Últimas 2 cifras del año
+	        const anyoCortado = anyo.slice(-2);
+	        // Generar nombre
+	        const nombreGenerado = numSorteoPadded + '/' + anyoCortado;
+	        
+	        document.getElementById('name_generated').value = nombreGenerado;
+	    }
+	}
+
+	// Event listeners para generar nombre automáticamente
+	document.getElementById('num_sorteo').addEventListener('input', generarNombreSorteo);
+	document.getElementById('anyo').addEventListener('input', generarNombreSorteo);
+
+	// Generar al cargar la página si hay valores
+	generarNombreSorteo();
 
 </script>
 

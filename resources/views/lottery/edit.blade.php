@@ -68,14 +68,36 @@
                                 </div>
 
                                 <div class="row">
+                                    @php
+                                        // Extraer num_sorteo y año del name actual (formato: 056/25)
+                                        $nameParts = explode('/', $lottery->name);
+                                        $currentNumSorteo = isset($nameParts[0]) ? ltrim($nameParts[0], '0') : '';
+                                        $currentAnyo = isset($nameParts[1]) ? '20' . $nameParts[1] : date('Y');
+                                    @endphp
+
+                                    <div class="col-1">
+                                        <div class="form-group mt-2 mb-3">
+                                            <label class="label-control">Nº Sorteo</label>
+                                            <div class="input-group input-group-merge group-form">
+                                                <input class="form-control" type="text" id="num_sorteo" placeholder="56" style="border-radius: 30px;" value="{{ old('num_sorteo', $currentNumSorteo) }}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-1">
+                                        <div class="form-group mt-2 mb-3">
+                                            <label class="label-control">Año</label>
+                                            <div class="input-group input-group-merge group-form">
+                                                <input class="form-control" type="text" id="anyo" placeholder="2025" style="border-radius: 30px;" value="{{ old('anyo', $currentAnyo) }}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="col-2">
                                         <div class="form-group mt-2 mb-3">
-                                            <label class="label-control">Número del Sorteo</label>
+                                            <label class="label-control">Código (Generado)</label>
                                             <div class="input-group input-group-merge group-form">
-                                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                    <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
-                                                </div>
-                                                <input class="form-control" type="text" name="name" value="{{ old('name', $lottery->name) }}" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" type="text" name="name" id="name_generated" value="{{ old('name', $lottery->name) }}" style="border-radius: 30px; background-color: #f0f0f0;" readonly required>
                                             </div>
                                         </div>
                                     </div>
@@ -283,6 +305,29 @@
         }
     });
 
+    // Función para generar el nombre del sorteo automáticamente
+    function generarNombreSorteo() {
+        const numSorteo = document.getElementById('num_sorteo').value;
+        const anyo = document.getElementById('anyo').value;
+        
+        if (numSorteo && anyo) {
+            // Rellenar con ceros a la izquierda (3 dígitos)
+            const numSorteoPadded = numSorteo.padStart(3, '0');
+            // Últimas 2 cifras del año
+            const anyoCortado = anyo.slice(-2);
+            // Generar nombre
+            const nombreGenerado = numSorteoPadded + '/' + anyoCortado;
+            
+            document.getElementById('name_generated').value = nombreGenerado;
+        }
+    }
+
+    // Event listeners para generar nombre automáticamente
+    document.getElementById('num_sorteo').addEventListener('input', generarNombreSorteo);
+    document.getElementById('anyo').addEventListener('input', generarNombreSorteo);
+
+    // Generar al cargar la página
+    generarNombreSorteo();
 
 </script>
 @endsection

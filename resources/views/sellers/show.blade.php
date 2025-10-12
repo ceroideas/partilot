@@ -768,10 +768,137 @@
                                         <div class="form-card bs" style="min-height: 658px;">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    <h4 class="mb-0 mt-1">
-                                                        Liquidación
-                                                    </h4>
-                                                    <small><i>Resumen Liquidación total</i></small>
+                                                    <h4 class="mb-0 mt-1">Liquidación de Vendedor</h4>
+                                                    <small><i>Registra pagos del vendedor</i></small>
+                                                </div>
+                                            </div>
+
+                                            <hr>
+
+                                            <!-- Selector de Sorteo -->
+                                            <div class="row mb-4">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-bold">Selecciona un Sorteo</label>
+                                                    <select class="form-select" id="selector-sorteo-liquidacion">
+                                                        <option value="">-- Selecciona un sorteo --</option>
+                                                        @foreach($reserves->unique('lottery_id') as $reserve)
+                                                            @if($reserve->lottery)
+                                                                <option value="{{ $reserve->lottery->id }}">
+                                                                    {{ $reserve->lottery->name }} - {{ $reserve->lottery->description }}
+                                                                </option>
+                                                            @endif
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Resumen de Liquidación -->
+                                            <div id="resumen-liquidacion-container" style="display: none;">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Resumen de Participaciones</div>
+                                                            <div class="card-body">
+                                                                <p><strong>Total Participaciones Asignadas:</strong> <span id="settlement-total-participations" class="fw-bold fs-4">0</span></p>
+                                                                <p><strong>Precio por Participación:</strong> <span id="settlement-price-per-participation">0.00€</span></p>
+                                                                <p><strong>Total a Liquidar:</strong> <span id="settlement-total-amount" class="text-danger fw-bold">0.00€</span></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Liquidación Actual</div>
+                                                            <div class="card-body">
+                                                                <p><strong>Total Pagado:</strong> <span id="settlement-total-paid" class="text-success fw-bold">0.00€</span></p>
+                                                                <p><strong>Participaciones Liquidadas:</strong> <span id="settlement-liquidated-participations">0</span></p>
+                                                                <p><strong>Pendiente por Liquidar:</strong> <span id="settlement-pending-amount" class="text-warning fw-bold">0.00€</span></p>
+                                                                <p><strong>Participaciones Pendientes:</strong> <span id="settlement-pending-participations">0</span></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Formas de Pago -->
+                                                <div class="card mt-3">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title">Registrar Pagos</h5>
+                                                        <small class="text-muted">Puedes registrar múltiples formas de pago</small>
+                                                        
+                                                        <div class="row mt-3">
+                                                            <div class="col-8">
+                                                                <!-- Pago en Efectivo -->
+                                                                <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                    <div class="me-3">
+                                                                        <i class="ri-wallet-line text-success" style="font-size: 24px;"></i>
+                                                                    </div>
+                                                                    <div class="flex-grow-1">
+                                                                        <strong>Pago en Efectivo</strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <input type="number" step="0.01" class="form-control settlement-payment-input" placeholder="0.00" id="settlement-pago-efectivo">
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Pago por Bizum -->
+                                                                <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                    <div class="me-3">
+                                                                        <i class="ri-percent-line text-info" style="font-size: 24px;"></i>
+                                                                    </div>
+                                                                    <div class="flex-grow-1">
+                                                                        <strong>Pago por Bizum</strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <input type="number" step="0.01" class="form-control settlement-payment-input" placeholder="0.00" id="settlement-pago-bizum">
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Pago por Transferencia -->
+                                                                <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                    <div class="me-3">
+                                                                        <i class="ri-building-line text-primary" style="font-size: 24px;"></i>
+                                                                    </div>
+                                                                    <div class="flex-grow-1">
+                                                                        <strong>Pago por Transferencia</strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <input type="number" step="0.01" class="form-control settlement-payment-input" placeholder="0.00" id="settlement-pago-transferencia">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-4">
+                                                                <div class="text-center">
+                                                                    <div class="border rounded p-3 mb-3 bg-light">
+                                                                        <small class="text-muted">Pendiente a Pagar</small>
+                                                                        <div class="text-danger h4" id="settlement-pendiente-display">0,00€</div>
+                                                                    </div>
+                                                                    <div class="border rounded p-3 mb-3 bg-success bg-opacity-10">
+                                                                        <small class="text-muted">A Pagar Ahora</small>
+                                                                        <div class="text-success h4" id="settlement-pagar-ahora">0,00€</div>
+                                                                    </div>
+                                                                    <div class="border rounded p-3 mb-3" id="settlement-quedara-pendiente-container">
+                                                                        <small class="text-muted">Quedará Pendiente</small>
+                                                                        <div class="h5" id="settlement-quedara-pendiente">0,00€</div>
+                                                                    </div>
+                                                                    <button type="button" class="btn btn-warning" id="btn-registrar-liquidacion" style="border-radius: 30px; width: 100%;">
+                                                                        <i class="ri-add-line"></i> Registrar Liquidación
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Historial de Liquidaciones -->
+                                                <div class="card mt-3">
+                                                    <div class="card-header">
+                                                        <h5 class="card-title mb-0">Historial de Liquidaciones</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="historial-liquidaciones-container">
+                                                            <p class="text-muted text-center">Selecciona un sorteo para ver el historial</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1948,6 +2075,230 @@ function initDatatable()
           });
         }
       };
+
+      // ========================================
+      // LIQUIDACIÓN DE VENDEDOR
+      // ========================================
+      
+      let sorteoSeleccionadoLiquidacion = null;
+
+      // Event listener para cambio de sorteo
+      $('#selector-sorteo-liquidacion').on('change', function() {
+          const lotteryId = $(this).val();
+          
+          if (lotteryId) {
+              sorteoSeleccionadoLiquidacion = lotteryId;
+              cargarResumenLiquidacion();
+              cargarHistorialLiquidaciones();
+              $('#resumen-liquidacion-container').show();
+          } else {
+              sorteoSeleccionadoLiquidacion = null;
+              $('#resumen-liquidacion-container').hide();
+          }
+      });
+
+      // Función para cargar resumen de liquidación
+      function cargarResumenLiquidacion() {
+          if (!sorteoSeleccionadoLiquidacion) return;
+
+          $.ajax({
+              url: '{{ route("sellers.settlement-summary") }}',
+              method: 'GET',
+              data: {
+                  seller_id: {{ $seller->id }},
+                  lottery_id: sorteoSeleccionadoLiquidacion
+              },
+              success: function(response) {
+                  console.log('=== RESPUESTA SETTLEMENT SUMMARY ===');
+                  console.log(response);
+                  
+                  if (response.success) {
+                      const summary = response.summary;
+                      console.log('Summary:', summary);
+                      
+                      // Parsear valores a números
+                      const pricePerParticipation = parseFloat(summary.price_per_participation) || 0;
+                      const totalAmount = parseFloat(summary.total_amount) || 0;
+                      const totalPaid = parseFloat(summary.total_paid) || 0;
+                      const pendingAmount = parseFloat(summary.pending_amount) || 0;
+                      const liquidatedParticipations = parseFloat(summary.liquidated_participations) || 0;
+                      const pendingParticipations = parseFloat(summary.pending_participations) || 0;
+                      
+                      $('#settlement-total-participations').text(summary.total_participations);
+                      $('#settlement-price-per-participation').text(pricePerParticipation.toFixed(2) + '€');
+                      $('#settlement-total-amount').text(totalAmount.toFixed(2) + '€');
+                      $('#settlement-total-paid').text(totalPaid.toFixed(2) + '€');
+                      $('#settlement-liquidated-participations').text(liquidatedParticipations.toFixed(2));
+                      $('#settlement-pending-amount').text(pendingAmount.toFixed(2) + '€');
+                      $('#settlement-pending-participations').text(pendingParticipations.toFixed(2));
+                      $('#settlement-pendiente-display').text(pendingAmount.toFixed(2) + '€');
+                      
+                      console.log('Datos actualizados en la vista');
+                      
+                      // Resetear campos de pago
+                      actualizarTotalPagarAhoraSettlement();
+                  } else {
+                      console.error('Response no exitoso:', response);
+                  }
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error al cargar resumen:', error);
+                  mostrarMensaje('Error al cargar el resumen de liquidación', 'error');
+              }
+          });
+      }
+
+      // Función para actualizar total a pagar ahora
+      function actualizarTotalPagarAhoraSettlement() {
+          const efectivo = parseFloat($('#settlement-pago-efectivo').val()) || 0;
+          const bizum = parseFloat($('#settlement-pago-bizum').val()) || 0;
+          const transferencia = parseFloat($('#settlement-pago-transferencia').val()) || 0;
+          
+          const totalPagarAhora = efectivo + bizum + transferencia;
+          $('#settlement-pagar-ahora').text(totalPagarAhora.toFixed(2) + '€');
+          
+          const pendiente = parseFloat($('#settlement-pending-amount').text().replace('€', '').replace(',', '.')) || 0;
+          const quedaraPendiente = pendiente - totalPagarAhora;
+          
+          $('#settlement-quedara-pendiente').text(quedaraPendiente.toFixed(2) + '€');
+          
+          if (quedaraPendiente <= 0 && totalPagarAhora > 0) {
+              $('#settlement-quedara-pendiente').removeClass('text-warning').addClass('text-success');
+          } else if (totalPagarAhora > 0) {
+              $('#settlement-quedara-pendiente').removeClass('text-success').addClass('text-warning');
+          } else {
+              $('#settlement-quedara-pendiente').removeClass('text-success text-warning');
+          }
+      }
+
+      // Event listeners para actualizar totales
+      $('.settlement-payment-input').on('input', actualizarTotalPagarAhoraSettlement);
+
+      // Botón para registrar liquidación
+      $('#btn-registrar-liquidacion').on('click', function() {
+          if (!sorteoSeleccionadoLiquidacion) {
+              mostrarMensaje('Debes seleccionar un sorteo primero', 'warning');
+              return;
+          }
+
+          // Recopilar pagos
+          const pagos = [];
+          
+          const efectivo = parseFloat($('#settlement-pago-efectivo').val()) || 0;
+          if (efectivo > 0) {
+              pagos.push({ payment_method: 'efectivo', amount: efectivo });
+          }
+          
+          const bizum = parseFloat($('#settlement-pago-bizum').val()) || 0;
+          if (bizum > 0) {
+              pagos.push({ payment_method: 'bizum', amount: bizum });
+          }
+          
+          const transferencia = parseFloat($('#settlement-pago-transferencia').val()) || 0;
+          if (transferencia > 0) {
+              pagos.push({ payment_method: 'transferencia', amount: transferencia });
+          }
+
+          if (pagos.length === 0) {
+              mostrarMensaje('Debes ingresar al menos un monto de pago', 'warning');
+              return;
+          }
+
+          // Deshabilitar botón
+          $(this).prop('disabled', true).text('Procesando...');
+
+          $.ajax({
+              url: '{{ route("sellers.settlement.store") }}',
+              method: 'POST',
+              data: {
+                  seller_id: {{ $seller->id }},
+                  lottery_id: sorteoSeleccionadoLiquidacion,
+                  pagos: pagos,
+                  _token: '{{ csrf_token() }}'
+              },
+              success: function(response) {
+                  if (response.success) {
+                      mostrarMensaje('Liquidación registrada correctamente', 'success');
+                      
+                      // Limpiar campos de pago
+                      $('#settlement-pago-efectivo, #settlement-pago-bizum, #settlement-pago-transferencia').val('');
+                      
+                      // Recargar datos
+                      setTimeout(() => {
+                          cargarResumenLiquidacion();
+                          cargarHistorialLiquidaciones();
+                      }, 1000);
+                  } else {
+                      mostrarMensaje(response.message || 'Error al registrar liquidación', 'error');
+                  }
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error:', error);
+                  mostrarMensaje('Error al registrar la liquidación', 'error');
+              },
+              complete: function() {
+                  $('#btn-registrar-liquidacion').prop('disabled', false).html('<i class="ri-add-line"></i> Registrar Liquidación');
+              }
+          });
+      });
+
+      // Función para cargar historial de liquidaciones
+      function cargarHistorialLiquidaciones() {
+          if (!sorteoSeleccionadoLiquidacion) return;
+
+          $.ajax({
+              url: '{{ route("sellers.settlement-history") }}',
+              method: 'GET',
+              data: {
+                  seller_id: {{ $seller->id }},
+                  lottery_id: sorteoSeleccionadoLiquidacion
+              },
+              success: function(response) {
+                  if (response.success && response.settlements.length > 0) {
+                      let html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Fecha</th><th>Participaciones Liquidadas</th><th>Monto Pagado</th><th>Métodos de Pago</th></tr></thead><tbody>';
+                      
+                      response.settlements.forEach(settlement => {
+                          const fecha = new Date(settlement.settlement_date).toLocaleDateString('es-ES');
+                          
+                          let metodos = [];
+                          settlement.payments.forEach(payment => {
+                              let icono = '';
+                              if (payment.payment_method == 'efectivo') {
+                                  icono = '<i class="ri-wallet-line text-success"></i>';
+                              } else if (payment.payment_method == 'bizum') {
+                                  icono = '<i class="ri-smartphone-line text-info"></i>';
+                              } else if (payment.payment_method == 'transferencia') {
+                                  icono = '<i class="ri-bank-line text-primary"></i>';
+                              }
+                              const paymentAmount = parseFloat(payment.amount) || 0;
+                              metodos.push(`${icono} ${paymentAmount.toFixed(2)}€`);
+                          });
+                          
+                          const calculatedParts = parseFloat(settlement.calculated_participations) || 0;
+                          const paidAmount = parseFloat(settlement.paid_amount) || 0;
+                          
+                          html += `
+                              <tr>
+                                  <td>${fecha}</td>
+                                  <td>${calculatedParts.toFixed(2)}</td>
+                                  <td class="fw-bold text-success">${paidAmount.toFixed(2)}€</td>
+                                  <td>${metodos.join(', ')}</td>
+                              </tr>
+                          `;
+                      });
+                      
+                      html += '</tbody></table></div>';
+                      $('#historial-liquidaciones-container').html(html);
+                  } else {
+                      $('#historial-liquidaciones-container').html('<p class="text-muted text-center">No hay liquidaciones registradas para este sorteo</p>');
+                  }
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error al cargar historial:', error);
+                  $('#historial-liquidaciones-container').html('<p class="text-danger text-center">Error al cargar el historial</p>');
+              }
+          });
+      }
   });
 
 </script>
