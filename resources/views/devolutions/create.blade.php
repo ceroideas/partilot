@@ -252,43 +252,23 @@
 
                     <div class="row">
                         <div class="col-md-3" style="position: relative;">
-                            <!-- Pasos del proceso (sin vendedor - 5 pasos) -->
-                            <ul class="form-card bs mb-3 nav">
+                            <!-- Pasos del proceso (dinámicos según tipo de devolución) -->
+                            <ul class="form-card bs mb-3 nav" id="wizard-steps">
                                 <li class="nav-item">
                                     <div class="form-wizard-element active" id="step-1">
                                         <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/entidad.svg')}}" alt="">
+                                        <img src="{{url('assets/entidad.svg')}}" alt="">
                                         <label>Seleccionar Entidad</label>
                                     </div>
                                 </li>
                                 <li class="nav-item">
                                     <div class="form-wizard-element" id="step-2">
                                         <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
-                                        <label>Seleccionar Sorteo</label>
+                                        <img src="{{url('icons/usuarios.svg')}}" alt="">
+                                        <label>Selec. Opción</label>
                                     </div>
                                 </li>
-                                <li class="nav-item">
-                                    <div class="form-wizard-element" id="step-3">
-                                        <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
-                                        <label>Seleccionar Participaciones</label>
-                                    </div>
-                                </li>
-                                <li class="nav-item">
-                                    <div class="form-wizard-element" id="step-4">
-                                        <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
-                                        <label>Resumen Devolución</label>
-                                    </div>
-                                </li>
-                                <li class="nav-item">
-                                    <div class="form-wizard-element" id="step-5">
-                                        <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
-                                        <label>Liquidación</label>
-                                    </div>
-                                </li>
+                                <!-- Los pasos siguientes se cargarán dinámicamente -->
                             </ul>
 
                             <!-- Información de la entidad seleccionada -->
@@ -358,7 +338,118 @@
                                         </div>
                                     </div>
 
-                                    <!-- Paso 2: Selección de Sorteo -->
+                                    <!-- Paso 2: Selección de Opción -->
+                                    <div class="tab-pane fade" id="paso-opcion">
+                                        <div class="form-card bs" style="min-height: 658px;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h4 class="mb-0 mt-1">Seleccionar Tipo de Devolución</h4>
+                                                    <small><i>Elige el tipo de devolución a realizar</i></small>
+                                                </div>
+                                                <div class="d-none" id="back-to-option-buttons">
+                                                    <button class="btn btn-sm btn-light" id="back-option-button" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">
+                                                        <i class="ri-arrow-left-line"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <br>
+
+                                            <!-- Mostrar información de la entidad -->
+                                            <div class="form-group mt-2 mb-3 admin-box">
+                                                <div class="row">
+                                                    <div class="col-1">
+                                                        <div class="photo-preview-3">
+                                                            <i class="ri-building-line"></i>
+                                                        </div>
+                                                        <div style="clear: both;"></div>
+                                                    </div>
+                                                    <div class="col-4 text-center mt-3">
+                                                        <h4 class="mt-0 mb-0" id="opcion-entity-name">Entidad</h4>
+                                                        <small id="opcion-entity-province">Provincia</small> <br>
+                                                        <small id="opcion-entity-admin">Administración</small>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <div class="mt-3">
+                                                            <span>Provincia: <span id="opcion-entity-province-2">N/A</span></span> <br>
+                                                            <span>Dirección: <span id="opcion-entity-address">N/A</span></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <div class="mt-3">
+                                                            <span>Ciudad: <span id="opcion-entity-city">N/A</span></span> <br>
+                                                            <span>Tel: <span id="opcion-entity-phone">N/A</span></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <br>
+
+                                            <!-- Opciones de tipo de devolución -->
+                                            <div id="all-options-devolution">
+                                                <div class="mt-4 text-center">
+                                                    <div id="devolution-type-buttons">
+                                                        <button class="btn btn-light btn-xl text-center m-2 bs" id="btn-devolucion-vendedor" style="border: 1px solid #f0f0f0; padding: 16px; width: 160px; border-radius: 16px;">
+                                                            <img class="mt-2 mb-1" src="{{url('assets/vendedor.svg')}}" alt="" width="60%">
+                                                            <h4 class="mb-0">Devolución <br> Vendedor</h4>
+                                                        </button>
+
+                                                        <button class="btn btn-light btn-xl text-center m-2 bs" id="btn-devolucion-administracion" style="border: 1px solid #f0f0f0; padding: 16px; width: 180px; border-radius: 16px; position: relative;">
+                                                            <img class="mt-2 mb-1" src="{{url('assets/admin.svg')}}" alt="" width="60%">
+                                                            <h4 class="mb-0">Devolución <br> Administración</h4>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Paso 3 (Vendedor): Selección de Vendedor -->
+                                    <div class="tab-pane fade" id="paso-vendedor">
+                                        <div class="form-card bs" style="min-height: 658px;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h4 class="mb-0 mt-1">Seleccionar Vendedor</h4>
+                                                    <small><i>Elige el vendedor para la devolución</i></small>
+                                                </div>
+                                                <button id="btn-volver-opcion" class="btn btn-secondary btn-sm">
+                                                    <i class="ri-arrow-left-line"></i> Volver a Opciones
+                                                </button>
+                                            </div>
+
+                                            <br>
+
+                                            <div class="table-responsive">
+                                                <table id="tabla-vendedores" class="table table-striped nowrap w-100">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>ID</th>
+                                                            <th>Nombre</th>
+                                                            <th>Email</th>
+                                                            <th>Teléfono</th>
+                                                            <th>Estado</th>
+                                                            <th>Seleccionar</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <!-- Los datos se cargarán dinámicamente -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-12 text-end">
+                                                    <button type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="btn-siguiente-vendedor" disabled>
+                                                        Siguiente
+                                                        <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Paso: Selección de Sorteo -->
                                     <div class="tab-pane fade" id="paso-sorteo">
                                         <div class="form-card bs" style="min-height: 658px;">
                                             <div class="d-flex justify-content-between align-items-center">
@@ -551,69 +642,152 @@
                                         </div>
                                     </div>
 
-                                    <!-- Paso 4: Resumen de Devolución -->
-                                    <div class="tab-pane fade" id="paso-resumen">
-                                        <div class="form-card bs" style="min-height: 658px;">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h4 class="mb-0 mt-1">Resumen de Devolución</h4>
-                                                    <small><i>Verifica los datos antes de continuar</i></small>
-                                                </div>
-                                                <button id="btn-volver-participaciones" class="btn btn-secondary btn-sm">
-                                                    <i class="ri-arrow-left-line"></i> Volver a Participaciones
-                                                </button>
-                                            </div>
-
-                                            <br>
-
-                                            <div class="resumen-devolucion">
-                                                <h5>Datos de la Devolución</h5>
-                                                <div class="resumen-item">
-                                                    <span>Entidad:</span>
-                                                    <span id="resumen-entidad">-</span>
-                                                </div>
-                                                <div class="resumen-item">
-                                                    <span>Sorteo:</span>
-                                                    <span id="resumen-sorteo">-</span>
-                                                </div>
-                                                <div class="resumen-item">
-                                                    <span>Total Participaciones:</span>
-                                                    <span id="resumen-total">0</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <button type="button" class="btn btn-secondary" id="btn-volver-resumen" style="border-radius: 30px;">
-                                                    <i class="ri-arrow-left-line me-2"></i>Volver
-                                                </button>
-                                                <button type="button" class="btn btn-warning" id="btn-continuar-liquidacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">
-                                                    Continuar a Liquidación<i class="ri-arrow-right-line ms-2"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Paso 5: Liquidación -->
+                                    <!-- Paso: Liquidación -->
                                     <div class="tab-pane fade" id="paso-liquidacion">
                                         <div class="form-card bs" style="min-height: 658px;">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    <h4 class="mb-0 mt-1">Liquidación</h4>
-                                                    <small><i>Procesa la liquidación de participaciones</i></small>
+                                                    <h4 class="mb-0 mt-1" id="liquidacion-titulo">Liquidación</h4>
+                                                    <small id="liquidacion-subtitulo"><i>Procesa la liquidación</i></small>
                                                 </div>
-                                                <button id="btn-volver-resumen-final" class="btn btn-secondary btn-sm">
-                                                    <i class="ri-arrow-left-line"></i> Volver a Resumen
+                                                <button id="btn-volver-participaciones-final" class="btn btn-secondary btn-sm">
+                                                    <i class="ri-arrow-left-line"></i> <span id="btn-volver-text">Volver</span>
                                                 </button>
                                             </div>
 
-                                            <br>
+                                            <hr>
 
-                                            <!-- Resumen Devolución -->
+                                            <!-- Contenedor para liquidación de VENDEDOR -->
+                                            <div id="liquidacion-vendedor-container" style="display: none;">
+                                                
+                                                <!-- Selector de Sorteo -->
+                                                <div class="row mb-4">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-bold">Selecciona un Sorteo</label>
+                                                        <select class="form-select" id="vendedor-selector-sorteo-liquidacion">
+                                                            <option value="">-- Selecciona un sorteo --</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Resumen de Liquidación -->
+                                                <div id="vendedor-resumen-liquidacion-container" style="display: none;">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Resumen de Participaciones</div>
+                                                            <div class="card-body">
+                                                                <p><strong>Total Participaciones Asignadas:</strong> <span id="vendedor-settlement-total-participations" class="fw-bold fs-4">0</span></p>
+                                                                <p><strong>Precio por Participación:</strong> <span id="vendedor-settlement-price-per-participation">0.00€</span></p>
+                                                                <p><strong>Total a Liquidar:</strong> <span id="vendedor-settlement-total-amount" class="text-danger fw-bold">0.00€</span></p>
+                                                </div>
+                                                </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Liquidación Actual</div>
+                                                            <div class="card-body">
+                                                                <p><strong>Total Pagado:</strong> <span id="vendedor-settlement-total-paid" class="text-success fw-bold">0.00€</span></p>
+                                                                <p><strong>Participaciones Liquidadas:</strong> <span id="vendedor-settlement-liquidated-participations">0</span></p>
+                                                                <p><strong>Pendiente por Liquidar:</strong> <span id="vendedor-settlement-pending-amount" class="text-warning fw-bold">0.00€</span></p>
+                                                                <p><strong>Participaciones Pendientes:</strong> <span id="vendedor-settlement-pending-participations">0</span></p>
+                                                            </div>
+                                                        </div>
+                                                </div>
+                                            </div>
+
+                                                <!-- Formas de Pago -->
+                                                <div class="card mt-3">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title">Registrar Pagos</h5>
+                                                        <small class="text-muted">Puedes registrar múltiples formas de pago</small>
+                                                        
+                                                        <div class="row mt-3">
+                                                            <div class="col-8">
+                                                                <!-- Pago en Efectivo -->
+                                                                <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                    <div class="me-3">
+                                                                        <i class="ri-wallet-line text-success" style="font-size: 24px;"></i>
+                                            </div>
+                                                                    <div class="flex-grow-1">
+                                                                        <strong>Pago en Efectivo</strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <input type="number" step="0.01" class="form-control vendedor-settlement-payment-input" placeholder="0.00" id="vendedor-settlement-pago-efectivo">
+                                        </div>
+                                    </div>
+
+                                                                <!-- Pago por Bizum -->
+                                                                <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                    <div class="me-3">
+                                                                        <i class="ri-percent-line text-info" style="font-size: 24px;"></i>
+                                                </div>
+                                                                    <div class="flex-grow-1">
+                                                                        <strong>Pago por Bizum</strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <input type="number" step="0.01" class="form-control vendedor-settlement-payment-input" placeholder="0.00" id="vendedor-settlement-pago-bizum">
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Pago por Transferencia -->
+                                                                <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                                                                    <div class="me-3">
+                                                                        <i class="ri-building-line text-primary" style="font-size: 24px;"></i>
+                                                                    </div>
+                                                                    <div class="flex-grow-1">
+                                                                        <strong>Pago por Transferencia</strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <input type="number" step="0.01" class="form-control vendedor-settlement-payment-input" placeholder="0.00" id="vendedor-settlement-pago-transferencia">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-4">
+                                                                <div class="text-center">
+                                                                    <div class="border rounded p-3 mb-3 bg-light">
+                                                                        <small class="text-muted">Pendiente a Pagar</small>
+                                                                        <div class="text-danger h4" id="vendedor-settlement-pendiente-display">0,00€</div>
+                                                                    </div>
+                                                                    <div class="border rounded p-3 mb-3 bg-success bg-opacity-10">
+                                                                        <small class="text-muted">A Pagar Ahora</small>
+                                                                        <div class="text-success h4" id="vendedor-settlement-pagar-ahora">0,00€</div>
+                                                                    </div>
+                                                                    <div class="border rounded p-3 mb-3" id="vendedor-settlement-quedara-pendiente-container">
+                                                                        <small class="text-muted">Quedará Pendiente</small>
+                                                                        <div class="h5" id="vendedor-settlement-quedara-pendiente">0,00€</div>
+                                                                    </div>
+                                                                    <button type="button" class="btn btn-warning" id="btn-registrar-liquidacion-vendedor" style="border-radius: 30px; width: 100%;">
+                                                                        <i class="ri-add-line"></i> Registrar Liquidación
+                                                </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                            </div>
+
+                                                <!-- Historial de Liquidaciones -->
+                                                <div class="card mt-3">
+                                                    <div class="card-header">
+                                                        <h5 class="card-title mb-0">Historial de Liquidaciones</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="vendedor-historial-liquidaciones-container">
+                                                            <p class="text-muted text-center">Selecciona un sorteo para ver el historial</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                </div> <!-- Cierre vendedor-resumen-liquidacion-container -->
+                                            </div> <!-- Cierre liquidacion-vendedor-container -->
+
+                                            <!-- Contenedor para liquidación de ADMINISTRACIÓN -->
+                                            <div id="liquidacion-administracion-container" style="display: none;">
                                                     <!-- Resumen Devolución -->
                                                     <div class="card mb-3">
                                                         <div class="card-body">
                                                             <h5 class="card-title">Resumen Devolución</h5>
-                                                            <small class="text-muted">Resumen Devolución Entidad</small>
+                                                            <small class="text-muted">Resumen Devolución Administración</small>
                                                             
                                                             <div class="text-center my-3">
                                                                 <img src="{{url('assets/ticket.svg')}}" alt="" width="60px">
@@ -765,15 +939,18 @@
 
 <script>
 $(document).ready(function() {
-    // Variables globales (sin vendedor)
+    // Variables globales
     let entidadSeleccionada = null;
     let sorteoSeleccionado = null;
     let setSeleccionado = null;
     let participacionesAsignadas = [];
+    let tipoDevolucion = null; // 'vendedor' o 'administracion'
+    let vendedorSeleccionado = null;
     
     // DataTables
     let tablaEntidades = null;
     let tablaSorteos = null;
+    let tablaVendedores = null;
 
     // Asegurar que el primer paso esté activo al cargar
     $('#step-1').addClass('active');
@@ -783,6 +960,60 @@ $(document).ready(function() {
 
     // Variable global para rastrear el paso actual
     let pasoActualGlobal = 'paso-entidad';
+    
+    // Función para construir dinámicamente los pasos del wizard
+    function construirWizardPasos() {
+        const wizardSteps = $('#wizard-steps');
+        
+        // Mantener los primeros 2 pasos siempre
+        // Limpiar solo desde el paso 3 en adelante
+        wizardSteps.find('li:gt(1)').remove();
+        
+        if (tipoDevolucion === 'vendedor') {
+            // Flujo: Entidad -> Opción -> Vendedor -> Liquidación
+            wizardSteps.append(`
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-3">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/usuarios.svg')}}" alt="">
+                        <label>Selec. Vendedor</label>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-4">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/dinero.svg')}}" alt="">
+                        <label>Liquidación</label>
+                    </div>
+                </li>
+            `);
+        } else if (tipoDevolucion === 'administracion') {
+            // Flujo: Entidad -> Opción -> Sorteo -> Participaciones -> Liquidación
+            wizardSteps.append(`
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-3">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <label>Seleccionar Sorteo</label>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-4">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <label>Seleccionar Participaciones</label>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-5">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/usuarios.svg')}}" alt="">
+                        <label>Liquidación</label>
+                    </div>
+                </li>
+            `);
+        }
+    }
 
     // Función para mostrar un paso específico
     function mostrarPaso(pasoId) {
@@ -808,20 +1039,38 @@ $(document).ready(function() {
         console.log('=== FIN MOSTRAR PASO ===');
     }
 
-    // Función para actualizar los indicadores de pasos (5 pasos)
+    // Función para actualizar los indicadores de pasos (dinámico según tipo de devolución)
     function actualizarIndicadoresPasos(pasoActual) {
         console.log('=== ACTUALIZANDO INDICADORES ===');
         console.log('Paso actual recibido:', pasoActual);
-        console.log('pasoActualGlobal:', pasoActualGlobal);
+        console.log('Tipo devolución:', tipoDevolucion);
         
-        // Definir el orden de los pasos (sin vendedor - 5 pasos)
-        const pasosOrden = [
-            'paso-entidad',
-            'paso-sorteo',
-            'paso-participaciones',
-            'paso-resumen',
-            'paso-liquidacion'
-        ];
+        let pasosOrden = [];
+        
+        if (tipoDevolucion === 'vendedor') {
+            // Flujo con vendedor: Entidad -> Opción -> Vendedor -> Liquidación
+            pasosOrden = [
+                'paso-entidad',
+                'paso-opcion',
+                'paso-vendedor',
+                'paso-liquidacion'
+            ];
+        } else if (tipoDevolucion === 'administracion') {
+            // Flujo sin vendedor: Entidad -> Opción -> Sorteo -> Participaciones -> Liquidación
+            pasosOrden = [
+                'paso-entidad',
+                'paso-opcion',
+                'paso-sorteo',
+                'paso-participaciones',
+                'paso-liquidacion'
+            ];
+        } else {
+            // Flujo inicial (solo mostrar entidad y opción)
+            pasosOrden = [
+                'paso-entidad',
+                'paso-opcion'
+            ];
+        }
         
         // Encontrar el índice del paso actual
         const indiceActual = pasosOrden.indexOf(pasoActual);
@@ -959,25 +1208,125 @@ $(document).ready(function() {
         });
     }
 
+    // Función para inicializar DataTable de vendedores
+    function inicializarDataTableVendedores() {
+        if (tablaVendedores) {
+            tablaVendedores.ajax.reload();
+            return;
+        }
+        
+        tablaVendedores = $('#tabla-vendedores').DataTable({
+            "select": { style: "single" },
+            "ordering": true,
+            "sorting": true,
+            "scrollX": true,
+            "scrollCollapse": true,
+            "language": {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            "pageLength": 10,
+            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+            "ajax": {
+                "url": "{{ route('devolutions.sellers') }}",
+                "type": "GET",
+                "data": function(d) {
+                    d.entity_id = entidadSeleccionada.id;
+                },
+                "dataSrc": "sellers"
+            },
+            "columns": [
+                { "data": "id" },
+                { 
+                    "data": null,
+                    "render": function(data, type, row) {
+                        const nombre = row.user ? `${row.user.name || ''} ${row.user.last_name || ''}`.trim() : 'N/A';
+                        return nombre || 'Sin nombre';
+                    }
+                },
+                { 
+                    "data": null,
+                    "render": function(data, type, row) {
+                        return row.user && row.user.email ? row.user.email : 'N/A';
+                    }
+                },
+                { 
+                    "data": null,
+                    "render": function(data, type, row) {
+                        return row.user && row.user.phone ? row.user.phone : 'N/A';
+                    }
+                },
+                { 
+                    "data": "status",
+                    "render": function(data, type, row) {
+                        const badgeClass = data === 'active' ? 'bg-success' : 'bg-danger';
+                        const statusText = data === 'active' ? 'Activo' : 'Inactivo';
+                        return `<span class="badge ${badgeClass}">${statusText}</span>`;
+                    }
+                },
+                {
+                    "data": null,
+                    "render": function(data, type, row) {
+                        return `
+                            <div class="form-check">
+                                <input class="form-check-input seleccionar-vendedor" type="radio" name="seller_id" value="${row.id}" id="seller_${row.id}" data-seller-id="${row.id}">
+                                <label class="form-check-label" for="seller_${row.id}">Seleccionar</label>
+                            </div>
+                        `;
+                    },
+                    "orderable": false
+                }
+            ],
+            "initComplete": function(settings, json) {
+                actualizarIndicadoresPasos(pasoActualGlobal);
+            },
+            "drawCallback": function(settings) {
+                actualizarIndicadoresPasos(pasoActualGlobal);
+            }
+        });
+    }
+
     // Event listeners
     $(document).on('change', '.seleccionar-entidad', function() {
         const entityId = $(this).data('entity-id');
-        entidadSeleccionada = { id: entityId };
-        
-        // Mostrar información de la entidad
         const row = $(this).closest('tr');
-        const entityName = row.find('td:eq(1)').text();
-        const entityLocation = row.find('td:eq(2)').text() + ', ' + row.find('td:eq(3)').text();
+        const entityData = {
+            id: entityId,
+            name: row.find('td:eq(1)').text(),
+            province: row.find('td:eq(2)').text(),
+            city: row.find('td:eq(3)').text(),
+            administration: row.find('td:eq(4)').text(),
+            address: 'N/A', // Esto debería venir de los datos
+            phone: 'N/A'     // Esto debería venir de los datos
+        };
         
-        $('#entity-name').text(entityName);
-        $('#entity-location').text(entityLocation);
+        entidadSeleccionada = entityData;
+        
+        // Mostrar información de la entidad en varias secciones
+        $('#entity-name').text(entityData.name);
+        $('#entity-location').text(`${entityData.province}, ${entityData.city}`);
         $('#entity-info').show();
         
-        // También actualizar info para liquidación
-        $('#liquidacion-entity-name').text(entityName);
-        $('#liquidacion-entity-location').text(entityLocation);
+        // También en la sección de opciones
+        $('#opcion-entity-name').text(entityData.name);
+        $('#opcion-entity-province').text(entityData.province);
+        $('#opcion-entity-admin').text(entityData.administration);
+        $('#opcion-entity-province-2').text(entityData.province);
+        $('#opcion-entity-city').text(entityData.city);
+        $('#opcion-entity-address').text(entityData.address);
+        $('#opcion-entity-phone').text(entityData.phone);
         
         $('#btn-siguiente-entidad').prop('disabled', false);
+    });
+
+    $(document).on('change', '.seleccionar-vendedor', function() {
+        const sellerId = $(this).data('seller-id');
+        const row = $(this).closest('tr');
+        vendedorSeleccionado = {
+            id: sellerId,
+            name: row.find('td:eq(1)').text(),
+            email: row.find('td:eq(2)').text()
+        };
+        $('#btn-siguiente-vendedor').prop('disabled', false);
     });
 
     $(document).on('change', '.seleccionar-sorteo', function() {
@@ -989,16 +1338,42 @@ $(document).ready(function() {
     // Navegación entre pasos
     $('#btn-siguiente-entidad').click(function() {
         if (entidadSeleccionada) {
-            mostrarPaso('paso-sorteo');
-            inicializarDataTableSorteos();
+            mostrarPaso('paso-opcion');
+        }
+    });
+
+    // Botones de selección de tipo de devolución
+    $('#btn-devolucion-vendedor').click(function() {
+        tipoDevolucion = 'vendedor';
+        construirWizardPasos();
+        mostrarPaso('paso-vendedor');
+        inicializarDataTableVendedores();
+    });
+
+    $('#btn-devolucion-administracion').click(function() {
+        tipoDevolucion = 'administracion';
+        construirWizardPasos();
+        mostrarPaso('paso-sorteo');
+        inicializarDataTableSorteos();
+    });
+
+    $('#btn-siguiente-vendedor').click(function() {
+        if (vendedorSeleccionado) {
+            // Para vendedor, ir directo a liquidación
+            mostrarPaso('paso-liquidacion');
+            configurarLiquidacionPorTipo();
         }
     });
 
     $('#btn-siguiente-sorteo').click(function() {
         if (sorteoSeleccionado) {
             mostrarPaso('paso-participaciones');
-            // Cargar sets de la entidad (no del vendedor)
+            // Cargar sets según el tipo de devolución
+            if (tipoDevolucion === 'vendedor') {
+                cargarSetsVendedor();
+            } else {
             cargarSetsEntidad();
+            }
         }
     });
 
@@ -1007,16 +1382,20 @@ $(document).ready(function() {
         mostrarPaso('paso-entidad');
     });
 
+    $('#btn-volver-opcion').click(function() {
+        mostrarPaso('paso-opcion');
+    });
+
     $('#btn-volver-sorteo-desde-participaciones').click(function() {
         mostrarPaso('paso-sorteo');
     });
 
-    $('#btn-volver-participaciones').click(function() {
-        mostrarPaso('paso-participaciones');
-    });
-
-    $('#btn-volver-resumen-final').click(function() {
-        mostrarPaso('paso-resumen');
+    $('#btn-volver-participaciones-final').click(function() {
+        if (tipoDevolucion === 'vendedor') {
+            mostrarPaso('paso-vendedor');
+        } else {
+            mostrarPaso('paso-participaciones');
+        }
     });
 
     // Funcionalidad de asignación de participaciones
@@ -1115,16 +1494,24 @@ $(document).ready(function() {
         console.log('Enviando IDs de participaciones:', participationIds);
         console.log('Set seleccionado:', setSeleccionado);
 
+        // Preparar datos para el resumen
+        const datosResumen = {
+            entity_id: entidadSeleccionada.id,
+            lottery_id: sorteoSeleccionado.id,
+            set_id: setSeleccionado ? setSeleccionado.id : null,
+            participations: participationIds
+        };
+
+        // Agregar seller_id si es devolución de vendedor
+        if (tipoDevolucion === 'vendedor' && vendedorSeleccionado) {
+            datosResumen.seller_id = vendedorSeleccionado.id;
+        }
+
         // Obtener resumen del servidor
         $.ajax({
             url: "{{ route('devolutions.liquidation-summary') }}",
             method: 'GET',
-            data: {
-                entity_id: entidadSeleccionada.id,
-                lottery_id: sorteoSeleccionado.id,
-                set_id: setSeleccionado ? setSeleccionado.id : null, // Enviar set_id para calcular liquidación sin participaciones
-                participations: participationIds
-            },
+            data: datosResumen,
             success: function(response) {
                 console.log('Respuesta del servidor:', response);
                 if (response.success) {
@@ -1199,6 +1586,51 @@ $(document).ready(function() {
         });
     }
 
+    // Función para cargar sets del vendedor
+    function cargarSetsVendedor() {
+        if (!entidadSeleccionada || !sorteoSeleccionado || !vendedorSeleccionado) return;
+        
+        $.ajax({
+            url: "{{ route('devolutions.sets-by-entity') }}",
+            method: 'GET',
+            data: {
+                entity_id: entidadSeleccionada.id,
+                lottery_id: sorteoSeleccionado.id,
+                seller_id: vendedorSeleccionado.id  // Filtrar por vendedor
+            },
+            success: function(response) {
+                const selector = $('#selector-set');
+                selector.empty().append('<option value="">Seleccionar set...</option>');
+                
+                if (response.success && response.sets && response.sets.length > 0) {
+                    response.sets.forEach(set => {
+                        // Obtener los números de reserva desde la relación reserve
+                        let reservationNumbers = '';
+                        if (set.reserve && set.reserve.reservation_numbers && Array.isArray(set.reserve.reservation_numbers) && set.reserve.reservation_numbers.length > 0) {
+                            reservationNumbers = set.reserve.reservation_numbers.join(' - ');
+                        } else {
+                            reservationNumbers = set.reserve_id.toString().padStart(5, '0');
+                        }
+                        
+                        const setNumber = set.set_number.toString().padStart(2, '0');
+                        const displayText = `${set.set_name} (${reservationNumbers} - ${setNumber})`;
+                        
+                        selector.append(`<option value="${set.id}">${displayText}</option>`);
+                    });
+                } else {
+                    mostrarMensaje('No hay sets disponibles para devolver de este vendedor', 'warning');
+                }
+                
+                // NO reiniciar las participaciones asignadas al cargar sets
+                actualizarResumenAsignacion();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al cargar sets del vendedor:', error);
+                mostrarMensaje('Error al cargar los sets del vendedor', 'error');
+            }
+        });
+    }
+
     // Event listener para selección de set
     $('#selector-set').on('change', function() {
         const setId = $(this).val();
@@ -1208,13 +1640,10 @@ $(document).ready(function() {
         actualizarResumenAsignacion();
     });
 
-    // Función para validar participaciones (sin vendedor)
+    // Función para validar participaciones
     function validarParticipacionesDisponibles(desde, hasta, participationId) {
         return new Promise((resolve, reject) => {
-            $.ajax({
-                url: "{{ route('devolutions.validate') }}",
-                method: 'POST',
-                data: {
+            const datosValidacion = {
                     entity_id: entidadSeleccionada.id,
                     lottery_id: sorteoSeleccionado.id,
                     set_id: setSeleccionado.id,
@@ -1222,7 +1651,17 @@ $(document).ready(function() {
                     hasta: hasta,
                     participation_id: participationId,
                     _token: '{{ csrf_token() }}'
-                },
+            };
+
+            // Agregar seller_id si es devolución de vendedor
+            if (tipoDevolucion === 'vendedor' && vendedorSeleccionado) {
+                datosValidacion.seller_id = vendedorSeleccionado.id;
+            }
+
+            $.ajax({
+                url: "{{ route('devolutions.validate') }}",
+                method: 'POST',
+                data: datosValidacion,
                 success: function(response) {
                     if (response.success) {
                         resolve(response);
@@ -1320,9 +1759,16 @@ $(document).ready(function() {
         }
     });
 
-    // Event listener para terminar asignación
+    // Event listener para terminar asignación (ir directo a liquidación)
     $('#btn-terminar-asignacion').click(function() {
-        // Permitir continuar sin participaciones (solo para liquidación)
+        // Para devolución de vendedor, no se requieren participaciones específicas
+        if (tipoDevolucion === 'vendedor') {
+            mostrarPaso('paso-liquidacion');
+            configurarLiquidacionPorTipo();
+            return;
+        }
+
+        // Para devolución de administración, permitir continuar sin participaciones
         if (participacionesAsignadas.length === 0) {
             const confirmContinue = confirm('No has seleccionado participaciones para devolver. ¿Deseas continuar solo para registrar una liquidación?');
             if (!confirmContinue) {
@@ -1330,35 +1776,56 @@ $(document).ready(function() {
             }
         }
 
-        // Actualizar resumen (sin vendedor)
-        $('#resumen-entidad').text($('#entity-name').text());
-        $('#resumen-sorteo').text('Sorteo #' + sorteoSeleccionado.id);
-        $('#resumen-total').text(participacionesAsignadas.length);
-
-        mostrarPaso('paso-resumen');
+        // Ir directo a liquidación
+        mostrarPaso('paso-liquidacion');
+        configurarLiquidacionPorTipo();
     });
 
-    // Event listener para continuar sin participaciones
+    // Event listener para continuar sin participaciones (ir directo a liquidación)
     $('#btn-continuar-sin-participaciones').click(function() {
+        if (tipoDevolucion === 'vendedor') {
+            mostrarPaso('paso-liquidacion');
+            configurarLiquidacionPorTipo();
+            return;
+        }
+
         const confirmContinue = confirm('¿Deseas continuar sin seleccionar participaciones? Solo podrás registrar un pago de liquidación.');
         if (!confirmContinue) {
             return;
         }
 
-        // Actualizar resumen (sin vendedor)
-        $('#resumen-entidad').text($('#entity-name').text());
-        $('#resumen-sorteo').text('Sorteo #' + sorteoSeleccionado.id);
-        $('#resumen-total').text('0');
-
-        mostrarPaso('paso-resumen');
-    });
-
-    // Event listener para continuar a liquidación
-    $('#btn-continuar-liquidacion').click(function() {
+        // Ir directo a liquidación
         mostrarPaso('paso-liquidacion');
-        cargarParticipacionesParaLiquidacion();
-        actualizarResumenLiquidacion();
+        configurarLiquidacionPorTipo();
     });
+
+    // Función para configurar la liquidación según el tipo
+    function configurarLiquidacionPorTipo() {
+        if (tipoDevolucion === 'vendedor') {
+            // Liquidación de vendedor
+            $('#liquidacion-titulo').text('Liquidación de Vendedor');
+            $('#liquidacion-subtitulo').html('<i>Registra pagos del vendedor</i>');
+            $('#btn-volver-text').text('Volver a Vendedor');
+            $('#liquidacion-vendedor-container').show();
+            $('#liquidacion-administracion-container').hide();
+            
+            // Cargar sorteos disponibles para el vendedor
+            cargarSorteosVendedor();
+            
+            // Resetear selector y ocultar resumen
+            $('#vendedor-selector-sorteo-liquidacion').val('');
+            $('#vendedor-resumen-liquidacion-container').hide();
+        } else {
+            // Liquidación de administración
+            $('#liquidacion-titulo').text('Liquidación de Administración');
+            $('#liquidacion-subtitulo').html('<i>Procesa la liquidación de participaciones</i>');
+            $('#btn-volver-text').text('Volver a Participaciones');
+            $('#liquidacion-vendedor-container').hide();
+            $('#liquidacion-administracion-container').show();
+            cargarParticipacionesParaLiquidacion();
+            actualizarResumenLiquidacion();
+        }
+    }
 
     // Función para cargar participaciones para liquidación
     function cargarParticipacionesParaLiquidacion() {
@@ -1573,13 +2040,14 @@ $(document).ready(function() {
             return;
         }
 
-        // Preparar datos para la liquidación (sin seller_id)
+        // Preparar datos para la liquidación
         const liquidacionData = {
             entity_id: entidadSeleccionada.id,
             lottery_id: sorteoSeleccionado.id,
-            set_id: setSeleccionado ? setSeleccionado.id : null, // Enviar set_id para liquidar set completo sin devoluciones
+            set_id: setSeleccionado ? setSeleccionado.id : null,
             participations: participacionesAsignadas.map(p => p.id),
-            return_reason: 'Devolución de entidad a administración',
+            return_reason: tipoDevolucion === 'vendedor' ? 'Devolución de vendedor a entidad' : 'Devolución de entidad a administración',
+            tipo_devolucion: tipoDevolucion, // Agregar tipo de devolución
             liquidacion: {
                 pagos: pagos, // Array de pagos múltiples
                 devolver: participacionesAsignadas.map(p => p.id), // Las seleccionadas se devuelven (puede estar vacío)
@@ -1587,6 +2055,11 @@ $(document).ready(function() {
             },
             _token: '{{ csrf_token() }}'
         };
+
+        // Agregar seller_id si es devolución de vendedor
+        if (tipoDevolucion === 'vendedor' && vendedorSeleccionado) {
+            liquidacionData.seller_id = vendedorSeleccionado.id;
+        }
 
         $(this).prop('disabled', true).text('Procesando...');
 
@@ -1618,6 +2091,261 @@ $(document).ready(function() {
     $('#btn-cerrar-liquidacion').click(function() {
         window.location.href = "{{ route('devolutions.index') }}";
     });
+
+    // ==================== LIQUIDACIÓN DE VENDEDOR ====================
+    
+    let sorteoSeleccionadoLiquidacionVendedor = null;
+
+    // Función para cargar sorteos disponibles del vendedor
+    function cargarSorteosVendedor() {
+        if (!vendedorSeleccionado || !entidadSeleccionada) {
+            console.error('Falta vendedor o entidad seleccionada');
+            return;
+        }
+
+        $.ajax({
+            url: '{{ route("devolutions.lotteries") }}',
+            method: 'GET',
+            data: {
+                entity_id: entidadSeleccionada.id,
+                seller_id: vendedorSeleccionado.id
+            },
+            success: function(response) {
+                if (response.success && response.lotteries) {
+                    const selector = $('#vendedor-selector-sorteo-liquidacion');
+                    selector.empty().append('<option value="">-- Selecciona un sorteo --</option>');
+                    
+                    response.lotteries.forEach(lottery => {
+                        selector.append(`<option value="${lottery.id}">${lottery.name} - ${lottery.description}</option>`);
+                    });
+                } else {
+                    mostrarMensaje('No hay sorteos disponibles para este vendedor', 'warning');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al cargar sorteos:', error);
+                mostrarMensaje('Error al cargar sorteos', 'error');
+            }
+        });
+    }
+
+    // Event listener para cambio de sorteo en liquidación de vendedor
+    $('#vendedor-selector-sorteo-liquidacion').on('change', function() {
+        const lotteryId = $(this).val();
+        
+        if (lotteryId) {
+            sorteoSeleccionadoLiquidacionVendedor = lotteryId;
+            cargarResumenLiquidacionVendedor();
+            cargarHistorialLiquidacionesVendedor();
+            $('#vendedor-resumen-liquidacion-container').show();
+        } else {
+            sorteoSeleccionadoLiquidacionVendedor = null;
+            $('#vendedor-resumen-liquidacion-container').hide();
+        }
+    });
+
+    // Función para cargar resumen de liquidación de vendedor (COPIA EXACTA DE SELLERS)
+    function cargarResumenLiquidacionVendedor() {
+        if (!sorteoSeleccionadoLiquidacionVendedor) return;
+
+        $.ajax({
+            url: '{{ route("sellers.settlement-summary") }}',
+            method: 'GET',
+            data: {
+                seller_id: vendedorSeleccionado.id,
+                lottery_id: sorteoSeleccionadoLiquidacionVendedor
+            },
+            success: function(response) {
+                console.log('=== RESPUESTA SETTLEMENT SUMMARY ===');
+                console.log(response);
+                
+                if (response.success) {
+                    const summary = response.summary;
+                    console.log('Summary:', summary);
+                    
+                    // Parsear valores a números
+                    const pricePerParticipation = parseFloat(summary.price_per_participation) || 0;
+                    const totalAmount = parseFloat(summary.total_amount) || 0;
+                    const totalPaid = parseFloat(summary.total_paid) || 0;
+                    const pendingAmount = parseFloat(summary.pending_amount) || 0;
+                    const liquidatedParticipations = parseFloat(summary.liquidated_participations) || 0;
+                    const pendingParticipations = parseFloat(summary.pending_participations) || 0;
+                    
+                    $('#vendedor-settlement-total-participations').text(summary.total_participations);
+                    $('#vendedor-settlement-price-per-participation').text(pricePerParticipation.toFixed(2) + '€');
+                    $('#vendedor-settlement-total-amount').text(totalAmount.toFixed(2) + '€');
+                    $('#vendedor-settlement-total-paid').text(totalPaid.toFixed(2) + '€');
+                    $('#vendedor-settlement-liquidated-participations').text(liquidatedParticipations.toFixed(2));
+                    $('#vendedor-settlement-pending-amount').text(pendingAmount.toFixed(2) + '€');
+                    $('#vendedor-settlement-pending-participations').text(pendingParticipations.toFixed(2));
+                    $('#vendedor-settlement-pendiente-display').text(pendingAmount.toFixed(2) + '€');
+                    
+                    console.log('Datos actualizados en la vista');
+                    
+                    // Resetear campos de pago
+                    actualizarTotalPagarAhoraSettlementVendedor();
+                } else {
+                    console.error('Response no exitoso:', response);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al cargar resumen:', error);
+                mostrarMensaje('Error al cargar el resumen de liquidación', 'error');
+            }
+        });
+    }
+
+    // Función para actualizar total a pagar ahora (COPIA EXACTA DE SELLERS)
+    function actualizarTotalPagarAhoraSettlementVendedor() {
+        const efectivo = parseFloat($('#vendedor-settlement-pago-efectivo').val()) || 0;
+        const bizum = parseFloat($('#vendedor-settlement-pago-bizum').val()) || 0;
+        const transferencia = parseFloat($('#vendedor-settlement-pago-transferencia').val()) || 0;
+        
+        const totalPagarAhora = efectivo + bizum + transferencia;
+        $('#vendedor-settlement-pagar-ahora').text(totalPagarAhora.toFixed(2) + '€');
+        
+        const pendiente = parseFloat($('#vendedor-settlement-pending-amount').text().replace('€', '').replace(',', '.')) || 0;
+        const quedaraPendiente = pendiente - totalPagarAhora;
+        
+        $('#vendedor-settlement-quedara-pendiente').text(quedaraPendiente.toFixed(2) + '€');
+        
+        if (quedaraPendiente <= 0 && totalPagarAhora > 0) {
+            $('#vendedor-settlement-quedara-pendiente').removeClass('text-warning').addClass('text-success');
+        } else if (totalPagarAhora > 0) {
+            $('#vendedor-settlement-quedara-pendiente').removeClass('text-success').addClass('text-warning');
+        } else {
+            $('#vendedor-settlement-quedara-pendiente').removeClass('text-success text-warning');
+        }
+    }
+
+    // Event listeners para actualizar totales
+    $('.vendedor-settlement-payment-input').on('input', actualizarTotalPagarAhoraSettlementVendedor);
+
+    // Botón para registrar liquidación (COPIA EXACTA DE SELLERS)
+    $('#btn-registrar-liquidacion-vendedor').on('click', function() {
+        if (!sorteoSeleccionadoLiquidacionVendedor) {
+            mostrarMensaje('Debes seleccionar un sorteo primero', 'warning');
+            return;
+        }
+
+        // Recopilar pagos
+        const pagos = [];
+        
+        const efectivo = parseFloat($('#vendedor-settlement-pago-efectivo').val()) || 0;
+        if (efectivo > 0) {
+            pagos.push({ payment_method: 'efectivo', amount: efectivo });
+        }
+        
+        const bizum = parseFloat($('#vendedor-settlement-pago-bizum').val()) || 0;
+        if (bizum > 0) {
+            pagos.push({ payment_method: 'bizum', amount: bizum });
+        }
+        
+        const transferencia = parseFloat($('#vendedor-settlement-pago-transferencia').val()) || 0;
+        if (transferencia > 0) {
+            pagos.push({ payment_method: 'transferencia', amount: transferencia });
+        }
+
+        if (pagos.length === 0) {
+            mostrarMensaje('Debes ingresar al menos un monto de pago', 'warning');
+            return;
+        }
+
+        // Deshabilitar botón
+        $(this).prop('disabled', true).text('Procesando...');
+
+        $.ajax({
+            url: '{{ route("sellers.settlement.store") }}',
+            method: 'POST',
+            data: {
+                seller_id: vendedorSeleccionado.id,
+                lottery_id: sorteoSeleccionadoLiquidacionVendedor,
+                pagos: pagos,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    mostrarMensaje('Liquidación registrada correctamente', 'success');
+                    
+                    // Limpiar campos de pago
+                    $('#vendedor-settlement-pago-efectivo, #vendedor-settlement-pago-bizum, #vendedor-settlement-pago-transferencia').val('');
+                    
+                    // Recargar datos
+                    setTimeout(() => {
+                        cargarResumenLiquidacionVendedor();
+                        cargarHistorialLiquidacionesVendedor();
+                    }, 1000);
+                } else {
+                    mostrarMensaje(response.message || 'Error al registrar liquidación', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                mostrarMensaje('Error al registrar la liquidación', 'error');
+            },
+            complete: function() {
+                $('#btn-registrar-liquidacion-vendedor').prop('disabled', false).html('<i class="ri-add-line"></i> Registrar Liquidación');
+            }
+        });
+    });
+
+    // Función para cargar historial de liquidaciones (COPIA EXACTA DE SELLERS)
+    function cargarHistorialLiquidacionesVendedor() {
+        if (!sorteoSeleccionadoLiquidacionVendedor) return;
+
+        $.ajax({
+            url: '{{ route("sellers.settlement-history") }}',
+            method: 'GET',
+            data: {
+                seller_id: vendedorSeleccionado.id,
+                lottery_id: sorteoSeleccionadoLiquidacionVendedor
+            },
+            success: function(response) {
+                if (response.success && response.settlements.length > 0) {
+                    let html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Fecha</th><th>Participaciones Liquidadas</th><th>Monto Pagado</th><th>Métodos de Pago</th></tr></thead><tbody>';
+                    
+                    response.settlements.forEach(settlement => {
+                        const fecha = new Date(settlement.settlement_date).toLocaleDateString('es-ES');
+                        
+                        let metodos = [];
+                        settlement.payments.forEach(payment => {
+                            let icono = '';
+                            if (payment.payment_method == 'efectivo') {
+                                icono = '<i class="ri-wallet-line text-success"></i>';
+                            } else if (payment.payment_method == 'bizum') {
+                                icono = '<i class="ri-smartphone-line text-info"></i>';
+                            } else if (payment.payment_method == 'transferencia') {
+                                icono = '<i class="ri-bank-line text-primary"></i>';
+                            }
+                            const paymentAmount = parseFloat(payment.amount) || 0;
+                            metodos.push(`${icono} ${paymentAmount.toFixed(2)}€`);
+                        });
+                        
+                        const calculatedParts = parseFloat(settlement.calculated_participations) || 0;
+                        const paidAmount = parseFloat(settlement.paid_amount) || 0;
+                        
+                        html += `
+                            <tr>
+                                <td>${fecha}</td>
+                                <td>${calculatedParts.toFixed(2)}</td>
+                                <td class="fw-bold text-success">${paidAmount.toFixed(2)}€</td>
+                                <td>${metodos.join(', ')}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    $('#vendedor-historial-liquidaciones-container').html(html);
+                } else {
+                    $('#vendedor-historial-liquidaciones-container').html('<p class="text-muted text-center">No hay liquidaciones registradas para este sorteo</p>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al cargar historial:', error);
+                $('#vendedor-historial-liquidaciones-container').html('<p class="text-danger text-center">Error al cargar el historial</p>');
+            }
+        });
+    }
 });
 </script>
 

@@ -242,12 +242,13 @@
                             </a>
                         </li>
 
-                        <li class="menu-item">
+                        <li class="menu-item @if (Request::is('devolutions/*') || Request::is('devolutions')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('devolutions')}}" class="menu-link">
                                 <span class="menu-icon">
                                     <img style="width: 19.5px;" src="{{url('icons')}}/devolucion{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Devolución </span>
+                                @php $selected = null; @endphp
                             </a>
                         </li>
 

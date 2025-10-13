@@ -395,7 +395,7 @@ class DevolutionsController extends Controller
     {
         $entityId = $request->get('entity_id');
         
-        $lotteries = Lottery::select(['lotteries.id', 'lotteries.name', 'lotteries.draw_date'])
+        $lotteries = Lottery::select(['lotteries.id', 'lotteries.name', 'lotteries.description', 'lotteries.draw_date'])
             ->join('reserves', 'lotteries.id', '=', 'reserves.lottery_id')
             ->where('reserves.entity_id', $entityId)
             ->distinct()
@@ -414,10 +414,25 @@ class DevolutionsController extends Controller
     {
         $entityId = $request->get('entity_id');
         
-        $sellers = Seller::select(['id', 'name', 'email', 'phone'])
+        $sellers = Seller::with(['user:id,name,last_name,email,phone'])
             ->where('entity_id', $entityId)
-            ->where('status', true) // status es boolean, true = activo
-            ->get();
+            ->where('status', true) // status es boolean
+            ->get()
+            ->map(function($seller) {
+                return [
+                    'id' => $seller->id,
+                    'user_id' => $seller->user_id,
+                    'seller_type' => $seller->seller_type,
+                    'status' => $seller->status ? 'active' : 'inactive',
+                    'user' => [
+                        'id' => $seller->user ? $seller->user->id : null,
+                        'name' => $seller->display_name,
+                        'last_name' => $seller->display_last_name,
+                        'email' => $seller->display_email,
+                        'phone' => $seller->display_phone
+                    ]
+                ];
+            });
 
         return response()->json([
             'success' => true,
