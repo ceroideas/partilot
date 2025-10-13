@@ -317,7 +317,7 @@ jQuery(document).ready(function($) {
         $(this).prop('disabled', true).text('Procesando...');
 
         $.ajax({
-            url: `/devolutions/${devolutionId}/payments`,
+            url: `{{url('/')}}/devolutions/${devolutionId}/payments`,
             method: 'POST',
             data: paymentData,
             success: function(response) {
