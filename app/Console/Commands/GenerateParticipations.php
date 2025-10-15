@@ -101,18 +101,25 @@ class GenerateParticipations extends Command
 
             $participationsToCreate = [];
 
+            // Obtener el rango de números de participación global para este set
+            $participationRange = $set->getParticipationNumberRange();
+            $globalStartNumber = $participationRange['start'];
+
             for ($participationNumber = 1; $participationNumber <= $totalParticipationsSet; $participationNumber++) {
                 // Calcular a qué taco pertenece esta participación
                 $bookNumber = ceil($participationNumber / $participationsPerBook);
                 
-                // Generar código de participación
-                $participationCode = sprintf('%d/%05d', $setNumber, $participationNumber);
+                // Calcular el número global de participación
+                $globalParticipationNumber = $globalStartNumber + $participationNumber - 1;
+                
+                // Generar código de participación con numeración global
+                $participationCode = sprintf('%d/%05d', $setNumber, $globalParticipationNumber);
 
                 $participationsToCreate[] = [
                     'entity_id' => $set->entity_id,
                     'set_id' => $set->id,
                     'design_format_id' => $designFormat->id,
-                    'participation_number' => $participationNumber,
+                    'participation_number' => $globalParticipationNumber, // Usar número global
                     'participation_code' => $participationCode,
                     'book_number' => $bookNumber,
                     'status' => 'disponible',

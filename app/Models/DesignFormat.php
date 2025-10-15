@@ -154,18 +154,25 @@ class DesignFormat extends Model
             $participationsToCreate = [];
             $totalCreated = 0;
 
+            // Obtener el rango de números de participación global para este set
+            $participationRange = $this->set->getParticipationNumberRange();
+            $globalStartNumber = $participationRange['start'];
+            
             for ($participationNumber = 1; $participationNumber <= $totalParticipations; $participationNumber++) {
                 // Calcular a qué taco pertenece esta participación
                 $bookNumber = ceil($participationNumber / $participationsPerBook);
                 
-                // Generar código de participación
-                $participationCode = sprintf('%d/%05d', $setNumber, $participationNumber);
+                // Calcular el número global de participación
+                $globalParticipationNumber = $globalStartNumber + $participationNumber - 1;
+                
+                // Generar código de participación con numeración global
+                $participationCode = sprintf('%d/%05d', $setNumber, $globalParticipationNumber);
 
                 $participationData = [
                     'entity_id' => $this->entity_id,
                     'set_id' => $this->set_id,
                     'design_format_id' => $this->id,
-                    'participation_number' => $participationNumber,
+                    'participation_number' => $globalParticipationNumber, // Usar número global
                     'participation_code' => $participationCode,
                     'book_number' => $bookNumber,
                     'status' => 'disponible',

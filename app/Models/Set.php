@@ -167,10 +167,10 @@ class Set extends Model
     {
         parent::boot();
 
-        // Asignar automáticamente el número de set al crear
+        // Asignar set_number automáticamente al crear
         static::creating(function ($set) {
-            if (!$set->set_number) {
-                $set->set_number = self::getNextSetNumber($set->reserve_id);
+            if (empty($set->set_number)) {
+                $set->set_number = static::getNextSetNumber($set->reserve_id);
             }
         });
 
@@ -209,5 +209,37 @@ class Set extends Model
                 $set->update(['set_number' => $newNumber]);
             }
         }
+    }
+
+    /**
+     * Obtener el siguiente número de participación para una reserva específica
+     * Este método calcula el siguiente número basado en las participaciones existentes
+     * de la misma reserva, incluyendo las anuladas, para mantener la numeración secuencial por reserva
+     */
+    public static function getNextParticipationNumberForReserve($reserveId)
+    {
+        // Obtener el mayor participation_number de las participaciones de esta reserva
+        $maxParticipationNumber = \App\Models\Participation::whereHas('set', function($query) use ($reserveId) {
+            $query->where('reserve_id', $reserveId);
+        })->max('participation_number') ?? 0;
+        
+        return $maxParticipationNumber + 1;
+    }
+
+    /**
+     * Obtener el rango de números de participación para un set
+     * Basado en el número de participaciones del set y el número de inicio por reserva
+     */
+    public function getParticipationNumberRange()
+    {
+        // Obtener el número de inicio basado en participaciones existentes de la misma reserva
+        $startNumber = static::getNextParticipationNumberForReserve($this->reserve_id);
+        $endNumber = $startNumber + $this->total_participations - 1;
+        
+        return [
+            'start' => $startNumber,
+            'end' => $endNumber,
+            'count' => $this->total_participations
+        ];
     }
 }
