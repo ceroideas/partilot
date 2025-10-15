@@ -44,6 +44,11 @@ class DevolutionsController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar si es una anulación ANTES de iniciar transacción
+        if ($request->input('tipo_devolucion') === 'anulacion') {
+            return $this->procesarAnulacion($request);
+        }
+        
         try {
             DB::beginTransaction();
 
@@ -63,6 +68,27 @@ class DevolutionsController extends Controller
                 'liquidacion.pagos.*.amount' => 'required|numeric'
             ]);
 
+            // VALIDAR: Rechazar participaciones anuladas
+            $allParticipationIds = array_merge(
+                $data['liquidacion']['devolver'] ?? [],
+                $data['liquidacion']['vender'] ?? []
+            );
+            
+            if (!empty($allParticipationIds)) {
+                $anuladas = Participation::whereIn('id', $allParticipationIds)
+                    ->where('status', 'anulada')
+                    ->pluck('participation_code')
+                    ->toArray();
+                
+                if (!empty($anuladas)) {
+                    DB::rollback();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se pueden procesar participaciones anuladas: ' . implode(', ', $anuladas)
+                    ], 400);
+                }
+            }
+
             // Obtener las participaciones seleccionadas para devolver (puede estar vacío)
             $participationsToReturn = $data['liquidacion']['devolver'] ?? [];
             
@@ -72,9 +98,10 @@ class DevolutionsController extends Controller
             // Caso 1: No hay participaciones a devolver pero hay set_id (liquidar set completo)
             if (empty($participationsToReturn) && isset($data['set_id'])) {
                 $setId = $data['set_id'];
-                // Todas las participaciones del set se venden
+                // Todas las participaciones del set se venden (EXCLUIR ANULADAS)
                 $participationsToSell = Participation::where('set_id', $setId)
                     ->whereIn('status', ['disponible', 'asignada', 'vendida'])
+                    ->where('status', '!=', 'anulada')
                     ->pluck('id')
                     ->toArray();
             }
@@ -89,9 +116,10 @@ class DevolutionsController extends Controller
                     // Participaciones del set que se van a devolver
                     $returnedInSet = $participations->where('set_id', $setId)->pluck('id')->toArray();
                     
-                    // Todas las participaciones disponibles del set
+                    // Todas las participaciones disponibles del set (EXCLUIR ANULADAS)
                     $allInSet = Participation::where('set_id', $setId)
                         ->whereIn('status', ['disponible', 'asignada'])
+                        ->where('status', '!=', 'anulada')
                         ->pluck('id')
                         ->toArray();
                     
@@ -492,8 +520,9 @@ class DevolutionsController extends Controller
                 $query->where('lottery_id', $lotteryId);
             })
             ->whereHas('participations', function($query) {
-                // Solo sets que tienen participaciones disponibles o asignadas
-                $query->whereIn('status', ['disponible', 'asignada']);
+                // Solo sets que tienen participaciones disponibles o asignadas (EXCLUIR ANULADAS)
+                $query->whereIn('status', ['disponible', 'asignada'])
+                      ->where('status', '!=', 'anulada');
             })
             ->select([
                 'sets.id',
@@ -569,14 +598,17 @@ class DevolutionsController extends Controller
             ->where('reserves.lottery_id', $data['lottery_id'])
             ->where('participations.set_id', $data['set_id']);
 
-        // Si hay seller_id, filtrar por vendedor (devolución de vendedor)
+        // Si hay seller_id, filtrar por vendedor (devolución de vendedor) - EXCLUIR ANULADAS
         if (isset($data['seller_id'])) {
             $query->where('participations.seller_id', $data['seller_id'])
                   ->whereIn('participations.status', ['asignada', 'vendida','disponible']);
         } else {
-            // Si no hay seller_id, mostrar participaciones asignadas o vendidas (devolución de entidad)
+            // Si no hay seller_id, mostrar participaciones asignadas o vendidas (devolución de entidad) - EXCLUIR ANULADAS
             $query->whereIn('participations.status', ['asignada', 'vendida','disponible']);
         }
+        
+        // EXCLUIR EXPLÍCITAMENTE LAS PARTICIPACIONES ANULADAS
+        $query->where('participations.status', '!=', 'anulada');
 
         // Filtrar por rango
         if (isset($data['desde']) && isset($data['hasta'])) {
@@ -625,9 +657,10 @@ class DevolutionsController extends Controller
                 ], 404);
             }
 
-            // Contar todas las participaciones del set que están disponibles o asignadas (vendibles)
+            // Contar todas las participaciones del set que están disponibles o asignadas (vendibles) - EXCLUIR ANULADAS
             $allParticipations = Participation::where('set_id', $setId)
                 ->whereIn('status', ['disponible', 'asignada', 'vendida'])
+                ->where('status', '!=', 'anulada')
                 ->count();
 
             $pricePerParticipation = $set->played_amount ?? 0;
@@ -680,9 +713,11 @@ class DevolutionsController extends Controller
             ]);
         }
 
-        // Obtener las participaciones seleccionadas
-        $participations = Participation::whereIn('id', $selectedParticipations)->get();
-        \Log::info('Found participations:', $participations->toArray());
+        // Obtener las participaciones seleccionadas (EXCLUIR ANULADAS)
+        $participations = Participation::whereIn('id', $selectedParticipations)
+            ->where('status', '!=', 'anulada')
+            ->get();
+        \Log::info('Found participations (excluding cancelled):', $participations->toArray());
         
         $setIds = $participations->pluck('set_id')->unique()->toArray();
         \Log::info('Unique set IDs:', $setIds);
@@ -705,9 +740,10 @@ class DevolutionsController extends Controller
             // Participaciones del set que se van a devolver
             $returnedInSet = $participations->where('set_id', $setId)->count();
             
-            // Todas las participaciones del set
+            // Todas las participaciones del set (EXCLUIR ANULADAS)
             $allInSet = Participation::where('set_id', $setId)
                 ->whereIn('status', ['disponible', 'asignada'])
+                ->where('status', '!=', 'anulada')
                 ->count();
             
             // Las que se van a vender (total - devueltas)
@@ -894,6 +930,154 @@ class DevolutionsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar el pago: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Procesar anulación de participaciones
+     */
+    private function procesarAnulacion(Request $request)
+    {
+        \Log::info("=== INICIANDO PROCESAMIENTO DE ANULACIÓN ===");
+        
+        try {
+            DB::beginTransaction();
+            \Log::info("Transacción de anulación iniciada");
+
+            $data = $request->validate([
+                'entity_id' => 'required|exists:entities,id',
+                'lottery_id' => 'required|exists:lotteries,id',
+                'set_id' => 'nullable|exists:sets,id',
+                'participations' => 'required|array|min:1',
+                'participations.*' => 'integer|exists:participations,id',
+                'motivo' => 'required|string|max:500'
+            ]);
+
+            $now = Carbon::now();
+            $userId = auth()->id();
+
+            // Obtener las participaciones a anular
+            $participations = Participation::whereIn('id', $data['participations'])->get();
+            
+            if ($participations->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron participaciones para anular'
+                ], 400);
+            }
+
+            // VALIDAR: Rechazar participaciones que ya están anuladas
+            $yaAnuladas = $participations->where('status', 'anulada');
+            if ($yaAnuladas->count() > 0) {
+                $codigosAnulados = $yaAnuladas->pluck('participation_code')->toArray();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Las siguientes participaciones ya están anuladas: ' . implode(', ', $codigosAnulados)
+                ], 400);
+            }
+
+            // Anular las participaciones
+            foreach ($participations as $participation) {
+                try {
+                    // Anular la participación (usar update para disparar observer)
+                    $participation->update([
+                        'status' => 'anulada',
+                        'cancellation_reason' => $data['motivo'],
+                        'cancelled_by' => $userId,
+                        'cancellation_date' => $now->format('Y-m-d'),
+                    ]);
+                } catch (\Exception $observerError) {
+                    // Si el observer falla, continuar sin rollback
+                    \Log::warning("Observer falló para participación {$participation->id}", [
+                        'error' => $observerError->getMessage()
+                    ]);
+                    
+                    // Actualizar directamente sin observer
+                    \DB::table('participations')
+                        ->where('id', $participation->id)
+                        ->update([
+                            'status' => 'anulada',
+                            'cancellation_reason' => $data['motivo'],
+                            'cancelled_by' => $userId,
+                            'cancellation_date' => $now->format('Y-m-d'),
+                            'updated_at' => $now,
+                        ]);
+                }
+            }
+
+            // Crear registro de devolución para auditoría
+            \Log::info("Creando registro de devolución para anulación", [
+                'entity_id' => $data['entity_id'],
+                'lottery_id' => $data['lottery_id'],
+                'participations_count' => $participations->count()
+            ]);
+            
+            $devolution = Devolution::create([
+                'entity_id' => $data['entity_id'],
+                'lottery_id' => $data['lottery_id'],
+                'seller_id' => null, // Las anulaciones no tienen vendedor
+                'user_id' => $userId,
+                'total_participations' => $participations->count(),
+                'return_reason' => "Anulación: {$data['motivo']}",
+                'devolution_date' => $now->format('Y-m-d'),
+                'devolution_time' => $now->format('H:i:s'),
+                'status' => 'procesada', // Status normal como otras devoluciones
+                'notes' => "Anulación de {$participations->count()} participaciones"
+            ]);
+            
+            \Log::info("Devolución creada exitosamente", [
+                'devolution_id' => $devolution->id
+            ]);
+
+            // Crear detalles de anulación
+            \Log::info("Creando detalles de anulación", [
+                'devolution_id' => $devolution->id,
+                'participations_count' => $participations->count()
+            ]);
+            
+            foreach ($participations as $participation) {
+                \Log::info("Creando detalle para participación", [
+                    'devolution_id' => $devolution->id,
+                    'participation_id' => $participation->id
+                ]);
+                
+                DevolutionDetail::create([
+                    'devolution_id' => $devolution->id,
+                    'participation_id' => $participation->id,
+                    'action' => 'anular'
+                ]);
+            }
+            
+            \Log::info("Detalles de anulación creados exitosamente");
+
+            DB::commit();
+            
+            \Log::info("=== TRANSACCIÓN DE ANULACIÓN CONFIRMADA EXITOSAMENTE ===", [
+                'devolution_id' => $devolution->id,
+                'participaciones_anuladas' => $participations->count()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Anulación procesada correctamente. Se anularon {$participations->count()} participaciones.",
+                'data' => [
+                    'devolution_id' => $devolution->id,
+                    'participaciones_anuladas' => $participations->count()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error en anulación de participaciones', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar la anulación: ' . $e->getMessage()
             ], 500);
         }
     }

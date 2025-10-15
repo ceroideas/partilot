@@ -74,11 +74,13 @@
                                         <th>ID</th>
                                         <th>Entidad</th>
                                         <th>Sorteo</th>
-                                        <th>Total Participaciones</th>
-                                        <th>Participaciones Devueltas</th>
+                                        <th>Set / Reserva</th>
+                                        <th>Total Part.</th>
+                                        <th>Part. Devueltas</th>
+                                        <th>Part. Anuladas</th>
                                         <th>Fecha Devolución</th>
                                         <th>Total Liquidación</th>
-                                        <th>Total Pagos Registrados</th>
+                                        <th>Total Pagos</th>
                                         <th class="no-filter">Acciones</th>
                                     </tr>
                                 </thead>
@@ -94,27 +96,71 @@
                                                         return $detail->participation->set->played_amount ?? 0;
                                                     });
                                                 $totalPagos = $devolution->payments->sum('amount');
+                                                $participacionesAnuladas = $devolution->details()->where('action', 'anular')->count();
+                                                
+                                                // Obtener información del set y reserva
+                                                $setInfo = '';
+                                                $sets = $devolution->details()
+                                                    ->with('participation.set.reserve')
+                                                    ->get()
+                                                    ->pluck('participation.set')
+                                                    ->unique('id')
+                                                    ->filter();
+                                                
+                                                if ($sets->count() > 0) {
+                                                    $setNames = [];
+                                                    foreach ($sets as $set) {
+                                                        $reservationNumbers = '';
+                                                        if ($set->reserve && $set->reserve->reservation_numbers && is_array($set->reserve->reservation_numbers)) {
+                                                            $reservationNumbers = implode(', ', $set->reserve->reservation_numbers);
+                                                        } else {
+                                                            $reservationNumbers = $set->reserve_id ?? 'N/A';
+                                                        }
+                                                        $setNames[] = $set->set_name . ' (' . $reservationNumbers . ')';
+                                                    }
+                                                    $setInfo = implode('<br>', $setNames);
+                                                } else {
+                                                    $setInfo = 'N/A';
+                                                }
                                             @endphp
                                             <tr>
                                                 <td><a href="{{ route('devolutions.show', $devolution->id) }}">#DEV{{ str_pad($devolution->id, 4, '0', STR_PAD_LEFT) }}</a></td>
                                                 <td>{{ $devolution->entity->name ?? 'N/A' }}</td>
                                                 <td>{{ $devolution->lottery->name ?? 'N/A' }}</td>
+                                                <td>{!! $setInfo !!}</td>
                                                 <td>{{ $devolution->total_participations }}</td>
                                                 <td>{{ $devolution->details()->where('action', 'devolver')->count() }}</td>
+                                                <td>{{ $participacionesAnuladas }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($devolution->devolution_date)->format('d/m/Y') }}</td>
-                                                <td><span style="color: green; font-weight: bold;">{{ number_format($totalLiquidacion, 2) }}€</span></td>
-                                                <td><span style="color: blue; font-weight: bold;">{{ number_format($totalPagos, 2) }}€</span></td>
+                                                <td>
+                                                    @if($participacionesAnuladas > 0)
+                                                        <span style="color: orange; font-weight: bold;">N/A</span>
+                                                    @else
+                                                        <span style="color: green; font-weight: bold;">{{ number_format($totalLiquidacion, 2) }}€</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($participacionesAnuladas > 0)
+                                                        <span style="color: orange; font-weight: bold;">N/A</span>
+                                                    @else
+                                                        <span style="color: blue; font-weight: bold;">{{ number_format($totalPagos, 2) }}€</span>
+                                                    @endif
+                                                </td>
                                                 <td>
                                                     <a href="{{ route('devolutions.show', $devolution->id) }}" class="btn btn-sm btn-light" title="Ver detalle">
                                                         <img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12">
                                                     </a>
-                                                    <a href="{{ route('devolutions.edit', $devolution->id) }}" class="btn btn-sm btn-light" title="Editar">
-                                                        <img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12">
-                                                    </a>
-                                                    <button type="button" class="btn btn-sm btn-danger btn-eliminar-devolucion" 
-                                                            data-id="{{ $devolution->id }}" data-name="Devolución #{{ $devolution->id }}" title="Eliminar">
-                                                        <i class="ri-delete-bin-6-line"></i>
-                                                    </button>
+                                                    @if($participacionesAnuladas == 0)
+                                                        <a href="{{ route('devolutions.edit', $devolution->id) }}" class="btn btn-sm btn-light" title="Editar">
+                                                            <img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12">
+                                                        </a>
+                                                        <button type="button" class="btn btn-sm btn-danger btn-eliminar-devolucion" 
+                                                                data-id="{{ $devolution->id }}" data-name="Devolución #{{ $devolution->id }}" title="Eliminar">
+                                                            <i class="ri-delete-bin-6-line"></i>
+                                                        </button>
+                                                    @else
+                                                        <span class="badge bg-warning" title="Anulación no editable">Anulación</span>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach

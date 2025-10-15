@@ -145,7 +145,22 @@ class SetController extends Controller
         }
 
         // Calcular importe disponible para la reserva
-        $usedAmount = Set::where('reserve_id', $reserve->id)->sum('total_amount');
+        // Obtener todos los sets de la reserva
+        $sets = Set::where('reserve_id', $reserve->id)->get();
+        $usedAmount = 0;
+        
+        foreach ($sets as $set) {
+            // Calcular participaciones no anuladas del set
+            $nonCancelledParticipations = \App\Models\Participation::where('set_id', $set->id)
+                ->where('status', '!=', 'anulada')
+                ->count();
+            
+            // Calcular monto usado basado en participaciones no anuladas
+            $participationPrice = $set->played_amount ?? 0;
+            $setUsedAmount = $nonCancelledParticipations * $participationPrice;
+            $usedAmount += $setUsedAmount;
+        }
+        
         $availableAmount = $reserve->reservation_amount - $usedAmount;
         if ($availableAmount < 0) $availableAmount = 0;
 
@@ -187,7 +202,21 @@ class SetController extends Controller
         }
 
         // Calcular importe disponible
-        $usedAmount = Set::where('reserve_id', $reserve->id)->sum('total_amount');
+        $sets = Set::where('reserve_id', $reserve->id)->get();
+        $usedAmount = 0;
+        
+        foreach ($sets as $set) {
+            // Calcular participaciones no anuladas del set
+            $nonCancelledParticipations = \App\Models\Participation::where('set_id', $set->id)
+                ->where('status', '!=', 'anulada')
+                ->count();
+            
+            // Calcular monto usado basado en participaciones no anuladas
+            $participationPrice = $set->played_amount ?? 0;
+            $setUsedAmount = $nonCancelledParticipations * $participationPrice;
+            $usedAmount += $setUsedAmount;
+        }
+        
         $availableAmount = $reserve->reservation_amount - $usedAmount;
         if ($availableAmount < 0) $availableAmount = 0;
         if ($validated['total_amount'] > $availableAmount) {
@@ -230,11 +259,27 @@ class SetController extends Controller
     {
         $entities = Entity::all();
         $reserves = Reserve::all();
-        // Calcular importe disponible para la reserva, sumando el importe del set actual
-        $usedAmount = Set::where('reserve_id', $set->reserve_id)
-            ->where('id', '!=', $set->id)
-            ->sum('total_amount');
-        $availableAmount = $set->reserve->reservation_amount - $usedAmount + $set->total_amount;
+        // Calcular importe disponible para la reserva, excluyendo participaciones anuladas
+        $sets = Set::where('reserve_id', $set->reserve_id)->get();
+        $usedAmount = 0;
+        
+        foreach ($sets as $setItem) {
+            if ($setItem->id == $set->id) {
+                // Para el set actual, usar el total_amount original
+                $usedAmount += $setItem->total_amount;
+            } else {
+                // Para otros sets, calcular basado en participaciones no anuladas
+                $nonCancelledParticipations = \App\Models\Participation::where('set_id', $setItem->id)
+                    ->where('status', '!=', 'anulada')
+                    ->count();
+                
+                $participationPrice = $setItem->played_amount ?? 0;
+                $setUsedAmount = $nonCancelledParticipations * $participationPrice;
+                $usedAmount += $setUsedAmount;
+            }
+        }
+        
+        $availableAmount = $set->reserve->reservation_amount - $usedAmount;
         if ($availableAmount < 0) $availableAmount = 0;
         return view('sets.edit', compact('set', 'entities', 'reserves', 'availableAmount'));
     }
@@ -256,11 +301,27 @@ class SetController extends Controller
             'deadline_date' => 'nullable|date'
         ]);
 
-        // Calcular importe disponible para la reserva, sumando el importe del set actual
-        $usedAmount = Set::where('reserve_id', $set->reserve_id)
-            ->where('id', '!=', $set->id)
-            ->sum('total_amount');
-        $availableAmount = $set->reserve->reservation_amount - $usedAmount + $set->total_amount;
+        // Calcular importe disponible para la reserva, excluyendo participaciones anuladas
+        $sets = Set::where('reserve_id', $set->reserve_id)->get();
+        $usedAmount = 0;
+        
+        foreach ($sets as $setItem) {
+            if ($setItem->id == $set->id) {
+                // Para el set actual, usar el nuevo total_amount
+                $usedAmount += $validated['total_amount'];
+            } else {
+                // Para otros sets, calcular basado en participaciones no anuladas
+                $nonCancelledParticipations = \App\Models\Participation::where('set_id', $setItem->id)
+                    ->where('status', '!=', 'anulada')
+                    ->count();
+                
+                $participationPrice = $setItem->played_amount ?? 0;
+                $setUsedAmount = $nonCancelledParticipations * $participationPrice;
+                $usedAmount += $setUsedAmount;
+            }
+        }
+        
+        $availableAmount = $set->reserve->reservation_amount - $usedAmount;
         if ($availableAmount < 0) $availableAmount = 0;
         if ($validated['total_amount'] > $availableAmount) {
             return back()->withInput()->withErrors(['total_amount' => 'El importe total supera el disponible para esta reserva (máx: ' . number_format($availableAmount,2) . ' €)']);
@@ -434,5 +495,30 @@ class SetController extends Controller
         $set->save();
 
         return redirect()->route('sets.edit', $set->id)->with('success', 'XML importado correctamente.');
+    }
+
+    /**
+     * Obtener el precio de un set
+     */
+    public function getPrice(Request $request)
+    {
+        $request->validate([
+            'set_id' => 'required|integer|exists:sets,id'
+        ]);
+
+        try {
+            $set = Set::findOrFail($request->set_id);
+            
+            return response()->json([
+                'success' => true,
+                'played_amount' => $set->played_amount ?? 0,
+                'set_name' => $set->set_name
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el precio del set: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

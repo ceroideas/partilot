@@ -318,9 +318,11 @@ class SellerController extends Controller
             ]);
 
             // Obtener las participaciones disponibles del set en el rango especificado
+            // EXCLUIR explícitamente las participaciones anuladas
             $participations = DB::table('participations')
                 ->where('set_id', $request->set_id)
                 ->whereBetween('participation_number', [$request->desde, $request->hasta])
+                ->where('status', '!=', 'anulada') // Excluir participaciones anuladas
                 ->where(function($query) use ($request) {
                     $query->where('status', 'disponible')
                           ->whereNull('seller_id') // No asignadas a ningún vendedor

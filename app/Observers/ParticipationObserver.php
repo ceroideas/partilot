@@ -141,16 +141,27 @@ class ParticipationObserver
 
         // Caso 5: Participación anulada
         if ($statusChanged && $newStatus === 'anulada') {
+            \Log::info("Observer - CASO DETECTADO: Participación anulada", [
+                'participation_id' => $participation->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'cancellation_reason' => $participation->cancellation_reason ?? null,
+            ]);
+            
             ParticipationActivityLog::log($participation->id, 'cancelled', [
                 'entity_id' => $participation->entity_id,
                 'seller_id' => $participation->seller_id,
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus,
-                'description' => "Participación anulada",
+                'description' => "Participación anulada: " . ($participation->cancellation_reason ?? 'Sin motivo especificado'),
                 'metadata' => array_merge($changes, [
                     'cancellation_reason' => $participation->cancellation_reason ?? null,
+                    'cancelled_by' => $participation->cancelled_by ?? null,
+                    'cancellation_date' => $participation->cancellation_date ?? null,
                 ]),
             ]);
+            
+            \Log::info("Observer - Registro de anulación creado exitosamente");
             return; // Evitar registros duplicados
         }
 

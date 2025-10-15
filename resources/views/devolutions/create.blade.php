@@ -399,6 +399,11 @@
                                                             <img class="mt-2 mb-1" src="{{url('assets/admin.svg')}}" alt="" width="60%">
                                                             <h4 class="mb-0">Devolución <br> Administración</h4>
                                                         </button>
+
+                                                        <button class="btn btn-light btn-xl text-center m-2 bs" id="btn-anulacion-participaciones" style="border: 1px solid #f0f0f0; padding: 16px; width: 180px; border-radius: 16px; position: relative;">
+                                                            <img class="mt-2 mb-1" src="{{url('assets/cancel.svg')}}" alt="" width="60%">
+                                                            <h4 class="mb-0">Anulación <br> Participaciones</h4>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -636,6 +641,82 @@
                                                 <div id="btn-continuar-sin-participaciones-container" class="text-end mt-3" style="display: none;">
                                                     <button type="button" class="btn btn-info" id="btn-continuar-sin-participaciones" style="border-radius: 30px; font-weight: bold; padding: 10px 30px;">
                                                         <i class="ri-arrow-right-line"></i> Continuar sin participaciones
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Paso: Anulación -->
+                                    <div class="tab-pane fade" id="paso-anulacion">
+                                        <div class="form-card bs" style="min-height: 658px;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h4 class="mb-0 mt-1">Confirmar Anulación</h4>
+                                                    <small><i>Revisa las participaciones a anular</i></small>
+                                                </div>
+                                                <button id="btn-volver-anulacion" class="btn btn-secondary btn-sm">
+                                                    <i class="ri-arrow-left-line"></i> Volver
+                                                </button>
+                                            </div>
+
+                                            <hr>
+
+                                            <!-- Resumen de Participaciones a Anular -->
+                                            <div class="row mb-4">
+                                                <div class="col-12">
+                                                    <h5>Participaciones Seleccionadas para Anular</h5>
+                                                    <div id="anulacion-resumen-participaciones">
+                                                        <!-- Se llenará dinámicamente -->
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Información de la Anulación -->
+                                            <div class="row mb-4">
+                                                <div class="col-md-6">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Información de la Anulación</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <p><strong>Entidad:</strong> <span id="anulacion-entidad-nombre">-</span></p>
+                                                            <p><strong>Sorteo:</strong> <span id="anulacion-sorteo-nombre">-</span></p>
+                                                            <p><strong>Set:</strong> <span id="anulacion-set-nombre">-</span></p>
+                                                            <p><strong>Total Participaciones:</strong> <span id="anulacion-total-participaciones" class="fw-bold">0</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Impacto en la Reserva</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <p><strong>Monto Liberado:</strong> <span id="anulacion-monto-liberado" class="text-success fw-bold">0.00€</span></p>
+                                                            <p><strong>Crédito Disponible:</strong> <span id="anulacion-credito-disponible" class="text-info fw-bold">0.00€</span></p>
+                                                            <small class="text-muted">Este monto podrá ser utilizado para crear nuevos sets</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Motivo de Anulación -->
+                                            <div class="row mb-4">
+                                                <div class="col-12">
+                                                    <label class="form-label fw-bold">Motivo de la Anulación</label>
+                                                    <textarea class="form-control" id="anulacion-motivo" rows="3" placeholder="Describe el motivo de la anulación de estas participaciones..."></textarea>
+                                                </div>
+                                            </div>
+
+                                            <!-- Botones de Acción -->
+                                            <div class="row">
+                                                <div class="col-12 text-end">
+                                                    <button id="btn-cancelar-anulacion" class="btn btn-secondary me-2">
+                                                        <i class="ri-close-line"></i> Cancelar
+                                                    </button>
+                                                    <button id="btn-confirmar-anulacion" class="btn btn-danger">
+                                                        <i class="ri-check-line"></i> Confirmar Anulación
                                                     </button>
                                                 </div>
                                             </div>
@@ -1012,6 +1093,31 @@ $(document).ready(function() {
                     </div>
                 </li>
             `);
+        } else if (tipoDevolucion === 'anulacion') {
+            // Flujo: Entidad -> Opción -> Sorteo -> Participaciones -> Confirmar Anulación
+            wizardSteps.append(`
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-3">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <label>Seleccionar Sorteo</label>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-4">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <label>Seleccionar Participaciones</label>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-5">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons/cancel.svg')}}" alt="">
+                        <label>Confirmar Anulación</label>
+                    </div>
+                </li>
+            `);
         }
     }
 
@@ -1063,6 +1169,15 @@ $(document).ready(function() {
                 'paso-sorteo',
                 'paso-participaciones',
                 'paso-liquidacion'
+            ];
+        } else if (tipoDevolucion === 'anulacion') {
+            // Flujo anulación: Entidad -> Opción -> Sorteo -> Participaciones -> Confirmar Anulación
+            pasosOrden = [
+                'paso-entidad',
+                'paso-opcion',
+                'paso-sorteo',
+                'paso-participaciones',
+                'paso-anulacion'
             ];
         } else {
             // Flujo inicial (solo mostrar entidad y opción)
@@ -1191,7 +1306,7 @@ $(document).ready(function() {
                     "render": function(data, type, row) {
                         return `
                             <div class="form-check">
-                                <input class="form-check-input seleccionar-sorteo" type="radio" name="lottery_id" value="${row.id}" id="lottery_${row.id}" data-lottery-id="${row.id}">
+                                <input class="form-check-input seleccionar-sorteo" type="radio" name="lottery_id" value="${row.id}" id="lottery_${row.id}" data-lottery-id="${row.id}" data-lottery-name="${row.name || ''}">
                                 <label class="form-check-label" for="lottery_${row.id}">Seleccionar</label>
                             </div>
                         `;
@@ -1331,7 +1446,13 @@ $(document).ready(function() {
 
     $(document).on('change', '.seleccionar-sorteo', function() {
         const lotteryId = $(this).data('lottery-id');
-        sorteoSeleccionado = { id: lotteryId };
+        const lotteryName = $(this).data('lottery-name');
+        sorteoSeleccionado = { 
+            id: lotteryId,
+            name: lotteryName,
+            lottery_name: lotteryName
+        };
+        console.log('Sorteo seleccionado:', sorteoSeleccionado);
         $('#btn-siguiente-sorteo').prop('disabled', false);
     });
 
@@ -1344,6 +1465,10 @@ $(document).ready(function() {
 
     // Botones de selección de tipo de devolución
     $('#btn-devolucion-vendedor').click(function() {
+        // Resetear participaciones seleccionadas al cambiar tipo
+        participacionesAsignadas = [];
+        actualizarResumenAsignacion();
+        
         tipoDevolucion = 'vendedor';
         construirWizardPasos();
         mostrarPaso('paso-vendedor');
@@ -1351,7 +1476,22 @@ $(document).ready(function() {
     });
 
     $('#btn-devolucion-administracion').click(function() {
+        // Resetear participaciones seleccionadas al cambiar tipo
+        participacionesAsignadas = [];
+        actualizarResumenAsignacion();
+        
         tipoDevolucion = 'administracion';
+        construirWizardPasos();
+        mostrarPaso('paso-sorteo');
+        inicializarDataTableSorteos();
+    });
+
+    $('#btn-anulacion-participaciones').click(function() {
+        // Resetear participaciones seleccionadas al cambiar tipo
+        participacionesAsignadas = [];
+        actualizarResumenAsignacion();
+        
+        tipoDevolucion = 'anulacion';
         construirWizardPasos();
         mostrarPaso('paso-sorteo');
         inicializarDataTableSorteos();
@@ -1570,7 +1710,7 @@ $(document).ready(function() {
                         const setNumber = set.set_number.toString().padStart(2, '0');
                         const displayText = `${set.set_name} (${reservationNumbers} - ${setNumber})`;
                         
-                        selector.append(`<option value="${set.id}">${displayText}</option>`);
+                        selector.append(`<option value="${set.id}" data-played-amount="${set.played_amount || 0}" data-set-name="${set.set_name}">${displayText}</option>`);
                     });
                 } else {
                     mostrarMensaje('No hay sets disponibles para devolver en este sorteo', 'warning');
@@ -1615,7 +1755,7 @@ $(document).ready(function() {
                         const setNumber = set.set_number.toString().padStart(2, '0');
                         const displayText = `${set.set_name} (${reservationNumbers} - ${setNumber})`;
                         
-                        selector.append(`<option value="${set.id}">${displayText}</option>`);
+                        selector.append(`<option value="${set.id}" data-played-amount="${set.played_amount || 0}" data-set-name="${set.set_name}">${displayText}</option>`);
                     });
                 } else {
                     mostrarMensaje('No hay sets disponibles para devolver de este vendedor', 'warning');
@@ -1634,7 +1774,20 @@ $(document).ready(function() {
     // Event listener para selección de set
     $('#selector-set').on('change', function() {
         const setId = $(this).val();
-        setSeleccionado = setId ? { id: setId, name: $(this).find('option:selected').text() } : null;
+        const selectedOption = $(this).find('option:selected');
+        
+        if (setId) {
+            setSeleccionado = {
+                id: setId,
+                name: selectedOption.text(),
+                set_name: selectedOption.data('set-name') || selectedOption.text(),
+                played_amount: parseFloat(selectedOption.data('played-amount')) || 0
+            };
+        } else {
+            setSeleccionado = null;
+        }
+        
+        console.log('Set seleccionado actualizado:', setSeleccionado);
         
         // NO reiniciar las participaciones asignadas para permitir selección de múltiples sets
         actualizarResumenAsignacion();
@@ -1761,6 +1914,12 @@ $(document).ready(function() {
 
     // Event listener para terminar asignación (ir directo a liquidación)
     $('#btn-terminar-asignacion').click(function() {
+        // Para anulación, ir al paso de anulación
+        if (tipoDevolucion === 'anulacion') {
+            mostrarPaso('paso-anulacion');
+            return;
+        }
+        
         // Para devolución de vendedor, no se requieren participaciones específicas
         if (tipoDevolucion === 'vendedor') {
             mostrarPaso('paso-liquidacion');
@@ -2346,7 +2505,178 @@ $(document).ready(function() {
             }
         });
     }
+
+    // ===== PASO DE ANULACIÓN =====
+    
+    // Event listeners para el paso de anulación
+    $('#btn-volver-anulacion').click(function() {
+        mostrarPaso('paso-participaciones');
+    });
+
+    $('#btn-cancelar-anulacion').click(function() {
+        if (confirm('¿Estás seguro de que quieres cancelar la anulación?')) {
+            mostrarPaso('paso-entidad');
+            // Resetear variables
+            participacionesAsignadas = [];
+            entidadSeleccionada = null;
+            sorteoSeleccionado = null;
+            setSeleccionado = null;
+            tipoDevolucion = null;
+        }
+    });
+
+    $('#btn-confirmar-anulacion').click(function() {
+        if (participacionesAsignadas.length === 0) {
+            alert('No hay participaciones seleccionadas para anular');
+            return;
+        }
+
+        const motivo = $('#anulacion-motivo').val().trim();
+        if (!motivo) {
+            alert('Debes especificar un motivo para la anulación');
+            return;
+        }
+
+        if (!confirm(`¿Estás seguro de que quieres anular ${participacionesAsignadas.length} participaciones? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        // Mostrar loading
+        $('#btn-confirmar-anulacion').prop('disabled', true).html('<i class="ri-loader-4-line ri-spin"></i> Procesando...');
+
+        // Enviar datos de anulación
+        const datosAnulacion = {
+            entity_id: entidadSeleccionada.id,
+            lottery_id: sorteoSeleccionado.id,
+            set_id: setSeleccionado ? setSeleccionado.id : null,
+            participations: participacionesAsignadas.map(p => p.id),
+            motivo: motivo,
+            tipo_devolucion: 'anulacion',
+            _token: '{{ csrf_token() }}'
+        };
+
+        $.ajax({
+            url: '{{ route("devolutions.store") }}',
+            method: 'POST',
+            data: datosAnulacion,
+            success: function(response) {
+                if (response.success) {
+                    alert('Anulación procesada correctamente');
+                    // Redirigir o resetear
+                    window.location.href = '{{ route("devolutions.index") }}';
+                } else {
+                    alert('Error: ' + (response.message || 'Error desconocido'));
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en anulación:', error);
+                alert('Error al procesar la anulación');
+            },
+            complete: function() {
+                $('#btn-confirmar-anulacion').prop('disabled', false).html('<i class="ri-check-line"></i> Confirmar Anulación');
+            }
+        });
+    });
+
+    // Función para obtener el precio de un set desde el backend
+    function obtenerPrecioSet(setId, callback) {
+        $.ajax({
+            url: '{{ route("sets.get-price") }}',
+            method: 'GET',
+            data: { set_id: setId },
+            success: function(response) {
+                if (response.success) {
+                    callback(response.played_amount || 0);
+                } else {
+                    callback(0);
+                }
+            },
+            error: function() {
+                callback(0);
+            }
+        });
+    }
+
+    // Función para configurar el paso de anulación
+    function configurarPasoAnulacion() {
+        console.log('=== CONFIGURANDO PASO DE ANULACIÓN ===');
+        console.log('Entidad seleccionada:', entidadSeleccionada);
+        console.log('Sorteo seleccionado:', sorteoSeleccionado);
+        console.log('Set seleccionado:', setSeleccionado);
+        console.log('Participaciones asignadas:', participacionesAsignadas);
+        
+        // Llenar información básica
+        $('#anulacion-entidad-nombre').text(entidadSeleccionada ? entidadSeleccionada.name : '-');
+        $('#anulacion-sorteo-nombre').text(sorteoSeleccionado ? (sorteoSeleccionado.lottery_name || sorteoSeleccionado.name || '-') : '-');
+        $('#anulacion-set-nombre').text(setSeleccionado ? `Set #${setSeleccionado.id}` : '-');
+        $('#anulacion-total-participaciones').text(participacionesAsignadas.length);
+
+        // Calcular monto liberado usando el campo correcto (played_amount)
+        let precioPorParticipacion = 0;
+        
+        if (setSeleccionado) {
+            precioPorParticipacion = parseFloat(setSeleccionado.played_amount) || 0;
+            console.log('Set seleccionado completo:', setSeleccionado);
+            console.log('played_amount del set:', setSeleccionado.played_amount);
+        }
+        
+        // Si no tenemos precio, intentar obtenerlo del backend
+        if (precioPorParticipacion === 0 && participacionesAsignadas.length > 0 && setSeleccionado) {
+            console.log('No se encontró precio en setSeleccionado, obteniendo del backend...');
+            obtenerPrecioSet(setSeleccionado.id, function(precio) {
+                if (precio > 0) {
+                    const montoLiberado = participacionesAsignadas.length * precio;
+                    console.log('Precio obtenido del backend:', precio);
+                    console.log('Monto liberado recalculado:', montoLiberado);
+                    
+                    $('#anulacion-monto-liberado').text(montoLiberado.toFixed(2) + '€');
+                    $('#anulacion-credito-disponible').text(montoLiberado.toFixed(2) + '€');
+                } else {
+                    console.log('No se pudo obtener precio del backend, usando valor por defecto');
+                    const montoLiberado = participacionesAsignadas.length * 5;
+                    $('#anulacion-monto-liberado').text(montoLiberado.toFixed(2) + '€');
+                    $('#anulacion-credito-disponible').text(montoLiberado.toFixed(2) + '€');
+                }
+            });
+        }
+        
+        const montoLiberado = participacionesAsignadas.length * precioPorParticipacion;
+        
+        console.log('Precio por participación final:', precioPorParticipacion);
+        console.log('Número de participaciones:', participacionesAsignadas.length);
+        console.log('Monto liberado calculado:', montoLiberado);
+        
+        $('#anulacion-monto-liberado').text(montoLiberado.toFixed(2) + '€');
+        $('#anulacion-credito-disponible').text(montoLiberado.toFixed(2) + '€');
+
+        // Generar resumen de participaciones
+        let html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Número</th><th>Código</th><th>Estado</th></tr></thead><tbody>';
+        
+        participacionesAsignadas.forEach(participation => {
+            html += `
+                <tr>
+                    <td>${participation.number || participation.participation_number}</td>
+                    <td>${participation.participation_code}</td>
+                    <td><span class="badge bg-warning">Se anulará</span></td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        $('#anulacion-resumen-participaciones').html(html);
+    }
+
+    // Modificar la función mostrarPaso para incluir anulación
+    const mostrarPasoOriginal = mostrarPaso;
+    mostrarPaso = function(pasoId) {
+        if (pasoId === 'paso-anulacion') {
+            configurarPasoAnulacion();
+        }
+        return mostrarPasoOriginal(pasoId);
+    };
 });
+
+
 </script>
 
 @endsection

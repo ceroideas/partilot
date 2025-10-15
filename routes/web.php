@@ -228,6 +228,7 @@ Route::group(['prefix' => 'sets'], function() {
     Route::get('/reserves-by-entity', [SetController::class, 'getReservesByEntity'])->name('sets.reserves-by-entity');
     Route::get('/download-xml/{set}', [SetController::class, 'downloadXml'])->name('sets.download-xml');
     Route::post('sets/{set}/import-xml', [App\Http\Controllers\SetController::class, 'importXml'])->name('sets.importXml');
+    Route::get('/get-price', [SetController::class, 'getPrice'])->name('sets.get-price');
 });
 
 Route::group(['prefix' => 'participations'], function() {
