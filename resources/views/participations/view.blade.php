@@ -137,7 +137,7 @@
                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                 <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
                                                             </div>
-                                                            <input class="form-control" type="text" value="{{ ucfirst($participation->status ?? 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                            <input class="form-control" type="text" value="{{ $participation->seller_id && $participation->status == 'disponible' ? 'Asignada' : ucfirst($participation->status ?? 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -305,7 +305,7 @@
                                                                      <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                          <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
                                                                      </div>
-                                                                     <input class="form-control" type="text" value="{{ $participation->status == 'vendida' ? 'Pagado' : ($participation->status == 'disponible' ? 'Pendiente' : 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                                     <input class="form-control" type="text" value="{{ $participation->status == 'vendida' ? 'Pagado' : (($participation->seller_id && $participation->status == 'disponible') || $participation->status == 'disponible' ? 'Pendiente' : 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
                                                                  </div>
                                                              </div>
                                                          </div>
@@ -314,80 +314,59 @@
                                              </div>
                                              @endif
 
-                                             <!-- Historial de Estados -->
-                                             <div class="row show-content mt-4">
-                                                 <div class="col-12">
-                                                     <h5 class="mb-3">Historial de Estados</h5>
-                                                     <div class="table-responsive">
-                                                         <table class="table table-striped">
-                                                             <thead>
-                                                                 <tr>
-                                                                     <th>Estado</th>
-                                                                     <th>Fecha</th>
-                                                                     <th>Hora</th>
-                                                                     <th>Vendedor</th>
-                                                                     <th>Observaciones</th>
-                                                                 </tr>
-                                                             </thead>
-                                                             <tbody>
-                                                                 <tr>
-                                                                     <td>
-                                                                         <span class="badge bg-primary">Creada</span>
-                                                                     </td>
-                                                                     <td>{{ $participation->created_at ? \Carbon\Carbon::parse($participation->created_at)->format('d/m/Y') : 'N/A' }}</td>
-                                                                     <td>{{ $participation->created_at ? \Carbon\Carbon::parse($participation->created_at)->format('H:i') : 'N/A' }}</td>
-                                                                     <td>Sistema</td>
-                                                                     <td>Participación creada automáticamente</td>
-                                                                 </tr>
-                                                                 @if($participation->seller && $participation->seller->user)
-                                                                 <tr>
-                                                                     <td>
-                                                                         <span class="badge bg-warning">Asignada</span>
-                                                                     </td>
-                                                                     <td>{{ $participation->assigned_at ? \Carbon\Carbon::parse($participation->assigned_at)->format('d/m/Y') : ($participation->sale_date ? \Carbon\Carbon::parse($participation->sale_date)->format('d/m/Y') : 'N/A') }}</td>
-                                                                     <td>{{ $participation->assigned_at ? \Carbon\Carbon::parse($participation->assigned_at)->format('H:i') : ($participation->sale_time ?? 'N/A') }}</td>
-                                                                     <td>{{ $participation->seller->user->name ?? 'N/A' }}</td>
-                                                                     <td>Asignada al vendedor {{ $participation->seller->user->name }}</td>
-                                                                 </tr>
-                                                                 @endif
-                                                                 @if($participation->status == 'vendida')
-                                                                 <tr>
-                                                                     <td>
-                                                                         <span class="badge bg-success">Vendida</span>
-                                                                     </td>
-                                                                     <td>{{ $participation->sale_date ? \Carbon\Carbon::parse($participation->sale_date)->format('d/m/Y') : 'N/A' }}</td>
-                                                                     <td>{{ $participation->sale_time ?? 'N/A' }}</td>
-                                                                     <td>{{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'N/A' }}</td>
-                                                                     <td>Venta registrada por {{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'vendedor' }}</td>
-                                                                 </tr>
-                                                                 @endif
-                                                                 @if($participation->status == 'devuelta')
-                                                                 <tr>
-                                                                     <td>
-                                                                         <span class="badge bg-danger">Devuelta</span>
-                                                                     </td>
-                                                                     <td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('d/m/Y') : 'N/A' }}</td>
-                                                                     <td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('H:i') : 'N/A' }}</td>
-                                                                     <td>{{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'N/A' }}</td>
-                                                                     <td>Participación devuelta por {{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'vendedor' }}</td>
-                                                                 </tr>
-                                                                 @endif
-                                                                 @if($participation->status == 'disponible')
-                                                                 <tr>
-                                                                     <td>
-                                                                         <span class="badge bg-info">Disponible</span>
-                                                                     </td>
-                                                                     <td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('d/m/Y') : 'N/A' }}</td>
-                                                                     <td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('H:i') : 'N/A' }}</td>
-                                                                     <td>Sistema</td>
-                                                                     <td>Participación disponible para venta</td>
-                                                                 </tr>
-                                                                 @endif
-                                                             </tbody>
-                                                         </table>
-                                                     </div>
-                                                 </div>
-                                             </div>
+                                            <!-- Historial de Actividades -->
+                                            <div class="row show-content mt-4">
+                                                <div class="col-12">
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <h5 class="mb-0">
+                                                            <i class="mdi mdi-timeline-clock"></i> Historial de Actividades
+                                                        </h5>
+                                                        <button class="btn btn-sm btn-light" onclick="refreshActivityHistory()" title="Actualizar historial">
+                                                            <i class="mdi mdi-refresh"></i>
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    <!-- Loading state -->
+                                                    <div id="activity-loading" class="text-center py-4">
+                                                        <div class="spinner-border text-primary" role="status">
+                                                            <span class="visually-hidden">Cargando...</span>
+                                                        </div>
+                                                        <p class="text-muted mt-2 mb-0">Cargando historial de actividades...</p>
+                                                    </div>
+
+                                                    <!-- No activities state -->
+                                                    <div id="no-activities" class="text-center py-4" style="display: none;">
+                                                        <i class="mdi mdi-information-outline" style="font-size: 48px; color: #ccc;"></i>
+                                                        <p class="text-muted mt-2">No hay actividades registradas para esta participación</p>
+                                                    </div>
+
+                                                    <!-- Error state -->
+                                                    <div id="activity-error" class="text-center py-4" style="display: none;">
+                                                        <i class="mdi mdi-alert-circle-outline" style="font-size: 48px; color: #dc3545;"></i>
+                                                        <p class="text-danger mt-2">Error al cargar el historial de actividades</p>
+                                                    </div>
+
+                                                    <!-- Activities list -->
+                                                    <div id="activity-timeline" style="display: none;">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-hover">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th style="width: 150px;">Tipo</th>
+                                                                        <th>Descripción</th>
+                                                                        <th style="width: 120px;">Usuario</th>
+                                                                        <th style="width: 120px;">Vendedor</th>
+                                                                        <th style="width: 160px;">Fecha/Hora</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="activity-tbody">
+                                                                    <!-- Las actividades se cargarán aquí -->
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                         </div>
                                     </div>
@@ -403,4 +382,191 @@
 
 </div>
 
+@endsection
+
+@section('scripts')
+<script>
+    const participationId = {{ $participation->id }};
+
+    // Cargar el historial al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        loadActivityHistory();
+    });
+
+    function loadActivityHistory() {
+        // Mostrar loading
+        document.getElementById('activity-loading').style.display = 'block';
+        document.getElementById('activity-timeline').style.display = 'none';
+        document.getElementById('no-activities').style.display = 'none';
+        document.getElementById('activity-error').style.display = 'none';
+
+        fetch(`/participations/${participationId}/history`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('activity-loading').style.display = 'none';
+
+                if (data.success && data.activities && data.activities.length > 0) {
+                    renderActivities(data.activities);
+                    document.getElementById('activity-timeline').style.display = 'block';
+                } else {
+                    document.getElementById('no-activities').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar historial:', error);
+                document.getElementById('activity-loading').style.display = 'none';
+                document.getElementById('activity-error').style.display = 'block';
+            });
+    }
+
+    function renderActivities(activities) {
+        const tbody = document.getElementById('activity-tbody');
+        tbody.innerHTML = '';
+
+        activities.forEach((activity, index) => {
+            const row = createActivityRow(activity);
+            tbody.appendChild(row);
+        });
+    }
+
+    function createActivityRow(activity) {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.title = 'Click para ver detalles';
+        
+        // Tipo de actividad
+        const tdType = document.createElement('td');
+        tdType.innerHTML = `<span class="badge ${activity.activity_badge}">${activity.activity_type_text}</span>`;
+        tr.appendChild(tdType);
+
+        // Descripción
+        const tdDesc = document.createElement('td');
+        tdDesc.innerHTML = `
+            <div>${activity.description}</div>
+            ${activity.old_status && activity.new_status ? 
+                `<small class="text-muted">
+                    <span class="badge bg-secondary">${activity.old_status}</span> 
+                    <i class="mdi mdi-arrow-right"></i> 
+                    <span class="badge bg-primary">${activity.new_status}</span>
+                </small>` : ''
+            }
+            ${activity.old_seller && activity.new_seller ? 
+                `<small class="text-muted d-block mt-1">
+                    <i class="mdi mdi-account-switch"></i> ${activity.old_seller} → ${activity.new_seller}
+                </small>` : ''
+            }
+        `;
+        tr.appendChild(tdDesc);
+
+        // Usuario
+        const tdUser = document.createElement('td');
+        tdUser.innerHTML = `<small>${activity.user || 'Sistema'}</small>`;
+        tr.appendChild(tdUser);
+
+        // Vendedor
+        const tdSeller = document.createElement('td');
+        if (activity.seller || activity.new_seller || activity.old_seller) {
+            const sellerName = activity.seller || activity.new_seller || activity.old_seller;
+            tdSeller.innerHTML = `<small>${sellerName}</small>`;
+        } else {
+            tdSeller.innerHTML = `<small class="text-muted">-</small>`;
+        }
+        tr.appendChild(tdSeller);
+
+        // Fecha y hora
+        const tdDate = document.createElement('td');
+        tdDate.innerHTML = `
+            <small>
+                <i class="mdi mdi-clock-outline"></i> ${activity.created_at}
+            </small>
+        `;
+        tr.appendChild(tdDate);
+
+        // Click para mostrar detalles
+        tr.addEventListener('click', function() {
+            showActivityDetails(activity);
+        });
+
+        return tr;
+    }
+
+    function showActivityDetails(activity) {
+        let detailsHtml = `
+            <div class="mb-3">
+                <h6><span class="badge ${activity.activity_badge}">${activity.activity_type_text}</span></h6>
+                <p class="mb-2">${activity.description}</p>
+            </div>
+        `;
+
+        if (activity.metadata && Object.keys(activity.metadata).length > 0) {
+            detailsHtml += '<div class="mb-2"><strong>Información adicional:</strong></div>';
+            detailsHtml += '<div class="table-responsive"><table class="table table-sm table-bordered">';
+            
+            for (const [key, value] of Object.entries(activity.metadata)) {
+                if (value !== null && value !== undefined && value !== '') {
+                    const formattedKey = formatMetadataKey(key);
+                    const formattedValue = formatMetadataValue(value);
+                    detailsHtml += `
+                        <tr>
+                            <td style="width: 40%;"><strong>${formattedKey}</strong></td>
+                            <td>${formattedValue}</td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            detailsHtml += '</table></div>';
+        }
+
+        if (activity.ip_address) {
+            detailsHtml += `<div class="mt-2"><small class="text-muted"><i class="mdi mdi-ip"></i> IP: <code>${activity.ip_address}</code></small></div>`;
+        }
+
+        // Mostrar en un modal usando SweetAlert2 o alert nativo
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Detalles de la Actividad',
+                html: detailsHtml,
+                width: 600,
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#333'
+            });
+        } else {
+            // Fallback a alert simple si no hay SweetAlert2
+            alert('Detalles de la actividad:\n\n' + activity.description + '\n\nUsuario: ' + (activity.user || 'Sistema'));
+        }
+    }
+
+    function formatMetadataKey(key) {
+        const translations = {
+            'participation_code': 'Código Participación',
+            'book_number': 'Número de Taco',
+            'set_id': 'ID Set',
+            'design_format_id': 'ID Formato',
+            'cancellation_reason': 'Razón de Anulación',
+            'return_reason': 'Razón de Devolución',
+            'sale_amount': 'Importe de Venta',
+            'buyer_name': 'Nombre Comprador',
+            'buyer_phone': 'Teléfono Comprador',
+            'buyer_email': 'Email Comprador',
+            'buyer_nif': 'NIF Comprador',
+            'status': 'Estado',
+            'seller_id': 'ID Vendedor',
+            'old_status': 'Estado Anterior',
+            'new_status': 'Estado Nuevo'
+        };
+        return translations[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function formatMetadataValue(value) {
+        if (typeof value === 'object' && value !== null) {
+            return '<pre style="font-size: 0.85em; margin: 0;">' + JSON.stringify(value, null, 2) + '</pre>';
+        }
+        return value;
+    }
+
+    function refreshActivityHistory() {
+        loadActivityHistory();
+    }
+</script>
 @endsection

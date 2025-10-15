@@ -432,8 +432,8 @@ class SellerController extends Controller
 
             foreach ($participations as $participationData) {
                 // Verificar que la participación esté disponible o ya asignada al vendedor actual
-                $participation = DB::table('participations')
-                    ->where('id', $participationData['id'])
+                // USAR MODELO ELOQUENT para que se dispare el Observer
+                $participation = Participation::where('id', $participationData['id'])
                     ->where('set_id', $participationData['set_id'])
                     ->where(function($query) use ($seller) {
                         $query->where('status', 'disponible')
@@ -447,14 +447,13 @@ class SellerController extends Controller
 
                 if ($participation) {
                     // Asignar la participación al vendedor
-                    DB::table('participations')
-                        ->where('id', $participationData['id'])
-                        ->update([
-                            'seller_id' => $seller->id,
-                            'sale_date' => now()->toDateString(),
-                            'sale_time' => now()->toTimeString(),
-                            'status' => 'asignada'
-                        ]);
+                    // USAR update() del modelo para disparar el Observer
+                    $participation->update([
+                        'seller_id' => $seller->id,
+                        'sale_date' => now()->toDateString(),
+                        'sale_time' => now()->toTimeString(),
+                        'status' => 'asignada'
+                    ]);
 
                     $assignedCount++;
                 }
@@ -492,7 +491,7 @@ class SellerController extends Controller
                 ->where('seller_id', $request->seller_id)
                 ->where('set_id', $request->set_id)
                 ->whereIn('status', ['asignada', 'vendida', 'disponible'])
-                ->select('id', 'participation_number as number', 'participation_code', 'set_id', 'sale_date', 'sale_time')
+                ->select('id', 'participation_number as number', 'participation_code', 'set_id', 'sale_date', 'sale_time', 'updated_at', 'created_at')
                 ->orderBy('participation_number')
                 ->get();
 
@@ -523,10 +522,10 @@ class SellerController extends Controller
             DB::beginTransaction();
 
             // Verificar que la participación pertenece al vendedor
-            $participation = DB::table('participations')
-                ->where('id', $request->participation_id)
+            // USAR MODELO ELOQUENT para que se dispare el Observer
+            $participation = Participation::where('id', $request->participation_id)
                 ->where('seller_id', $request->seller_id)
-                ->where('status', 'asignada')
+                ->whereIn('status', ['asignada', 'disponible'])
                 ->first();
 
             if (!$participation) {
@@ -537,14 +536,13 @@ class SellerController extends Controller
             }
 
             // Restaurar la participación a estado disponible
-            DB::table('participations')
-                ->where('id', $request->participation_id)
-                ->update([
-                    'seller_id' => null,
-                    'sale_date' => null,
-                    'sale_time' => null,
-                    'status' => 'disponible'
-                ]);
+            // USAR update() del modelo para disparar el Observer
+            $participation->update([
+                'seller_id' => null,
+                'sale_date' => null,
+                'sale_time' => null,
+                'status' => 'disponible'
+            ]);
 
             DB::commit();
 
@@ -609,7 +607,7 @@ class SellerController extends Controller
                 ->where('participation_number', '>=', $startParticipation)
                 ->where('participation_number', '<=', $endParticipation)
                 ->where('status', 'asignada')
-                ->select('id', 'participation_number as number', 'participation_code', 'sale_date', 'sale_time')
+                ->select('id', 'participation_number as number', 'participation_code', 'sale_date', 'sale_time', 'updated_at', 'created_at')
                 ->orderBy('participation_number')
                 ->get();
 

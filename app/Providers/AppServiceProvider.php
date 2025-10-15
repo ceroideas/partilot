@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Models\User;
+use App\Models\Participation;
 use App\Observers\UserObserver;
+use App\Observers\ParticipationObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,5 +25,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Registrar Observer para vinculación automática de vendedores
         User::observe(UserObserver::class);
+        
+        // Registrar Observer para auditoría de participaciones
+        Participation::observe(ParticipationObserver::class);
     }
 }

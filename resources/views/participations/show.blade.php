@@ -95,6 +95,8 @@
 	                    			<label class="">Estado Actual</label> 
 	                    			@if($participation->status == 'vendida')
 	                    				<label class="badge badge-lg bg-success float-end">Vendida</label>
+	                    			@elseif($participation->status == 'disponible' && $participation->seller_id)
+	                    				<label class="badge badge-lg bg-primary float-end">Asignada</label>
 	                    			@elseif($participation->status == 'disponible')
 	                    				<label class="badge badge-lg bg-info float-end">Disponible</label>
 	                    			@elseif($participation->status == 'devuelta')
@@ -152,6 +154,7 @@
 			                    			<small><i>Comprueba que el sorteo es el correcto</i></small>
 			                    			
 			                    			<br>
+											<br>
 
 			                    			<div>
 			                    				<div class="row">
@@ -247,7 +250,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $participation->set ? number_format($participation->set->total_amount, 2) . '€' : 'N/A' }}" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->set ? number_format($participation->set->donation_amount+$participation->set->reserve->lottery->ticket_price, 2) . '€' : 'N/A' }}" class="form-control" type="text" placeholder="6,00€" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -284,80 +287,56 @@
 			                    				</div>
 			                    			</div>
 
-			                    			<h4 class="mb-0 mt-1">
-			                    				Historial Participación
-			                    			</h4>
-			                    			<small><i>Historial</i></small>
+		                    			<div class="d-flex justify-content-between align-items-center mb-2">
+		                    				<div>
+		                    					<h4 class="mb-0 mt-1">
+		                    						<i class="mdi mdi-timeline-clock"></i> Historial Participación
+		                    					</h4>
+		                    					<small><i>Registro completo de actividades</i></small>
+		                    				</div>
+		                    				<button class="btn btn-sm btn-light" onclick="refreshActivityHistory()" title="Actualizar historial">
+		                    					<i class="mdi mdi-refresh"></i> Actualizar
+		                    				</button>
+		                    			</div>
 
-			                    			<table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
+		                    			<!-- Loading state -->
+		                    			<div id="activity-loading" class="text-center py-4">
+		                    				<div class="spinner-border text-primary" role="status">
+		                    					<span class="visually-hidden">Cargando...</span>
+		                    				</div>
+		                    				<p class="text-muted mt-2 mb-0"><small>Cargando historial de actividades...</small></p>
+		                    			</div>
 
-			                    				<thead>
-			                    					<tr>
-			                    						<th>Fecha Movimiento</th>
-			                    						<th>Hora Movimiento</th>
-			                    						<th>Concepto Movimiento</th>
-			                    						<th>Usuario</th>
-			                    						<th>Rol</th>
-			                    						<th>Status</th>
-			                    					</tr>
-			                    				</thead>
+		                    			<!-- No activities state -->
+		                    			<div id="no-activities" class="text-center py-4" style="display: none;">
+		                    				<i class="mdi mdi-information-outline" style="font-size: 48px; color: #ccc;"></i>
+		                    				<p class="text-muted mt-2"><small>No hay actividades registradas</small></p>
+		                    			</div>
 
-			                    				<tbody>
-			                    					<tr>
-			                    						<td>{{ $participation->created_at ? \Carbon\Carbon::parse($participation->created_at)->format('d/m/Y') : 'N/A' }}</td>
-			                    						<td>{{ $participation->created_at ? \Carbon\Carbon::parse($participation->created_at)->format('H:i') . 'h' : 'N/A' }}</td>
-			                    						<td>Participación Creada</td>
-			                    						<td>Sistema</td>
-			                    						<td>Sistema</td>
-			                    						<td><label class="badge bg-primary">Creada</label></td>
-			                    					</tr>
+		                    			<!-- Error state -->
+		                    			<div id="activity-error" class="text-center py-4" style="display: none;">
+		                    				<i class="mdi mdi-alert-circle-outline" style="font-size: 48px; color: #dc3545;"></i>
+		                    				<p class="text-danger mt-2"><small>Error al cargar el historial</small></p>
+		                    			</div>
 
-			                    					@if($participation->seller && $participation->seller->user)
-			                    					<tr>
-			                    						<td>{{ $participation->assigned_at ? \Carbon\Carbon::parse($participation->assigned_at)->format('d/m/Y') : ($participation->sale_date ? \Carbon\Carbon::parse($participation->sale_date)->format('d/m/Y') : 'N/A') }}</td>
-			                    						<td>{{ $participation->assigned_at ? \Carbon\Carbon::parse($participation->assigned_at)->format('H:i') . 'h' : ($participation->sale_time ?? 'N/A') }}</td>
-			                    						<td>Asignada al Vendedor</td>
-			                    						<td>{{ $participation->seller->user->name ?? 'N/A' }}</td>
-			                    						<td>Vendedor</td>
-			                    						<td><label class="badge bg-warning">Asignada</label></td>
-			                    					</tr>
-			                    					@endif
-
-			                    					@if($participation->status == 'vendida')
-			                    					<tr>
-			                    						<td>{{ $participation->sale_date ? \Carbon\Carbon::parse($participation->sale_date)->format('d/m/Y') : 'N/A' }}</td>
-			                    						<td>{{ $participation->sale_time ?? 'N/A' }}</td>
-			                    						<td>Venta Registrada</td>
-			                    						<td>{{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'N/A' }}</td>
-			                    						<td>Vendedor</td>
-			                    						<td><label class="badge bg-success">Vendida</label></td>
-			                    					</tr>
-			                    					@endif
-
-			                    					@if($participation->status == 'devuelta')
-			                    					<tr>
-			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('d/m/Y') : 'N/A' }}</td>
-			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('H:i') . 'h' : 'N/A' }}</td>
-			                    						<td>Participación Devuelta</td>
-			                    						<td>{{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'N/A' }}</td>
-			                    						<td>Vendedor</td>
-			                    						<td><label class="badge bg-danger">Devuelta</label></td>
-			                    					</tr>
-			                    					@endif
-
-			                    					@if($participation->status == 'disponible')
-			                    					<tr>
-			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('d/m/Y') : 'N/A' }}</td>
-			                    						<td>{{ $participation->updated_at ? \Carbon\Carbon::parse($participation->updated_at)->format('H:i') . 'h' : 'N/A' }}</td>
-			                    						<td>Disponible para Venta</td>
-			                    						<td>Sistema</td>
-			                    						<td>Sistema</td>
-			                    						<td><label class="badge bg-info">Disponible</label></td>
-			                    					</tr>
-			                    					@endif
-			                    				</tbody>
-			                    				
-			                    			</table>
+		                    			<!-- Activities table -->
+		                    			<div id="activity-timeline" style="display: none;">
+		                    				<table class="table table-striped table-condensed table-hover nowrap w-100 mb-0">
+		                    					<thead>
+		                    						<tr>
+		                    							<th style="width: 100px;">Fecha</th>
+		                    							<th style="width: 80px;">Hora</th>
+		                    							<th style="width: 130px;">Tipo</th>
+		                    							<th>Concepto</th>
+		                    							<th style="width: 120px;">Usuario</th>
+		                    							<th style="width: 120px;">Vendedor</th>
+		                    						</tr>
+		                    					</thead>
+		                    					<tbody id="activity-tbody">
+		                    						<!-- Las actividades se cargarán aquí -->
+		                    					</tbody>
+		                    				</table>
+		                    			</div>
 
 			                    		</div>
                     				</div>
@@ -518,241 +497,6 @@
 			                    		</div>
                     				</div>
 
-                    				<div class="tab-pane fade" id="configuracion_api">
-                    					<div class="form-card bs" style="min-height: 658px;">
-			                    			<h4 class="mb-0 mt-1">
-			                    				Datos generales API
-
-			                    				<a href="{{url('administrations/edit/api/1')}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
-			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
-			                    				Editar</a>
-			                    			</h4>
-			                    			<small><i>Todos los campos son obligatorios</i></small>
-			                    			<div style="clear: both;"></div>
-
-			                    			<div class="row">
-			                    					
-		                    					<div class="col-7">
-		                    						<div class="form-group mt-2 mb-3">
-		                    							<label class="label-control">Nombre de la integración</label>
-
-						                    			<div class="input-group input-group-merge group-form">
-
-						                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-						                                      	<img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
-						                                    </div>
-
-						                                    <input class="form-control" value="El Búho Lotero" type="text" readonly="" placeholder="Nombre Integración" style="border-radius: 0 30px 30px 0;">
-
-						                                </div>
-						                                <small><i>Ayuda: Un nombre fácil de recordar para identificar esta configuración</i></small>
-					                    			</div>
-		                    					</div>
-		                    					<div class="col-5">
-		                    						<div class="form-group mb-3">
-		                    							
-		                    							<div class="form-check form-switch mt-4" style="margin-top: 3rem !important;">
-															<input disabled="" style="float: right;" class="form-check-input bg-dark" type="checkbox" role="switch" id="api_status" checked>
-															<label style="float: right; margin-right: 50px;" class="form-check-label" for="api_status"><b>Estado de la integración</b></label>
-														</div>
-
-						                    			
-					                    			</div>
-		                    					</div>
-
-		                    				</div>
-
-		                    				<h4 class="mb-0 mt-1">
-			                    				Datos generales API
-			                    			</h4>
-			                    			<small><i>Todos los campos son obligatorios</i></small>
-
-			                    			<div class="row">
-			                    					
-		                    					<div class="col-7">
-		                    						<div class="form-group mt-2 mb-3">
-		                    							<label class="label-control">URL Base de la API (Endpoint)</label>
-
-						                    			<div class="input-group input-group-merge group-form">
-
-						                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-						                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-						                                    </div>
-
-						                                    <input class="form-control" value="http://api.cliente.com/v1/recargas" type="text" readonly="" placeholder="URL Base de la API" style="border-radius: 0 30px 30px 0;">
-
-						                                </div>
-					                    			</div>
-		                    					</div>
-
-		                    					<div class="col-5">
-		                    						<div class="form-group mt-2 mb-3">
-		                    							<label class="label-control">Método de Autenticación</label>
-
-						                    			<div class="input-group input-group-merge group-form">
-
-						                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-						                                      	<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
-						                                    </div>
-
-						                                    <select class="form-control" name="" id="method" disabled>
-						                                    	<option value="" disabled>Elige una opción</option>
-						                                    	<option value="apikey">Clave API (API Key)</option>
-						                                    	<option value="oauth">OAuth 2.0</option>
-						                                    	<option value="bearer">Bearer Token (JWT)</option>
-						                                    	<option value="basic" selected>Básico (Usuario/Contraseña)</option>
-						                                    </select>
-
-						                                </div>
-					                    			</div>
-		                    					</div>
-		                    					
-
-		                    				</div>
-
-		                    				<div id="apikey" class="d-none mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				Clave API (API Key)
-				                    			</h4>
-
-				                    			<div class="row">
-			                    					
-			                    					<div class="col-12">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">API Key</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" type="text" placeholder="API Key" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-			                    				</div>
-		                    				</div>
-		                    				<div id="oauth" class="d-none mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				OAuth 2.0
-				                    			</h4>
-
-				                    			<div class="row">
-			                    					
-			                    					<div class="col-12">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Token OAuth</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" type="text" placeholder="Token Oauth" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-			                    				</div>
-
-		                    				</div>
-		                    				<div id="bearer" class="d-none mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				Bearer Token (JWT)
-				                    			</h4>
-
-				                    			<div class="row">
-			                    					
-			                    					<div class="col-12">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Bearer Token</label>
-
-							                    			<div class="input-group input-group-merge group-form" {{-- style="border-bottom: none;" --}}>
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <textarea readonly="" class="form-control" placeholder="Bearer Token" name="" id="" rows="4"></textarea>
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-			                    				</div>
-		                    				</div>
-		                    				<div id="basic" class="d-none- mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				Básico (Usuario/Contraseña)
-				                    			</h4>
-
-				                    			<div class="row">
-			                    					
-			                    					<div class="col-7">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Usuario</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" value="elbuholotero@partilot.com" readonly="" type="text" placeholder="Usuario" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-
-			                    					<div class="col-5">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Contraseña</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" value="12345678" readonly="" type="text" placeholder="Contraseña" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-			                    					
-			                    					<div class="col-4">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Formato de Datos de Envío</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
-							                                    </div>
-
-							                                    <select class="form-control" name="" id="" disabled>
-							                                    	<option value="" disabled selected>Elige una opción</option>
-							                                    	<option value="json" selected>JSON</option>
-							                                    	<option value="text">Text</option>
-							                                    	<option value="xml">XML</option>
-							                                    </select>
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-
-			                    				</div>
-		                    				</div>
-
-			                    		</div>
-                    				</div>
-
                     			</div>
 
 
@@ -799,6 +543,196 @@
 
 		$('#'+value).removeClass('d-none');
 	});
+
+	// ==================== HISTORIAL DE ACTIVIDADES ====================
+	const participationId = {{ $participation->id }};
+
+	// Cargar el historial al cargar la página
+	$(document).ready(function() {
+		loadActivityHistory();
+	});
+
+	function loadActivityHistory() {
+		// Mostrar loading
+		$('#activity-loading').show();
+		$('#activity-timeline').hide();
+		$('#no-activities').hide();
+		$('#activity-error').hide();
+
+		$.ajax({
+			url: `/participations/${participationId}/history`,
+			type: 'GET',
+			success: function(data) {
+				$('#activity-loading').hide();
+
+				if (data.success && data.activities && data.activities.length > 0) {
+					renderActivities(data.activities);
+					$('#activity-timeline').show();
+				} else {
+					$('#no-activities').show();
+				}
+			},
+			error: function(xhr, status, error) {
+				console.error('Error al cargar historial:', error);
+				$('#activity-loading').hide();
+				$('#activity-error').show();
+			}
+		});
+	}
+
+	function createActivityRow(activity) {
+		// Separar fecha y hora
+		const dateTimeParts = activity.created_at.split(' ');
+		const datePart = dateTimeParts[0] || '';
+		const timePart = dateTimeParts[1] || '';
+
+		// Crear la fila
+		let row = `
+			<tr style="cursor: pointer;" onclick="showActivityDetails(${activity.id})" title="Click para ver detalles">
+				<td><small>${datePart}</small></td>
+				<td><small>${timePart}</small></td>
+				<td><span class="badge ${activity.activity_badge}">${activity.activity_type_text}</span></td>
+				<td>
+					<div>${activity.description}</div>
+		`;
+
+		// Agregar información de cambios de estado si existe
+		if (activity.old_status && activity.new_status) {
+			row += `
+				<small class="text-muted">
+					<span class="badge bg-secondary">${activity.old_status}</span> 
+					<i class="mdi mdi-arrow-right"></i> 
+					<span class="badge bg-primary">${activity.new_status}</span>
+				</small>
+			`;
+		}
+
+		// Agregar información de cambio de vendedor si existe
+		if (activity.old_seller && activity.new_seller) {
+			row += `
+				<small class="text-muted d-block mt-1">
+					<i class="mdi mdi-account-switch"></i> ${activity.old_seller} → ${activity.new_seller}
+				</small>
+			`;
+		}
+
+		row += `
+				</td>
+				<td><small>${activity.user || 'Sistema'}</small></td>
+				<td>
+		`;
+
+		// Columna de vendedor
+		if (activity.seller || activity.new_seller || activity.old_seller) {
+			const sellerName = activity.seller || activity.new_seller || activity.old_seller;
+			row += `<small>${sellerName}</small>`;
+		} else {
+			row += `<small class="text-muted">-</small>`;
+		}
+
+		row += `
+				</td>
+			</tr>
+		`;
+
+		return row;
+	}
+
+	// Guardar actividades en una variable global para acceso en los detalles
+	window.activitiesData = {};
+
+	function renderActivities(activities) {
+		const tbody = $('#activity-tbody');
+		tbody.empty();
+
+		// Guardar actividades para acceso posterior
+		activities.forEach(function(activity) {
+			window.activitiesData[activity.id] = activity;
+			const row = createActivityRow(activity);
+			tbody.append(row);
+		});
+	}
+
+	function showActivityDetails(activityId) {
+		const activity = window.activitiesData[activityId];
+		if (!activity) return;
+
+		let detailsHtml = `
+			<div class="mb-3">
+				<h6><span class="badge ${activity.activity_badge}">${activity.activity_type_text}</span></h6>
+				<p class="mb-2">${activity.description}</p>
+			</div>
+		`;
+
+		// Agregar metadata si existe
+		if (activity.metadata && Object.keys(activity.metadata).length > 0) {
+			detailsHtml += '<div class="mb-2"><strong>Información adicional:</strong></div>';
+			detailsHtml += '<div class="table-responsive"><table class="table table-sm table-bordered">';
+			
+			for (const [key, value] of Object.entries(activity.metadata)) {
+				if (value !== null && value !== undefined && value !== '') {
+					const formattedKey = formatMetadataKey(key);
+					const formattedValue = formatMetadataValue(value);
+					detailsHtml += `
+						<tr>
+							<td style="width: 40%;"><strong>${formattedKey}</strong></td>
+							<td>${formattedValue}</td>
+						</tr>
+					`;
+				}
+			}
+			
+			detailsHtml += '</table></div>';
+		}
+
+		// Agregar IP si existe
+		if (activity.ip_address) {
+			detailsHtml += `<div class="mt-2"><small class="text-muted"><i class="mdi mdi-ip"></i> IP: <code>${activity.ip_address}</code></small></div>`;
+		}
+
+		// Mostrar en modal con SweetAlert2 o alert nativo
+		if (typeof Swal !== 'undefined') {
+			Swal.fire({
+				title: 'Detalles de la Actividad',
+				html: detailsHtml,
+				width: 600,
+				confirmButtonText: 'Cerrar',
+				confirmButtonColor: '#333'
+			});
+		} else {
+			alert('Detalles:\n\n' + activity.description + '\n\nUsuario: ' + (activity.user || 'Sistema'));
+		}
+	}
+
+	function formatMetadataKey(key) {
+		const translations = {
+			'participation_code': 'Código Participación',
+			'book_number': 'Número de Taco',
+			'set_id': 'ID Set',
+			'design_format_id': 'ID Formato',
+			'cancellation_reason': 'Razón de Anulación',
+			'return_reason': 'Razón de Devolución',
+			'sale_amount': 'Importe de Venta',
+			'buyer_name': 'Nombre Comprador',
+			'buyer_phone': 'Teléfono Comprador',
+			'buyer_email': 'Email Comprador',
+			'buyer_nif': 'NIF Comprador',
+			'status': 'Estado',
+			'seller_id': 'ID Vendedor'
+		};
+		return translations[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+	}
+
+	function formatMetadataValue(value) {
+		if (typeof value === 'object' && value !== null) {
+			return '<pre style="font-size: 0.85em; margin: 0;">' + JSON.stringify(value, null, 2) + '</pre>';
+		}
+		return value;
+	}
+
+	function refreshActivityHistory() {
+		loadActivityHistory();
+	}
 
 </script>
 

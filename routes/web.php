@@ -16,6 +16,7 @@ use App\Http\Controllers\SellerController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\ParticipationController;
+use App\Http\Controllers\ParticipationActivityLogController;
 use App\Http\Controllers\DevolutionsController;
 use App\Http\Controllers\UserController;
 use App\Models\Administration;
@@ -237,6 +238,18 @@ Route::group(['prefix' => 'participations'], function() {
     Route::get('/view/{id}', [ParticipationController::class, 'show'])->name('participations.show');
     Route::get('/view/{id}/seller', [ParticipationController::class, 'show_seller'])->name('participations.show-seller');
     Route::get('/book/{set_id}/{book_number}/participations', [ParticipationController::class, 'getBookParticipations'])->name('participations.book-participations');
+    
+    // Rutas para historial de actividades
+    Route::get('/{id}/activity-log', [ParticipationActivityLogController::class, 'show'])->name('participations.activity-log');
+    Route::get('/{id}/history', [ParticipationActivityLogController::class, 'getParticipationHistory'])->name('participations.history');
+});
+
+// Rutas para historial de actividades
+Route::group(['prefix' => 'activity-logs'], function() {
+    Route::get('/seller/{id}', [ParticipationActivityLogController::class, 'getSellerHistory'])->name('activity-logs.seller');
+    Route::get('/entity/{id}', [ParticipationActivityLogController::class, 'getEntityHistory'])->name('activity-logs.entity');
+    Route::get('/stats', [ParticipationActivityLogController::class, 'getActivityStats'])->name('activity-logs.stats');
+    Route::get('/recent', [ParticipationActivityLogController::class, 'getRecentActivities'])->name('activity-logs.recent');
 });
 
 Route::group(['prefix' => 'design'], function() {

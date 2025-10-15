@@ -121,21 +121,22 @@ class DevolutionsController extends Controller
 
             // Procesar participaciones a devolver
             if (!empty($participationsToReturn)) {
-                Participation::whereIn('id', $participationsToReturn)
-                    ->update([
+                // USAR MODELO ELOQUENT para disparar el Observer
+                $participationsToUpdateReturn = Participation::whereIn('id', $participationsToReturn)->get();
+                
+                foreach ($participationsToUpdateReturn as $participation) {
+                    $participation->update([
                         'status' => 'devuelta',
                         'return_date' => $now->format('Y-m-d'),
                         'return_time' => $now->format('H:i:s'),
                         'return_reason' => $data['return_reason'] ?? 'Devolución de entidad a administración',
                         'returned_by' => $userId,
-                        'updated_at' => $now
                     ]);
 
-                // Crear detalles de devolución
-                foreach ($participationsToReturn as $participationId) {
+                    // Crear detalle de devolución
                     DevolutionDetail::create([
                         'devolution_id' => $devolution->id,
-                        'participation_id' => $participationId,
+                        'participation_id' => $participation->id,
                         'action' => 'devolver'
                     ]);
                 }
@@ -143,25 +144,29 @@ class DevolutionsController extends Controller
 
             // Procesar participaciones a vender
             if (!empty($participationsToSell)) {
-                Participation::whereIn('id', $participationsToSell)
-                    ->update([
+                // USAR MODELO ELOQUENT para disparar el Observer
+                $participationsToUpdateSell = Participation::with('set')->whereIn('id', $participationsToSell)->get();
+                
+                foreach ($participationsToUpdateSell as $participation) {
+                    // Obtener el precio del set
+                    $saleAmount = $participation->set ? $participation->set->played_amount : 0;
+                    
+                    $participation->update([
                         'status' => 'vendida',
                         'sale_date' => $now->format('Y-m-d'),
                         'sale_time' => $now->format('H:i:s'),
-                        'sale_amount' => DB::raw('(SELECT played_amount FROM sets WHERE sets.id = participations.set_id)'),
+                        'sale_amount' => $saleAmount,
                         'buyer_name' => 'Liquidación automática',
                         'buyer_phone' => '',
                         'buyer_email' => '',
                         'buyer_nif' => '',
                         'notes' => 'Liquidación automática',
-                        'updated_at' => $now
                     ]);
 
-                // Crear detalles de venta (sin información de pago)
-                foreach ($participationsToSell as $participationId) {
+                    // Crear detalle de venta
                     DevolutionDetail::create([
                         'devolution_id' => $devolution->id,
-                        'participation_id' => $participationId,
+                        'participation_id' => $participation->id,
                         'action' => 'vender'
                     ]);
                 }
@@ -249,8 +254,11 @@ class DevolutionsController extends Controller
             $participationIds = $devolution->details->pluck('participation_id')->toArray();
 
             // Revertir estado de participaciones
-            Participation::whereIn('id', $participationIds)
-                ->update([
+            // USAR MODELO ELOQUENT para disparar el Observer
+            $participationsToRevert = Participation::whereIn('id', $participationIds)->get();
+            
+            foreach ($participationsToRevert as $participation) {
+                $participation->update([
                     'status' => 'disponible',
                     'return_date' => null,
                     'return_time' => null,
@@ -264,8 +272,8 @@ class DevolutionsController extends Controller
                     'buyer_email' => null,
                     'buyer_nif' => null,
                     'notes' => null,
-                    'updated_at' => now()
                 ]);
+            }
 
             // Eliminar detalles de devolución
             $devolution->details()->delete();

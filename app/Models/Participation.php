@@ -77,6 +77,11 @@ class Participation extends Model
         return $this->belongsTo(User::class, 'cancelled_by');
     }
 
+    public function activityLogs()
+    {
+        return $this->hasMany(ParticipationActivityLog::class)->orderBy('created_at', 'desc');
+    }
+
     // Scopes para consultas comunes
     public function scopeAvailable($query)
     {

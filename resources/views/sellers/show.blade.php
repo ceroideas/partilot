@@ -1338,7 +1338,9 @@ function initDatatable()
                 number: participation.number,
                 participation_code: participation.participation_code,
                 set_id: participation.set_id,
-                assigned_at: participation.sale_date + 'T' + participation.sale_time
+                assigned_at: participation.sale_date + 'T' + participation.sale_time,
+                updated_at: participation.updated_at,  // Agregar updated_at
+                created_at: participation.created_at   // Agregar created_at
               }));
               
               // Actualizar el resumen con las participaciones existentes
@@ -1411,7 +1413,8 @@ function initDatatable()
                    number: participation.number,
                    participation_code: participation.participation_code,
                    set_id: setSeleccionado.id,
-                   assigned_at: new Date().toISOString()
+                   assigned_at: new Date().toISOString(),
+                   updated_at: new Date().toISOString()  // Agregar updated_at
                  });
                }
              });
@@ -1459,7 +1462,8 @@ function initDatatable()
                  number: participation.number,
                  participation_code: participation.participation_code,
                  set_id: setSeleccionado.id,
-                 assigned_at: new Date().toISOString()
+                 assigned_at: new Date().toISOString(),
+                 updated_at: new Date().toISOString()  // Agregar updated_at
                });
                actualizarResumenAsignacion();
                mostrarMensaje('Participación asignada correctamente', 'success');
@@ -1498,28 +1502,43 @@ function initDatatable()
           // Actualizar contador
           $('#total-asignadas').text(participacionesAsignadas.length);
 
-                     // Generar grid de participaciones
-           const gridHtml = participacionesAsignadas.map(participation => {
-             const fecha = new Date(participation.assigned_at);
-             const fechaStr = fecha.toLocaleDateString('es-ES');
-             const horaStr = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-             
-             return `
-               <div class="participation-block" style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
-                 <div class="d-flex align-items-center justify-content-between">
-                   <div class="d-flex align-items-center">
-                     <div style="background-color: #333; padding: 16px 10px; border-radius: 12px; margin-right: 15px;">
-                       <img src="{{url('assets/ticket.svg')}}" alt="" width="30px">
-                     </div>
-                     <div>
-                       <h6 class="mb-1" style="font-weight: bold; color: #333;">Participación: ${participation.participation_code}</h6>
-                       <div class="d-flex align-items-center gap-2">
-                         <i class="ri-calendar-line" style="font-size: 14px; color: #666;"></i>
-                         <span style="font-size: 14px; color: #666;">${fechaStr} - ${horaStr}h</span>
-                       </div>
-                       <span class="badge bg-success mt-2">Asignada</span>
-                     </div>
-                   </div>
+                    // Generar grid de participaciones
+          const gridHtml = participacionesAsignadas.map(participation => {
+            // DEBUG: Ver qué datos tiene la participación
+            console.log('Participation data:', participation);
+            
+            // SIEMPRE usar updated_at que siempre existe en la BD
+            let fechaStr = 'Fecha no disponible';
+            let horaStr = '';
+            
+            if (participation.updated_at) {
+              const fecha = new Date(participation.updated_at);
+              if (!isNaN(fecha.getTime())) {
+                fechaStr = fecha.toLocaleDateString('es-ES');
+                horaStr = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+              } else {
+                console.error('Fecha inválida:', participation.updated_at);
+              }
+            } else {
+              console.error('No tiene updated_at:', participation);
+            }
+            
+            return `
+              <div class="participation-block" style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center">
+                    <div style="background-color: #333; padding: 16px 10px; border-radius: 12px; margin-right: 15px;">
+                      <img src="{{url('assets/ticket.svg')}}" alt="" width="30px">
+                    </div>
+                    <div>
+                      <h6 class="mb-1" style="font-weight: bold; color: #333;">Participación: ${participation.participation_code}</h6>
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="ri-calendar-line" style="font-size: 14px; color: #666;"></i>
+                        <span style="font-size: 14px; color: #666;">${fechaStr}${horaStr ? ' - ' + horaStr + 'h' : ''}</span>
+                      </div>
+                      <span class="badge bg-success mt-2">Asignada</span>
+                    </div>
+                  </div>
                    <div class="d-flex gap-2">
                      <button class="btn btn-sm btn-light" onclick="verDetalleParticipacion('${participation.participation_code}', ${participation.id})" title="Ver detalle" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
                        <img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12">
@@ -1989,7 +2008,14 @@ function initDatatable()
           
           if (participations && participations.length > 0) {
             participations.forEach(participation => {
-              const saleDate = participation.sale_date ? new Date(participation.sale_date).toLocaleDateString('es-ES') : 'N/A';
+              // Validar y formatear fecha de venta
+              let saleDate = 'N/A';
+              if (participation.sale_date) {
+                const fecha = new Date(participation.sale_date);
+                if (!isNaN(fecha.getTime())) {
+                  saleDate = fecha.toLocaleDateString('es-ES');
+                }
+              }
               const saleTime = participation.sale_time ? participation.sale_time : 'N/A';
               
               tbody.append(`
@@ -2258,7 +2284,14 @@ function initDatatable()
                       let html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Fecha</th><th>Participaciones Liquidadas</th><th>Monto Pagado</th><th>Métodos de Pago</th></tr></thead><tbody>';
                       
                       response.settlements.forEach(settlement => {
-                          const fecha = new Date(settlement.settlement_date).toLocaleDateString('es-ES');
+                          // Validar y formatear fecha de liquidación
+                          let fecha = 'N/A';
+                          if (settlement.settlement_date) {
+                              const fechaObj = new Date(settlement.settlement_date);
+                              if (!isNaN(fechaObj.getTime())) {
+                                  fecha = fechaObj.toLocaleDateString('es-ES');
+                              }
+                          }
                           
                           let metodos = [];
                           settlement.payments.forEach(payment => {
