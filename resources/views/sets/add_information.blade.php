@@ -334,37 +334,27 @@
 	                    			<h4 class="mb-0 mt-1">
 	                    				Tipo Participaciones
 	                    			</h4>
-	                    			<small><i>Elige la cantidad de participaciones fisicas o digitales a realizar</i></small>
+	                    			<small><i>Elige el tipo de participaciones a realizar</i></small>
 
 	                    			<br>
 
 	                    			<div class="row">
-	                    				<div class="col-3">
+	                    				<div class="col-6">
 	                                        <div class="form-group mt-2 mb-3">
-	                                            <label class="label-control">Participaciones Físicas</label>
+	                                            <label class="label-control">Tipo de Participación</label>
 
-	                                            <div class="input-group input-group-merge group-form">
-
-	                                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-	                                                    <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
-	                                                </div>
-
-	                                                <input class="form-control" id="physical_participations" name="physical_participations" type="number" placeholder="600" style="border-radius: 0 30px 30px 0;" value="{{ old('physical_participations') }}">
+	                                            <div class="form-check mt-3">
+	                                                <input class="form-check-input" type="radio" name="participation_type" id="participation_type_physical" value="physical" checked>
+	                                                <label class="form-check-label" for="participation_type_physical">
+	                                                    <strong>Participaciones Físicas</strong>
+	                                                </label>
 	                                            </div>
-	                                        </div>
-	                                    </div>
-
-	                                    <div class="col-3">
-	                                        <div class="form-group mt-2 mb-3">
-	                                            <label class="label-control">Participaciones Digitales</label>
-
-	                                            <div class="input-group input-group-merge group-form">
-
-	                                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-	                                                    <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
-	                                                </div>
-
-	                                                <input class="form-control" id="digital_participations" name="digital_participations" type="number" placeholder="150" style="border-radius: 0 30px 30px 0;" value="{{ old('digital_participations') }}">
+	                                            
+	                                            <div class="form-check mt-2">
+	                                                <input class="form-check-input" type="radio" name="participation_type" id="participation_type_digital" value="digital">
+	                                                <label class="form-check-label" for="participation_type_digital">
+	                                                    <strong>Participaciones Digitales</strong>
+	                                                </label>
 	                                            </div>
 	                                        </div>
 	                                    </div>
@@ -518,6 +508,34 @@ $(document).ready(function() {
             alert('El importe total supera el disponible para esta reserva (máx: ' + maxAmount.toFixed(2) + ' €)');
             e.preventDefault();
             return false;
+        }
+        
+        // Asignar valores según el tipo de participación seleccionado
+        var participationType = $('input[name="participation_type"]:checked').val();
+        var totalParticipations = parseInt($('#total_participations').val()) || 0;
+        
+        if (participationType === 'physical') {
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'physical_participations',
+                value: totalParticipations
+            }).appendTo('form');
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'digital_participations',
+                value: 0
+            }).appendTo('form');
+        } else {
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'physical_participations',
+                value: 0
+            }).appendTo('form');
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'digital_participations',
+                value: totalParticipations
+            }).appendTo('form');
         }
     });
     

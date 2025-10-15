@@ -176,7 +176,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" id="total_participations" name="total_participations" type="number" value="{{$set->total_participations}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" id="total_participations" name="total_participations" type="number" value="{{$set->total_participations}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -207,26 +207,26 @@
                                         <small><i>Cantidad de participaciones físicas o digitales</i></small>
                                         <br>
                                         <div class="row">
-                                            <div class="col-3">
+                                            <div class="col-6">
                                                 <div class="form-group mt-2 mb-3">
-                                                    <label class="label-control">Participaciones Físicas</label>
-                                                    <div class="input-group input-group-merge group-form">
-                                                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                            <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
-                                                        </div>
-                                                        <input class="form-control" id="physical_participations" name="physical_participations" type="number" value="{{$set->physical_participations}}" style="border-radius: 0 30px 30px 0;">
+                                                    <label class="label-control">Tipo de Participación</label>
+                                                    
+                                                    <div class="form-check mt-3">
+                                                        <input class="form-check-input" type="radio" name="participation_type" id="participation_type_physical" value="physical" {{ $set->physical_participations > 0 ? 'checked' : '' }} disabled>
+                                                        <label class="form-check-label" for="participation_type_physical">
+                                                            <strong>Participaciones Físicas</strong> ({{ $set->physical_participations }})
+                                                        </label>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-3">
-                                                <div class="form-group mt-2 mb-3">
-                                                    <label class="label-control">Participaciones Digitales</label>
-                                                    <div class="input-group input-group-merge group-form">
-                                                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                            <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
-                                                        </div>
-                                                        <input class="form-control" id="digital_participations" name="digital_participations" type="number" value="{{$set->digital_participations}}" style="border-radius: 0 30px 30px 0;">
+                                                    
+                                                    <div class="form-check mt-2">
+                                                        <input class="form-check-input" type="radio" name="participation_type" id="participation_type_digital" value="digital" {{ $set->digital_participations > 0 ? 'checked' : '' }} disabled>
+                                                        <label class="form-check-label" for="participation_type_digital">
+                                                            <strong>Participaciones Digitales</strong> ({{ $set->digital_participations }})
+                                                        </label>
                                                     </div>
+                                                    
+                                                    <input type="hidden" name="physical_participations" value="{{ $set->physical_participations }}">
+                                                    <input type="hidden" name="digital_participations" value="{{ $set->digital_participations }}">
                                                 </div>
                                             </div>
                                         </div>
