@@ -79,6 +79,10 @@
             image-rendering: crisp-edges;
             image-rendering: pixelated;
         }
+
+        .margen-izquierdo,.margen-arriba,.margen-derecho,.margen-abajo,.caja-matriz {
+            display: none;
+        }
         
         /* Aquí puedes pegar estilos de Bootstrap en el futuro si lo necesitas */
     </style>
