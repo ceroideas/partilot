@@ -283,8 +283,16 @@ Route::post('/design/export-pdf', [App\Http\Controllers\DesignController::class,
 Route::get('/design/format/edit/{id}', [App\Http\Controllers\DesignController::class, 'editFormat'])->name('design.editFormat');
 Route::put('/design/format/update/{id}', [App\Http\Controllers\DesignController::class, 'updateFormat'])->name('design.updateFormat');
 
-Route::get('social',function() {
-    return view('social.index');
+Route::group(['prefix' => 'social'], function() {
+    Route::get('/', [App\Http\Controllers\SocialWebController::class, 'index'])->name('social.index');
+    Route::get('/add', [App\Http\Controllers\SocialWebController::class, 'create'])->name('social.create');
+    Route::post('/add/design', [App\Http\Controllers\SocialWebController::class, 'storeEntity'])->name('social.store-entity');
+    Route::get('/add/design/{entity_id}', [App\Http\Controllers\SocialWebController::class, 'addDesign'])->name('social.add-design');
+    Route::post('/', [App\Http\Controllers\SocialWebController::class, 'store'])->name('social.store');
+    Route::get('/edit/{id}', [App\Http\Controllers\SocialWebController::class, 'edit'])->name('social.edit');
+    Route::put('/{id}', [App\Http\Controllers\SocialWebController::class, 'update'])->name('social.update');
+    Route::delete('/{id}', [App\Http\Controllers\SocialWebController::class, 'destroy'])->name('social.destroy');
+    Route::post('/{id}/change-status', [App\Http\Controllers\SocialWebController::class, 'changeStatus'])->name('social.change-status');
 });
 Route::get('requests',function() {
     return view('requests.index');

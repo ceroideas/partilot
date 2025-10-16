@@ -396,12 +396,14 @@
                                                         </button>
 
                                                         <button class="btn btn-light btn-xl text-center m-2 bs" id="btn-devolucion-administracion" style="border: 1px solid #f0f0f0; padding: 16px; width: 180px; border-radius: 16px; position: relative;">
-                                                            <img class="mt-2 mb-1" src="{{url('assets/admin.svg')}}" alt="" width="60%">
+                                                            {{-- <img class="mt-2 mb-1" src="{{url('assets/admin.svg')}}" alt="" width="60%"> --}}
+                                                            <img class="mt-2 mb-1" src="{{url('assets/vendedor.svg')}}" alt="" width="60%">
                                                             <h4 class="mb-0">Devolución <br> Administración</h4>
                                                         </button>
 
                                                         <button class="btn btn-light btn-xl text-center m-2 bs" id="btn-anulacion-participaciones" style="border: 1px solid #f0f0f0; padding: 16px; width: 180px; border-radius: 16px; position: relative;">
-                                                            <img class="mt-2 mb-1" src="{{url('assets/cancel.svg')}}" alt="" width="60%">
+                                                            {{-- <img class="mt-2 mb-1" src="{{url('assets/cancel.svg')}}" alt="" width="60%"> --}}
+                                                            <img class="mt-2 mb-1" src="{{url('assets/vendedor.svg')}}" alt="" width="60%">
                                                             <h4 class="mb-0">Anulación <br> Participaciones</h4>
                                                         </button>
                                                     </div>
