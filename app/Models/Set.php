@@ -242,4 +242,23 @@ class Set extends Model
             'count' => $this->total_participations
         ];
     }
+
+    /**
+     * Obtener el total de participaciones restando las anuladas
+     */
+    public function getTotalParticipationsAttribute()
+    {
+        $cancelledCount = $this->participations()->where('status', 'anulada')->count();
+        return $this->attributes['total_participations'] - $cancelledCount;
+    }
+
+    /**
+     * Obtener el importe total restando las participaciones anuladas
+     */
+    public function getTotalAmountAttribute()
+    {
+        $cancelledCount = $this->participations()->where('status', 'anulada')->count();
+        $cancelledAmount = $cancelledCount * ($this->played_amount ?? 0);
+        return $this->attributes['total_amount'] - $cancelledAmount;
+    }
 }
