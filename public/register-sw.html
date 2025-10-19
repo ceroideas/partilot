@@ -132,7 +132,20 @@
                 }
 
                 // Register service worker
-                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                // Detectar la ruta base correcta
+                const path = window.location.pathname;
+                const match = path.match(/^(\/[^\/]+\/[^\/]+)/);
+                const basePath = match ? match[1] : '';
+                const swUrl = basePath ? `${basePath}/firebase-messaging-sw.js` : '/firebase-messaging-sw.js';
+                const scope = basePath ? `${basePath}/` : '/';
+                
+                log(`📍 Ruta base: ${basePath || '(raíz)'}`);
+                log(`📍 URL del SW: ${swUrl}`);
+                log(`📍 Scope: ${scope}`);
+                
+                const registration = await navigator.serviceWorker.register(swUrl, {
+                    scope: scope
+                });
                 log('✅ Service Worker registrado exitosamente');
                 log(`   Scope: ${registration.scope}`);
 

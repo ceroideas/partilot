@@ -273,9 +273,24 @@
 
                 // Step 3: Register new service worker
                 log('Paso 3: Registrando Service Worker...', 'info');
-                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                
+                // Detectar la ruta base correcta
+                const path = window.location.pathname;
+                const match = path.match(/^(\/[^\/]+\/[^\/]+)/);
+                const basePath = match ? match[1] : '';
+                const swUrl = basePath ? `${basePath}/firebase-messaging-sw.js` : '/firebase-messaging-sw.js';
+                const scope = basePath ? `${basePath}/` : '/';
+                
+                log(`  Ruta base detectada: ${basePath || '(raíz)'}`, 'info');
+                log(`  URL del SW: ${swUrl}`, 'info');
+                log(`  Scope: ${scope}`, 'info');
+                
+                const registration = await navigator.serviceWorker.register(swUrl, {
+                    scope: scope
+                });
                 await navigator.serviceWorker.ready;
                 log('Service Worker registrado y activo', 'success');
+                log(`  Scope real: ${registration.scope}`, 'info');
                 checkItem('check-sw');
 
                 // Step 4: Initialize Firebase
@@ -309,7 +324,11 @@
 
                     // Step 6: Send token to server
                     log('Paso 6: Registrando token en servidor...', 'info');
-                    const response = await fetch('/notifications/register-token', {
+                    
+                    const registerUrl = basePath ? `${basePath}/notifications/register-token` : '/notifications/register-token';
+                    log(`  URL de registro: ${registerUrl}`, 'info');
+                    
+                    const response = await fetch(registerUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

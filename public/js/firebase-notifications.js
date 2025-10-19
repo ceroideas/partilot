@@ -12,7 +12,9 @@ class FirebaseNotifications {
         const path = window.location.pathname;
         // Extract base path (e.g., /partilot/public from /partilot/public/dashboard)
         const match = path.match(/^(\/[^\/]+\/[^\/]+)/);
-        return match ? match[1] : '';
+        const basePath = match ? match[1] : '';
+        console.log('🔍 Base path detectado:', basePath);
+        return basePath;
     }
 
     async init() {
@@ -20,13 +22,18 @@ class FirebaseNotifications {
             // Check if service worker is supported
             if ('serviceWorker' in navigator) {
                 // Register service worker manually with correct path
-                const swUrl = `${this.baseUrl}/firebase-messaging-sw.js`;
-                console.log('Registering service worker:', swUrl);
+                // If baseUrl is empty, use relative path
+                const swUrl = this.baseUrl ? `${this.baseUrl}/firebase-messaging-sw.js` : '/firebase-messaging-sw.js';
+                const scope = this.baseUrl ? `${this.baseUrl}/` : '/';
+                
+                console.log('🔍 Registrando Service Worker...');
+                console.log('   URL:', swUrl);
+                console.log('   Scope:', scope);
                 
                 const registration = await navigator.serviceWorker.register(swUrl, {
-                    scope: `${this.baseUrl}/`
+                    scope: scope
                 });
-                console.log('Service Worker registered:', registration);
+                console.log('✅ Service Worker registrado:', registration.scope);
 
                 // Import Firebase modules
                 const { initializeApp } = await import('https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js');
