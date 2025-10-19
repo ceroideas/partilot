@@ -3,13 +3,31 @@ class FirebaseNotifications {
     constructor() {
         this.messaging = null;
         this.isSupported = false;
+        this.baseUrl = this.getBaseUrl();
         this.init();
+    }
+
+    // Get the base URL from the current page
+    getBaseUrl() {
+        const path = window.location.pathname;
+        // Extract base path (e.g., /partilot/public from /partilot/public/dashboard)
+        const match = path.match(/^(\/[^\/]+\/[^\/]+)/);
+        return match ? match[1] : '';
     }
 
     async init() {
         try {
             // Check if service worker is supported
             if ('serviceWorker' in navigator) {
+                // Register service worker manually with correct path
+                const swUrl = `${this.baseUrl}/firebase-messaging-sw.js`;
+                console.log('Registering service worker:', swUrl);
+                
+                const registration = await navigator.serviceWorker.register(swUrl, {
+                    scope: `${this.baseUrl}/`
+                });
+                console.log('Service Worker registered:', registration);
+
                 // Import Firebase modules
                 const { initializeApp } = await import('https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js');
                 const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging.js');
@@ -17,7 +35,7 @@ class FirebaseNotifications {
                 // Get Firebase config from Laravel
                 const config = await this.getFirebaseConfig();
                 
-                // Initialize Firebase
+                // Initialize Firebase with service worker registration
                 const app = initializeApp(config);
                 this.messaging = getMessaging(app);
                 this.isSupported = true;
@@ -25,6 +43,7 @@ class FirebaseNotifications {
                 // Store functions for later use
                 this.getToken = getToken;
                 this.onMessage = onMessage;
+                this.serviceWorkerRegistration = registration;
 
                 // Request permission and get token
                 await this.requestPermission();
@@ -43,7 +62,7 @@ class FirebaseNotifications {
 
     async getFirebaseConfig() {
         try {
-            const response = await fetch('/notifications/firebase-config');
+            const response = await fetch(`${this.baseUrl}/notifications/firebase-config`);
             return await response.json();
         } catch (error) {
             console.error('Error getting Firebase config:', error);
@@ -77,10 +96,11 @@ class FirebaseNotifications {
 
     async getFCMToken() {
         try {
-            if (!this.messaging || !this.getToken) return null;
+            if (!this.messaging || !this.getToken || !this.serviceWorkerRegistration) return null;
 
             const token = await this.getToken(this.messaging, {
-                vapidKey: 'BLM73awUlpn-eZx9osSf_usO1PYU93Eb2FjV37RoYivoBIdA1jRirM7ErlwE6pyLU-jYhe9TnhfUYM2YRiqQ58U'
+                vapidKey: 'BLM73awUlpn-eZx9osSf_usO1PYU93Eb2FjV37RoYivoBIdA1jRirM7ErlwE6pyLU-jYhe9TnhfUYM2YRiqQ58U',
+                serviceWorkerRegistration: this.serviceWorkerRegistration
             });
 
             if (token) {
@@ -98,7 +118,7 @@ class FirebaseNotifications {
 
     async sendTokenToServer(token) {
         try {
-            await fetch('/notifications/register-token', {
+            await fetch(`${this.baseUrl}/notifications/register-token`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,7 +185,7 @@ class FirebaseNotifications {
         // Handle notification click based on data
         if (data.type === 'notification') {
             // Redirect to notifications page or specific notification
-            window.location.href = '/notifications';
+            window.location.href = `${this.baseUrl}/notifications`;
         }
     }
 

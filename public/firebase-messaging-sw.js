@@ -44,16 +44,25 @@ messaging.onBackgroundMessage((payload) => {
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
+// Get base URL from service worker scope
+function getBaseUrl() {
+    const scope = self.registration.scope;
+    const url = new URL(scope);
+    return url.pathname.replace(/\/$/, ''); // Remove trailing slash
+}
+
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
     console.log('Notification clicked:', event);
     
     event.notification.close();
     
+    const baseUrl = getBaseUrl();
+    
     if (event.action === 'view') {
         // Open the app
         event.waitUntil(
-            clients.openWindow('/notifications')
+            clients.openWindow(`${baseUrl}/notifications`)
         );
     } else if (event.action === 'dismiss') {
         // Just close the notification
@@ -61,7 +70,7 @@ self.addEventListener('notificationclick', (event) => {
     } else {
         // Default action - open the app
         event.waitUntil(
-            clients.openWindow('/notifications')
+            clients.openWindow(`${baseUrl}/notifications`)
         );
     }
 });

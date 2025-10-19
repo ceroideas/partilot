@@ -47,6 +47,21 @@ Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 // Ruta para crear usuario administrador por defecto (solo en desarrollo)
 Route::get('create-admin', [AuthController::class, 'createDefaultAdmin']);
 
+// Rutas públicas de Firebase (necesarias para inicializar notificaciones)
+Route::get('notifications/firebase-config', [NotificationController::class, 'getFirebaseConfig'])->name('notifications.firebase-config-public');
+
+// Ruta para servir el service worker de Firebase
+Route::get('firebase-messaging-sw.js', function () {
+    $path = public_path('firebase-messaging-sw.js');
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path, [
+        'Content-Type' => 'application/javascript',
+        'Service-Worker-Allowed' => '/'
+    ]);
+})->name('firebase-service-worker');
+
 // Rutas protegidas por autenticación
 Route::middleware(['auth'])->group(function () {
     
@@ -363,8 +378,7 @@ Route::group(['prefix' => 'notifications'], function() {
     // Ruta AJAX para obtener entidades por administración
     Route::get('/entities-by-administration', [NotificationController::class, 'getEntitiesByAdministration'])->name('notifications.entities-by-administration');
     
-    // Rutas para Firebase
-    Route::get('/firebase-config', [NotificationController::class, 'getFirebaseConfig'])->name('notifications.firebase-config');
+    // Ruta para registrar token FCM (requiere autenticación)
     Route::post('/register-token', [NotificationController::class, 'registerToken'])->name('notifications.register-token');
 });
 
