@@ -234,6 +234,8 @@ class NotificationController extends Controller
                 \Log::info('Tokens FCM:', ['tokens' => $tokens]);
                 
                 try {
+                    \Log::info('🚀 Intentando enviar con Firebase API V1 (Modern)...');
+                    
                     // Intentar primero con el servicio moderno (API V1)
                     $firebaseSuccess = $this->firebaseServiceModern->sendToMultipleDevices(
                         $tokens,
@@ -248,9 +250,9 @@ class NotificationController extends Controller
                     );
                     
                     if ($firebaseSuccess) {
-                        \Log::info("✓ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s) usando API V1");
+                        \Log::info("✅ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s) usando API V1");
                     } else {
-                        \Log::warning("✗ Error al enviar notificación Firebase con API V1, intentando con API Legacy...");
+                        \Log::warning("⚠️ Error al enviar notificación Firebase con API V1, intentando con API Legacy...");
                         
                         // Fallback al servicio legacy si el moderno falla
                         $firebaseSuccess = $this->firebaseService->sendToMultipleDevices(
