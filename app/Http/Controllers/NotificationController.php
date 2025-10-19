@@ -8,16 +8,19 @@ use App\Models\Entity;
 use App\Models\Administration;
 use App\Models\User;
 use App\Services\FirebaseService;
+use App\Services\FirebaseServiceModern;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
     protected $firebaseService;
+    protected $firebaseServiceModern;
 
-    public function __construct(FirebaseService $firebaseService)
+    public function __construct(FirebaseService $firebaseService, FirebaseServiceModern $firebaseServiceModern)
     {
         $this->firebaseService = $firebaseService;
+        $this->firebaseServiceModern = $firebaseServiceModern;
     }
     /**
      * Display a listing of notifications
@@ -231,7 +234,8 @@ class NotificationController extends Controller
                 \Log::info('Tokens FCM:', ['tokens' => $tokens]);
                 
                 try {
-                    $firebaseSuccess = $this->firebaseService->sendToMultipleDevices(
+                    // Intentar primero con el servicio moderno (API V1)
+                    $firebaseSuccess = $this->firebaseServiceModern->sendToMultipleDevices(
                         $tokens,
                         $request->title,
                         $request->message,
@@ -244,9 +248,28 @@ class NotificationController extends Controller
                     );
                     
                     if ($firebaseSuccess) {
-                        \Log::info("✓ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s)");
+                        \Log::info("✓ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s) usando API V1");
                     } else {
-                        \Log::warning("✗ Error al enviar notificación Firebase");
+                        \Log::warning("✗ Error al enviar notificación Firebase con API V1, intentando con API Legacy...");
+                        
+                        // Fallback al servicio legacy si el moderno falla
+                        $firebaseSuccess = $this->firebaseService->sendToMultipleDevices(
+                            $tokens,
+                            $request->title,
+                            $request->message,
+                            [
+                                'notification_id' => $notification ? $notification->id : null,
+                                'sender_name' => Auth::user()->name,
+                                'type' => 'notification',
+                                'broadcast' => 'true'
+                            ]
+                        );
+                        
+                        if ($firebaseSuccess) {
+                            \Log::info("✓ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s) usando API Legacy");
+                        } else {
+                            \Log::warning("✗ Error al enviar notificación Firebase con ambas APIs");
+                        }
                     }
                 } catch (\Exception $e) {
                     \Log::error('Excepción al enviar notificación Firebase: ' . $e->getMessage());
@@ -322,7 +345,7 @@ class NotificationController extends Controller
      */
     public function getFirebaseConfig()
     {
-        return response()->json($this->firebaseService->getConfig());
+        return response()->json($this->firebaseServiceModern->getConfig());
     }
 
     /**
