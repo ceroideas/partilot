@@ -97,7 +97,25 @@
                                                 <div class="mb-3">
                                                     <i class="ri-check-circle-fill text-success" style="font-size: 4rem;"></i>
                                                 </div>
-                                                <p class="mb-0">Tu mensaje ha sido enviado con éxito a {{ $successCount }} destinatario(s).</p>
+                                                <p class="mb-2"><strong>Tu mensaje ha sido enviado con éxito</strong></p>
+                                                <p class="mb-2">✉️ Notificaciones guardadas: <strong>{{ $successCount }}</strong> destinatario(s)</p>
+                                                
+                                                @if(session('firebase_tokens_count'))
+                                                    @if(session('firebase_success'))
+                                                        <p class="mb-0 text-success">
+                                                            📱 Notificaciones push enviadas: <strong>{{ session('firebase_tokens_count') }}</strong> dispositivo(s)
+                                                        </p>
+                                                    @else
+                                                        <p class="mb-0 text-warning">
+                                                            ⚠️ Notificaciones push: Error al enviar a {{ session('firebase_tokens_count') }} dispositivo(s)
+                                                            <br><small>Revisa los logs para más detalles</small>
+                                                        </p>
+                                                    @endif
+                                                @else
+                                                    <p class="mb-0 text-muted">
+                                                        <small>No hay dispositivos con notificaciones push activadas</small>
+                                                    </p>
+                                                @endif
                                             </div>
                                             <div class="modal-footer border-0 justify-content-center">
                                                 <a href="{{route('notifications.index')}}" class="btn btn-primary" style="background-color: #e78307; border-color: #e78307;">

@@ -118,14 +118,27 @@ class FirebaseNotifications {
 
     async sendTokenToServer(token) {
         try {
-            await fetch(`${this.baseUrl}/notifications/register-token`, {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfToken) {
+                console.error('CSRF token not found');
+                return;
+            }
+
+            const response = await fetch(`${this.baseUrl}/notifications/register-token`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'X-CSRF-TOKEN': csrfToken.getAttribute('content')
                 },
                 body: JSON.stringify({ token })
             });
+
+            if (response.ok) {
+                console.log('Token successfully registered on server');
+            } else {
+                const errorText = await response.text();
+                console.error('Failed to register token on server:', response.status, errorText);
+            }
         } catch (error) {
             console.error('Error sending token to server:', error);
         }

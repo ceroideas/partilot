@@ -198,9 +198,11 @@ class NotificationController extends Controller
         $notification = null;
         $successCount = 0;
         $firebaseSuccess = false;
+        $firebaseTokensCount = 0;
 
         DB::beginTransaction();
         try {
+            // Crear notificaciones en la base de datos para cada entidad seleccionada
             foreach ($selectedEntities as $entity) {
                 $notification = Notification::create([
                     'title' => $request->title,
@@ -212,47 +214,47 @@ class NotificationController extends Controller
                     'sent_at' => now()
                 ]);
                 $successCount++;
+            }
 
-                // Send Firebase push notification to entity (optional, won't fail if no tokens)
+            // TEMPORAL: Enviar notificación push a TODOS los usuarios con token FCM
+            // independientemente de la selección de entidades/administraciones
+            \Log::info('=== ENVIANDO NOTIFICACIÓN FIREBASE A TODOS LOS USUARIOS ===');
+            
+            $allUsersWithTokens = User::whereNotNull('fcm_token')->get();
+            $firebaseTokensCount = $allUsersWithTokens->count();
+            
+            \Log::info("Usuarios con tokens FCM: {$firebaseTokensCount}");
+            
+            if ($firebaseTokensCount > 0) {
+                $tokens = $allUsersWithTokens->pluck('fcm_token')->toArray();
+                
+                \Log::info('Tokens FCM:', ['tokens' => $tokens]);
+                
                 try {
-                    $firebaseSuccess = $this->firebaseService->sendToEntity(
-                        $entity->id,
+                    $firebaseSuccess = $this->firebaseService->sendToMultipleDevices(
+                        $tokens,
                         $request->title,
                         $request->message,
                         [
-                            'notification_id' => $notification->id,
-                            'entity_id' => $entity->id,
-                            'entity_name' => $entity->name,
+                            'notification_id' => $notification ? $notification->id : null,
                             'sender_name' => Auth::user()->name,
-                            'type' => 'notification'
+                            'type' => 'notification',
+                            'broadcast' => 'true'
                         ]
                     );
+                    
+                    if ($firebaseSuccess) {
+                        \Log::info("✓ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s)");
+                    } else {
+                        \Log::warning("✗ Error al enviar notificación Firebase");
+                    }
                 } catch (\Exception $e) {
-                    // Log the error but don't fail the notification creation
-                    \Log::warning('Firebase notification failed (no tokens registered): ' . $e->getMessage());
+                    \Log::error('Excepción al enviar notificación Firebase: ' . $e->getMessage());
+                    \Log::error($e->getTraceAsString());
                     $firebaseSuccess = false;
                 }
-
-                // Also send to administration if different (optional)
-                if ($entity->administration_id) {
-                    try {
-                        $this->firebaseService->sendToAdministration(
-                            $entity->administration_id,
-                            $request->title,
-                            $request->message,
-                            [
-                                'notification_id' => $notification->id,
-                                'administration_id' => $entity->administration_id,
-                                'entity_id' => $entity->id,
-                                'entity_name' => $entity->name,
-                                'sender_name' => Auth::user()->name,
-                                'type' => 'notification'
-                            ]
-                        );
-                    } catch (\Exception $e) {
-                        \Log::warning('Firebase administration notification failed: ' . $e->getMessage());
-                    }
-                }
+            } else {
+                \Log::warning('No hay usuarios con tokens FCM registrados');
             }
 
             DB::commit();
@@ -269,10 +271,12 @@ class NotificationController extends Controller
             return redirect()->route('notifications.success')
                 ->with('success_count', $successCount)
                 ->with('notification', $notification)
-                ->with('firebase_success', $firebaseSuccess);
+                ->with('firebase_success', $firebaseSuccess)
+                ->with('firebase_tokens_count', $firebaseTokensCount);
 
         } catch (\Exception $e) {
             DB::rollback();
+            \Log::error('Error al procesar notificación: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Error al enviar la notificación: ' . $e->getMessage()]);
         }
     }

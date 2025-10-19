@@ -169,13 +169,20 @@ class FirebaseService
             // Use legacy FCM endpoint with server key for simplicity
             $legacyEndpoint = 'https://fcm.googleapis.com/fcm/send';
             
-            Log::info('Sending Firebase notification', [
+            Log::info('📤 Enviando notificación Firebase', [
                 'endpoint' => $legacyEndpoint,
-                'payload' => $payload,
-                'server_key_length' => strlen($this->serverKey)
+                'destinatarios' => isset($payload['registration_ids']) ? count($payload['registration_ids']) : 1,
+                'titulo' => $payload['notification']['title'] ?? 'N/A',
+                'server_key_presente' => !empty($this->serverKey),
+                'server_key_length' => strlen($this->serverKey ?? '')
             ]);
             
-            $response = Http::withHeaders([
+            if (empty($this->serverKey)) {
+                Log::error('❌ Firebase Server Key no configurado en .env');
+                return false;
+            }
+            
+            $response = Http::timeout(30)->withHeaders([
                 'Authorization' => 'key=' . $this->serverKey,
                 'Content-Type' => 'application/json'
             ])->post($legacyEndpoint, $payload);
@@ -183,37 +190,53 @@ class FirebaseService
             if ($response->successful()) {
                 $responseData = $response->json();
                 
+                Log::info('📥 Respuesta de Firebase:', $responseData);
+                
                 // Log successful sends
                 if (isset($responseData['success']) && $responseData['success'] > 0) {
-                    Log::info('Firebase notification sent successfully', [
-                        'success_count' => $responseData['success'],
-                        'failure_count' => $responseData['failure'] ?? 0
+                    Log::info('✅ Notificación Firebase enviada exitosamente', [
+                        'exitosos' => $responseData['success'],
+                        'fallidos' => $responseData['failure'] ?? 0,
+                        'multicast_id' => $responseData['multicast_id'] ?? null
                     ]);
                 }
 
-                // Log failures
+                // Log failures with details
                 if (isset($responseData['failure']) && $responseData['failure'] > 0) {
-                    Log::warning('Some Firebase notifications failed', [
-                        'success_count' => $responseData['success'] ?? 0,
-                        'failure_count' => $responseData['failure'],
-                        'results' => $responseData['results'] ?? []
+                    $errorDetails = [];
+                    if (isset($responseData['results'])) {
+                        foreach ($responseData['results'] as $index => $result) {
+                            if (isset($result['error'])) {
+                                $errorDetails[] = [
+                                    'token_index' => $index,
+                                    'error' => $result['error']
+                                ];
+                            }
+                        }
+                    }
+                    
+                    Log::warning('⚠️ Algunas notificaciones Firebase fallaron', [
+                        'exitosos' => $responseData['success'] ?? 0,
+                        'fallidos' => $responseData['failure'],
+                        'detalles_errores' => $errorDetails
                     ]);
                 }
 
-                return true;
+                // Consider it successful if at least one was sent
+                return !isset($responseData['failure']) || $responseData['failure'] < count($payload['registration_ids'] ?? [1]);
             } else {
-                Log::error('Firebase notification failed', [
+                Log::error('❌ Error en la respuesta de Firebase', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'headers' => $response->headers(),
-                    'endpoint' => $legacyEndpoint,
-                    'payload' => $payload
+                    'headers' => $response->headers()
                 ]);
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error('Firebase notification exception', [
-                'message' => $e->getMessage(),
+            Log::error('❌ Excepción al enviar notificación Firebase', [
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
             return false;
