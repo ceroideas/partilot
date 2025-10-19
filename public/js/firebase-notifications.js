@@ -212,6 +212,9 @@ class FirebaseNotifications {
     }
 
     showToast(notification) {
+        // Play notification sound
+        this.playNotificationSound();
+
         // Create toast notification
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
@@ -247,6 +250,34 @@ class FirebaseNotifications {
                 toast.remove();
             }
         }, 5000);
+    }
+
+    playNotificationSound() {
+        try {
+            // Create audio context for notification sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            // Connect nodes
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Configure sound (pleasant notification tone)
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // 800Hz
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1); // Drop to 400Hz
+            
+            // Configure volume envelope
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+            // Play the sound
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (error) {
+            console.log('No se pudo reproducir el sonido:', error);
+        }
     }
 
     // Subscribe to entity notifications

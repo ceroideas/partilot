@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Notificaciones de Escritorio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .instructions {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Test de Notificaciones de Escritorio</h1>
+        
+        <div id="status" class="status info">
+            Inicializando...
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instrucciones para probar notificaciones de escritorio:</h3>
+            <ol>
+                <li><strong>Permisos:</strong> Asegúrate de que el navegador tenga permisos de notificación</li>
+                <li><strong>Página abierta:</strong> Las notificaciones aparecerán como toast en la página</li>
+                <li><strong>Página cerrada:</strong> Las notificaciones aparecerán como notificaciones de escritorio del sistema</li>
+                <li><strong>Pestaña inactiva:</strong> También deberían aparecer como notificaciones de escritorio</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Configuración del Sistema</h3>
+            <div id="config-status"></div>
+            <button onclick="checkConfiguration()">Verificar Configuración</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔔 Test de Notificaciones</h3>
+            <button onclick="requestPermission()">Solicitar Permisos</button>
+            <button onclick="sendTestNotification()">Enviar Notificación de Prueba</button>
+            <button onclick="testBackgroundNotification()">Test Notificación Background</button>
+            <div id="notification-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📱 Test de Service Worker</h3>
+            <button onclick="testServiceWorker()">Verificar Service Worker</button>
+            <button onclick="sendBackgroundMessage()">Simular Mensaje Background</button>
+            <div id="sw-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Test Final</h3>
+            <div class="instructions">
+                <strong>Para probar notificaciones de escritorio:</strong><br>
+                1. Haz clic en "Enviar Notificación de Prueba"<br>
+                2. <strong>Minimiza esta pestaña</strong> o <strong>cierra el navegador</strong><br>
+                3. Haz clic en "Test Notificación Background"<br>
+                4. Deberías ver una notificación de escritorio del sistema
+            </div>
+            <button onclick="runFullTest()">Ejecutar Test Completo</button>
+            <div id="test-results"></div>
+        </div>
+    </div>
+
+    <script>
+        let messaging = null;
+        let token = null;
+
+        // Get base URL
+        function getBaseUrl() {
+            const path = window.location.pathname;
+            const match = path.match(/^(\/[^\/]+\/[^\/]+)/);
+            return match ? match[1] : '';
+        }
+
+        const baseUrl = getBaseUrl();
+        console.log('Base URL detectado:', baseUrl);
+
+        // Initialize Firebase
+        async function initFirebase() {
+            try {
+                // Import Firebase modules
+                const { initializeApp } = await import('https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js');
+                const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging.js');
+
+                const config = {
+                    apiKey: "AIzaSyABsAHy3BtYUkcV4z3gjCl3NNU35ye4LFs",
+                    authDomain: "inicio-de-sesion-94ddc.firebaseapp.com",
+                    databaseURL: "https://inicio-de-sesion-94ddc.firebaseio.com",
+                    projectId: "inicio-de-sesion-94ddc",
+                    storageBucket: "inicio-de-sesion-94ddc.firebasestorage.app",
+                    messagingSenderId: "204683025370",
+                    appId: "1:204683025370:web:c424b261eff8d566be7ee3"
+                };
+
+                const app = initializeApp(config);
+                messaging = getMessaging(app);
+
+                updateStatus('✅ Firebase inicializado correctamente', 'success');
+
+                // Listen for foreground messages
+                onMessage(messaging, (payload) => {
+                    console.log('Message received:', payload);
+                    updateNotificationStatus('🔔 Notificación recibida (Foreground): ' + payload.notification.title, 'success');
+                    
+                    // Show custom notification
+                    if (Notification.permission === 'granted') {
+                        const notification = new Notification(payload.notification.title, {
+                            body: payload.notification.body,
+                            icon: '/favicon.ico',
+                            badge: '/favicon.ico'
+                        });
+                        
+                        notification.onclick = () => {
+                            window.focus();
+                            notification.close();
+                        };
+                    }
+                });
+
+                return true;
+            } catch (error) {
+                updateStatus('❌ Error inicializando Firebase: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // Check configuration
+        async function checkConfiguration() {
+            const configDiv = document.getElementById('config-status');
+            configDiv.innerHTML = '<div class="status info">Verificando...</div>';
+
+            try {
+                // Check Service Worker
+                if ('serviceWorker' in navigator) {
+                    const swUrl = baseUrl ? `${baseUrl}/firebase-messaging-sw.js` : '/firebase-messaging-sw.js';
+                    const registration = await navigator.serviceWorker.register(swUrl);
+                    
+                    configDiv.innerHTML += `<div class="status success">✅ Service Worker registrado: ${registration.scope}</div>`;
+                } else {
+                    configDiv.innerHTML += `<div class="status error">❌ Service Worker no soportado</div>`;
+                }
+
+                // Check notification permission
+                if (Notification.permission === 'granted') {
+                    configDiv.innerHTML += `<div class="status success">✅ Permisos de notificación: Concedidos</div>`;
+                } else if (Notification.permission === 'denied') {
+                    configDiv.innerHTML += `<div class="status error">❌ Permisos de notificación: Denegados</div>`;
+                } else {
+                    configDiv.innerHTML += `<div class="status warning">⚠️ Permisos de notificación: No solicitados</div>`;
+                }
+
+                // Check Firebase
+                if (messaging) {
+                    configDiv.innerHTML += `<div class="status success">✅ Firebase Messaging: Inicializado</div>`;
+                } else {
+                    configDiv.innerHTML += `<div class="status error">❌ Firebase Messaging: No inicializado</div>`;
+                }
+
+            } catch (error) {
+                configDiv.innerHTML += `<div class="status error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Request permission
+        async function requestPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                
+                if (permission === 'granted') {
+                    updateNotificationStatus('✅ Permisos concedidos', 'success');
+                    
+                    // Get FCM token
+                    if (messaging) {
+                        const registration = await navigator.serviceWorker.ready;
+                        token = await getToken(messaging, {
+                            vapidKey: 'BLM73awUlpn-eZx9osSf_usO1PYU93Eb2FjV37RoYivoBIdA1jRirM7ErlwE6pyLU-jYhe9TnhfUYM2YRiqQ58U',
+                            serviceWorkerRegistration: registration
+                        });
+                        
+                        if (token) {
+                            updateNotificationStatus('🔑 Token FCM obtenido: ' + token.substring(0, 20) + '...', 'success');
+                            await sendTokenToServer(token);
+                        }
+                    }
+                } else {
+                    updateNotificationStatus('❌ Permisos denegados', 'error');
+                }
+            } catch (error) {
+                updateNotificationStatus('❌ Error solicitando permisos: ' + error.message, 'error');
+            }
+        }
+
+        // Send token to server
+        async function sendTokenToServer(token) {
+            try {
+                const response = await fetch(`${baseUrl}/notifications/register-token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                if (response.ok) {
+                    updateNotificationStatus('✅ Token registrado en servidor', 'success');
+                } else {
+                    updateNotificationStatus('⚠️ Error registrando token en servidor', 'warning');
+                }
+            } catch (error) {
+                updateNotificationStatus('⚠️ Error enviando token: ' + error.message, 'warning');
+            }
+        }
+
+        // Send test notification
+        async function sendTestNotification() {
+            try {
+                updateNotificationStatus('📤 Enviando notificación de prueba...', 'info');
+                
+                const response = await fetch(`${baseUrl}/notifications/send-test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+
+                if (response.ok) {
+                    updateNotificationStatus('✅ Notificación enviada correctamente', 'success');
+                } else {
+                    updateNotificationStatus('❌ Error enviando notificación', 'error');
+                }
+            } catch (error) {
+                updateNotificationStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        // Test background notification
+        function testBackgroundNotification() {
+            updateNotificationStatus('🔔 Simulando notificación background...', 'info');
+            
+            // This will trigger the service worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification('🔔 Test Background', {
+                        body: 'Esta es una notificación de escritorio simulada',
+                        icon: '/favicon.ico',
+                        badge: '/favicon.ico',
+                        tag: 'test-background',
+                        actions: [
+                            {
+                                action: 'view',
+                                title: 'Ver'
+                            },
+                            {
+                                action: 'dismiss',
+                                title: 'Cerrar'
+                            }
+                        ]
+                    });
+                    updateNotificationStatus('✅ Notificación background mostrada', 'success');
+                });
+            }
+        }
+
+        // Test Service Worker
+        async function testServiceWorker() {
+            const swDiv = document.getElementById('sw-status');
+            swDiv.innerHTML = '<div class="status info">Verificando Service Worker...</div>';
+
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    
+                    if (registration) {
+                        swDiv.innerHTML += `<div class="status success">✅ Service Worker activo: ${registration.scope}</div>`;
+                        swDiv.innerHTML += `<div class="status info">📱 Estado: ${registration.active ? 'Activo' : 'Inactivo'}</div>`;
+                    } else {
+                        swDiv.innerHTML += `<div class="status error">❌ Service Worker no registrado</div>`;
+                    }
+                } else {
+                    swDiv.innerHTML += `<div class="status error">❌ Service Worker no soportado</div>`;
+                }
+            } catch (error) {
+                swDiv.innerHTML += `<div class="status error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Send background message
+        function sendBackgroundMessage() {
+            updateNotificationStatus('📨 Enviando mensaje background...', 'info');
+            
+            // This simulates a background message from Firebase
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    // Send message to service worker
+                    registration.active.postMessage({
+                        type: 'FIREBASE_MESSAGE',
+                        payload: {
+                            notification: {
+                                title: '🔔 Mensaje Background',
+                                body: 'Este mensaje se procesó en segundo plano'
+                            },
+                            data: {
+                                notification_id: 'test-' + Date.now()
+                            }
+                        }
+                    });
+                    
+                    updateNotificationStatus('✅ Mensaje enviado al Service Worker', 'success');
+                });
+            }
+        }
+
+        // Run full test
+        async function runFullTest() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<div class="status info">🔄 Ejecutando test completo...</div>';
+
+            let testsPassed = 0;
+            let totalTests = 4;
+
+            // Test 1: Service Worker
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        resultsDiv.innerHTML += `<div class="status success">✅ Test 1: Service Worker registrado</div>`;
+                        testsPassed++;
+                    } else {
+                        resultsDiv.innerHTML += `<div class="status error">❌ Test 1: Service Worker no registrado</div>`;
+                    }
+                } else {
+                    resultsDiv.innerHTML += `<div class="status error">❌ Test 1: Service Worker no soportado</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="status error">❌ Test 1: Error - ${error.message}</div>`;
+            }
+
+            // Test 2: Notification Permission
+            if (Notification.permission === 'granted') {
+                resultsDiv.innerHTML += `<div class="status success">✅ Test 2: Permisos de notificación concedidos</div>`;
+                testsPassed++;
+            } else {
+                resultsDiv.innerHTML += `<div class="status error">❌ Test 2: Permisos de notificación no concedidos</div>`;
+            }
+
+            // Test 3: Firebase Messaging
+            if (messaging) {
+                resultsDiv.innerHTML += `<div class="status success">✅ Test 3: Firebase Messaging inicializado</div>`;
+                testsPassed++;
+            } else {
+                resultsDiv.innerHTML += `<div class="status error">❌ Test 3: Firebase Messaging no inicializado</div>`;
+            }
+
+            // Test 4: FCM Token
+            if (token) {
+                resultsDiv.innerHTML += `<div class="status success">✅ Test 4: Token FCM obtenido</div>`;
+                testsPassed++;
+            } else {
+                resultsDiv.innerHTML += `<div class="status error">❌ Test 4: Token FCM no obtenido</div>`;
+            }
+
+            // Final result
+            if (testsPassed === totalTests) {
+                resultsDiv.innerHTML += `<div class="status success">🎉 ¡Todos los tests pasaron! Las notificaciones de escritorio deberían funcionar.</div>`;
+            } else {
+                resultsDiv.innerHTML += `<div class="status warning">⚠️ ${testsPassed}/${totalTests} tests pasaron. Revisa los errores anteriores.</div>`;
+            }
+        }
+
+        // Update status functions
+        function updateStatus(message, type) {
+            document.getElementById('status').innerHTML = message;
+            document.getElementById('status').className = `status ${type}`;
+        }
+
+        function updateNotificationStatus(message, type) {
+            document.getElementById('notification-status').innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initFirebase();
+            await checkConfiguration();
+        });
+    </script>
+</body>
+</html>
