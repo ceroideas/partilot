@@ -54,25 +54,39 @@ function playNotificationSound() {
     try {
         // Create audio context in Service Worker
         const audioContext = new (self.AudioContext || self.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
+        
+        // Create a more pleasant notification sound (soft bell-like tone)
+        const oscillator1 = audioContext.createOscillator();
+        const oscillator2 = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
+        const filter = audioContext.createBiquadFilter();
 
         // Connect nodes
-        oscillator.connect(gainNode);
+        oscillator1.connect(filter);
+        oscillator2.connect(filter);
+        filter.connect(gainNode);
         gainNode.connect(audioContext.destination);
 
-        // Configure sound (pleasant notification tone)
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // 800Hz
-        oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1); // Drop to 400Hz
+        // Configure filter for softer sound
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, audioContext.currentTime);
+
+        // Configure oscillators for pleasant chord
+        oscillator1.type = 'sine';
+        oscillator1.frequency.setValueAtTime(523, audioContext.currentTime); // C5 note
+        oscillator2.type = 'sine';
+        oscillator2.frequency.setValueAtTime(659, audioContext.currentTime); // E5 note
         
-        // Configure volume envelope
+        // Configure volume envelope (softer, longer)
         gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
 
         // Play the sound
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.3);
+        oscillator1.start(audioContext.currentTime);
+        oscillator2.start(audioContext.currentTime);
+        oscillator1.stop(audioContext.currentTime + 0.8);
+        oscillator2.stop(audioContext.currentTime + 0.8);
     } catch (error) {
         console.log('No se pudo reproducir el sonido en Service Worker:', error);
     }

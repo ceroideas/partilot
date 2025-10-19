@@ -198,30 +198,64 @@ class FirebaseNotifications {
         const data = payload.data;
 
         if (Notification.permission === 'granted') {
-            const notificationOptions = {
-                body: notification.body,
-                icon: '/favicon.ico',
-                badge: '/favicon.ico',
-                tag: data.notification_id || 'notification',
-                data: data,
-                requireInteraction: true, // Keep notification visible until user interacts
-                silent: false // Enable sound
-            };
-
-            const notificationInstance = new Notification(notification.title, notificationOptions);
-            
-            // Handle notification click
-            notificationInstance.onclick = () => {
-                window.focus();
-                this.handleNotificationClick(data);
-                notificationInstance.close();
-            };
-
-            // Auto close after 10 seconds if user doesn't interact
-            setTimeout(() => {
-                notificationInstance.close();
-            }, 10000);
+            // Try to use Service Worker notification for better Chrome compatibility
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    // Use Service Worker to show notification (works better in Chrome)
+                    registration.showNotification(notification.title, {
+                        body: notification.body,
+                        icon: '/favicon.ico',
+                        badge: '/favicon.ico',
+                        tag: data.notification_id || 'notification',
+                        data: data,
+                        requireInteraction: true,
+                        silent: false,
+                        actions: [
+                            {
+                                action: 'view',
+                                title: 'Ver'
+                            },
+                            {
+                                action: 'dismiss',
+                                title: 'Cerrar'
+                            }
+                        ]
+                    });
+                }).catch(() => {
+                    // Fallback to native notification if Service Worker fails
+                    this.showNativeNotification(notification, data);
+                });
+            } else {
+                // Fallback to native notification
+                this.showNativeNotification(notification, data);
+            }
         }
+    }
+
+    showNativeNotification(notification, data) {
+        const notificationOptions = {
+            body: notification.body,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: data.notification_id || 'notification',
+            data: data,
+            requireInteraction: true,
+            silent: false
+        };
+
+        const notificationInstance = new Notification(notification.title, notificationOptions);
+        
+        // Handle notification click
+        notificationInstance.onclick = () => {
+            window.focus();
+            this.handleNotificationClick(data);
+            notificationInstance.close();
+        };
+
+        // Auto close after 10 seconds if user doesn't interact
+        setTimeout(() => {
+            notificationInstance.close();
+        }, 10000);
     }
 
     handleNotificationClick(data) {
@@ -290,25 +324,39 @@ class FirebaseNotifications {
         try {
             // Create audio context for notification sound
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
+            
+            // Create a more pleasant notification sound (soft bell-like tone)
+            const oscillator1 = audioContext.createOscillator();
+            const oscillator2 = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
+            const filter = audioContext.createBiquadFilter();
 
             // Connect nodes
-            oscillator.connect(gainNode);
+            oscillator1.connect(filter);
+            oscillator2.connect(filter);
+            filter.connect(gainNode);
             gainNode.connect(audioContext.destination);
 
-            // Configure sound (pleasant notification tone)
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // 800Hz
-            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1); // Drop to 400Hz
+            // Configure filter for softer sound
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(2000, audioContext.currentTime);
+
+            // Configure oscillators for pleasant chord
+            oscillator1.type = 'sine';
+            oscillator1.frequency.setValueAtTime(523, audioContext.currentTime); // C5 note
+            oscillator2.type = 'sine';
+            oscillator2.frequency.setValueAtTime(659, audioContext.currentTime); // E5 note
             
-            // Configure volume envelope
+            // Configure volume envelope (softer, longer)
             gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
 
             // Play the sound
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
+            oscillator1.start(audioContext.currentTime);
+            oscillator2.start(audioContext.currentTime);
+            oscillator1.stop(audioContext.currentTime + 0.8);
+            oscillator2.stop(audioContext.currentTime + 0.8);
         } catch (error) {
             console.log('No se pudo reproducir el sonido:', error);
         }
