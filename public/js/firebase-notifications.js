@@ -157,8 +157,11 @@ class FirebaseNotifications {
         this.onMessage(this.messaging, (payload) => {
             console.log('Message received:', payload);
             
-            // Show notification
-            this.showNotification(payload);
+            // Show desktop notification even in foreground
+            this.showDesktopNotification(payload);
+            
+            // Show toast notification
+            this.showToast(payload.notification);
             
             // Update UI if needed
             this.updateNotificationUI(payload);
@@ -187,6 +190,37 @@ class FirebaseNotifications {
                 this.handleNotificationClick(data);
                 notificationInstance.close();
             };
+        }
+    }
+
+    showDesktopNotification(payload) {
+        const notification = payload.notification;
+        const data = payload.data;
+
+        if (Notification.permission === 'granted') {
+            const notificationOptions = {
+                body: notification.body,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: data.notification_id || 'notification',
+                data: data,
+                requireInteraction: true, // Keep notification visible until user interacts
+                silent: false // Enable sound
+            };
+
+            const notificationInstance = new Notification(notification.title, notificationOptions);
+            
+            // Handle notification click
+            notificationInstance.onclick = () => {
+                window.focus();
+                this.handleNotificationClick(data);
+                notificationInstance.close();
+            };
+
+            // Auto close after 10 seconds if user doesn't interact
+            setTimeout(() => {
+                notificationInstance.close();
+            }, 10000);
         }
     }
 

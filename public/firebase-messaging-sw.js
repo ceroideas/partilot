@@ -27,6 +27,8 @@ messaging.onBackgroundMessage((payload) => {
         badge: '/favicon.ico',
         tag: payload.data?.notification_id || 'notification',
         data: payload.data,
+        requireInteraction: true, // Keep notification visible until user interacts
+        silent: false, // Enable sound
         actions: [
             {
                 action: 'view',
@@ -42,7 +44,39 @@ messaging.onBackgroundMessage((payload) => {
     };
 
     self.registration.showNotification(notificationTitle, notificationOptions);
+    
+    // Play notification sound in background
+    playNotificationSound();
 });
+
+// Function to play notification sound in Service Worker
+function playNotificationSound() {
+    try {
+        // Create audio context in Service Worker
+        const audioContext = new (self.AudioContext || self.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        // Connect nodes
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // Configure sound (pleasant notification tone)
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // 800Hz
+        oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1); // Drop to 400Hz
+        
+        // Configure volume envelope
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+        // Play the sound
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+        console.log('No se pudo reproducir el sonido en Service Worker:', error);
+    }
+}
 
 // Get base URL from service worker scope
 function getBaseUrl() {
