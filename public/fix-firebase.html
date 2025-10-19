@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reparar Firebase - Diagnóstico Completo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+        }
+        .step.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .step.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .step.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.secondary {
+            background: #6c757d;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .info-box strong {
+            color: #0056b3;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-indicator.green { background: #28a745; }
+        .status-indicator.red { background: #dc3545; }
+        .status-indicator.yellow { background: #ffc107; }
+        .checklist {
+            list-style: none;
+        }
+        .checklist li {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .checklist li::before {
+            content: '☐';
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        .checklist li.checked::before {
+            content: '☑';
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Reparación de Firebase - Diagnóstico Completo</h1>
+
+        <div class="card">
+            <h2>📋 Estado Actual del Sistema</h2>
+            <div id="status">Cargando...</div>
+        </div>
+
+        <div class="card">
+            <h2>🛠️ Acciones de Reparación</h2>
+            <div class="btn-group">
+                <button onclick="runFullDiagnostic()">🔍 Diagnóstico Completo</button>
+                <button onclick="fixEverything()">🔧 Reparar Todo</button>
+                <button onclick="clearAndReset()">♻️ Limpiar y Reiniciar</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>✅ Checklist de Verificación</h2>
+            <ul class="checklist" id="checklist">
+                <li id="check-sw">Service Worker registrado</li>
+                <li id="check-perms">Permisos de notificaciones concedidos</li>
+                <li id="check-token">Token FCM obtenido</li>
+                <li id="check-server">Token registrado en servidor</li>
+                <li id="check-test">Notificación de prueba recibida</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>📝 Logs Detallados</h2>
+            <pre id="logs"></pre>
+        </div>
+    </div>
+
+    <script type="module">
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const logMessage = `[${timestamp}] ${emoji} ${message}`;
+            logs.push(logMessage);
+            document.getElementById('logs').textContent = logs.join('\n');
+            document.getElementById('logs').scrollTop = document.getElementById('logs').scrollHeight;
+            console.log(logMessage);
+        }
+
+        function checkItem(id) {
+            const item = document.getElementById(id);
+            if (item) item.classList.add('checked');
+        }
+
+        function uncheckItem(id) {
+            const item = document.getElementById(id);
+            if (item) item.classList.remove('checked');
+        }
+
+        async function runFullDiagnostic() {
+            log('🔍 Iniciando diagnóstico completo...', 'info');
+            
+            // Reset checklist
+            ['check-sw', 'check-perms', 'check-token', 'check-server', 'check-test'].forEach(uncheckItem);
+
+            let statusHtml = '';
+
+            // 1. Check Service Worker support
+            if (!('serviceWorker' in navigator)) {
+                statusHtml += '<div class="step error">❌ Este navegador NO soporta Service Workers</div>';
+                log('Service Workers no soportados', 'error');
+                document.getElementById('status').innerHTML = statusHtml;
+                return;
+            }
+
+            // 2. Check Notification support
+            if (!('Notification' in window)) {
+                statusHtml += '<div class="step error">❌ Este navegador NO soporta Notificaciones</div>';
+                log('Notificaciones no soportadas', 'error');
+                document.getElementById('status').innerHTML = statusHtml;
+                return;
+            }
+
+            statusHtml += '<div class="step success">✅ Navegador compatible con Service Workers y Notificaciones</div>';
+            log('Navegador compatible', 'success');
+
+            // 3. Check Service Worker registration
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            if (registrations.length > 0) {
+                statusHtml += '<div class="step success">✅ Service Worker registrado<br><small>Scope: ' + registrations[0].scope + '</small></div>';
+                log('Service Worker encontrado', 'success');
+                checkItem('check-sw');
+            } else {
+                statusHtml += '<div class="step warning">⚠️ Service Worker NO registrado</div>';
+                log('Service Worker no registrado', 'warning');
+            }
+
+            // 4. Check notification permission
+            const permission = Notification.permission;
+            if (permission === 'granted') {
+                statusHtml += '<div class="step success">✅ Permisos de notificaciones concedidos</div>';
+                log('Permisos concedidos', 'success');
+                checkItem('check-perms');
+            } else if (permission === 'denied') {
+                statusHtml += '<div class="step error">❌ Permisos DENEGADOS - Debes habilitarlos manualmente en la configuración del navegador</div>';
+                log('Permisos denegados', 'error');
+            } else {
+                statusHtml += '<div class="step warning">⚠️ Permisos no solicitados</div>';
+                log('Permisos pendientes', 'warning');
+            }
+
+            document.getElementById('status').innerHTML = statusHtml;
+        }
+
+        async function fixEverything() {
+            log('🔧 Iniciando reparación automática...', 'info');
+
+            try {
+                // Step 1: Request permissions
+                log('Paso 1: Solicitando permisos...', 'info');
+                const permission = await Notification.requestPermission();
+                
+                if (permission !== 'granted') {
+                    log('Error: Usuario denegó permisos', 'error');
+                    alert('⚠️ Necesitas conceder permisos de notificaciones para continuar');
+                    return;
+                }
+
+                log('Permisos concedidos', 'success');
+                checkItem('check-perms');
+
+                // Step 2: Unregister old service workers
+                log('Paso 2: Limpiando Service Workers antiguos...', 'info');
+                const oldRegistrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of oldRegistrations) {
+                    await reg.unregister();
+                    log(`  Desregistrado: ${reg.scope}`, 'info');
+                }
+
+                // Step 3: Register new service worker
+                log('Paso 3: Registrando Service Worker...', 'info');
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                await navigator.serviceWorker.ready;
+                log('Service Worker registrado y activo', 'success');
+                checkItem('check-sw');
+
+                // Step 4: Initialize Firebase
+                log('Paso 4: Inicializando Firebase...', 'info');
+                const { initializeApp } = await import('https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js');
+                const { getMessaging, getToken } = await import('https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging.js');
+
+                const firebaseConfig = {
+                    apiKey: "AIzaSyABsAHy3BtYUkcV4z3gjCl3NNU35ye4LFs",
+                    authDomain: "inicio-de-sesion-94ddc.firebaseapp.com",
+                    projectId: "inicio-de-sesion-94ddc",
+                    storageBucket: "inicio-de-sesion-94ddc.firebasestorage.app",
+                    messagingSenderId: "204683025370",
+                    appId: "1:204683025370:web:c424b261eff8d566be7ee3"
+                };
+
+                const app = initializeApp(firebaseConfig);
+                const messaging = getMessaging(app);
+                log('Firebase inicializado', 'success');
+
+                // Step 5: Get FCM token
+                log('Paso 5: Obteniendo token FCM...', 'info');
+                const token = await getToken(messaging, {
+                    vapidKey: 'BLM73awUlpn-eZx9osSf_usO1PYU93Eb2FjV37RoYivoBIdA1jRirM7ErlwE6pyLU-jYhe9TnhfUYM2YRiqQ58U',
+                    serviceWorkerRegistration: registration
+                });
+
+                if (token) {
+                    log('Token FCM obtenido: ' + token.substring(0, 50) + '...', 'success');
+                    checkItem('check-token');
+
+                    // Step 6: Send token to server
+                    log('Paso 6: Registrando token en servidor...', 'info');
+                    const response = await fetch('/notifications/register-token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                        },
+                        body: JSON.stringify({ token })
+                    });
+
+                    if (response.ok) {
+                        log('Token registrado en servidor', 'success');
+                        checkItem('check-server');
+                    } else {
+                        log('Error al registrar token: ' + response.status, 'error');
+                    }
+                } else {
+                    log('No se pudo obtener el token FCM', 'error');
+                }
+
+                // Step 7: Test notification
+                log('Paso 7: Probando notificación...', 'info');
+                const testNotif = new Notification('🎉 ¡Reparación Completa!', {
+                    body: 'Firebase ha sido configurado correctamente. Ahora deberías recibir notificaciones.',
+                    icon: '/favicon.ico',
+                    tag: 'repair-complete'
+                });
+
+                testNotif.onclick = () => {
+                    window.focus();
+                    testNotif.close();
+                };
+
+                log('✅ ¡Reparación completada exitosamente!', 'success');
+                checkItem('check-test');
+
+                alert('✅ ¡Todo listo! Firebase está configurado correctamente.\n\nAhora prueba enviando una notificación desde el dashboard.');
+
+            } catch (error) {
+                log('Error durante la reparación: ' + error.message, 'error');
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function clearAndReset() {
+            if (!confirm('¿Estás seguro? Esto eliminará todos los Service Workers y configuraciones.')) {
+                return;
+            }
+
+            log('♻️ Limpiando y reiniciando...', 'info');
+
+            try {
+                // Unregister all service workers
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of registrations) {
+                    await reg.unregister();
+                    log(`Desregistrado: ${reg.scope}`, 'info');
+                }
+
+                log('✅ Limpieza completada', 'success');
+                alert('✅ Limpieza completada. Ahora haz clic en "Reparar Todo".');
+
+                // Reset checklist
+                ['check-sw', 'check-perms', 'check-token', 'check-server', 'check-test'].forEach(uncheckItem);
+
+            } catch (error) {
+                log('Error durante limpieza: ' + error.message, 'error');
+            }
+        }
+
+        // Auto-run diagnostic on load
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Herramienta de reparación cargada', 'info');
+            runFullDiagnostic();
+        });
+
+        // Expose functions globally
+        window.runFullDiagnostic = runFullDiagnostic;
+        window.fixEverything = fixEverything;
+        window.clearAndReset = clearAndReset;
+    </script>
+
+    <!-- Add CSRF token if available -->
+    <meta name="csrf-token" content="">
+</body>
+</html>
+

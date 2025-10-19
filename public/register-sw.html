@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Service Worker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Registrar Service Worker de Firebase</h1>
+
+    <div class="card">
+        <h2>Estado Actual</h2>
+        <div id="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>Acciones</h2>
+        <button onclick="checkStatus()">Verificar Estado</button>
+        <button onclick="registerSW()">Registrar Service Worker</button>
+        <button onclick="unregisterAll()">Desregistrar Todo</button>
+        <button onclick="testNotification()">Probar Notificación</button>
+    </div>
+
+    <div class="card">
+        <h2>Logs</h2>
+        <pre id="logs"></pre>
+    </div>
+
+    <script>
+        function log(message) {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logsDiv.textContent += `[${timestamp}] ${message}\n`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(html) {
+            document.getElementById('status').innerHTML = html;
+        }
+
+        async function checkStatus() {
+            log('🔍 Verificando estado...');
+            
+            if (!('serviceWorker' in navigator)) {
+                updateStatus('<div class="error">❌ Service Workers no soportados en este navegador</div>');
+                log('❌ Service Workers no soportados');
+                return;
+            }
+
+            if (!('Notification' in window)) {
+                updateStatus('<div class="error">❌ Notificaciones no soportadas en este navegador</div>');
+                log('❌ Notificaciones no soportadas');
+                return;
+            }
+
+            // Check notifications permission
+            const permission = Notification.permission;
+            log(`📋 Permiso de notificaciones: ${permission}`);
+
+            // Check service workers
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            log(`📋 Service Workers registrados: ${registrations.length}`);
+
+            let statusHtml = `<div class="info">
+                <strong>Permiso de notificaciones:</strong> ${permission}<br>
+                <strong>Service Workers:</strong> ${registrations.length}
+            </div>`;
+
+            if (registrations.length > 0) {
+                statusHtml += '<div class="success"><strong>Service Workers activos:</strong><ul>';
+                registrations.forEach((reg, index) => {
+                    log(`  SW ${index + 1}: ${reg.scope}`);
+                    statusHtml += `<li>Scope: ${reg.scope} - Estado: ${reg.active ? 'Activo ✅' : 'Inactivo ❌'}</li>`;
+                });
+                statusHtml += '</ul></div>';
+            }
+
+            updateStatus(statusHtml);
+        }
+
+        async function registerSW() {
+            log('📝 Intentando registrar Service Worker...');
+            
+            try {
+                // Request notification permission first
+                const permission = await Notification.requestPermission();
+                log(`📋 Permiso: ${permission}`);
+
+                if (permission !== 'granted') {
+                    updateStatus('<div class="error">❌ Permisos de notificaciones denegados</div>');
+                    log('❌ Usuario denegó permisos');
+                    return;
+                }
+
+                // Register service worker
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                log('✅ Service Worker registrado exitosamente');
+                log(`   Scope: ${registration.scope}`);
+
+                // Wait for service worker to be active
+                await navigator.serviceWorker.ready;
+                log('✅ Service Worker está listo y activo');
+
+                updateStatus('<div class="success">✅ Service Worker registrado y activo<br>Scope: ' + registration.scope + '</div>');
+
+                // Show test notification
+                new Notification('🎉 ¡Funcionó!', {
+                    body: 'El Service Worker está activo y las notificaciones funcionan',
+                    icon: '/favicon.ico'
+                });
+
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                updateStatus('<div class="error">❌ Error: ' + error.message + '</div>');
+            }
+        }
+
+        async function unregisterAll() {
+            log('🗑️ Desregistrando todos los Service Workers...');
+            
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                
+                if (registrations.length === 0) {
+                    log('ℹ️ No hay Service Workers para desregistrar');
+                    updateStatus('<div class="info">No hay Service Workers registrados</div>');
+                    return;
+                }
+
+                for (const registration of registrations) {
+                    log(`   Desregistrando: ${registration.scope}`);
+                    await registration.unregister();
+                }
+
+                log(`✅ ${registrations.length} Service Worker(s) desregistrado(s)`);
+                updateStatus('<div class="success">✅ Todos los Service Workers han sido desregistrados</div>');
+
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                updateStatus('<div class="error">❌ Error: ' + error.message + '</div>');
+            }
+        }
+
+        async function testNotification() {
+            log('🧪 Probando notificación...');
+
+            if (Notification.permission !== 'granted') {
+                log('❌ Sin permisos de notificaciones');
+                updateStatus('<div class="error">❌ Debes conceder permisos primero</div>');
+                return;
+            }
+
+            try {
+                const notification = new Notification('🧪 Notificación de Prueba', {
+                    body: 'Si puedes ver esto, las notificaciones funcionan correctamente',
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico',
+                    tag: 'test',
+                    requireInteraction: false
+                });
+
+                notification.onclick = () => {
+                    log('👆 Usuario hizo clic en la notificación');
+                    window.focus();
+                    notification.close();
+                };
+
+                log('✅ Notificación enviada');
+                updateStatus('<div class="success">✅ Notificación enviada. ¿La viste?</div>');
+
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                updateStatus('<div class="error">❌ Error: ' + error.message + '</div>');
+            }
+        }
+
+        // Auto-check on load
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Página cargada');
+            checkStatus();
+        });
+    </script>
+</body>
+</html>
+
