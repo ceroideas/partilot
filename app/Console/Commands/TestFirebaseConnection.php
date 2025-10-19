@@ -134,32 +134,74 @@ class TestFirebaseConnection extends Command
             $this->line('   (Esto mostrará el error exacto si falla)');
             $this->newLine();
             
+            // Activar logging detallado
+            \Log::info('🧪 Iniciando test de envío de notificación...');
+            
             try {
-                $success = $this->firebaseService->sendToDevice(
-                    $user->fcm_token,
-                    '🔧 Test de Diagnóstico',
-                    'Prueba de conexión Firebase desde consola',
-                    ['test' => 'true']
-                );
-
-                if ($success) {
-                    $this->info('   ✅ ¡Notificación enviada exitosamente!');
-                    $this->info('   Verifica si la recibiste en el navegador');
-                } else {
-                    $this->error('   ❌ Error al enviar (revisa logs de Laravel)');
+                // Intentar crear el mensaje manualmente para ver dónde falla
+                $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $user->fcm_token)
+                    ->withNotification(\Kreait\Firebase\Messaging\Notification::create('🔧 Test de Diagnóstico', 'Prueba desde consola'))
+                    ->withData(['test' => 'true']);
+                
+                $this->info('   ✅ Mensaje creado correctamente');
+                
+                // Intentar enviar
+                $factory = (new \Kreait\Firebase\Factory)
+                    ->withServiceAccount($credentialsPath);
+                $messaging = $factory->createMessaging();
+                
+                $this->info('   📤 Enviando mensaje...');
+                $result = $messaging->send($message);
+                
+                $this->info('   ✅ ¡Notificación enviada exitosamente!');
+                $this->info('   Message ID: ' . (is_string($result) ? $result : json_encode($result)));
+                $this->info('   Verifica si la recibiste en el navegador');
+                
+            } catch (\Kreait\Firebase\Exception\Messaging\InvalidMessage $e) {
+                $this->error('   ❌ Mensaje inválido');
+                $this->error('   ' . $e->getMessage());
+            } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
+                $this->error('   ❌ Token no encontrado o inválido');
+                $this->error('   ' . $e->getMessage());
+            } catch (\Kreait\Firebase\Exception\Messaging\AuthenticationError $e) {
+                $this->error('   ❌ ERROR DE AUTENTICACIÓN');
+                $this->error('   Mensaje: ' . $e->getMessage());
+                $this->newLine();
+                $this->warn('   💡 Esto significa que Google rechaza las credenciales.');
+                $this->warn('   Razones posibles:');
+                $this->warn('   1. Certificados SSL no configurados correctamente');
+                $this->warn('   2. Cuenta de servicio sin permisos');
+                $this->warn('   3. API de Firebase no habilitada');
+                
+                if ($e->getPrevious()) {
+                    $this->error('   Error subyacente: ' . $e->getPrevious()->getMessage());
+                }
+            } catch (\GuzzleHttp\Exception\RequestException $e) {
+                $this->error('   ❌ ERROR DE CONEXIÓN HTTP');
+                $this->error('   Mensaje: ' . $e->getMessage());
+                
+                if ($e->hasResponse()) {
+                    $response = $e->getResponse();
+                    $this->error('   Código HTTP: ' . $response->getStatusCode());
+                    $this->error('   Respuesta: ' . $response->getBody()->getContents());
                 }
             } catch (\Exception $e) {
                 $this->error('   ❌ Excepción capturada:');
                 $this->error('   Tipo: ' . get_class($e));
                 $this->error('   Mensaje: ' . $e->getMessage());
+                $this->error('   Archivo: ' . $e->getFile() . ':' . $e->getLine());
                 
                 if (method_exists($e, 'getPrevious') && $e->getPrevious()) {
-                    $this->error('   Error previo: ' . $e->getPrevious()->getMessage());
+                    $prev = $e->getPrevious();
+                    $this->error('   Error previo: ' . get_class($prev) . ': ' . $prev->getMessage());
                 }
                 
                 $this->newLine();
-                $this->line('   Stack trace:');
-                $this->line('   ' . $e->getTraceAsString());
+                $this->line('   Stack trace (primeras 10 líneas):');
+                $traces = explode("\n", $e->getTraceAsString());
+                foreach (array_slice($traces, 0, 10) as $trace) {
+                    $this->line('   ' . $trace);
+                }
             }
         }
 
