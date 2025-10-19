@@ -175,19 +175,8 @@ class FirebaseNotifications {
                 icon: '/favicon.ico',
                 badge: '/favicon.ico',
                 tag: data.notification_id || 'notification',
-                data: data,
-                actions: [
-                    {
-                        action: 'view',
-                        title: 'Ver',
-                        icon: '/icons/view.svg'
-                    },
-                    {
-                        action: 'dismiss',
-                        title: 'Cerrar',
-                        icon: '/icons/close.svg'
-                    }
-                ]
+                data: data
+                // Removed actions - they only work with Service Worker notifications
             };
 
             const notificationInstance = new Notification(notification.title, notificationOptions);
