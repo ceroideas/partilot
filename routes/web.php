@@ -19,6 +19,7 @@ use App\Http\Controllers\ParticipationController;
 use App\Http\Controllers\ParticipationActivityLogController;
 use App\Http\Controllers\DevolutionsController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\NotificationController;
 use App\Models\Administration;
 /*
 |--------------------------------------------------------------------------
@@ -330,5 +331,41 @@ Route::resource('devolutions', DevolutionsController::class);
 // Rutas de Usuarios
 Route::get('users-data', [UserController::class, 'data'])->name('users.data');
 Route::resource('users', UserController::class);
+
+// Rutas de Notificaciones
+Route::group(['prefix' => 'notifications'], function() {
+    Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/create', [NotificationController::class, 'create'])->name('notifications.create');
+    Route::post('/store-type', [NotificationController::class, 'storeType'])->name('notifications.store-type');
+    
+    // Rutas para selección de entidad
+    Route::get('/select-entity', [NotificationController::class, 'selectEntity'])->name('notifications.select-entity');
+    Route::post('/store-entity', [NotificationController::class, 'storeEntity'])->name('notifications.store-entity');
+    
+    // Rutas para selección de administración
+    Route::get('/select-administration', [NotificationController::class, 'selectAdministration'])->name('notifications.select-administration');
+    Route::post('/store-administration', [NotificationController::class, 'storeAdministration'])->name('notifications.store-administration');
+    
+    // Rutas para selección de entidades de administración
+    Route::get('/select-administration-entities', [NotificationController::class, 'selectAdministrationEntities'])->name('notifications.select-administration-entities');
+    Route::post('/store-administration-entities', [NotificationController::class, 'storeAdministrationEntities'])->name('notifications.store-administration-entities');
+    
+    // Ruta para formulario de mensaje
+    Route::get('/message', [NotificationController::class, 'message'])->name('notifications.message');
+    Route::post('/store', [NotificationController::class, 'store'])->name('notifications.store');
+    
+    // Ruta para mensaje de éxito
+    Route::get('/success', [NotificationController::class, 'success'])->name('notifications.success');
+    
+    // Ruta para eliminar notificación
+    Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    
+    // Ruta AJAX para obtener entidades por administración
+    Route::get('/entities-by-administration', [NotificationController::class, 'getEntitiesByAdministration'])->name('notifications.entities-by-administration');
+    
+    // Rutas para Firebase
+    Route::get('/firebase-config', [NotificationController::class, 'getFirebaseConfig'])->name('notifications.firebase-config');
+    Route::post('/register-token', [NotificationController::class, 'registerToken'])->name('notifications.register-token');
+});
 
 }); // Cierre del middleware auth

@@ -272,8 +272,8 @@
                             </a>
                         </li>
 
-                        <li class="menu-item @if (Request::is('communications/*') || Request::is('communications')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('communications')}}" class="menu-link">
+                        <li class="menu-item @if (Request::is('notifications/*') || Request::is('notifications')) menuitem-active @php $selected = 1; @endphp @endif">
+                            <a href="{{url('notifications')}}" class="menu-link">
                                 <span class="menu-icon">
                                     <img src="{{url('icons')}}/comunicados{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
@@ -1310,6 +1310,9 @@
 
         <script src="{{url('ckeditor/ckeditor.js')}}"></script>
         <script src="{{url('ckeditor/adapters/jquery.js')}}"></script>
+
+        <!-- Firebase Notifications -->
+        <script src="{{url('js/firebase-notifications.js')}}"></script>
 
         @yield('scripts')
 
