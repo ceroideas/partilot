@@ -350,6 +350,7 @@ Route::resource('users', UserController::class);
 // Rutas de Notificaciones
 Route::group(['prefix' => 'notifications'], function() {
     Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/dashboard', [NotificationController::class, 'dashboard'])->name('notifications.dashboard');
     Route::get('/create', [NotificationController::class, 'create'])->name('notifications.create');
     Route::post('/store-type', [NotificationController::class, 'storeType'])->name('notifications.store-type');
     
@@ -372,14 +373,17 @@ Route::group(['prefix' => 'notifications'], function() {
     // Ruta para mensaje de éxito
     Route::get('/success', [NotificationController::class, 'success'])->name('notifications.success');
     
-    // Ruta para eliminar notificación
-    Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
-    
     // Ruta AJAX para obtener entidades por administración
     Route::get('/entities-by-administration', [NotificationController::class, 'getEntitiesByAdministration'])->name('notifications.entities-by-administration');
     
     // Ruta para registrar token FCM (requiere autenticación)
     Route::post('/register-token', [NotificationController::class, 'registerToken'])->name('notifications.register-token');
+    
+    // Ruta para enviar notificación de prueba
+    Route::post('/send-test', [NotificationController::class, 'sendTest'])->name('notifications.send-test');
+    
+    // Ruta para eliminar notificación (al final para evitar conflictos)
+    Route::delete('/delete/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 });
 
 }); // Cierre del middleware auth

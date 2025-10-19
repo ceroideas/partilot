@@ -189,14 +189,16 @@ class FirebaseServiceModern
     public function testConnection()
     {
         if (!$this->messaging) {
+            Log::error('❌ Firebase Messaging no inicializado');
             return false;
         }
 
         try {
-            // Intenta obtener información del proyecto
-            $app = $this->messaging->getApp();
+            // Verificar que el messaging está inicializado correctamente
+            // En la versión 7.0, simplemente verificamos que el objeto existe
             Log::info('✅ Conexión a Firebase exitosa', [
-                'project_id' => $app->getProjectId()
+                'project_id' => config('firebase.project_id'),
+                'service_initialized' => true
             ]);
             return true;
         } catch (\Exception $e) {

@@ -229,52 +229,44 @@ class NotificationController extends Controller
             \Log::info("Usuarios con tokens FCM: {$firebaseTokensCount}");
             
             if ($firebaseTokensCount > 0) {
-                $tokens = $allUsersWithTokens->pluck('fcm_token')->toArray();
-                
-                \Log::info('Tokens FCM:', ['tokens' => $tokens]);
-                
                 try {
-                    \Log::info('🚀 Intentando enviar con Firebase API V1 (Modern)...');
+                    \Log::info('🚀 Enviando notificaciones individuales a cada usuario...');
                     
-                    // Intentar primero con el servicio moderno (API V1)
-                    $firebaseSuccess = $this->firebaseServiceModern->sendToMultipleDevices(
-                        $tokens,
-                        $request->title,
-                        $request->message,
-                        [
-                            'notification_id' => $notification ? $notification->id : null,
-                            'sender_name' => Auth::user()->name,
-                            'type' => 'notification',
-                            'broadcast' => 'true'
-                        ]
-                    );
+                    $firebaseSuccessCount = 0;
+                    $firebaseFailCount = 0;
                     
-                    if ($firebaseSuccess) {
-                        \Log::info("✅ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s) usando API V1");
-                    } else {
-                        \Log::warning("⚠️ Error al enviar notificación Firebase con API V1, intentando con API Legacy...");
-                        
-                        // Fallback al servicio legacy si el moderno falla
-                        $firebaseSuccess = $this->firebaseService->sendToMultipleDevices(
-                            $tokens,
-                            $request->title,
-                            $request->message,
-                            [
-                                'notification_id' => $notification ? $notification->id : null,
-                                'sender_name' => Auth::user()->name,
-                                'type' => 'notification',
-                                'broadcast' => 'true'
-                            ]
-                        );
-                        
-                        if ($firebaseSuccess) {
-                            \Log::info("✓ Notificación Firebase enviada exitosamente a {$firebaseTokensCount} usuario(s) usando API Legacy");
-                        } else {
-                            \Log::warning("✗ Error al enviar notificación Firebase con ambas APIs");
+                    // Enviar a cada usuario individualmente (método que funciona)
+                    foreach ($allUsersWithTokens as $user) {
+                        try {
+                            $sent = $this->firebaseServiceModern->sendToDevice(
+                                $user->fcm_token,
+                                $request->title,
+                                $request->message,
+                                [
+                                    'notification_id' => $notification ? $notification->id : null,
+                                    'sender_name' => Auth::user()->name,
+                                    'type' => 'notification',
+                                    'user_id' => $user->id
+                                ]
+                            );
+                            
+                            if ($sent) {
+                                $firebaseSuccessCount++;
+                            } else {
+                                $firebaseFailCount++;
+                            }
+                        } catch (\Exception $e) {
+                            $firebaseFailCount++;
+                            \Log::warning("Error enviando a usuario {$user->id}: " . $e->getMessage());
                         }
                     }
+                    
+                    $firebaseSuccess = $firebaseSuccessCount > 0;
+                    
+                    \Log::info("✅ Resultado: {$firebaseSuccessCount} enviadas, {$firebaseFailCount} fallidas");
+                    
                 } catch (\Exception $e) {
-                    \Log::error('Excepción al enviar notificación Firebase: ' . $e->getMessage());
+                    \Log::error('Excepción al enviar notificaciones Firebase: ' . $e->getMessage());
                     \Log::error($e->getTraceAsString());
                     $firebaseSuccess = false;
                 }
@@ -367,5 +359,113 @@ class NotificationController extends Controller
         \Log::info('FCM Token registered for user ' . Auth::id() . ': ' . $request->token);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Show Firebase dashboard
+     */
+    public function dashboard()
+    {
+        $usersWithTokens = User::whereNotNull('fcm_token')->count();
+        $users = User::all();
+        $totalNotifications = Notification::count();
+        $notificationsToday = Notification::whereDate('created_at', today())->count();
+        $recentNotifications = Notification::with(['sender', 'entity'])
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        // Verificar configuración
+        $config = [
+            'credentials' => file_exists(storage_path('firebase-credentials.json')),
+            'api_key' => !empty(config('firebase.api_key')),
+            'project_id' => config('firebase.project_id'),
+            'server_key' => !empty(config('firebase.server_key')),
+            'service_worker' => file_exists(public_path('firebase-messaging-sw.js')),
+        ];
+        $config['all_configured'] = $config['credentials'] && $config['api_key'] && $config['project_id'];
+
+        return view('notifications.dashboard', compact(
+            'usersWithTokens',
+            'users',
+            'totalNotifications',
+            'notificationsToday',
+            'recentNotifications',
+            'config'
+        ));
+    }
+
+    /**
+     * Send test notification to all users
+     */
+    public function sendTest(Request $request)
+    {
+        try {
+            $users = User::whereNotNull('fcm_token')->get();
+            
+            if ($users->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay usuarios con tokens FCM registrados'
+                ], 400);
+            }
+
+            \Log::info('📤 Iniciando envío de notificación de prueba a ' . $users->count() . ' usuario(s)');
+            
+            $successCount = 0;
+            $failCount = 0;
+            
+            // Enviar a cada usuario individualmente (esto sí funciona)
+            foreach ($users as $user) {
+                try {
+                    \Log::info('  Enviando a: ' . $user->name . ' (' . substr($user->fcm_token, 0, 50) . '...)');
+                    
+                    $sent = $this->firebaseServiceModern->sendToDevice(
+                        $user->fcm_token,
+                        '🔥 Notificación de Prueba',
+                        'Firebase está funcionando correctamente. ¡Las notificaciones push están activas!',
+                        [
+                            'type' => 'test',
+                            'timestamp' => now()->toIso8601String(),
+                            'user_id' => $user->id
+                        ]
+                    );
+                    
+                    if ($sent) {
+                        $successCount++;
+                        \Log::info('  ✅ Enviado exitosamente a ' . $user->name);
+                    } else {
+                        $failCount++;
+                        \Log::warning('  ⚠️ Falló el envío a ' . $user->name);
+                    }
+                } catch (\Exception $e) {
+                    $failCount++;
+                    \Log::error('  ❌ Error enviando a ' . $user->name . ': ' . $e->getMessage());
+                }
+            }
+
+            \Log::info('📊 Resultado: ' . $successCount . ' exitosos, ' . $failCount . ' fallidos');
+
+            if ($successCount > 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Notificación enviada a {$successCount} de {$users->count()} usuarios",
+                    'success_count' => $successCount,
+                    'fail_count' => $failCount
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo enviar ninguna notificación. Revisa los logs.'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Error al enviar notificación de prueba: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

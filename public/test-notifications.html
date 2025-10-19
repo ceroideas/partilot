@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Notificaciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            padding-left: 10px;
+        }
+        .log-success { border-left-color: #28a745; }
+        .log-error { border-left-color: #dc3545; }
+        .log-warning { border-left-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>🔔 Prueba de Notificaciones Push</h1>
+
+    <div class="card">
+        <h2>Estado del Sistema</h2>
+        <div id="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>Acciones</h2>
+        <button onclick="checkPermissions()">1. Verificar Permisos</button>
+        <button onclick="requestPermissions()">2. Solicitar Permisos</button>
+        <button onclick="checkServiceWorker()">3. Verificar Service Worker</button>
+        <button onclick="sendTestNotification()">4. Enviar Notificación de Prueba</button>
+        <button onclick="clearLogs()">Limpiar Logs</button>
+    </div>
+
+    <div class="card">
+        <h2>Logs del Sistema</h2>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script>
+        let logs = [];
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push({ timestamp, message, type });
+            updateLogsDisplay();
+        }
+
+        function updateLogsDisplay() {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.map(log => 
+                `<div class="log-entry log-${log.type}">[${log.timestamp}] ${log.message}</div>`
+            ).join('');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            logs = [];
+            updateLogsDisplay();
+        }
+
+        function updateStatus(html) {
+            document.getElementById('status').innerHTML = html;
+        }
+
+        async function checkPermissions() {
+            addLog('🔍 Verificando permisos de notificaciones...', 'info');
+            
+            if (!('Notification' in window)) {
+                updateStatus('<div class="error">❌ Este navegador no soporta notificaciones</div>');
+                addLog('❌ Navegador no soporta notificaciones', 'error');
+                return;
+            }
+
+            const permission = Notification.permission;
+            addLog(`Permiso actual: ${permission}`, 'info');
+
+            let statusHtml = '';
+            
+            if (permission === 'granted') {
+                statusHtml = '<div class="success">✅ Permisos concedidos - Las notificaciones deberían funcionar</div>';
+                addLog('✅ Permisos concedidos', 'success');
+            } else if (permission === 'denied') {
+                statusHtml = '<div class="error">❌ Permisos denegados - Debes habilitar las notificaciones manualmente en la configuración del navegador</div>';
+                addLog('❌ Permisos denegados', 'error');
+            } else {
+                statusHtml = '<div class="warning">⚠️ Permisos no solicitados - Haz clic en "Solicitar Permisos"</div>';
+                addLog('⚠️ Permisos pendientes', 'warning');
+            }
+
+            // Verificar Service Worker
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    statusHtml += '<div class="success">✅ Service Worker registrado</div>';
+                    addLog('✅ Service Worker encontrado: ' + registration.scope, 'success');
+                } else {
+                    statusHtml += '<div class="error">❌ Service Worker NO registrado</div>';
+                    addLog('❌ Service Worker no encontrado', 'error');
+                }
+            }
+
+            updateStatus(statusHtml);
+        }
+
+        async function requestPermissions() {
+            addLog('📱 Solicitando permisos...', 'info');
+            
+            try {
+                const permission = await Notification.requestPermission();
+                addLog(`Resultado: ${permission}`, permission === 'granted' ? 'success' : 'error');
+                
+                if (permission === 'granted') {
+                    updateStatus('<div class="success">✅ ¡Permisos concedidos! Ahora puedes recibir notificaciones</div>');
+                    addLog('✅ Permisos concedidos exitosamente', 'success');
+                    
+                    // Mostrar notificación de prueba del navegador
+                    new Notification('🎉 ¡Funcionó!', {
+                        body: 'Los permisos de notificaciones están activos',
+                        icon: '/favicon.ico'
+                    });
+                } else {
+                    updateStatus('<div class="error">❌ Permisos denegados. Debes habilitarlos manualmente en la configuración del navegador</div>');
+                    addLog('❌ Usuario denegó los permisos', 'error');
+                }
+            } catch (error) {
+                updateStatus('<div class="error">❌ Error al solicitar permisos: ' + error.message + '</div>');
+                addLog('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function checkServiceWorker() {
+            addLog('🔍 Verificando Service Worker...', 'info');
+            
+            if (!('serviceWorker' in navigator)) {
+                updateStatus('<div class="error">❌ Este navegador no soporta Service Workers</div>');
+                addLog('❌ Service Workers no soportados', 'error');
+                return;
+            }
+
+            try {
+                // Buscar service worker existente
+                const registration = await navigator.serviceWorker.getRegistration();
+                
+                if (registration) {
+                    addLog('✅ Service Worker encontrado', 'success');
+                    addLog('Scope: ' + registration.scope, 'info');
+                    addLog('Estado: ' + (registration.active ? 'Activo' : 'Inactivo'), 'info');
+                    
+                    updateStatus(`
+                        <div class="success">✅ Service Worker está registrado</div>
+                        <pre>Scope: ${registration.scope}</pre>
+                    `);
+                } else {
+                    addLog('⚠️ Service Worker no encontrado, intentando registrar...', 'warning');
+                    
+                    // Intentar registrar el service worker
+                    const newRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    addLog('✅ Service Worker registrado exitosamente', 'success');
+                    addLog('Scope: ' + newRegistration.scope, 'info');
+                    
+                    updateStatus('<div class="success">✅ Service Worker registrado exitosamente</div>');
+                }
+            } catch (error) {
+                addLog('❌ Error con Service Worker: ' + error.message, 'error');
+                updateStatus('<div class="error">❌ Error con Service Worker: ' + error.message + '</div>');
+            }
+        }
+
+        async function sendTestNotification() {
+            addLog('📤 Enviando notificación de prueba...', 'info');
+            
+            if (Notification.permission !== 'granted') {
+                updateStatus('<div class="error">❌ Primero debes conceder permisos de notificaciones</div>');
+                addLog('❌ Sin permisos de notificaciones', 'error');
+                return;
+            }
+
+            try {
+                // Notificación simple del navegador
+                const notification = new Notification('🧪 Notificación de Prueba', {
+                    body: 'Si puedes ver esto, las notificaciones funcionan correctamente',
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico',
+                    tag: 'test-notification'
+                });
+
+                addLog('✅ Notificación de prueba enviada', 'success');
+                updateStatus('<div class="success">✅ Notificación enviada. ¿La viste?</div>');
+
+                notification.onclick = () => {
+                    addLog('👆 Usuario hizo clic en la notificación', 'info');
+                    window.focus();
+                    notification.close();
+                };
+            } catch (error) {
+                addLog('❌ Error al enviar notificación: ' + error.message, 'error');
+                updateStatus('<div class="error">❌ Error: ' + error.message + '</div>');
+            }
+        }
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', () => {
+            addLog('🚀 Página cargada', 'info');
+            checkPermissions();
+        });
+    </script>
+</body>
+</html>
+

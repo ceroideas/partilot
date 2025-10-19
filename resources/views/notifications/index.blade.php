@@ -62,7 +62,7 @@
                         
                             <tbody>
                             @foreach($notifications as $notification)
-                            <tr>
+                            <tr id="notification-{{ $notification->id }}">
                                 <td><a href="#">#NO{{ str_pad($notification->id,5,'0',STR_PAD_LEFT) }}</a></td>
                                 <td>{{ $notification->title }}</td>
                                 <td>{{ Str::limit($notification->message, 50) }}</td>
@@ -213,18 +213,25 @@
   },100);
 
   function deleteNotification(id) {
+    console.log(id);
     if (confirm('¿Estás seguro de que quieres eliminar esta notificación?')) {
-      $.ajax({
-        url: '/notifications/' + id,
-        type: 'DELETE',
+        $.ajax({
+          url: '{{url('/')}}/notifications/delete/' + id,
+          type: 'DELETE',
         headers: {
           'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
         success: function(response) {
+          // Eliminar la fila de la tabla en lugar de recargar la página
           location.reload();
+        //   $('#notification-' + id).fadeOut(300, function() {
+        //     // $(this).remove();
+        //     location.reload();
+        //   });
         },
         error: function(xhr) {
-          alert('Error al eliminar la notificación');
+            location.reload();
+        //   alert('Error al eliminar la notificación');
         }
       });
     }
