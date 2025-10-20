@@ -4,9 +4,17 @@ namespace App\Observers;
 
 use App\Models\Participation;
 use App\Models\ParticipationActivityLog;
+use App\Services\FirebaseServiceModern;
+use Illuminate\Support\Facades\Log;
 
 class ParticipationObserver
 {
+    protected $firebaseService;
+
+    public function __construct(FirebaseServiceModern $firebaseService)
+    {
+        $this->firebaseService = $firebaseService;
+    }
     /**
      * Handle the Participation "created" event.
      */
@@ -90,6 +98,9 @@ class ParticipationObserver
                 'metadata' => $changes,
             ]);
             
+            // Enviar notificación
+            $this->sendNotification($participation, 'returned_by_seller');
+            
             \Log::info("Observer - Registro de devolución creado exitosamente");
             return; // Evitar registros duplicados
         }
@@ -105,6 +116,10 @@ class ParticipationObserver
                 'description' => "Participación asignada al vendedor ID: {$newSellerId}",
                 'metadata' => $changes,
             ]);
+            
+            // Enviar notificación
+            $this->sendNotification($participation, 'assigned');
+            
             return; // Evitar registros duplicados
         }
 
@@ -121,6 +136,10 @@ class ParticipationObserver
                     'buyer_name' => $participation->buyer_name ?? null,
                 ]),
             ]);
+            
+            // Enviar notificación
+            $this->sendNotification($participation, 'sold');
+            
             return; // Evitar registros duplicados
         }
 
@@ -136,6 +155,10 @@ class ParticipationObserver
                     'return_reason' => $participation->return_reason ?? null,
                 ]),
             ]);
+            
+            // Enviar notificación
+            $this->sendNotification($participation, 'returned_to_administration');
+            
             return; // Evitar registros duplicados
         }
 
@@ -161,6 +184,9 @@ class ParticipationObserver
                 ]),
             ]);
             
+            // Enviar notificación
+            $this->sendNotification($participation, 'cancelled');
+            
             \Log::info("Observer - Registro de anulación creado exitosamente");
             return; // Evitar registros duplicados
         }
@@ -177,6 +203,10 @@ class ParticipationObserver
                 'description' => "Participación reasignada del vendedor ID: {$oldSellerId} al vendedor ID: {$newSellerId}",
                 'metadata' => $changes,
             ]);
+            
+            // Enviar notificación
+            $this->sendNotification($participation, 'reassigned');
+            
             return; // Evitar registros duplicados
         }
 
@@ -191,6 +221,10 @@ class ParticipationObserver
                 'description' => "Participación asignada al vendedor ID: {$newSellerId}",
                 'metadata' => $changes,
             ]);
+            
+            // Enviar notificación
+            $this->sendNotification($participation, 'assigned');
+            
             return; // Evitar registros duplicados
         }
 
@@ -271,5 +305,178 @@ class ParticipationObserver
     public function forceDeleted(Participation $participation): void
     {
         // No registrar nada ya que la participación y sus logs serán eliminados permanentemente
+    }
+
+    /**
+     * Enviar notificación a los usuarios correctos según el evento
+     */
+    private function sendNotification($participation, $event, $data = [])
+    {
+        try {
+            $tokensToNotify = $this->getRelevantUserTokens($participation, $event);
+            
+            if (empty($tokensToNotify)) {
+                Log::info("No hay usuarios para notificar sobre el evento '{$event}'");
+                return;
+            }
+
+            Log::info("📤 Enviando notificación: {$event}", [
+                'participation_id' => $participation->id,
+                'participation_code' => $participation->participation_code,
+                'usuarios_a_notificar' => count($tokensToNotify)
+            ]);
+
+            // Preparar título y mensaje según el evento
+            $notification = $this->prepareNotificationContent($participation, $event, $data);
+            
+            // Enviar a cada usuario
+            foreach ($tokensToNotify as $userInfo) {
+                try {
+                    $this->firebaseService->sendToDevice(
+                        $userInfo['token'],
+                        $notification['title'],
+                        $notification['body'],
+                        array_merge($notification['data'], [
+                            'user_id' => (string)$userInfo['user_id'],
+                            'user_role' => $userInfo['role']
+                        ])
+                    );
+                    
+                    Log::info("✅ Notificación enviada a {$userInfo['name']} ({$userInfo['role']})");
+                } catch (\Exception $e) {
+                    Log::error("❌ Error enviando a {$userInfo['name']}: " . $e->getMessage());
+                }
+            }
+            
+        } catch (\Exception $e) {
+            Log::error("Error general en sendNotification: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener tokens de usuarios relevantes según el evento
+     */
+    private function getRelevantUserTokens($participation, $event)
+    {
+        $tokens = [];
+        
+        // Cargar relaciones necesarias
+        $participation->load(['seller.user', 'entity.manager.user']);
+        
+        // Obtener manager de la entidad
+        if ($participation->entity && $participation->entity->manager && $participation->entity->manager->user) {
+            $managerUser = $participation->entity->manager->user;
+            if ($managerUser->fcm_token) {
+                $tokens[] = [
+                    'user_id' => $managerUser->id,
+                    'token' => $managerUser->fcm_token,
+                    'name' => $managerUser->name,
+                    'role' => 'manager'
+                ];
+            }
+        }
+
+        // Según el evento, agregar otros usuarios
+        switch ($event) {
+            case 'assigned':
+            case 'reassigned':
+                // Notificar al vendedor asignado
+                if ($participation->seller && $participation->seller->user) {
+                    $sellerUser = $participation->seller->user;
+                    if ($sellerUser->fcm_token) {
+                        $tokens[] = [
+                            'user_id' => $sellerUser->id,
+                            'token' => $sellerUser->fcm_token,
+                            'name' => $sellerUser->name,
+                            'role' => 'seller'
+                        ];
+                    }
+                }
+                break;
+
+            case 'sold':
+                // Solo notificar al manager (ya agregado arriba)
+                break;
+
+            case 'returned_by_seller':
+                // Notificar al vendedor que devolvió
+                if ($participation->seller && $participation->seller->user) {
+                    $sellerUser = $participation->seller->user;
+                    if ($sellerUser->fcm_token) {
+                        $tokens[] = [
+                            'user_id' => $sellerUser->id,
+                            'token' => $sellerUser->fcm_token,
+                            'name' => $sellerUser->name,
+                            'role' => 'seller'
+                        ];
+                    }
+                }
+                break;
+        }
+
+        // Eliminar duplicados (por si el manager es también vendedor)
+        $uniqueTokens = [];
+        $seenUserIds = [];
+        
+        foreach ($tokens as $tokenInfo) {
+            if (!in_array($tokenInfo['user_id'], $seenUserIds)) {
+                $uniqueTokens[] = $tokenInfo;
+                $seenUserIds[] = $tokenInfo['user_id'];
+            }
+        }
+
+        return $uniqueTokens;
+    }
+
+    /**
+     * Preparar contenido de la notificación según el evento
+     */
+    private function prepareNotificationContent($participation, $event, $data = [])
+    {
+        $participationCode = $participation->participation_code;
+        $sellerName = $data['seller_name'] ?? 'desconocido';
+        
+        $notifications = [
+            'assigned' => [
+                'title' => '📋 Participación Asignada',
+                'body' => "Se te ha asignado la participación #{$participationCode}",
+            ],
+            'reassigned' => [
+                'title' => '🔄 Participación Reasignada',
+                'body' => "La participación #{$participationCode} ha sido reasignada",
+            ],
+            'sold' => [
+                'title' => '✅ Participación Vendida',
+                'body' => "La participación #{$participationCode} ha sido vendida",
+            ],
+            'returned_by_seller' => [
+                'title' => '↩️ Participación Devuelta',
+                'body' => "La participación #{$participationCode} ha sido devuelta por el vendedor",
+            ],
+            'returned_to_administration' => [
+                'title' => '↩️ Participación Devuelta',
+                'body' => "La participación #{$participationCode} ha sido devuelta a la administración",
+            ],
+            'cancelled' => [
+                'title' => '❌ Participación Anulada',
+                'body' => "La participación #{$participationCode} ha sido anulada",
+            ],
+        ];
+
+        $content = $notifications[$event] ?? [
+            'title' => '📢 Actualización de Participación',
+            'body' => "La participación #{$participationCode} ha sido actualizada",
+        ];
+
+        $content['data'] = [
+            'type' => 'participation_update',
+            'event' => $event,
+            'participation_id' => (string)$participation->id,
+            'participation_code' => $participationCode,
+            'entity_id' => (string)$participation->entity_id,
+            'timestamp' => now()->toIso8601String(),
+        ];
+
+        return $content;
     }
 }

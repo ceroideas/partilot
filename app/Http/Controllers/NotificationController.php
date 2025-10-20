@@ -219,14 +219,18 @@ class NotificationController extends Controller
                 $successCount++;
             }
 
-            // TEMPORAL: Enviar notificación push a TODOS los usuarios con token FCM
-            // independientemente de la selección de entidades/administraciones
-            \Log::info('=== ENVIANDO NOTIFICACIÓN FIREBASE A TODOS LOS USUARIOS ===');
+            // Enviar notificación push solo a usuarios de las entidades seleccionadas
+            \Log::info('=== ENVIANDO NOTIFICACIÓN FIREBASE A USUARIOS DE ENTIDADES SELECCIONADAS ===');
             
-            $allUsersWithTokens = User::whereNotNull('fcm_token')->get();
-            $firebaseTokensCount = $allUsersWithTokens->count();
+            // Obtener IDs de entidades seleccionadas
+            $selectedEntityIds = $selectedEntities->pluck('id')->toArray();
+            \Log::info('Entidades seleccionadas: ' . implode(', ', $selectedEntityIds));
             
-            \Log::info("Usuarios con tokens FCM: {$firebaseTokensCount}");
+            // Obtener usuarios que son managers o sellers de estas entidades
+            $relevantUsers = $this->getUsersFromEntities($selectedEntityIds);
+            $firebaseTokensCount = $relevantUsers->count();
+            
+            \Log::info("Usuarios relacionados con las entidades: {$firebaseTokensCount}");
             
             if ($firebaseTokensCount > 0) {
                 try {
@@ -235,29 +239,35 @@ class NotificationController extends Controller
                     $firebaseSuccessCount = 0;
                     $firebaseFailCount = 0;
                     
-                    // Enviar a cada usuario individualmente (método que funciona)
-                    foreach ($allUsersWithTokens as $user) {
+                    // Enviar a cada usuario individualmente
+                    foreach ($relevantUsers as $user) {
                         try {
+                            \Log::info("  📤 Enviando a: {$user->name} (ID: {$user->id}, Rol: {$user->role})");
+                            
                             $sent = $this->firebaseServiceModern->sendToDevice(
                                 $user->fcm_token,
                                 $request->title,
                                 $request->message,
                                 [
-                                    'notification_id' => $notification ? $notification->id : null,
+                                    'notification_id' => (string)($notification ? $notification->id : ''),
                                     'sender_name' => Auth::user()->name,
-                                    'type' => 'notification',
-                                    'user_id' => $user->id
+                                    'type' => 'manual_notification',
+                                    'user_id' => (string)$user->id,
+                                    'user_role' => $user->role,
+                                    'entity_ids' => implode(',', $selectedEntityIds) // Convertir array a string
                                 ]
                             );
                             
                             if ($sent) {
                                 $firebaseSuccessCount++;
+                                \Log::info("  ✅ Enviado exitosamente a {$user->name}");
                             } else {
                                 $firebaseFailCount++;
+                                \Log::warning("  ⚠️ Falló el envío a {$user->name}");
                             }
                         } catch (\Exception $e) {
                             $firebaseFailCount++;
-                            \Log::warning("Error enviando a usuario {$user->id}: " . $e->getMessage());
+                            \Log::error("  ❌ Error enviando a usuario {$user->id}: " . $e->getMessage());
                         }
                     }
                     
@@ -271,7 +281,7 @@ class NotificationController extends Controller
                     $firebaseSuccess = false;
                 }
             } else {
-                \Log::warning('No hay usuarios con tokens FCM registrados');
+                \Log::warning('No hay usuarios con tokens FCM en las entidades seleccionadas');
             }
 
             DB::commit();
@@ -396,6 +406,48 @@ class NotificationController extends Controller
     }
 
     /**
+     * Obtener usuarios relevantes de las entidades seleccionadas
+     */
+    private function getUsersFromEntities($entityIds)
+    {
+        $users = collect();
+        $processedUserIds = [];
+        
+        // Obtener managers de las entidades
+        $managers = \App\Models\Manager::whereIn('entity_id', $entityIds)
+            ->with('user')
+            ->get();
+        
+        foreach ($managers as $manager) {
+            if ($manager->user && $manager->user->fcm_token && !in_array($manager->user->id, $processedUserIds)) {
+                $user = $manager->user;
+                $user->role = 'manager';
+                $users->push($user);
+                $processedUserIds[] = $user->id;
+            }
+        }
+        
+        // Obtener sellers de las entidades
+        $sellers = \App\Models\Seller::whereIn('entity_id', $entityIds)
+            ->where('seller_type', '!=', 'externo') // Solo sellers vinculados a usuarios
+            ->whereNotNull('user_id')
+            ->where('user_id', '>', 0)
+            ->with('user')
+            ->get();
+        
+        foreach ($sellers as $seller) {
+            if ($seller->user && $seller->user->fcm_token && !in_array($seller->user->id, $processedUserIds)) {
+                $user = $seller->user;
+                $user->role = 'seller';
+                $users->push($user);
+                $processedUserIds[] = $user->id;
+            }
+        }
+        
+        return $users;
+    }
+
+    /**
      * Send test notification to all users
      */
     public function sendTest(Request $request)
@@ -427,7 +479,7 @@ class NotificationController extends Controller
                         [
                             'type' => 'test',
                             'timestamp' => now()->toIso8601String(),
-                            'user_id' => $user->id
+                            'user_id' => (string)$user->id
                         ]
                     );
                     
