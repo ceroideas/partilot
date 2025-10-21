@@ -15,14 +15,29 @@ class SellerService
     public function createPartilotSeller(array $data, int $entityId): Seller
     {
         return DB::transaction(function () use ($data, $entityId) {
-            // Buscar usuario existente por email
+            // Primero verificar si ya existe un seller con este email
+            $existingSeller = Seller::with('entities')->where('email', $data['email'])->first();
+            
+            if ($existingSeller) {
+                // Seller ya existe - verificar si ya está vinculado a esta entidad
+                if ($existingSeller->entities->contains($entityId)) {
+                    throw new \Exception("Este vendedor ya está asignado a la entidad seleccionada");
+                }
+                
+                // Agregar la nueva entidad al seller existente
+                $existingSeller->entities()->attach($entityId);
+                
+                Log::info("Vendedor existente ID:{$existingSeller->id} agregado a la entidad {$entityId}");
+                return $existingSeller;
+            }
+            
+            // No existe seller con este email, buscar usuario
             $user = User::where('email', $data['email'])->first();
             
             if ($user) {
                 // Usuario existe - crear vendedor vinculado
                 $seller = Seller::create([
                     'user_id' => $user->id,
-                    'entity_id' => $entityId,
                     'email' => $user->email,
                     'name' => $user->name,
                     'last_name' => $user->last_name,
@@ -36,12 +51,14 @@ class SellerService
                     'seller_type' => 'partilot'
                 ]);
                 
-                Log::info("Vendedor PARTILOT creado y vinculado al usuario {$user->id}");
+                // Vincular con la entidad (tabla pivote)
+                $seller->entities()->attach($entityId);
+                
+                Log::info("Vendedor PARTILOT creado y vinculado al usuario {$user->id} y entidad {$entityId}");
             } else {
                 // Usuario no existe - crear vendedor pendiente de vinculación
                 $seller = Seller::create([
                     'user_id' => 0, // Pendiente de vinculación (0 para PARTILOT)
-                    'entity_id' => $entityId,
                     'email' => $data['email'],
                     'name' => $data['name'] ?? null, // Puede estar vacío
                     'last_name' => $data['last_name'] ?? null,
@@ -55,7 +72,10 @@ class SellerService
                     'seller_type' => 'partilot'
                 ]);
                 
-                Log::info("Vendedor PARTILOT creado pendiente de vinculación con email: {$data['email']}");
+                // Vincular con la entidad (tabla pivote)
+                $seller->entities()->attach($entityId);
+                
+                Log::info("Vendedor PARTILOT creado pendiente de vinculación con email: {$data['email']} y entidad {$entityId}");
             }
             
             return $seller;
@@ -67,21 +87,46 @@ class SellerService
      */
     public function createExternalSeller(array $data, int $entityId): Seller
     {
-        return Seller::create([
-            'user_id' => 0, // Sin usuario
-            'entity_id' => $entityId,
-            'email' => $data['email'],
-            'name' => $data['name'] ?? null, // Puede estar vacío
-            'last_name' => $data['last_name'] ?? null,
-            'last_name2' => $data['last_name2'] ?? null,
-            'nif_cif' => $data['nif_cif'] ?? null,
-            'birthday' => $data['birthday'] ?? null,
-            'phone' => $data['phone'] ?? null,
-            'comment' => $data['comment'] ?? null,
-            'image' => $data['image'] ?? null,
-            'status' => $data['status'] ?? true,
-            'seller_type' => 'externo'
-        ]);
+        return DB::transaction(function () use ($data, $entityId) {
+            // Primero verificar si ya existe un seller con este email
+            $existingSeller = Seller::with('entities')->where('email', $data['email'])->first();
+            
+            if ($existingSeller) {
+                // Seller ya existe - verificar si ya está vinculado a esta entidad
+                if ($existingSeller->entities->contains($entityId)) {
+                    throw new \Exception("Este vendedor ya está asignado a la entidad seleccionada");
+                }
+                
+                // Agregar la nueva entidad al seller existente
+                $existingSeller->entities()->attach($entityId);
+                
+                Log::info("Vendedor EXTERNO existente ID:{$existingSeller->id} agregado a la entidad {$entityId}");
+                return $existingSeller;
+            }
+            
+            // No existe, crear nuevo vendedor externo
+            $seller = Seller::create([
+                'user_id' => 0, // Sin usuario
+                'email' => $data['email'],
+                'name' => $data['name'] ?? null, // Puede estar vacío
+                'last_name' => $data['last_name'] ?? null,
+                'last_name2' => $data['last_name2'] ?? null,
+                'nif_cif' => $data['nif_cif'] ?? null,
+                'birthday' => $data['birthday'] ?? null,
+                'phone' => $data['phone'] ?? null,
+                'comment' => $data['comment'] ?? null,
+                'image' => $data['image'] ?? null,
+                'status' => $data['status'] ?? true,
+                'seller_type' => 'externo'
+            ]);
+            
+            // Vincular con la entidad (tabla pivote)
+            $seller->entities()->attach($entityId);
+            
+            Log::info("Vendedor EXTERNO creado y vinculado a la entidad {$entityId}");
+            
+            return $seller;
+        });
     }
 
     /**
@@ -104,10 +149,10 @@ class SellerService
      */
     public function getSellersWithLinkInfo(int $entityId = null)
     {
-        $query = Seller::with('user', 'entity');
+        $query = Seller::with('user', 'entities');
         
         if ($entityId) {
-            $query->where('entity_id', $entityId);
+            $query->whereHas('entities', fn($q) => $q->where('entities.id', $entityId));
         }
         
         return $query->get()->map(function ($seller) {
@@ -116,7 +161,7 @@ class SellerService
                 'name' => $seller->display_name,
                 'email' => $seller->display_email,
                 'phone' => $seller->display_phone,
-                'entity_name' => $seller->entity->name ?? 'N/A',
+                'entity_name' => $seller->entities->pluck('name')->join(', ') ?: 'N/A',
                 'status' => $seller->status_text,
                 'status_class' => $seller->status_class,
                 'seller_type' => $seller->seller_type,

@@ -68,6 +68,19 @@ class DevolutionsController extends Controller
                 'liquidacion.pagos.*.amount' => 'required|numeric'
             ]);
 
+            // VALIDAR: Si hay seller_id, verificar que pertenezca a la entidad
+            if (!empty($data['seller_id'])) {
+                $seller = Seller::with('entities')->find($data['seller_id']);
+                
+                if (!$seller || !$seller->belongsToEntity($data['entity_id'])) {
+                    DB::rollback();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El vendedor seleccionado no pertenece a la entidad especificada'
+                    ], 400);
+                }
+            }
+
             // VALIDAR: Rechazar participaciones anuladas
             $allParticipationIds = array_merge(
                 $data['liquidacion']['devolver'] ?? [],
@@ -450,8 +463,11 @@ class DevolutionsController extends Controller
     {
         $entityId = $request->get('entity_id');
         
+        // Ahora usamos la relación many-to-many
         $sellers = Seller::with(['user:id,name,last_name,email,phone'])
-            ->where('entity_id', $entityId)
+            ->whereHas('entities', function($query) use ($entityId) {
+                $query->where('entities.id', $entityId);
+            })
             ->where('status', true) // status es boolean
             ->get()
             ->map(function($seller) {

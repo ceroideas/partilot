@@ -11,7 +11,6 @@ class Seller extends Model
 
     protected $fillable = [
         'user_id',
-        'entity_id',
         'email',
         'name',
         'last_name',
@@ -39,11 +38,29 @@ class Seller extends Model
     }
 
     /**
-     * Relación con Entity
+     * Relación con Entities (Many to Many)
      */
-    public function entity()
+    public function entities()
     {
-        return $this->belongsTo(Entity::class);
+        return $this->belongsToMany(Entity::class, 'entity_seller')
+            ->withTimestamps();
+    }
+
+    /**
+     * Obtener la entidad principal (primera entidad del vendedor)
+     * Útil para mostrar datos cuando no hay contexto específico
+     */
+    public function getPrimaryEntity()
+    {
+        return $this->entities->first();
+    }
+
+    /**
+     * Verificar si el vendedor pertenece a una entidad específica
+     */
+    public function belongsToEntity($entityId)
+    {
+        return $this->entities->contains('id', $entityId);
     }
 
 

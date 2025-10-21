@@ -83,22 +83,22 @@
                                             </div>
 
                                             <div class="col-4 text-center mt-3">
-                                                <h4 class="mt-0 mb-0">{{ $seller->entity->name ?? 'Entidad' }}</h4>
-                                                <small>{{ $seller->entity->province ?? 'Provincia' }}</small> <br>
-                                                <small>{{ $seller->entity->administration->name ?? 'Administración' }}</small>
+                                                <h4 class="mt-0 mb-0">{{ $seller->getPrimaryEntity()?->name ?? 'Entidad' }}</h4>
+                                                <small>{{ $seller->getPrimaryEntity()?->province ?? 'Provincia' }}</small> <br>
+                                                <small>{{ $seller->getPrimaryEntity()?->administration->name ?? 'Administración' }}</small>
                                             </div>
 
                                             <div class="col-3">
                                                 <div class="mt-3">
-                                                    Provincia: {{ $seller->entity->province ?? 'N/A' }} <br>
-                                                    Dirección: {{ $seller->entity->address ?? 'N/A' }}
+                                                    Provincia: {{ $seller->getPrimaryEntity()?->province ?? 'N/A' }} <br>
+                                                    Dirección: {{ $seller->getPrimaryEntity()?->address ?? 'N/A' }}
                                                 </div>
                                             </div>
 
                                             <div class="col-3">
                                                 <div class="mt-3">
-                                                    Ciudad: {{ $seller->entity->city ?? 'N/A' }} <br>
-                                                    Tel: {{ $seller->entity->phone ?? 'N/A' }}
+                                                    Ciudad: {{ $seller->getPrimaryEntity()?->city ?? 'N/A' }} <br>
+                                                    Tel: {{ $seller->getPrimaryEntity()?->phone ?? 'N/A' }}
                                                 </div>
                                             </div>
                                         </div>

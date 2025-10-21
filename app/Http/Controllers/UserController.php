@@ -232,12 +232,14 @@ class UserController extends Controller
             ->addColumn('province', function($user) {
                 // Obtener provincia desde vendedores vinculados
                 $seller = $user->sellers()->first();
-                return $seller ? $seller->entity->province ?? 'Sin provincia' : 'Sin provincia';
+                $entity = $seller?->getPrimaryEntity();
+                return $entity?->province ?? 'Sin provincia';
             })
             ->addColumn('city', function($user) {
                 // Obtener ciudad desde vendedores vinculados
                 $seller = $user->sellers()->first();
-                return $seller ? $seller->entity->city ?? 'Sin localidad' : 'Sin localidad';
+                $entity = $seller?->getPrimaryEntity();
+                return $entity?->city ?? 'Sin localidad';
             })
             ->addColumn('pending_amount', function($user) {
                 // Calcular importe pendiente (implementar lógica según necesidades)

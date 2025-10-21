@@ -428,7 +428,9 @@ class NotificationController extends Controller
         }
         
         // Obtener sellers de las entidades
-        $sellers = \App\Models\Seller::whereIn('entity_id', $entityIds)
+        $sellers = \App\Models\Seller::whereHas('entities', fn($q) => 
+                $q->whereIn('entities.id', $entityIds)
+            )
             ->where('seller_type', '!=', 'externo') // Solo sellers vinculados a usuarios
             ->whereNotNull('user_id')
             ->where('user_id', '>', 0)

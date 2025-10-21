@@ -87,7 +87,15 @@
                                     <td>{{ $seller->nif_cif ?? 'N/A' }}</td>
                                     <td>{{ $seller->email ?? 'N/A' }}</td>
                                     <td>{{ $seller->phone ?? 'N/A' }}</td>
-                                    <td>{{ $seller->entity->name ?? 'N/A' }}</td>
+                                    <td>
+                                        @if($seller->entities->count() > 1)
+                                            @foreach($seller->entities as $entity)
+                                                <span class="badge bg-primary me-1">{{ $entity->name }}</span>
+                                            @endforeach
+                                        @else
+                                            {{ $seller->getPrimaryEntity()?->name ?? 'N/A' }}
+                                        @endif
+                                    </td>
                                     <td>
                                         <span class="badge bg-{{ $seller->status_class }}">
                                             {{ $seller->status_text }}

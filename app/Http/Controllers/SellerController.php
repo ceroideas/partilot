@@ -24,7 +24,7 @@ class SellerController extends Controller
      */
     public function index()
     {
-        $sellers = Seller::with('entity')->get();
+        $sellers = Seller::with('entities')->get();
         return view('sellers.index', compact('sellers'));
     }
 
@@ -83,14 +83,23 @@ class SellerController extends Controller
 
         try {
             $sellerService = new SellerService();
+            
+            // Verificar si el seller ya existe antes de crearlo
+            $existingSeller = \App\Models\Seller::where('email', $request->email)->first();
+            $wasExisting = $existingSeller !== null;
+            
             $seller = $sellerService->createSeller($request->all(), $request->entity_id, 'partilot');
 
             session()->forget('selected_entity');
             
-            // Determinar el mensaje según si se vinculó o quedó pendiente
-            $message = $seller->isLinkedToUser() 
-                ? 'Vendedor PARTILOT creado y vinculado exitosamente'
-                : 'Vendedor PARTILOT creado pendiente de vinculación';
+            // Determinar el mensaje
+            if ($wasExisting) {
+                $message = 'Vendedor existente agregado a la entidad seleccionada';
+            } else {
+                $message = $seller->isLinkedToUser() 
+                    ? 'Vendedor PARTILOT creado y vinculado exitosamente'
+                    : 'Vendedor PARTILOT creado pendiente de vinculación';
+            }
                 
             return redirect()->route('sellers.index')->with('success', $message);
 
@@ -117,10 +126,20 @@ class SellerController extends Controller
 
         try {
             $sellerService = new SellerService();
+            
+            // Verificar si el seller ya existe antes de crearlo
+            $existingSeller = \App\Models\Seller::where('email', $request->email)->first();
+            $wasExisting = $existingSeller !== null;
+            
             $seller = $sellerService->createSeller($request->all(), $request->entity_id, 'externo');
 
             session()->forget('selected_entity');
-            return redirect()->route('sellers.index')->with('success', 'Vendedor EXTERNO creado exitosamente');
+            
+            $message = $wasExisting 
+                ? 'Vendedor existente agregado a la entidad seleccionada'
+                : 'Vendedor EXTERNO creado exitosamente';
+            
+            return redirect()->route('sellers.index')->with('success', $message);
 
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()]);
@@ -144,16 +163,36 @@ class SellerController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show($id, Request $request)
     {
-        $seller = Seller::with(['entity.administration'])->findOrFail($id);
+        $seller = Seller::with(['entities.administration'])->findOrFail($id);
 
-        $reserves = Reserve::where('entity_id', $seller->entity->id)
-            ->where('status', 1) // confirmed
-            ->with(['lottery'])
-            ->get();
+        // Verificar que el vendedor tenga al menos una entidad
+        if ($seller->entities->isEmpty()) {
+            return back()->withErrors(['error' => 'El vendedor no tiene entidades asignadas']);
+        }
 
-        return view('sellers.show', compact('seller','reserves'));
+        // Determinar la entidad actual
+        // 1. Si viene entity_id por parámetro, usarla (y validar que pertenezca al seller)
+        // 2. Si no, usar la primera entidad
+        $entityId = $request->query('entity_id');
+        
+        if ($entityId && $seller->belongsToEntity($entityId)) {
+            $currentEntity = $seller->entities->where('id', $entityId)->first();
+        } else {
+            $currentEntity = $seller->getPrimaryEntity();
+        }
+        
+        // Obtener reservas de la entidad actual
+        $reserves = collect();
+        if ($currentEntity) {
+            $reserves = Reserve::where('entity_id', $currentEntity->id)
+                ->where('status', 1) // confirmed
+                ->with(['lottery'])
+                ->get();
+        }
+
+        return view('sellers.show', compact('seller', 'currentEntity', 'reserves'));
     }
 
     /**

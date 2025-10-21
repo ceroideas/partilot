@@ -239,18 +239,25 @@
                                  </div>
                              </div>
 
-                             <!-- Información de la Entidad -->
-                             <div class="form-card bs mb-3">
+                             <!-- Información de la Entidad - Sidebar Simple -->
+                             <div class="form-card bs mb-3" id="entity-info-sidebar">
                                  <div class="row">
                                      <div class="col-4">
                                          <div class="photo-preview-3">
-                                             <i class="ri-account-circle-fill"></i>
+                                             <i class="ri-building-line"></i>
                                          </div>
                                          <div style="clear: both;"></div>
                                      </div>
                                      <div class="col-8 text-center mt-2">
-                                         <h3 class="mt-2 mb-0">{{ $seller->entity->name ?? 'Entidad' }}</h3>
-                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $seller->entity->province ?? 'Provincia' }}
+                                         <h3 class="mt-2 mb-0" id="sidebar-entity-name">{{ $currentEntity->name ?? 'Entidad' }}</h3>
+                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 
+                                         <span id="sidebar-entity-province">{{ $currentEntity->province ?? 'Provincia' }}</span>
+                                         @if($seller->entities->count() > 1)
+                                             <br>
+                                             <small class="text-muted mt-2" style="display: block;">
+                                                 <i class="ri-information-line"></i> Trabaja con {{ $seller->entities->count() }} entidades
+                                             </small>
+                                         @endif
                                      </div>
                                  </div>
                              </div>
@@ -262,28 +269,81 @@
 
                         <div class="col-md-9">
 
-                            <div class="tabbable">
-                                
-                                <div class="tab-content p-0">
+                            @if($seller->entities->count() > 1 && !request()->query('entity_id'))
+                                <!-- PASO 1: Selección de Entidad (Solo si tiene múltiples y no hay una seleccionada) -->
+                                <div class="form-card bs" style="min-height: 658px;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h4 class="mb-0 mt-1">Seleccionar Entidad</h4>
+                                            <small><i>El vendedor trabaja con múltiples entidades. Selecciona una para continuar.</i></small>
+                                        </div>
+                                    </div>
+
+                                    <br>
+
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover nowrap w-100">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Entidad</th>
+                                                    <th>Provincia</th>
+                                                    <th>Ciudad</th>
+                                                    <th>Administración</th>
+                                                    <th>Teléfono</th>
+                                                    <th>Seleccionar</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($seller->entities as $entity)
+                                                    <tr>
+                                                        <td>{{ $entity->id }}</td>
+                                                        <td><strong>{{ $entity->name }}</strong></td>
+                                                        <td>{{ $entity->province ?? 'N/A' }}</td>
+                                                        <td>{{ $entity->city ?? 'N/A' }}</td>
+                                                        <td>{{ $entity->administration->name ?? 'N/A' }}</td>
+                                                        <td>{{ $entity->phone ?? 'N/A' }}</td>
+                                                        <td>
+                                                            <a href="{{ route('sellers.show', $seller->id) }}?entity_id={{ $entity->id }}" 
+                                                               class="btn btn-sm btn-primary" style="border-radius: 20px;">
+                                                                <i class="ri-checkbox-circle-line"></i> Seleccionar
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @else
+                                <!-- PASO 2: Contenido del Vendedor (Cuando ya hay entidad seleccionada) -->
+                                <div class="tabbable">
                                     
-                                    <div class="tab-pane fade active show" id="datos_vendedor">
+                                    <div class="tab-content p-0">
+                                        
+                                        <div class="tab-pane fade active show" id="datos_vendedor">
 
 
-                                        <div class="form-card bs" style="min-height: 658px;">
-                                            <div class="d-flex justify-content-between align-items-center show-content">
-                                                <div>
-                                                    <h4 class="mb-0 mt-1">
-                                                        Información del Vendedor
-                                                    </h4>
-                                                    <small><i>Detalles completos del vendedor</i></small>
+                                            <div class="form-card bs" style="min-height: 658px;">
+                                                <div class="d-flex justify-content-between align-items-center show-content">
+                                                    <div>
+                                                        <h4 class="mb-0 mt-1">
+                                                            Información del Vendedor
+                                                            @if($seller->entities->count() > 1)
+                                                                <a href="{{ route('sellers.show', $seller->id) }}" class="btn btn-sm btn-outline-secondary ms-2" style="border-radius: 20px;" title="Cambiar entidad">
+                                                                    <i class="ri-refresh-line"></i> Cambiar Entidad
+                                                                </a>
+                                                            @endif
+                                                        </h4>
+                                                        <small><i>Detalles completos del vendedor</i></small>
+                                                    </div>
+                                                    <div>
+                                                        <a href="{{ route('sellers.edit', $seller->id) }}" class="btn btn-light" style="border: 1px solid silver; border-radius: 30px;"> 
+                                                            <img src="{{url('assets/form-groups/edit.svg')}}" alt="">
+                                                            Editar
+                                                        </a>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <a href="{{ route('sellers.edit', $seller->id) }}" class="btn btn-light" style="border: 1px solid silver; border-radius: 30px;"> 
-                                                        <img src="{{url('assets/form-groups/edit.svg')}}" alt="">
-                                                        Editar
-                                                    </a>
-                                                </div>
-                                            </div>
 
                                             <div class="form-group mt-2 mb-3 admin-box">
                                                 <div class="row">
@@ -295,22 +355,22 @@
                                                     </div>
 
                                                     <div class="col-4 text-center mt-3">
-                                                        <h4 class="mt-0 mb-0">{{ $seller->entity->name ?? 'Entidad' }}</h4>
-                                                        <small>{{ $seller->entity->province ?? 'Provincia' }}</small> <br>
-                                                        <small>{{ $seller->entity->administration->name ?? 'Administración' }}</small>
+                                                        <h4 class="mt-0 mb-0">{{ $currentEntity->name ?? 'Entidad' }}</h4>
+                                                        <small>{{ $currentEntity->province ?? 'Provincia' }}</small> <br>
+                                                        <small>{{ $currentEntity->administration->name ?? 'Administración' }}</small>
                                                     </div>
 
                                                     <div class="col-3">
                                                         <div class="mt-3">
-                                                            Provincia: {{ $seller->entity->province ?? 'N/A' }} <br>
-                                                            Dirección: {{ $seller->entity->address ?? 'N/A' }}
+                                                            Provincia: {{ $currentEntity->province ?? 'N/A' }} <br>
+                                                            Dirección: {{ $currentEntity->address ?? 'N/A' }}
                                                         </div>
                                                     </div>
 
                                                     <div class="col-3">
                                                         <div class="mt-3">
-                                                            Ciudad: {{ $seller->entity->city ?? 'N/A' }} <br>
-                                                            Tel: {{ $seller->entity->phone ?? 'N/A' }}
+                                                            Ciudad: {{ $currentEntity->city ?? 'N/A' }} <br>
+                                                            Tel: {{ $currentEntity->phone ?? 'N/A' }}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -907,6 +967,8 @@
                                 </div>
 
                             </div>
+                            @endif
+                            <!-- Cierre del if de selección de entidad -->
 
                         </div>
                     </div>
@@ -2333,6 +2395,12 @@ function initDatatable()
           });
       }
   });
+
+  // Actualizar sidebar con la entidad actual (si está seleccionada)
+  @if(isset($currentEntity))
+      $('#sidebar-entity-name').text('{{ $currentEntity->name ?? "Entidad" }}');
+      $('#sidebar-entity-province').text('{{ $currentEntity->province ?? "Provincia" }}');
+  @endif
 
 </script>
 

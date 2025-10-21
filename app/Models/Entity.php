@@ -61,11 +61,12 @@ class Entity extends Model
     }
 
     /**
-     * Relación con Seller
+     * Relación con Sellers (Many to Many)
      */
     public function sellers()
     {
-        return $this->hasMany(Seller::class);
+        return $this->belongsToMany(Seller::class, 'entity_seller')
+            ->withTimestamps();
     }
 
     /**
