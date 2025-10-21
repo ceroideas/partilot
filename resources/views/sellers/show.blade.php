@@ -252,12 +252,6 @@
                                          <h3 class="mt-2 mb-0" id="sidebar-entity-name">{{ $currentEntity->name ?? 'Entidad' }}</h3>
                                          <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 
                                          <span id="sidebar-entity-province">{{ $currentEntity->province ?? 'Provincia' }}</span>
-                                         @if($seller->entities->count() > 1)
-                                             <br>
-                                             <small class="text-muted mt-2" style="display: block;">
-                                                 <i class="ri-information-line"></i> Trabaja con {{ $seller->entities->count() }} entidades
-                                             </small>
-                                         @endif
                                      </div>
                                  </div>
                              </div>
