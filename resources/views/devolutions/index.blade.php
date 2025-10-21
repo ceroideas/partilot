@@ -264,7 +264,7 @@ $(document).ready(function() {
         
         if (confirm(`¿Estás seguro de que deseas eliminar ${devolutionName}?`)) {
             $.ajax({
-                url: `/devolutions/${devolutionId}`,
+                url: `{{url('/')}}/devolutions/${devolutionId}`,
                 method: 'DELETE',
                 data: {
                     _token: '{{ csrf_token() }}'
