@@ -560,7 +560,7 @@
 		$('#activity-error').hide();
 
 		$.ajax({
-			url: `/participations/${participationId}/history`,
+			url: `{{url('/')}}/participations/${participationId}/history`,
 			type: 'GET',
 			success: function(data) {
 				$('#activity-loading').hide();
