@@ -400,7 +400,7 @@
         document.getElementById('no-activities').style.display = 'none';
         document.getElementById('activity-error').style.display = 'none';
 
-        fetch(`/participations/${participationId}/history`)
+        fetch(`{{url('/')}}/participations/${participationId}/history`)
             .then(response => response.json())
             .then(data => {
                 document.getElementById('activity-loading').style.display = 'none';
