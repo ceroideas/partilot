@@ -91,7 +91,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/notificaciones.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/notificaciones.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Notificaciones</h3>

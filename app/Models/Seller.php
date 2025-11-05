@@ -21,7 +21,10 @@ class Seller extends Model
         'comment',
         'image',
         'status',
-        'seller_type'
+        'seller_type',
+        'group_name',
+        'group_color',
+        'group_priority'
     ];
 
     protected $casts = [
@@ -78,18 +81,18 @@ class Seller extends Model
 
     public function getStatusTextAttribute()
     {
-        if ($this->seller_type === 'externo') {
+        // if ($this->seller_type === 'externo') {
             return $this->attributes['status'] ? 'Activo' : 'Inactivo';
-        }
-        return $this->user && $this->user->status ? 'Activo' : 'Inactivo';
+        // }
+        // return $this->user && $this->user->status ? 'Activo' : 'Inactivo';
     }
 
     public function getStatusClassAttribute()
     {
-        if ($this->seller_type === 'externo') {
+        // if ($this->seller_type === 'externo') {
             return $this->attributes['status'] ? 'success' : 'danger';
-        }
-        return $this->user && $this->user->status ? 'success' : 'danger';
+        // }
+        // return $this->user && $this->user->status ? 'success' : 'danger';
     }
 
     /**
@@ -141,5 +144,39 @@ class Seller extends Model
     public function isPendingLink()
     {
         return $this->user_id === 0; // Tanto PARTILOT pendientes como EXTERNO
+    }
+
+    /**
+     * Obtener el color del grupo o un color por defecto
+     */
+    public function getGroupColorAttribute($value)
+    {
+        return $value ?: '#6c757d'; // Color gris por defecto
+    }
+
+    /**
+     * Obtener el nombre del grupo o un nombre por defecto
+     */
+    public function getGroupNameAttribute($value)
+    {
+        return $value ?: 'Sin grupo';
+    }
+
+    /**
+     * Scope para filtrar por grupo
+     */
+    public function scopeByGroup($query, $groupName)
+    {
+        return $query->where('group_name', $groupName);
+    }
+
+    /**
+     * Scope para ordenar por prioridad de grupo
+     */
+    public function scopeOrderByGroup($query)
+    {
+        return $query->orderBy('group_priority', 'desc')
+                    ->orderBy('group_name', 'asc')
+                    ->orderBy('name', 'asc');
     }
 }

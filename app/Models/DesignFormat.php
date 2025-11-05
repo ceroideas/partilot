@@ -49,6 +49,7 @@ class DesignFormat extends Model
         'backgrounds',
         'margins',
         'output',
+        'snapshot_path',
     ];
 
     protected $casts = [

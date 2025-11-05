@@ -26,7 +26,7 @@
                 <div class="card-body">
 
                     @php
-                        $administrations = App\Models\Administration::all();
+                        $administrations = App\Models\Administration::orderBy('created_at', 'desc')->get();
                     @endphp
 
                 	<div class="{{count($administrations) ? '' : 'd-none'}}">
@@ -46,7 +46,7 @@
 
 	                    <br>
 
-	                    <table id="example2" class="table table-striped nowrap w-100">
+	                    <table id="example2" class="table table-striped nowrap w-100 selectable-rows">
 	                        <thead class="filters">
 	                            <tr>
 	                                <th>Order ID</th>
@@ -79,10 +79,10 @@
                                         
                                     </td>
 	                                <td>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/entidades.svg')}}" alt="" width="12"></a>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/sorteos.svg')}}" alt="" width="12"></a>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/reservas.svg')}}" alt="" width="12"></a>
-	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons/participaciones.svg')}}" alt="" width="12"></a>
+	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/entidades.svg')}}" alt="" width="12"></a>
+	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/sorteos.svg')}}" alt="" width="12"></a>
+	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/reservas.svg')}}" alt="" width="12"></a>
+	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/participaciones.svg')}}" alt="" width="12"></a>
 	                                	<a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
 	                                </td>
 	                            </tr>
@@ -99,7 +99,7 @@
                         	<div class="empty-tables">
 
                         		<div>
-                        			<img src="{{url('icons/administraciones.svg')}}" alt="" width="80px">
+                        			<img src="{{url('icons_/administraciones.svg')}}" alt="" width="80px">
                         		</div>
 
                         		<h3 class="mb-0">No hay Administraciones</h3>
@@ -127,6 +127,8 @@
 @section('scripts')
 
 <script>
+	// Limpiar datos de formulario de administración al entrar al index
+	localStorage.removeItem('administration_form_data');
 	
   function initDatatable() 
   {

@@ -89,8 +89,19 @@
                     			<small><i>Bloquea o desbloquea la entidad</i></small>
 
                     			<div class="form-group mt-2">
-	                    			<label class="">Estado Actual</label> <label class="badge badge-lg bg-success float-end">Activo</label>
+	                    			<label class="">Estado Actual</label> 
+	                    			<label class="badge badge-lg {{ $entity->status ? 'bg-success' : 'bg-danger' }} float-end">
+	                    				{{ $entity->status ? 'Activo' : 'Inactivo' }}
+	                    			</label>
 	                    			<div style="clear: both;"></div>
+	                    			
+	                    			<div class="form-check form-switch mt-3">
+	                    				<input class="form-check-input" type="checkbox" name="status" value="1" id="entity_status" {{ $entity->status ? 'checked' : '' }}>
+	                    				<input type="hidden" name="status" value="0">
+	                    				<label class="form-check-label" for="entity_status">
+	                    					Entidad Activa
+	                    				</label>
+	                    			</div>
                     			</div>
                     		</div>
 
@@ -324,5 +335,33 @@
 @endsection
 
 @section('scripts')
+
+<script>
+// Actualizar el badge de estado cuando se cambie el checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('entity_status');
+    const hiddenInput = document.querySelector('input[name="status"][type="hidden"]');
+    
+    if (checkbox && hiddenInput) {
+        // Buscar el badge específico en el contexto del formulario, no el del header
+        const formCard = checkbox.closest('.form-card');
+        const badge = formCard ? formCard.querySelector('.badge') : null;
+        
+        if (badge) {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    badge.textContent = 'Activo';
+                    badge.className = 'badge badge-lg bg-success float-end';
+                    hiddenInput.value = '1';
+                } else {
+                    badge.textContent = 'Inactivo';
+                    badge.className = 'badge badge-lg bg-danger float-end';
+                    hiddenInput.value = '0';
+                }
+            });
+        }
+    }
+});
+</script>
 
 @endsection

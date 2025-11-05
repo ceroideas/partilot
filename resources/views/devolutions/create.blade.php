@@ -264,7 +264,7 @@
                                 <li class="nav-item">
                                     <div class="form-wizard-element" id="step-2">
                                         <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/usuarios.svg')}}" alt="">
+                                        <img src="{{url('icons_/usuarios.svg')}}" alt="">
                                         <label>Selec. Opción</label>
                                     </div>
                                 </li>
@@ -520,7 +520,7 @@
                                                     <div class="form-card bs">
                                                         <div class="d-flex align-items-center p-3">
                                                             <div class="me-3">
-                                                                <img src="{{url('icons/sets.svg')}}" alt="" width="40px">
+                                                                <img src="{{url('icons_/sets.svg')}}" alt="" width="40px">
                                                             </div>
                                                             <div class="flex-grow-1">
                                                                 <h4 class="m-0 fw-bold">Seleccionar Set</h4>
@@ -545,7 +545,7 @@
                                                     <div class="form-card bs">
                                                         <div class="d-flex align-items-center p-3">
                                                             <div class="me-3">
-                                                                <img src="{{url('icons/participaciones.svg')}}" alt="" width="40px">
+                                                                <img src="{{url('icons_/participaciones.svg')}}" alt="" width="40px">
                                                             </div>
                                                             <div class="flex-grow-1">
                                                                 <h4 class="m-0 fw-bold">Participaciones</h4>
@@ -568,7 +568,7 @@
                                                         </div>
                                                         <div class="d-flex align-items-center p-3">
                                                             <div class="me-3">
-                                                                <img src="{{url('icons/participaciones.svg')}}" alt="" width="40px">
+                                                                <img src="{{url('icons_/participaciones.svg')}}" alt="" width="40px">
                                                             </div>
                                                             <div class="flex-grow-1">
                                                                 <h4 class="m-0 fw-bold">Participación</h4>
@@ -606,7 +606,7 @@
                                                 <div id="estado-vacio-resumen" class="d-flex align-items-center gap-1">
                                                     <div class="empty-tables">
                                                         <div>
-                                                            <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
+                                                            <img src="{{url('icons_/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
                                                         </div>
                                                         <h3 class="mb-0">No hay Participaciones</h3>
                                                         <small>Asigna Participaciones</small>
@@ -1058,14 +1058,14 @@ $(document).ready(function() {
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-3">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/usuarios.svg')}}" alt="">
+                        <img src="{{url('icons_/usuarios.svg')}}" alt="">
                         <label>Selec. Vendedor</label>
                     </div>
                 </li>
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-4">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/dinero.svg')}}" alt="">
+                        <img src="{{url('icons_/dinero.svg')}}" alt="">
                         <label>Liquidación</label>
                     </div>
                 </li>
@@ -1076,21 +1076,21 @@ $(document).ready(function() {
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-3">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                         <label>Seleccionar Sorteo</label>
                     </div>
                 </li>
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-4">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                         <label>Seleccionar Participaciones</label>
                     </div>
                 </li>
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-5">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/usuarios.svg')}}" alt="">
+                        <img src="{{url('icons_/usuarios.svg')}}" alt="">
                         <label>Liquidación</label>
                     </div>
                 </li>
@@ -1101,21 +1101,21 @@ $(document).ready(function() {
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-3">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                         <label>Seleccionar Sorteo</label>
                     </div>
                 </li>
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-4">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                         <label>Seleccionar Participaciones</label>
                     </div>
                 </li>
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-5">
                         <span>&nbsp;&nbsp;</span>
-                        <img src="{{url('icons/cancel.svg')}}" alt="">
+                        <img src="{{url('icons_/cancel.svg')}}" alt="">
                         <label>Confirmar Anulación</label>
                     </div>
                 </li>

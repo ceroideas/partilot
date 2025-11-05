@@ -57,7 +57,7 @@
                     					2
                     				</span>
 
-                    				<img src="{{url('icons/globe.svg')}}" alt="" width="18px" style="margin: 0 12px;">
+                    				<img src="{{url('icons_/globe.svg')}}" alt="" width="18px" style="margin: 0 12px;">
 
                     				<label>
                     					Diseño Web

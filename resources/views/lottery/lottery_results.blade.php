@@ -229,7 +229,7 @@
                         <br>
 
                         <a href="{{url('lottery_types?table=1')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark">
-                            <img src="{{url('icons/tipos_sorteos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                            <img src="{{url('icons_/tipos_sorteos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Tipos de Sorteo</a>
 
                          <a href="{{url('lottery/administrations')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative; background-color: #e78307;" class="btn btn-md btn-light">

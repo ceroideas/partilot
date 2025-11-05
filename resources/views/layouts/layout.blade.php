@@ -135,7 +135,7 @@
                         <li class="menu-item @if (Request::is('dashboard') || Request::is('/')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/dashboard')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/dashboard{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/dashboard{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Panel </span>
                                 @php $selected = null; @endphp
@@ -145,7 +145,7 @@
                         <li class="menu-item @if (Request::is('administrations/*') || Request::is('administrations')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/administrations')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/administraciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/administraciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Administraciones </span>
                                 @php $selected = null; @endphp
@@ -155,7 +155,7 @@
                         <li class="menu-item @if (Request::is('entities/*') || Request::is('entities')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/entities')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/entidades{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/entidades{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Entidades </span>
                                 @php $selected = null; @endphp
@@ -165,7 +165,7 @@
                         <li class="menu-item @if (Request::is('sellers/*') || Request::is('sellers')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/sellers')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/vendedores{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/vendedores{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Vendedores/Asignación </span>
                                 @php $selected = null; @endphp
@@ -175,7 +175,7 @@
                         <li class="menu-item @if (Request::is('users/*') || Request::is('users')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/users')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/usuarios{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/usuarios{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Usuarios </span>
                                 @php $selected = null; @endphp
@@ -185,7 +185,7 @@
                         <li class="menu-item @if (Request::is('lottery/*') || Request::is('lottery') || Request::is('lottery_types/*') || Request::is('lottery_types')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/lottery')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Sorteos </span>
                                 @php $selected = null; @endphp
@@ -195,7 +195,7 @@
                         <li class="menu-item @if (Request::is('scrutiny/*') || Request::is('scrutiny')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/scrutiny')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Escrutinio </span>
                                 @php $selected = null; @endphp
@@ -205,7 +205,7 @@
                         <li class="menu-item @if (Request::is('reserves/*') || Request::is('reserves')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/reserves')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/reservas{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/reservas{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Reservas </span>
                                 @php $selected = null; @endphp
@@ -215,7 +215,7 @@
                         <li class="menu-item @if (Request::is('sets/*') || Request::is('sets')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/sets')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img style="width: 20px;" src="{{url('icons')}}/sets{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img style="width: 20px;" src="{{url('icons_')}}/sets{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Set particip. </span>
                                 @php $selected = null; @endphp
@@ -225,7 +225,7 @@
                         <li class="menu-item @if (Request::is('design/*') || Request::is('design')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/design')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img style="width: 20px;" src="{{url('icons')}}/diseno{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img style="width: 20px;" src="{{url('icons_')}}/diseno{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Diseño e Impresión </span>
                                 @php $selected = null; @endphp
@@ -235,7 +235,7 @@
                         <li class="menu-item @if (Request::is('participations/*') || Request::is('participations')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('participations')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/participaciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/participaciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Participaciones </span>
                                 @php $selected = null; @endphp
@@ -245,7 +245,7 @@
                         <li class="menu-item @if (Request::is('devolutions/*') || Request::is('devolutions')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('devolutions')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img style="width: 19.5px;" src="{{url('icons')}}/devolucion{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img style="width: 19.5px;" src="{{url('icons_')}}/devolucion{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Devolución </span>
                                 @php $selected = null; @endphp
@@ -255,7 +255,7 @@
                         <li class="menu-item @if (Request::is('social/*') || Request::is('social')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('social')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/websocial{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/websocial{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Web Social </span>
                                 @php $selected = null; @endphp
@@ -265,7 +265,7 @@
                         <li class="menu-item @if (Request::is('requests/*') || Request::is('requests')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('requests')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/solicitudes{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/solicitudes{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Solicitudes </span>
                                 @php $selected = null; @endphp
@@ -275,7 +275,7 @@
                         <li class="menu-item @if (Request::is('notifications/*') || Request::is('notifications')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('notifications')}}" class="menu-link">
                                 <span class="menu-icon">
-                                    <img src="{{url('icons')}}/comunicados{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    <img src="{{url('icons_')}}/comunicados{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
                                 </span>
                                 <span class="menu-text"> Notificaciones </span>
                                 @php $selected = null; @endphp
@@ -781,7 +781,7 @@
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col-md-6">
-                                <div><script>document.write(new Date().getFullYear())</script> © Partilot - <a href="https://ceroideas.es/" target="_blank">ceroideas.es</a></div>
+                                <div><script>document.write(new Date().getFullYear())</script> © Partilot - <a href="https://partilot.es/" target="_blank">partilot.es</a></div>
                             </div>
                             <div class="col-md-6">
                                 <div class="d-none d-md-flex gap-4 align-item-center justify-content-md-end footer-links">

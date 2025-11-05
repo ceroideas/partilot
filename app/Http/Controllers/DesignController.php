@@ -30,9 +30,18 @@ class DesignController extends Controller
             $entity_id = session('design_entity_id');
         }
         $entity = Entity::findOrFail($entity_id);
-        // Mostrar solo sorteos cuya fecha sea distinta a la actual
-        $today = date('Y-m-d');
-        $lotteries = \App\Models\Lottery::whereDate('deadline_date', '!=', $today)->get();
+        
+        // Mostrar solo sorteos que tienen sets asociados para esta entidad
+        $lotteries = \App\Models\Lottery::whereHas('reserves', function($query) use ($entity_id) {
+                $query->where('entity_id', $entity_id)
+                      ->whereHas('sets', function($setQuery) {
+                          $setQuery->where('status', 1); // Solo sets activos
+                      });
+            })
+            ->whereDate('deadline_date', '!=', date('Y-m-d')) // Excluir sorteos de hoy
+            ->orderBy('draw_date', 'desc')
+            ->get();
+            
         return view('design.add_lottery', compact('entity', 'lotteries'));
     }
 
@@ -151,12 +160,15 @@ class DesignController extends Controller
             'back_html' => 'nullable|string',
             'backgrounds' => 'nullable|array',
             'output' => 'nullable|array',
+            'snapshot_path' => 'nullable|string',
         ]);
 
+        // return response()->json([$request->design_lottery_id,$request->design_entity_id],422);
 
-        $data['entity_id'] = session('design_entity_id') ?? 1;
-        $data['lottery_id'] = session('design_lottery_id') ?? 1;
         $data['set_id'] = $request->input('set_id', 1);
+
+        $data['entity_id'] = $request->design_entity_id ?? 1;
+        $data['lottery_id'] = $request->design_lottery_id ?? 1;
 
         // Guardar los bloques de diseño y configuración en el campo blocks (JSON)
         $data['blocks'] = [
@@ -175,7 +187,7 @@ class DesignController extends Controller
         $data['backgrounds'] = $data['blocks']['backgrounds'];
         $data['output'] = $data['blocks']['output'];
         $data['margins'] = $data['blocks']['margins'];
-
+        $data['snapshot_path'] = $data['snapshot_path'] ?? null;
         // return $data;
 
         $designFormat = DesignFormat::create($data);
@@ -475,6 +487,7 @@ class DesignController extends Controller
                 $format->participation_html = $data['participation_html'] ?? $format->participation_html;
                 $format->cover_html = $data['cover_html'] ?? $format->cover_html;
                 $format->back_html = $data['back_html'] ?? $format->back_html;
+                $format->snapshot_path = $data['snapshot_path'] ?? $format->snapshot_path;
                 // Guardar los campos JSON como string si corresponde
                 if (isset($data['margins'])) $format->margins = $data['margins'];
                 if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
@@ -865,6 +878,22 @@ class DesignController extends Controller
         
         // Para PDFs pequeños, usar el método normal optimizado
         return $this->generateOptimizedPdf($id, $htmlField, $filename);
+    }
+
+    public function saveSnapshot(Request $request) {
+        $validated = $request->validate([
+            'design_id' => 'required|exists:sets,id',
+            'snapshot' => 'required|string',
+        ]);
+        $set = \App\Models\Set::findOrFail($validated['design_id']);
+        $imgData = $validated['snapshot'];
+        $img = str_replace('data:image/png;base64,', '', $imgData);
+        $img = str_replace(' ', '+', $img);
+        $fileName = 'design_snapshots/design_set_' . $set->id . '.png';
+        \Storage::disk('public')->put($fileName, base64_decode($img));
+        // $set->snapshot_path = $fileName;
+        // $set->save();
+        return ['success' => true, 'path' => $fileName];
     }
 
     /**

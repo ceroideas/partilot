@@ -179,7 +179,7 @@
                             <div class="empty-tables">
 
                                 <div style="padding: 44px 12px">
-                                    <img src="{{url('icons/participaciones.svg')}}" alt="" width="110px">
+                                    <img src="{{url('icons_/participaciones.svg')}}" alt="" width="110px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Devoluciones</h3>

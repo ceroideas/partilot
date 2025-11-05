@@ -38,7 +38,7 @@
                                 <li class="nav-item">
                                     <div class="form-wizard-element active" data-bs-toggle="tab" data-bs-target="#detalles_participacion">
                                         <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                                         <label>Detalles</label>
                                     </div>
                                 </li>
@@ -60,7 +60,7 @@
                                 </div>
                             </div>
 
-                            <a href="{{ route('participations.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
+                            <a href="#" id="back-button" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                                 <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
                             </a>
                         </div>
@@ -177,6 +177,44 @@
                                                          </div>
                                                      </div>
                                                  </div>
+                                                 
+                                                 @if($participation->seller && $participation->seller->user)
+                                                 <div class="col-md-6">
+                                                     <div class="form-group mt-2 mb-3">
+                                                         <label class="label-control">Email Vendedor</label>
+                                                         <div class="input-group input-group-merge group-form">
+                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                                 <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+                                                             </div>
+                                                             <input class="form-control" type="text" value="{{ $participation->seller->user->email ?? 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                                 
+                                                 <div class="col-md-6">
+                                                     <div class="form-group mt-2 mb-3">
+                                                         <label class="label-control">Teléfono Vendedor</label>
+                                                         <div class="input-group input-group-merge group-form">
+                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                                 <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+                                                             </div>
+                                                             <input class="form-control" type="text" value="{{ $participation->seller->user->phone ?? 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                                 
+                                                 <div class="col-md-6">
+                                                     <div class="form-group mt-2 mb-3">
+                                                         <label class="label-control">Tipo Vendedor</label>
+                                                         <div class="input-group input-group-merge group-form">
+                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                                 <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+                                                             </div>
+                                                             <input class="form-control" type="text" value="{{ ucfirst($participation->seller->seller_type ?? 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                                 @endif
                                             </div>
 
                                             @if($participation->set)
@@ -567,6 +605,41 @@
 
     function refreshActivityHistory() {
         loadActivityHistory();
+    }
+    
+    // Navegación inteligente para el botón Atrás
+    document.getElementById('back-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Verificar si hay parámetro from_seller en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromSeller = urlParams.get('from_seller');
+        
+        if (fromSeller) {
+            // Si viene de un vendedor, volver al vendedor
+            window.location.href = `{{ url('/') }}/sellers/view/${fromSeller}`;
+        } else {
+            // Verificar si se abrió desde un vendedor (referrer contiene 'sellers')
+            const referrer = document.referrer;
+            const sellerId = getSellerIdFromReferrer(referrer);
+            
+            if (sellerId) {
+                // Si viene de un vendedor, volver al vendedor
+                window.location.href = `{{ url('/') }}/sellers/view/${sellerId}`;
+            } else {
+                // Si no viene de un vendedor, ir al índice de participaciones
+                window.location.href = `{{ route('participations.index') }}`;
+            }
+        }
+    });
+    
+    // Función para extraer el ID del vendedor del referrer
+    function getSellerIdFromReferrer(referrer) {
+        if (!referrer) return null;
+        
+        // Buscar patrones como /sellers/view/123 o /sellers/show/123
+        const sellerMatch = referrer.match(/\/sellers\/(?:view|show)\/(\d+)/);
+        return sellerMatch ? sellerMatch[1] : null;
     }
 </script>
 @endsection

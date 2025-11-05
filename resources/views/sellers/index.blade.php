@@ -57,6 +57,7 @@
 
                         </h4>
 
+
                         <div style="clear: both;"></div>
 
                         <br>
@@ -72,6 +73,7 @@
                                     <th>Email</th>
                                     <th>Teléfono</th>
                                     <th>Entidad</th>
+                                    <th>Grupo</th>
                                     <th>Estado</th>
                                     <th class="no-filter">Acciones</th>
                                 </tr>
@@ -94,6 +96,15 @@
                                             @endforeach
                                         @else
                                             {{ $seller->getPrimaryEntity()?->name ?? 'N/A' }}
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($seller->group_name)
+                                            <span class="badge" style="background-color: {{ $seller->group_color }}; color: white;">
+                                                {{ $seller->group_name }}
+                                            </span>
+                                        @else
+                                            <span class="badge bg-secondary">Sin grupo</span>
                                         @endif
                                     </td>
                                     <td>
@@ -127,7 +138,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/vendedores.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/vendedores.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Vendedores</h3>

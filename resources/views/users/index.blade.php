@@ -113,7 +113,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/usuarios.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/usuarios.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Usuarios</h3>

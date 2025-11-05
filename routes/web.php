@@ -71,6 +71,7 @@ Route::group(['prefix' => 'administrations'], function() {
     //
     Route::get('/', function() {return view('admins.index');})->name('administrations.index');
     Route::get('/add', function() {return view('admins.add');})->name('administrations.create');
+    Route::get('/add/manager', function() {return view('admins.add_manager');})->name('administrations.add-manager');
     Route::post('/add/manager', [AdministratorController::class, 'store_information']);
     Route::post('/store', [AdministratorController::class, 'store']);
 
@@ -89,7 +90,9 @@ Route::group(['prefix' => 'entities'], function() {
     Route::get('/', [EntityController::class, 'index'])->name('entities.index');
     Route::get('/add', [EntityController::class, 'create']);
     Route::post('/store-administration', [EntityController::class, 'store_administration']);
+    Route::get('/add/information', [EntityController::class, 'create_information'])->name('entities.add-information');
     Route::post('/store-information', [EntityController::class, 'store_information']);
+    Route::get('/add/manager', [EntityController::class, 'create_manager'])->name('entities.add-manager');
     Route::post('/store-manager', [EntityController::class, 'store_manager']);
 
     // Nuevas rutas para invitación de gestores
@@ -142,6 +145,11 @@ Route::group(['prefix' => 'sellers'], function() {
     Route::post('/get-assigned-participations', [SellerController::class, 'getAssignedParticipations'])->name('sellers.get-assigned-participations');
     Route::post('/remove-assignment', [SellerController::class, 'removeAssignment'])->name('sellers.remove-assignment');
     Route::post('/get-participations-by-book', [SellerController::class, 'getParticipationsByBook'])->name('sellers.get-participations-by-book');
+    
+    // Rutas para grupos de vendedores
+    Route::post('/{id}/update-group', [SellerController::class, 'updateGroup'])->name('sellers.update-group');
+    Route::get('/by-group', [SellerController::class, 'getByGroup'])->name('sellers.by-group');
+    Route::get('/group-stats', [SellerController::class, 'getGroupStats'])->name('sellers.group-stats');
     
     // Rutas de liquidación de vendedores
     Route::get('/settlement-summary', [SellerController::class, 'getSettlementSummary'])->name('sellers.settlement-summary');

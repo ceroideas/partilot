@@ -68,7 +68,7 @@ class SellerService
                     'phone' => $data['phone'] ?? null,
                     'comment' => $data['comment'] ?? null,
                     'image' => null,
-                    'status' => true,
+                    'status' => false, // Inactivo por defecto hasta que acepte el rol
                     'seller_type' => 'partilot'
                 ]);
                 
@@ -116,7 +116,7 @@ class SellerService
                 'phone' => $data['phone'] ?? null,
                 'comment' => $data['comment'] ?? null,
                 'image' => $data['image'] ?? null,
-                'status' => $data['status'] ?? true,
+                'status' => $data['status'] ?? false, // Inactivo por defecto
                 'seller_type' => 'externo'
             ]);
             

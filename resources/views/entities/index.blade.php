@@ -70,12 +70,16 @@
                                     <td>{{$entity->phone ?? 'Sin teléfono'}}</td>
                                     <td>{{$entity->email ?? 'Sin email'}}</td>
                                     <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
-                                    <td><label class="badge bg-success">Activo</label></td>
                                     <td>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/persons.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/design.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/participations.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/returns.svg')}}" alt="" width="12"></a>
+                                        <label class="badge {{ $entity->status ? 'bg-success' : 'bg-danger' }}">
+                                            {{ $entity->status ? 'Activo' : 'Inactivo' }}
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/persons.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/design.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/returns.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$entity->id}}" data-name="{{$entity->name}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
                                 </tr>
@@ -88,7 +92,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/entidades.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/entidades.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Entidades</h3>

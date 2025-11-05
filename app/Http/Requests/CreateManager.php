@@ -27,12 +27,12 @@ class CreateManager extends FormRequest
             // "image" => "required|string|max:255",
             "name" => "required|string|max:255",
             "last_name" => "required|string|max:255",
-            "last_name2" => "required|string|max:255",
-            "nif_cif" => "required|string|max:255",
-            "birthday" => "required|string|max:255",
+            "last_name2" => "nullable|string|max:255",
+            "nif_cif" => "nullable|string|max:255",
+            "birthday" => ["required", "date", new \App\Rules\MinimumAge(18)],
             "email" => "required|string|max:255",
-            "phone" => "required|string|max:255",
-            "comment" => "required|string|max:255",
+            "phone" => "nullable|string|max:255",
+            "comment" => "nullable|string|max:255",
         ];
     }
 }

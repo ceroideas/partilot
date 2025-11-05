@@ -34,12 +34,12 @@
                                 </div>
                                 <div class="form-wizard-element">
                                     <span>2</span>
-                                    <img src="{{url('icons/sorteos.svg')}}" alt="">
+                                    <img src="{{url('icons_/sorteos.svg')}}" alt="">
                                     <label>Sorteo</label>
                                 </div> --}}
                                 <div class="form-wizard-element active">
                                     <span>3</span>
-                                    <img src="{{url('icons/reservas.svg')}}" alt="">
+                                    <img src="{{url('icons_/reservas.svg')}}" alt="">
                                     <label>Datos Reserva</label>
                                 </div>
                             </div>

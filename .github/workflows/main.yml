@@ -12,11 +12,14 @@ jobs:
       - name: Deploy to Plesk
         uses: appleboy/ssh-action@v0.1.8
         with:
-          host: ${{secrets.IPSERVER}}
-          username: ${{secrets.USER}}
-          password: ${{secrets.CLAVESSH}}
+          host: "200.234.233.224"
+          # ${{secrets.IPSERVER}}
+          username: "root"
+          # ${{secrets.USER}}
+          password: "T^t#hJqQEhD4sBy1V^#n"
+          # ${{secrets.CLAVESSH}}
           script: |
-            cd /var/www/vhosts/ceroideas.es/httpdocs/partilot/
+            cd /var/www/vhosts/partilot.es/panel.partilot.es/
             git pull
             composer install
             php artisan cache:clear

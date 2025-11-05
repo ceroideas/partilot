@@ -48,3 +48,5 @@ Route::post('generarQr', [BackController::class,'generarQr']);
 Route::post('/design/save-format', [App\Http\Controllers\DesignController::class, 'saveFormat']);
 
 Route::get('test', [ApiController::class,'test']);
+
+Route::post('/design/save-snapshot', [\App\Http\Controllers\DesignController::class, 'saveSnapshot']);

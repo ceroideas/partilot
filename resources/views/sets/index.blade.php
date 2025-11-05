@@ -82,7 +82,7 @@
                                     <td>{{$set->entity->name ?? 'Sin entidad'}}</td>
                                     <td>{{$set->entity->province ?? 'Sin provincia'}}</td>
                                     <td>
-                                        <a href="{{url('sets/download-xml', $set->id)}}" class="btn btn-sm btn-light" title="Descargar XML"><img src="{{url('icons/diseno.svg')}}" alt="" width="12"></a>
+                                        <a href="{{url('sets/download-xml', $set->id)}}" class="btn btn-sm btn-light" title="Descargar XML"><img src="{{url('icons_/diseno.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('sets/edit', $set->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$set->id}}" data-name="set #{{$set->id}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
@@ -99,7 +99,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/sets.svg')}}" alt="" width="80px" style="margin-top: 10px;">
+                                    <img src="{{url('icons_/sets.svg')}}" alt="" width="80px" style="margin-top: 10px;">
                                 </div>
 
                                 <h3 class="mb-0">No hay Sets de Participaciones</h3>

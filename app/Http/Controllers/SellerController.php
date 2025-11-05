@@ -24,7 +24,7 @@ class SellerController extends Controller
      */
     public function index()
     {
-        $sellers = Seller::with('entities')->get();
+        $sellers = Seller::with('entities')->orderBy('created_at', 'desc')->get();
         return view('sellers.index', compact('sellers'));
     }
 
@@ -200,8 +200,19 @@ class SellerController extends Controller
      */
     public function edit($id)
     {
-        $seller = Seller::findOrFail($id);
-        return view('sellers.edit', compact('seller'));
+        $seller = Seller::with('entities')->findOrFail($id);
+        $entities = Entity::all();
+        
+        // Obtener grupos únicos para selección
+        $groups = Seller::select('group_name', 'group_color', 'group_priority')
+            ->whereNotNull('group_name')
+            ->where('group_name', '!=', '')
+            ->distinct()
+            ->orderBy('group_priority', 'desc')
+            ->orderBy('group_name', 'asc')
+            ->get();
+            
+        return view('sellers.edit', compact('seller', 'entities', 'groups'));
     }
 
     /**
@@ -218,11 +229,23 @@ class SellerController extends Controller
             'nif_cif' => 'nullable|string|max:255',
             'birthday' => 'nullable|date',
             'email' => 'required|email|unique:users,email,' . ($seller->user_id ?? 0),
-            'phone' => 'nullable|string|max:255'
+            'phone' => 'nullable|string|max:255',
+            'group_name' => 'nullable|string|max:255',
+            'status' => 'nullable|boolean',
         ]);
 
         try {
             DB::beginTransaction();
+
+            // Obtener datos del grupo seleccionado si existe
+            $groupData = null;
+            if ($request->group_name) {
+                $groupData = Seller::select('group_name', 'group_color', 'group_priority')
+                    ->where('group_name', $request->group_name)
+                    ->whereNotNull('group_name')
+                    ->where('group_name', '!=', '')
+                    ->first();
+            }
 
             // Actualizar el vendedor
             $seller->update([
@@ -232,7 +255,12 @@ class SellerController extends Controller
                 'nif_cif' => $request->nif_cif,
                 'birthday' => $request->birthday,
                 'email' => $request->email,
-                'phone' => $request->phone
+                'phone' => $request->phone,
+                'group_name' => $groupData ? $groupData->group_name : null,
+                'group_color' => $groupData ? $groupData->group_color : null,
+                'group_priority' => $groupData ? $groupData->group_priority : 0,
+                // Nuevo FIX: status guarda el valor real, no sólo su existencia
+                'status' => $request->input('status', 0),
             ]);
 
             // Actualizar el usuario si existe
@@ -844,6 +872,80 @@ class SellerController extends Controller
         return response()->json([
             'success' => true,
             'settlements' => $settlements
+        ]);
+    }
+
+    /**
+     * Actualizar grupo de vendedor
+     */
+    public function updateGroup(Request $request, $id)
+    {
+        $request->validate([
+            'group_name' => 'nullable|string|max:255',
+            'group_color' => 'nullable|string|max:7',
+            'group_priority' => 'nullable|integer|min:0'
+        ]);
+
+        try {
+            $seller = Seller::findOrFail($id);
+            $seller->update([
+                'group_name' => $request->group_name,
+                'group_color' => $request->group_color,
+                'group_priority' => $request->group_priority ?? 0
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Grupo actualizado correctamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el grupo: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Obtener vendedores por grupo
+     */
+    public function getByGroup(Request $request)
+    {
+        $groupName = $request->get('group');
+        
+        if ($groupName) {
+            $sellers = Seller::with('entities')
+                ->byGroup($groupName)
+                ->orderByGroup()
+                ->get();
+        } else {
+            $sellers = Seller::with('entities')
+                ->orderByGroup()
+                ->get();
+        }
+
+        return response()->json([
+            'success' => true,
+            'sellers' => $sellers
+        ]);
+    }
+
+    /**
+     * Obtener estadísticas de grupos
+     */
+    public function getGroupStats()
+    {
+        $stats = Seller::select('group_name', 'group_color')
+            ->selectRaw('COUNT(*) as count')
+            ->whereNotNull('group_name')
+            ->where('group_name', '!=', '')
+            ->groupBy('group_name', 'group_color')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'stats' => $stats
         ]);
     }
 } 

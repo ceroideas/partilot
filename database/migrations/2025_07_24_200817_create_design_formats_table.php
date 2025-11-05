@@ -44,6 +44,7 @@ return new class extends Migration
             $table->longText('back_html')->nullable();
             $table->json('backgrounds')->nullable();
             $table->json('output')->nullable();
+            $table->string('snapshot_path')->nullable();
             $table->timestamps();
 
             // Foreign keys (opcional, si existen las tablas referenciadas)

@@ -84,7 +84,7 @@
 	                                        <img src="{{url('assets/form-groups/admin/0.svg')}}" alt="">
 	                                    </div>
 
-	                                    <input class="form-control" type="text" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
+                                        <input class="form-control" type="text" name="web" value="{{ session('administration.web', '') }}" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;" readonly>
 	                                </div>
                     			</div>
                     		</div>
@@ -164,7 +164,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="name" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="name" value="{{ old('name', session('manager.name', '')) }}" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -178,7 +178,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="last_name" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="last_name" value="{{ old('last_name', session('manager.last_name', '')) }}" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -193,7 +193,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="last_name2" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="last_name2" value="{{ old('last_name2', session('manager.last_name2', '')) }}" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -208,7 +208,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="nif_cif" value="{{ old('nif_cif', session('manager.nif_cif', '')) }}" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -223,7 +223,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="date" name="birthday" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="date" name="birthday" value="{{ old('birthday', session('manager.birthday', '')) }}" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -238,7 +238,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="email" name="email" value="{{ old('email', session('manager.email', '')) }}" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -253,7 +253,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="phone" name="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="phone" name="phone" value="{{ old('phone', session('manager.phone', '')) }}" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -276,7 +276,7 @@
 
 				                    			<div class="input-group input-group-merge group-form">
 
-				                                    <textarea class="form-control" name="comment" placeholder="Añade tu comentario" id="" rows="6"></textarea>
+				                                    <textarea class="form-control" name="comment" placeholder="Añade tu comentario" id="" rows="6">{{ old('comment', session('manager.comment', '')) }}</textarea>
 				                                </div>
 			                    			</div>
 
@@ -310,7 +310,10 @@
 @section('scripts')
 
 <script>
-
+	// Limpiar datos de formulario de administración al enviar el formulario de manager
+	document.querySelector('form').addEventListener('submit', function() {
+	    localStorage.removeItem('administration_form_data');
+	});
 </script>
 
 @endsection

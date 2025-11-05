@@ -59,7 +59,7 @@
                     					2
                     				</span>
 
-                    				<img src="{{url('icons/reservas.svg')}}" alt="" width="18px" style="margin: 0 12px;">
+                    				<img src="{{url('icons_/reservas.svg')}}" alt="" width="18px" style="margin: 0 12px;">
 
                     				<label>
                     					Selec. Reserva
@@ -73,7 +73,7 @@
                     					3
                     				</span>
 
-                    				<img src="{{url('icons/sets.svg')}}" alt="" width="26px">
+                    				<img src="{{url('icons_/sets.svg')}}" alt="" width="26px">
 
                     				<label>
                     					Config. Set
@@ -538,6 +538,23 @@ $(document).ready(function() {
             }).appendTo('form');
         }
     });
+    
+    // Validación de fecha límite
+    const lotteryDate = @json($reserve->lottery->draw_date ?? null);
+    if (lotteryDate) {
+        const maxDate = new Date(lotteryDate).toISOString().split('T')[0];
+        $('input[name="deadline_date"]').attr('max', maxDate);
+        
+        $('input[name="deadline_date"]').on('change', function() {
+            const selectedDate = new Date($(this).val());
+            const lotteryDateObj = new Date(lotteryDate);
+            
+            if (selectedDate > lotteryDateObj) {
+                alert('La fecha límite no puede ser posterior a la fecha del sorteo (' + lotteryDateObj.toLocaleDateString() + ')');
+                $(this).val('');
+            }
+        });
+    }
     
 });
 

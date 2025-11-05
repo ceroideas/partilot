@@ -76,7 +76,7 @@
                                     <div class="col-6 d-flex">
                                         
                                         <div>
-                                            <img src="{{url('icons/participaciones.svg')}}" alt="" width="50px" style="margin-top: 8px; margin-right: 8px;">
+                                            <img src="{{url('icons_/participaciones.svg')}}" alt="" width="50px" style="margin-top: 8px; margin-right: 8px;">
                                         </div>
 
                                         <div class="mt-1">
@@ -144,7 +144,7 @@
                                     <thead>
                                         <tr style="font-size: 10px;">
                                             <th rowspan="2" class="no-filter" style="border-color: transparent;">
-                                                <img src="{{url('assets/participacion.png')}}" alt="" width="150px">
+                                                <img class="mt-2" src="{{asset('storage/design_snapshots/design_set_'.$designFormat->set->id.'.png')}}" alt="" width="100%" style="max-width: 150px; border-radius: 12px;">
                                             </th>
                                             <th>Orden ID</th>
                                             <th>Nombre Set</th>
@@ -399,7 +399,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
+                                    <img src="{{url('icons_/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
                                 </div>
 
                                 <h3 class="mb-0">No hay Participaciones</h3>

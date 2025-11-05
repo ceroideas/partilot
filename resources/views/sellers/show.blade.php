@@ -170,7 +170,7 @@
                                         <span>
                                             &nbsp;&nbsp;
                                         </span>
-                                        <img src="{{url('icons/vendedores.svg')}}" alt="">
+                                        <img src="{{url('icons_/vendedores.svg')}}" alt="">
                                         <label>
                                             Dat. Vendedor
                                         </label>
@@ -183,7 +183,7 @@
                                         <span>
                                             &nbsp;&nbsp;
                                         </span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                                         <label>
                                             Asignación
                                         </label>
@@ -198,7 +198,7 @@
                                         <span>
                                             &nbsp;&nbsp;
                                         </span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                                         <label>
                                             Participaciones
                                         </label>
@@ -213,7 +213,7 @@
                                         <span>
                                             &nbsp;&nbsp;
                                         </span>
-                                        <img src="{{url('icons/participaciones.svg')}}" alt="">
+                                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
                                         <label>
                                             Liquidación
                                         </label>
@@ -616,7 +616,7 @@
                                                         <div class="form-card bs">
                                                             <div class="d-flex align-items-center p-3">
                                                                 <div class="me-3">
-                                                                    <img src="{{url('icons/participaciones.svg')}}" alt="" width="40px">
+                                                                    <img src="{{url('icons_/participaciones.svg')}}" alt="" width="40px">
                                                                 </div>
                                                                 <div class="flex-grow-1">
                                                                     <h4 class="m-0 fw-bold">Participaciones</h4>
@@ -640,7 +640,7 @@
                                                             </div>
                                                             <div class="d-flex align-items-center p-3">
                                                                 <div class="me-3">
-                                                                    <img src="{{url('icons/participaciones.svg')}}" alt="" width="40px">
+                                                                    <img src="{{url('icons_/participaciones.svg')}}" alt="" width="40px">
                                                                 </div>
                                                                 <div class="flex-grow-1">
                                                                     <h4 class="m-0 fw-bold">Participación</h4>
@@ -681,7 +681,7 @@
                                                     <div id="estado-vacio-resumen" class="d-flex align-items-center gap-1">
                                                         <div class="empty-tables">
                                                             <div>
-                                                                <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
+                                                                <img src="{{url('icons_/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
                                                             </div>
                                                             
                                                             <h3 class="mb-0">No hay Participaciones</h3>
@@ -731,7 +731,7 @@
                                                 <div class="d-flex align-items-center gap-1">
                                                     <div class="empty-tables">
                                                         <div>
-                                                            <img src="{{url('icons/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
+                                                            <img src="{{url('icons_/participaciones.svg')}}" alt="" width="80px" style="margin-top: 10px;">
                                                         </div>
                                         
                                                         <h3 class="mb-0">Participaciones del vendedor</h3>
@@ -2116,14 +2116,14 @@ function initDatatable()
 
            // Función para ver detalle de participación desde el grid
       window.verDetalleParticipacion = function(codigo, participationId) {
-        // Abrir el detalle de la participación en una nueva pestaña
-        window.open(`{{ url('/') }}/participations/view/${participationId}`, '_blank');
+        const url = `{{ url('/') }}/participations/view/${participationId}?from_seller={{ $seller->id }}`;
+        window.open(url, '_blank');
       };
 
       // Función para ver detalle de participación desde el taco
       window.verDetalleParticipacionTaco = function(codigo, participationId) {
-        // Abrir el detalle de la participación en una nueva pestaña
-        window.open(`{{ url('/') }}/participations/view/${participationId}`, '_blank');
+        const url = `{{ url('/') }}/participations/view/${participationId}?from_seller={{ $seller->id }}`;
+        window.open(url, '_blank');
       };
 
       // Función para eliminar participación desde el taco

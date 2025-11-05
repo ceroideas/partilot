@@ -73,7 +73,7 @@
                                     <td>100</td>
                                     <td>6.000 €</td>
                                     <td>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/participations.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
                                     </td>
@@ -90,7 +90,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/reservas.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/reservas.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Reservas</h3>

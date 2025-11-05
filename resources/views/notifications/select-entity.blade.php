@@ -57,7 +57,7 @@
                                         2
                                     </span>
 
-                                    <img width="26px" src="{{url('icons/selec_sorteo.svg')}}" alt="">
+                                    <img width="26px" src="{{url('icons_/selec_sorteo.svg')}}" alt="">
 
                                     <label>
                                         Selección Entidad

@@ -182,7 +182,7 @@
                                     <div class="empty-prizes">
 
                                         <div>
-                                            <img src="{{url('icons/premios.svg')}}" alt="" width="36px">
+                                            <img src="{{url('icons_/premios.svg')}}" alt="" width="36px">
                                         </div>
 
                                         <h5 class="mb-2">No hay Categoría de <br> premios asignados</h5>

@@ -24,12 +24,19 @@
     }
     if (!function_exists('formatMini')) {
         function formatMini($numbers) {
+            $doFormat = function($n) {
+                $n = (string) $n;
+                // Quitar cualquier carácter no dígito
+                $n = preg_replace('/\D/', '', $n);
+                // Asegúrate de que tenga exactamente 5 dígitos
+                $n = str_pad($n, 5, '0', STR_PAD_LEFT);
+                // Coloca el punto antes de los 3 últimos
+                return substr($n, 0, 2) . '.' . substr($n, 2);
+            };
             if(is_array($numbers)) {
-                return implode(' - ', array_map(function($n) {
-                    return str_pad(number_format((int)$n, 0, '', '.'), 6, '0', STR_PAD_LEFT);
-                }, $numbers));
+                return implode(' - ', array_map($doFormat, $numbers));
             }
-            return str_pad(number_format((int)$numbers, 0, '', '.'), 6, '0', STR_PAD_LEFT);
+            return $doFormat($numbers);
         }
     }
 @endphp
@@ -42,6 +49,32 @@
         width: 100%;
         height: 100%;
         display: block;
+    }
+    
+    /* Mejorar visualización de imágenes de fondo */
+    [id*="containment-wrapper"] {
+        background-size: cover !important;
+        background-repeat: no-repeat !important;
+        background-position: center center !important;
+        background-attachment: scroll !important;
+        min-height: 200px;
+        position: relative;
+    }
+    
+    /* Asegurar que las imágenes de fondo se muestren correctamente */
+    [id*="containment-wrapper"]:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-size: inherit;
+        background-repeat: inherit;
+        background-position: inherit;
+        background-image: inherit;
+        z-index: -1;
+        pointer-events: none;
     }
 </style>
 
@@ -721,7 +754,7 @@ function changePositionElement(event) {
     $('#position-modal').modal('show');
 }
 
-$('#save-step').click(function(event) {
+{{-- $('#save-step').click(function(event) {
 
     if (step != 1) {
 
@@ -734,7 +767,62 @@ $('#save-step').click(function(event) {
       $('#save-step').addClass('d-none');
 
     }
-});
+}); --}}
+
+var snapshot_path = null;
+  $('#save-step').click(function(event) {
+
+    if (step != 1) {
+
+        let guardarSnapshotTriggered = false;
+        
+        if(step == 2 && !guardarSnapshotTriggered) {
+            guardarSnapshotTriggered = true;
+            html2canvas(document.querySelector('#step-2 .format-box')).then(function(canvas) {
+                let imageData = canvas.toDataURL('image/png');
+                
+                var formData = new FormData();
+
+                formData.append('design_id', {{ $set->id }});
+                formData.append('snapshot', imageData);
+
+                $.ajax({
+                    type: "POST",
+                    url: "{{url('/')}}/api/design/save-snapshot",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        
+                        snapshot_path = response.path;
+                        console.log(snapshot_path);
+
+                        guardarSnapshotTriggered = false;
+                        // Ahora sí avanza al submit normal/flujo de guardar! Activa el clic de nuevo.
+                        let html = $('#containment-wrapper'+step).html();
+
+                        localStorage.setItem('step'+step,html);
+
+                        $('#step').removeClass('d-none');
+                        $('#save-step').addClass('d-none');
+                    },error: function (response) {
+                        console.log(response);
+                        guardarSnapshotTriggered = false;
+                        alert('Error al guardar snapshot');
+                    }
+                });
+            });
+        } else {
+            let html = $('#containment-wrapper'+step).html();
+
+            localStorage.setItem('step'+step,html);
+
+            $('#step').removeClass('d-none');
+            $('#save-step').addClass('d-none');
+        }
+
+    }
+  });
 
 /**/
 
@@ -982,6 +1070,7 @@ function collectDesignData() {
     horizontal_space,
     vertical_space,
     participation_html,
+    snapshot_path,
     cover_html,
     back_html,
     backgrounds,
@@ -1278,9 +1367,19 @@ function setBgToContainment(color, img) {
   const $cont = $('#containment-wrapper'+step);
   $cont.css('background-color', color);
   if(img) {
-    $cont.css('background-image', 'url('+img+')');
+    // Asegurar que la URL de la imagen sea absoluta
+    let imageUrl = img;
+    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+      imageUrl = '/' + imageUrl;
+    }
+    
+    $cont.css('background-image', 'url('+imageUrl+')');
     $cont.css('background-size', 'cover');
     $cont.css('background-position', 'center');
+    $cont.css('background-repeat', 'no-repeat');
+    
+    // Forzar repaint del elemento
+    $cont[0].offsetHeight;
   } else {
     $cont.css('background-image', 'none');
   }
@@ -1289,5 +1388,56 @@ function setBgToContainment(color, img) {
 $('.elements').each(function() {
   $(this).css('resize', 'both');
 });
+
+// Cargar imágenes de fondo existentes al inicializar
+function loadExistingBackgrounds() {
+  // Cargar fondos para cada paso
+  for (let i = 2; i <= 4; i++) {
+    const color = localStorage.getItem('bg-step' + i) || '#dfdfdf';
+    const img = localStorage.getItem('bgimg-step' + i);
+    
+    if (img || color !== '#dfdfdf') {
+      const $cont = $('#containment-wrapper' + i);
+      if ($cont.length) {
+        $cont.css('background-color', color);
+        if (img) {
+          let imageUrl = img;
+          if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+            imageUrl = '/' + imageUrl;
+          }
+          $cont.css('background-image', 'url(' + imageUrl + ')');
+          $cont.css('background-size', 'cover');
+          $cont.css('background-position', 'center');
+          $cont.css('background-repeat', 'no-repeat');
+        }
+      }
+    }
+  }
+}
+
+// Ejecutar al cargar la página
+$(document).ready(function() {
+  loadExistingBackgrounds();
+});
+
+// Función para debuggear problemas con imágenes de fondo
+function debugBackgroundImage(step) {
+  const $cont = $('#containment-wrapper' + step);
+  const bgImage = $cont.css('background-image');
+  const bgColor = $cont.css('background-color');
+  const bgSize = $cont.css('background-size');
+  
+  console.log('Debug fondo paso ' + step + ':');
+  console.log('- Imagen:', bgImage);
+  console.log('- Color:', bgColor);
+  console.log('- Tamaño:', bgSize);
+  console.log('- Elemento:', $cont[0]);
+}
+
+// Agregar función de debug al modal de fondo
+$(document).on('click', '#open-bg-modal', function() {
+  debugBackgroundImage(step);
+});
 </script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 @endsection 

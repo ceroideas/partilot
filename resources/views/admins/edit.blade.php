@@ -404,15 +404,20 @@
 
 document.getElementById('imagenInput').addEventListener('change', function(event) {
     const archivo = event.target.files[0];
+    const photoPreview = document.querySelector('.photo-preview');
 
     if (archivo) {
         const lector = new FileReader();
         lector.onload = function(e) {
         	$('.photo-preview').css('background-image', 'url('+e.target.result+')');
+        	// Ocultar el icono cuando se carga una imagen
+        	$('.photo-preview i').hide();
         }
         lector.readAsDataURL(archivo);
     } else {
         $('.photo-preview').css('background-image', 'none'); // Limpiar preview si se cancela la selección
+        // Mostrar el icono si no hay imagen
+        $('.photo-preview i').show();
     }
 });
 

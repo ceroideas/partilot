@@ -15,7 +15,7 @@ class EntityController extends Controller
      */
     public function index()
     {
-        $entities = Entity::with(['administration', 'manager'])->get();
+        $entities = Entity::with(['administration', 'manager'])->orderBy('created_at', 'desc')->get();
         return view('entities.index', compact('entities'));
     }
 
@@ -39,6 +39,19 @@ class EntityController extends Controller
 
         $administration = Administration::find($request->administration_id);
         $request->session()->put('selected_administration', $administration);
+
+        return redirect()->route('entities.add-information');
+    }
+
+    /**
+     * Show entity information form - Paso 2: Datos de la entidad
+     */
+    public function create_information()
+    {
+        if (!session('selected_administration')) {
+            return redirect()->route('entities.create')
+                ->with('error', 'Sesión expirada. Por favor, seleccione una administración.');
+        }
 
         return view('entities.add_information');
     }
@@ -70,6 +83,19 @@ class EntityController extends Controller
         }
 
         $request->session()->put('entity_information', $validated);
+
+        return redirect()->route('entities.add-manager');
+    }
+
+    /**
+     * Show manager form - Paso 3: Datos del gestor
+     */
+    public function create_manager()
+    {
+        if (!session('selected_administration') || !session('entity_information')) {
+            return redirect()->route('entities.create')
+                ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
+        }
 
         return view('entities.add_manager');
     }
@@ -326,8 +352,12 @@ class EntityController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'comments' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
+
+        // Convertir status a boolean
+        $validated['status'] = $validated['status'] == '1' ? true : false;
 
         // Manejo de imagen
         if ($request->hasFile('image')) {

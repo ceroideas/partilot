@@ -102,7 +102,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/diseno.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/diseno.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Diseños</h3>

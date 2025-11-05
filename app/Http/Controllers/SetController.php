@@ -180,6 +180,15 @@ class SetController extends Controller
      */
     public function store_information(Request $request)
     {
+        // Obtener datos de sesión primero para la validación
+        $entity = $request->session()->get('selected_entity');
+        $reserve = $request->session()->get('selected_reserve');
+
+        if (!$entity || !$reserve) {
+            return redirect()->route('sets.create')
+                ->with('error', 'Error: No se encontraron los datos de entidad o reserva');
+        }
+
         $validated = $request->validate([
             'set_name' => 'required|string|max:255',
             'played_amount' => 'nullable|numeric|min:0',
@@ -189,17 +198,9 @@ class SetController extends Controller
             'total_amount' => 'required|numeric|min:0',
             'physical_participations' => 'nullable|integer|min:0',
             'digital_participations' => 'nullable|integer|min:0',
-            'deadline_date' => 'nullable|date'
+            'deadline_date' => ['nullable', 'date', new \App\Rules\DeadlineBeforeLottery($reserve->id)]
         ]);
 
-        // Obtener datos de sesión
-        $entity = $request->session()->get('selected_entity');
-        $reserve = $request->session()->get('selected_reserve');
-
-        if (!$entity || !$reserve) {
-            return redirect()->route('sets.create')
-                ->with('error', 'Error: No se encontraron los datos de entidad o reserva');
-        }
 
         // Calcular importe disponible
         $sets = Set::where('reserve_id', $reserve->id)->get();
@@ -298,7 +299,7 @@ class SetController extends Controller
             'total_amount' => 'required|numeric|min:0',
             'physical_participations' => 'nullable|integer|min:0',
             'digital_participations' => 'nullable|integer|min:0',
-            'deadline_date' => 'nullable|date'
+            'deadline_date' => ['nullable', 'date', new \App\Rules\DeadlineBeforeLottery($set->reserve_id)]
         ]);
 
         // Calcular importe disponible para la reserva, excluyendo participaciones anuladas

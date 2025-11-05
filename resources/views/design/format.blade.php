@@ -24,12 +24,19 @@
     }
     if (!function_exists('formatMini')) {
         function formatMini($numbers) {
+            $doFormat = function($n) {
+                $n = (string) $n;
+                // Quitar cualquier carácter no dígito
+                $n = preg_replace('/\D/', '', $n);
+                // Asegúrate de que tenga exactamente 5 dígitos
+                $n = str_pad($n, 5, '0', STR_PAD_LEFT);
+                // Coloca el punto antes de los 3 últimos
+                return substr($n, 0, 2) . '.' . substr($n, 2);
+            };
             if(is_array($numbers)) {
-                return implode(' - ', array_map(function($n) {
-                    return str_pad(number_format((int)$n, 0, '', '.'), 6, '0', STR_PAD_LEFT);
-                }, $numbers));
+                return implode(' - ', array_map($doFormat, $numbers));
             }
-            return str_pad(number_format((int)$numbers, 0, '', '.'), 6, '0', STR_PAD_LEFT);
+            return $doFormat($numbers);
         }
     }
 @endphp
@@ -46,7 +53,7 @@
     <div class="row">
         <div class="col-12">
             <div class="page-title-box">
-            	<div class="page-title-right">
+                <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="javascript: void(0);">Diseño e Impresión</a></li>
                         <li class="breadcrumb-item active">Añadir</li>
@@ -62,9 +69,9 @@
             <div class="card">
                 <div class="card-body">
 
-            		<h4 class="header-title">
+                    <h4 class="header-title">
 
-                    	<div class="d-flex p-2" style=" align-items: center;justify-content: center;">
+                        <div class="d-flex p-2" style=" align-items: center;justify-content: center;">
 
                             <div class="form-wizard-element active" style="width: 200px;" id="bc-step-1">
                                 
@@ -131,45 +138,45 @@
                     </h4>
 
                     <div class="row">
-                    	
-                    	<div class="col-md-12">
-                    		<div class="form-card fade show bs" id="step-1" style="min-height: 658px;">
-                    			<h4 class="mb-0 mt-1">
-                    				Configuración de Formato
-                    			</h4>
-                    			<small><i>Configura el formato de la página y las participaciones</i></small>
+                        
+                        <div class="col-md-12">
+                            <div class="form-card fade show bs" id="step-1" style="min-height: 658px;">
+                                <h4 class="mb-0 mt-1">
+                                    Configuración de Formato
+                                </h4>
+                                <small><i>Configura el formato de la página y las participaciones</i></small>
 
-                    			<br>
-                    			<br>
+                                <br>
+                                <br>
 
-                    			<div style="min-height: 656px;">
+                                <div style="min-height: 656px;">
 
-                    				<h4 class="mb-0 mt-1">
-	                    				Formato de la página
-	                    			</h4>
+                                    <h4 class="mb-0 mt-1">
+                                        Formato de la página
+                                    </h4>
 
-	                    			<div class="row">
-	                    				
-	                    				<div class="col-9">
+                                    <div class="row">
+                                        
+                                        <div class="col-9">
 
-	                    					<div class="row">
-	                    						
-	                    						<div class="col-12">
-			                                        <div class="form-group mt-2 mb-3">
-			                                            <label class="label-control">Plantilla rápida</label>
+                                            <div class="row">
+                                                
+                                                <div class="col-12">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Plantilla rápida</label>
 
-			                                            <div class="input-group input-group-merge group-form">
+                                                        <div class="input-group input-group-merge group-form">
 
-			                                                <select class="form-control" name="" id="format" style="border-radius: 30px;">
-			                                                	<option value="a3-h-3x2">A3 - Apaisado - (3x2)</option>
-			                                                	<option value="a3-h-4x2">A3 - Apaisado - (4x2)</option>
-			                                                	<option value="a4-v-3x1">A4 - Vertical - (3x1)</option>
-			                                                	<option value="a4-v-4x1">A4 - Vertical - (4x1)</option>
-			                                                	<option value="custom">Personalizado</option>
-			                                                </select>
-			                                            </div>
-			                                        </div>
-			                                    </div>
+                                                            <select class="form-control" name="" id="format" style="border-radius: 30px;">
+                                                                <option value="a3-h-3x2">A3 - Apaisado - (3x2)</option>
+                                                                <option value="a3-h-4x2">A3 - Apaisado - (4x2)</option>
+                                                                <option value="a4-v-3x1">A4 - Vertical - (3x1)</option>
+                                                                <option value="a4-v-4x1">A4 - Vertical - (4x1)</option>
+                                                                <option value="custom">Personalizado</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
                                                 <div class="col-6">
                                                     <div class="form-group mt-2 mb-3">
@@ -229,11 +236,11 @@
                                                     </div>
                                                 </div>
 
-	                    					</div>	
+                                            </div>  
 
-	                    					<h4 class="mb-0 mt-1">
-        	                    				Configurar márgenes
-        	                    			</h4>
+                                            <h4 class="mb-0 mt-1">
+                                                Configurar márgenes
+                                            </h4>
 
                                             <br>
 
@@ -331,34 +338,34 @@
                                                 </div>
 
                                             </div>
-	                    					
-	                    				</div>
-	                    				<div class="col-3">
+                                            
+                                        </div>
+                                        <div class="col-3">
 
-	                    					<div class="preview-design">
+                                            <div class="preview-design">
 
-	                    						<div class="a3">
-	                    							<div style="height: 72px;"></div>
-	                    							<div style="height: 72px;"></div>
-	                    							<div style="height: 72px;"></div>
-	                    							<div style="height: 72px;"></div>
-	                    							<div style="height: 72px;"></div>
-	                    							<div style="height: 72px;"></div>
-	                    						</div>
-	                    						
-	                    					</div>
-	                    					
-	                    				</div>
+                                                <div class="a3">
+                                                    <div style="height: 72px;"></div>
+                                                    <div style="height: 72px;"></div>
+                                                    <div style="height: 72px;"></div>
+                                                    <div style="height: 72px;"></div>
+                                                    <div style="height: 72px;"></div>
+                                                    <div style="height: 72px;"></div>
+                                                </div>
+                                                
+                                            </div>
+                                            
+                                        </div>
 
                                         <div class="col-12 text-end">
                                             <a href="javascript:;" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
                                                 <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
                                         </div>
-	                    			</div>
+                                    </div>
 
-		                        </div>
+                                </div>
 
-                    		</div>
+                            </div>
 
                             <div class="form-card fade bs d-none" id="step-2" style="min-height: 658px;">
                                 <h4 class="mb-0 mt-1">
@@ -430,7 +437,7 @@
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-family:Arial, Helvetica, sans-serif;font-size:14px;" class="ui-draggable-handle"><strong>{{ formatMini($reservation_numbers) }}</strong></span></p></span>
                                             </div>
                                                 <div class="elements text ui-draggable" style="padding: 10px; width: 120px; height: 90px; resize: both; overflow: hidden; position: absolute; top: 214px; left: 26px;">
-                                                <span class="ui-draggable-handle"><h4 style="text-align:center;"><span style="color:hsl(0, 0%, 0%);font-size:26px;" class="ui-draggable-handle"><strong>0,00€</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:18px;" class="ui-draggable-handle"><strong>0,00€</strong></span></h4></span>
+                                                <span class="ui-draggable-handle"><h4 style="text-align:center;"><span style="color:hsl(0, 0%, 0%);font-size:26px;" class="ui-draggable-handle"><strong>{{ number_format($set->played_amount, 2, ',', '.') }}€</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:18px;" class="ui-draggable-handle"><strong>{{ number_format($set->donation_amount, 2, ',', '.') }}€</strong></span></h4></span>
                                             </div>
                                                 <div class="elements participation text ui-draggable" style="padding: 10px; width: 90px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 300px; left: 94px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
@@ -440,7 +447,7 @@
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 558px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 304px; left: 172px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%); font-size:6px"><strong>Premios sup. a 2500€ por décimo, tendrán una retención del 20% por encima del importe anterior, que será prorrateada en estas particip. en la proporción correspondiente a su valor nominal.</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 220px; left: 332px;">
-                                            <span class="ui-draggable-handle"><p style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:26px;" class="ui-draggable-handle"><strong>0,00€</strong></span><br><span style="color:hsl(0,0%,0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0,0%,0%);font-size:18px;" class="ui-draggable-handle"><strong>0,00€</strong></span></p></span>
+                                            <span class="ui-draggable-handle"><p style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:26px;" class="ui-draggable-handle"><strong>{{ number_format($set->played_amount, 2, ',', '.') }}€</strong></span><br><span style="color:hsl(0,0%,0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0,0%,0%);font-size:18px;" class="ui-draggable-handle"><strong>{{ number_format($set->donation_amount, 2, ',', '.') }}€</strong></span></p></span>
                                             </div><div class="elements participation text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 92px; height: 36px; resize: both; overflow: hidden; position: absolute; top: 247.797px; left: 490.781px;">
@@ -739,7 +746,7 @@
                                 </div>
 
                             </div>
-                    	</div>
+                        </div>
 
                     </div>
 
@@ -1575,17 +1582,57 @@ $('#format').change(function (e) {
     $('#position-modal').modal('show');
   }
 
+  var snapshot_path = null;
   $('#save-step').click(function(event) {
 
     if (step != 1) {
 
-      
-      let html = $('#containment-wrapper'+step).html();
+        let guardarSnapshotTriggered = false;
+        
+        if(step == 2 && !guardarSnapshotTriggered) {
+            guardarSnapshotTriggered = true;
+            html2canvas(document.querySelector('#step-2 .format-box')).then(function(canvas) {
+                let imageData = canvas.toDataURL('image/png');
+                
+                var formData = new FormData();
 
-      localStorage.setItem('step'+step,html);
+                formData.append('design_id', {{ $set->id }});
+                formData.append('snapshot', imageData);
 
-      $('#step').removeClass('d-none');
-      $('#save-step').addClass('d-none');
+                $.ajax({
+                    type: "POST",
+                    url: "{{url('/')}}/api/design/save-snapshot",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        
+                        snapshot_path = response.path;
+                        console.log(snapshot_path);
+
+                        guardarSnapshotTriggered = false;
+                        // Ahora sí avanza al submit normal/flujo de guardar! Activa el clic de nuevo.
+                        let html = $('#containment-wrapper'+step).html();
+
+                        localStorage.setItem('step'+step,html);
+
+                        $('#step').removeClass('d-none');
+                        $('#save-step').addClass('d-none');
+                    },error: function (response) {
+                        console.log(response);
+                        guardarSnapshotTriggered = false;
+                        alert('Error al guardar snapshot');
+                    }
+                });
+            });
+        } else {
+            let html = $('#containment-wrapper'+step).html();
+
+            localStorage.setItem('step'+step,html);
+
+            $('#step').removeClass('d-none');
+            $('#save-step').addClass('d-none');
+        }
 
     }
   });
@@ -1773,6 +1820,9 @@ $('#format').change(function (e) {
     const horizontal_space = parseFloat($('#page-rigth').val());
     const vertical_space = parseFloat($('#page-bottom').val());
 
+    const design_lottery_id = '{{session('design_lottery_id')}}';
+    const design_entity_id = '{{session('design_entity_id')}}';
+
     // Quitar 'resize: both;' antes de guardar
     $('#step-2 .format-box .elements').each(function() {
       $(this).css('resize', '');
@@ -1834,6 +1884,9 @@ $('#format').change(function (e) {
       margin_custom,
       horizontal_space,
       vertical_space,
+      snapshot_path,
+      design_lottery_id,
+      design_entity_id,
       participation_html,
       cover_html,
       back_html,
@@ -1856,5 +1909,9 @@ $('#format').change(function (e) {
 </script>
 
 {{-- {{url('design/add/select')}} --}}
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+</script>
 
 @endsection

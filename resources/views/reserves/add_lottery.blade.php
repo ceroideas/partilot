@@ -59,7 +59,7 @@
                                         2
                                     </span>
 
-                                    <img src="{{url('icons/sorteos.svg')}}" alt="">
+                                    <img src="{{url('icons_/sorteos.svg')}}" alt="">
 
                                     <label>
                                         Selec. Sorteo
@@ -73,7 +73,7 @@
                                         3
                                     </span>
 
-                                    <img src="{{url('icons/reservas.svg')}}" alt="">
+                                    <img src="{{url('icons_/reservas.svg')}}" alt="">
 
                                     <label>
                                         Datos Reserva

@@ -82,7 +82,7 @@
                                     <td>{{$reserve->reservation_tickets ?? 0}}</td>
                                     <td>{{number_format($reserve->reservation_amount ?? 0, 2)}}€</td>
                                     <td>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons/participations.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('reserves/edit', $reserve->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$reserve->id}}" data-name="reserva #{{$reserve->id}}"><i class="ri-delete-bin-6-line"></i></button>
                                     </td>
@@ -99,7 +99,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/reservas.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/reservas.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Reservas</h3>

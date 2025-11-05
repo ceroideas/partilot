@@ -59,7 +59,7 @@
                     					2
                     				</span>
 
-                    				<img src="{{url('icons/reservas.svg')}}" alt="" width="18px" style="margin: 0 12px;">
+                    				<img src="{{url('icons_/reservas.svg')}}" alt="" width="18px" style="margin: 0 12px;">
 
                     				<label>
                     					Selec. Reserva
@@ -73,7 +73,7 @@
                     					3
                     				</span>
 
-                    				<img src="{{url('icons/sets.svg')}}" alt="" width="26px">
+                    				<img src="{{url('icons_/sets.svg')}}" alt="" width="26px">
 
                     				<label>
                     					Config. Set

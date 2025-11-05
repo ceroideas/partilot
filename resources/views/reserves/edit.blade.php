@@ -29,7 +29,7 @@
                             <div class="form-card bs mb-3">
                                 <div class="form-wizard-element active">
                                     <span>3</span>
-                                    <img src="{{url('icons/reservas.svg')}}" alt="">
+                                    <img src="{{url('icons_/reservas.svg')}}" alt="">
                                     <label>Datos Reserva</label>
                                 </div>
                             </div>

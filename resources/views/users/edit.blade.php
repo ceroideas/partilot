@@ -49,7 +49,7 @@
                     					1
                     				</span>
 
-                    				<img src="{{url('icons/usuarios.svg')}}" alt="">
+                    				<img src="{{url('icons_/usuarios.svg')}}" alt="">
 
                     				<label>
                     					Datos Usuario

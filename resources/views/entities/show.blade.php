@@ -109,7 +109,10 @@
                     			<small><i>Bloquea o desbloquea la entidad</i></small>
 
                     			<div class="form-group mt-2">
-	                    			<label class="">Estado Actual</label> <label class="badge badge-lg bg-success float-end">Activo</label>
+	                    			<label class="">Estado Actual</label> 
+	                    			<label class="badge badge-lg {{ $entity->status ? 'bg-success' : 'bg-danger' }} float-end">
+	                    				{{ $entity->status ? 'Activo' : 'Inactivo' }}
+	                    			</label>
 	                    			<div style="clear: both;"></div>
                     			</div>
                     		</div>

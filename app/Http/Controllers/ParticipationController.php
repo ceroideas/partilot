@@ -14,6 +14,7 @@ class ParticipationController extends Controller
     public function index()
     {
         $entities = Entity::with(['administration', 'manager'])
+            ->orderBy('created_at', 'desc')
             ->get(); // Mostrar todas las entidades independientemente del status
         
         return view('participations.index', compact('entities'));

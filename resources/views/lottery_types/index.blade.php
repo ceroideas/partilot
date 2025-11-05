@@ -72,11 +72,11 @@
                         <br>
 
                         <a href="{{url('lottery?table=1')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark">
-                            <img src="{{url('icons/sorteos_selected.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                            <img src="{{url('icons_/sorteos_selected.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Sorteos</a>
                     @else
                         <a href="{{url('lottery')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark float-start">
-                            <img src="{{url('icons/sorteos_selected.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                            <img src="{{url('icons_/sorteos_selected.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Sorteos</a>
                          <div style="clear: both;"></div>
                         <div class="d-flex align-items-center gap-1">
@@ -84,7 +84,7 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons/sorteos.svg')}}" alt="" width="80px">
+                                    <img src="{{url('icons_/sorteos.svg')}}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Tipos de Sorteo</h3>

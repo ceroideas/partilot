@@ -59,7 +59,7 @@
                     					2
                     				</span>
 
-                    				<img width="26px" src="{{url('icons/selec_sorteo.svg')}}" alt="">
+                    				<img width="26px" src="{{url('icons_/selec_sorteo.svg')}}" alt="">
 
                     				<label>
                     					Selec. Sorteo
@@ -124,22 +124,35 @@
                     							</tr>
                     						</thead>
                     						<tbody>
-                    							@foreach($lotteries as $lottery)
-                    							<tr>
-                    								<td>#LO{{str_pad($lottery->id, 4, '0', STR_PAD_LEFT)}}</td>
-                    								<td>{{$lottery->name}}</td>
-                    								<td>{{$lottery->draw_date->format('d-m-Y') ?? 'Sin fecha'}}</td>
-                    								<td><label class="badge bg-success">Activo</label></td>
-                    								<td>
-                    									<div class="form-check">
-                    										<input class="form-check-input" type="radio" name="lottery_id" value="{{$lottery->id}}" id="lottery_{{$lottery->id}}" required>
-                    										<label class="form-check-label" for="lottery_{{$lottery->id}}">
-                    											Seleccionar
-                    										</label>
-                    									</div>
-                    								</td>
-                    							</tr>
-                    							@endforeach
+                    							@if($lotteries->count() > 0)
+                    								@foreach($lotteries as $lottery)
+                    								<tr>
+                    									<td>#LO{{str_pad($lottery->id, 4, '0', STR_PAD_LEFT)}}</td>
+                    									<td>{{$lottery->name}}</td>
+                    									<td>{{$lottery->draw_date->format('d-m-Y') ?? 'Sin fecha'}}</td>
+                    									<td><label class="badge bg-success">Activo</label></td>
+                    									<td>
+                    										<div class="form-check">
+                    											<input class="form-check-input" type="radio" name="lottery_id" value="{{$lottery->id}}" id="lottery_{{$lottery->id}}" required>
+                    											<label class="form-check-label" for="lottery_{{$lottery->id}}">
+                    												Seleccionar
+                    											</label>
+                    										</div>
+                    									</td>
+                    								</tr>
+                    								@endforeach
+                    							@else
+                    								<tr>
+                    									<td colspan="5" class="text-center">
+                    										<div class="alert alert-info">
+                    											<i class="ri-information-line me-2"></i>
+                    											No hay sorteos disponibles con sets asociados para esta entidad.
+                    											<br>
+                    											<small>Primero debe crear sets para los sorteos antes de poder diseñar participaciones.</small>
+                    										</div>
+                    									</td>
+                    								</tr>
+                    							@endif
                     						</tbody>
                     					</table>
                     				</div>

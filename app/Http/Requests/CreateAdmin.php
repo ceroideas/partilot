@@ -23,7 +23,7 @@ class CreateAdmin extends FormRequest
     {
         return [
             //
-            "web"=>"string|max:255",
+            "web"=>"nullable|string|max:255",
             // "image"=>"required|string|max:255",
             "name"=>"required|string|max:255",
             "receiving"=>"required|string|max:255",

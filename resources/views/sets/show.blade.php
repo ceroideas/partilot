@@ -36,7 +36,7 @@
                                 <li class="nav-item">
                                     <div class="form-wizard-element active" data-bs-toggle="tab" data-bs-target="#informacion">
                                         <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/sets.svg')}}" alt="" width="26px">
+                                        <img src="{{url('icons_/sets.svg')}}" alt="" width="26px">
                                         <label>Config. Set</label>
                                     </div>
                                 </li>
@@ -44,7 +44,7 @@
                                 <li class="nav-item">
                                     <div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#participaciones">
                                         <span>&nbsp;&nbsp;</span>
-                                        <img src="{{url('icons/sets.svg')}}" alt="" width="26px">
+                                        <img src="{{url('icons_/sets.svg')}}" alt="" width="26px">
                                         <label>Participaciones</label>
                                     </div>
                                 </li>

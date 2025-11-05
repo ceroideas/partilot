@@ -59,7 +59,7 @@
                     					2
                     				</span>
 
-                    				<img src="{{url('icons/vendedores.svg')}}" alt="">
+                    				<img src="{{url('icons_/vendedores.svg')}}" alt="">
 
                     				<label>
                     					Dat. Vendedor

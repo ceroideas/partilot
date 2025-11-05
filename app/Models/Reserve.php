@@ -47,6 +47,14 @@ class Reserve extends Model
     }
 
     /**
+     * Relación con los sets
+     */
+    public function sets()
+    {
+        return $this->hasMany(Set::class);
+    }
+
+    /**
      * Scope para reservas pendientes
      */
     public function scopePending($query)

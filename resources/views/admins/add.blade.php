@@ -98,6 +98,9 @@
 
                     				@csrf()
                     				
+                                <!-- Web (hidden, sincronizado con el campo visible de la izquierda) -->
+                                <input type="hidden" name="web" id="webHidden" value="">
+                    				
 	                    			<h4 class="mb-0 mt-1">
 	                    				Datos legales de la administración
 	                    			</h4>
@@ -363,11 +366,102 @@
 	        const lector = new FileReader();
 	        lector.onload = function(e) {
 	        	$('.photo-preview').css('background-image', 'url('+e.target.result+')');
+	        	// Ocultar el icono cuando se carga una imagen
+	        	$('.photo-preview i').hide();
 	        }
 	        lector.readAsDataURL(archivo);
 	    } else {
-	        preview.src = ''; // Limpiar preview si se cancela la selección
+	        $('.photo-preview').css('background-image', 'none'); // Limpiar preview si se cancela la selección
+	        // Mostrar el icono si no hay imagen
+	        $('.photo-preview i').show();
 	    }
+	});
+
+	// Persistir datos del formulario en localStorage
+	function saveFormData() {
+	    const formData = {
+	        web: document.querySelector('input[name="web"]')?.value || '',
+	        name: document.querySelector('input[name="name"]')?.value || '',
+	        receiving: document.querySelector('input[name="receiving"]')?.value || '',
+	        society: document.querySelector('input[name="society"]')?.value || '',
+	        nif_cif: document.querySelector('input[name="nif_cif"]')?.value || '',
+	        province: document.querySelector('input[name="province"]')?.value || '',
+	        city: document.querySelector('input[name="city"]')?.value || '',
+	        postal_code: document.querySelector('input[name="postal_code"]')?.value || '',
+	        address: document.querySelector('input[name="address"]')?.value || '',
+	        email: document.querySelector('input[name="email"]')?.value || '',
+	        phone: document.querySelector('input[name="phone"]')?.value || '',
+	        account: Array.from(document.querySelectorAll('input[name="account[]"]')).map(input => input.value)
+	    };
+	    localStorage.setItem('administration_form_data', JSON.stringify(formData));
+	}
+
+	// Cargar datos guardados
+	function loadFormData() {
+	    const savedData = localStorage.getItem('administration_form_data');
+	    if (savedData) {
+	        const formData = JSON.parse(savedData);
+	        Object.keys(formData).forEach(key => {
+	            if (key === 'account') {
+	                const accountInputs = document.querySelectorAll('input[name="account[]"]');
+	                accountInputs.forEach((input, index) => {
+	                    if (formData.account[index]) {
+	                        input.value = formData.account[index];
+	                    }
+	                });
+	            } else {
+	                const input = document.querySelector(`input[name="${key}"]`);
+	                if (input && formData[key]) {
+	                    input.value = formData[key];
+	                }
+	            }
+	        });
+	    }
+	}
+
+	// Cargar datos al cargar la página
+	loadFormData();
+
+	// Sincronizar el campo web visible con el hidden dentro del formulario
+	const webVisible = document.querySelector('input[name="web"]');
+	const webHidden = document.getElementById('webHidden');
+	if (webVisible && webHidden) {
+	    // Inicializar
+	    webHidden.value = webVisible.value || '';
+	    // Sincronizar en tiempo real
+	    webVisible.addEventListener('input', function() {
+	        webHidden.value = this.value || '';
+	    });
+	    webVisible.addEventListener('change', function() {
+	        webHidden.value = this.value || '';
+	    });
+	}
+
+	// Guardar datos al cambiar cualquier campo
+	document.querySelectorAll('input').forEach(input => {
+	    input.addEventListener('input', saveFormData);
+	    input.addEventListener('change', saveFormData);
+	});
+
+    // Enviar el campo 'web' (que está fuera del <form>) como hidden dentro del formulario y limpiar storage
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const form = this;
+        const webInputOutside = document.querySelector('input[name="web"]');
+        if (webInputOutside) {
+            const hiddenWeb = document.createElement('input');
+            hiddenWeb.type = 'hidden';
+            hiddenWeb.name = 'web';
+            hiddenWeb.value = webInputOutside.value || '';
+            form.appendChild(hiddenWeb);
+        }
+        localStorage.removeItem('administration_form_data');
+    });
+
+    // Limpiar datos al navegar al paso 2 (manager)
+    document.querySelector('button[type="submit"]').addEventListener('click', function() {
+        setTimeout(() => {
+            localStorage.removeItem('administration_form_data');
+        }, 100);
 	});
 
 </script>

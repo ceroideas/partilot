@@ -57,7 +57,7 @@
 	                    					&nbsp;&nbsp;
 	                    				</span>
 
-	                    				<img src="{{url('icons/entidades.svg')}}" alt="">
+	                    				<img src="{{url('icons_/entidades.svg')}}" alt="">
 
 	                    				<label>
 	                    					Datos participación
@@ -66,6 +66,7 @@
 	                    			</div>
                     			</li>
 
+                        @if($participation->seller)
 	                    		<li class="nav-item">
 	                    			<div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#datos_contacto">
 	                    				
@@ -73,7 +74,7 @@
 	                    					&nbsp;&nbsp;
 	                    				</span>
 
-	                    				<img src="{{url('icons/sorteos.svg')}}" alt="">
+	                    				<img src="{{url('icons_/sorteos.svg')}}" alt="">
 
 	                    				<label>
 	                    					Vendedor
@@ -82,6 +83,7 @@
 	                    			</div>
 
 	                    		</li>
+                        @endif
                     			
                     		</ul>
 
@@ -161,7 +163,7 @@
 
 			                    					<div class="col-2">
 
-			                    						<img src="{{url('assets/participacion.png')}}" alt="" width="150px">
+			                    						<img class="mt-2" src="{{asset('storage/design_snapshots/design_set_'.$participation->set->id.'.png')}}" alt="" width="100%" style="max-width: 150px; border-radius: 12px;">
 			                    						
 			                    					</div>
 			                    					
@@ -341,6 +343,7 @@
 			                    		</div>
                     				</div>
 
+                        @if($participation->seller)
                     				<div class="tab-pane fade" id="datos_contacto">
                     					<div class="form-card bs" style="min-height: 658px;">
 			                    			<h4 class="mb-0 mt-1">
@@ -370,7 +373,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $participation->seller && $participation->seller->user ? explode(' ', $participation->seller->user->name)[0] ?? 'N/A' : 'Sin asignar' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+                                            <input readonly="" value="{{ optional(optional($participation->seller)->user)->name ?? $participation->seller->name ?? 'Sin asignar' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -384,7 +387,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $participation->seller && $participation->seller->user ? (explode(' ', $participation->seller->user->name)[1] ?? 'N/A') : 'Sin asignar' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+                                            <input readonly="" value="{{ optional(optional($participation->seller)->user)->last_name ?? $participation->seller->last_name ?? 'Sin asignar' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -399,7 +402,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $participation->seller && $participation->seller->user ? (explode(' ', $participation->seller->user->name)[2] ?? 'N/A') : 'Sin asignar' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+                                            <input readonly="" value="{{ optional(optional($participation->seller)->user)->last_name2 ?? $participation->seller->last_name2 ?? 'Sin asignar' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -414,7 +417,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="16600600A" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ $participation->seller->user->nif_cif ?? $participation->seller->nif_cif ?? 'N/A' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -429,7 +432,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="1975-01-01" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ optional(optional($participation->seller)->user)->birthday ? \Carbon\Carbon::parse($participation->seller->user->birthday)->format('Y-m-d') : '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -444,7 +447,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="administracion@ejemplo.es" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ $participation->seller->email ?? optional($participation->seller->user)->email ?? 'N/A' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -459,8 +462,9 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="941 900 900" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ $participation->seller->phone ?? optional($participation->seller->user)->phone ?? 'N/A' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
+                        @endif
 						                    			</div>
 			                    					</div>
 

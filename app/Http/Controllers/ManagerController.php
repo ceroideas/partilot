@@ -30,7 +30,7 @@ class ManagerController extends Controller
             'last_name' => 'required|string|max:255',
             'last_name2' => 'nullable|string|max:255',
             'nif_cif' => 'nullable|string|max:20',
-            'birthday' => 'nullable|date',
+            'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:20',
             'comment' => 'nullable|string|max:1000',
