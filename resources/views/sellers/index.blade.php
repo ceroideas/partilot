@@ -99,10 +99,12 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if($seller->group_name)
-                                            <span class="badge" style="background-color: {{ $seller->group_color }}; color: white;">
-                                                {{ $seller->group_name }}
-                                            </span>
+                                        @if($seller->groups->count() > 0)
+                                            @foreach($seller->groups as $group)
+                                                <span class="badge bg-primary me-1">
+                                                    {{ $group->name }}
+                                                </span>
+                                            @endforeach
                                         @else
                                             <span class="badge bg-secondary">Sin grupo</span>
                                         @endif
@@ -129,9 +131,17 @@
 
                         <br>
 
+                        <a href="{{url('groups?table=1')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark">
+                            <img src="{{url('icons_/grupos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                         Gestión Grupos</a>
+
                     </div>
 
                     <div class="{{ count($sellers) > 0 ? 'd-none' : '' }}">
+                        <a href="{{url('groups')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark float-start">
+                            <img src="{{url('icons_/grupos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
+                         Gestión Grupos</a>
+                         <div style="clear: both;"></div>
                         <div class="d-flex align-items-center gap-1">
 
                             

@@ -24,7 +24,7 @@ class SellerController extends Controller
      */
     public function index()
     {
-        $sellers = Seller::with('entities')->orderBy('created_at', 'desc')->get();
+        $sellers = Seller::with(['entities', 'groups'])->orderBy('created_at', 'desc')->get();
         return view('sellers.index', compact('sellers'));
     }
 
@@ -203,13 +203,9 @@ class SellerController extends Controller
         $seller = Seller::with('entities')->findOrFail($id);
         $entities = Entity::all();
         
-        // Obtener grupos únicos para selección
-        $groups = Seller::select('group_name', 'group_color', 'group_priority')
-            ->whereNotNull('group_name')
-            ->where('group_name', '!=', '')
-            ->distinct()
-            ->orderBy('group_priority', 'desc')
-            ->orderBy('group_name', 'asc')
+        // Obtener grupos de la nueva tabla groups
+        $groups = \App\Models\Group::with('entity')
+            ->orderBy('name', 'asc')
             ->get();
             
         return view('sellers.edit', compact('seller', 'entities', 'groups'));
@@ -230,22 +226,12 @@ class SellerController extends Controller
             'birthday' => 'nullable|date',
             'email' => 'required|email|unique:users,email,' . ($seller->user_id ?? 0),
             'phone' => 'nullable|string|max:255',
-            'group_name' => 'nullable|string|max:255',
+            'group_id' => 'nullable|exists:groups,id',
             'status' => 'nullable|boolean',
         ]);
 
         try {
             DB::beginTransaction();
-
-            // Obtener datos del grupo seleccionado si existe
-            $groupData = null;
-            if ($request->group_name) {
-                $groupData = Seller::select('group_name', 'group_color', 'group_priority')
-                    ->where('group_name', $request->group_name)
-                    ->whereNotNull('group_name')
-                    ->where('group_name', '!=', '')
-                    ->first();
-            }
 
             // Actualizar el vendedor
             $seller->update([
@@ -256,12 +242,17 @@ class SellerController extends Controller
                 'birthday' => $request->birthday,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'group_name' => $groupData ? $groupData->group_name : null,
-                'group_color' => $groupData ? $groupData->group_color : null,
-                'group_priority' => $groupData ? $groupData->group_priority : 0,
                 // Nuevo FIX: status guarda el valor real, no sólo su existencia
                 'status' => $request->input('status', 0),
             ]);
+
+            // Actualizar la relación con grupos (many-to-many)
+            if ($request->has('group_id') && !empty($request->group_id)) {
+                $seller->groups()->sync([$request->group_id]);
+            } else {
+                // Si no se selecciona grupo, eliminar todas las relaciones
+                $seller->groups()->detach();
+            }
 
             // Actualizar el usuario si existe
             if ($seller->user_id) {

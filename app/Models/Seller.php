@@ -50,6 +50,15 @@ class Seller extends Model
     }
 
     /**
+     * Relación con Groups (Many to Many)
+     */
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_seller')
+            ->withTimestamps();
+    }
+
+    /**
      * Obtener la entidad principal (primera entidad del vendedor)
      * Útil para mostrar datos cuando no hay contexto específico
      */

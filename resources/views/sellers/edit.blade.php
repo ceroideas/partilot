@@ -191,10 +191,10 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
                                                         </div>
-                                                        <select class="form-control" name="group_name" style="border-radius: 0 30px 30px 0;">
+                                                        <select class="form-control" name="group_id" style="border-radius: 0 30px 30px 0;">
                                                             <option value="">Sin grupo</option>
                                                             @foreach($groups as $group)
-                                                                <option value="{{ $group->group_name }}" data-color="{{ $group->group_color }}" {{ old('group_name', $seller->group_name) == $group->group_name ? 'selected' : '' }}>{{ $group->group_name }}</option>
+                                                                <option value="{{ $group->id }}" {{ old('group_id', $seller->groups->first()?->id) == $group->id ? 'selected' : '' }}>{{ $group->name }} ({{ $group->entity->name ?? 'N/A' }})</option>
                                                             @endforeach
                                                         </select>
                                                     </div>

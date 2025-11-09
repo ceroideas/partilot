@@ -156,6 +156,18 @@ Route::group(['prefix' => 'sellers'], function() {
     Route::post('/settlement', [SellerController::class, 'storeSettlement'])->name('sellers.settlement.store');
     Route::get('/settlement-history', [SellerController::class, 'getSettlementHistory'])->name('sellers.settlement-history');
 });
+
+Route::group(['prefix' => 'groups'], function() {
+    Route::get('/', [\App\Http\Controllers\GroupController::class, 'index'])->name('groups.index');
+    Route::get('/add', [\App\Http\Controllers\GroupController::class, 'create'])->name('groups.create');
+    Route::post('/store-entity', [\App\Http\Controllers\GroupController::class, 'storeEntity'])->name('groups.storeEntity');
+    Route::get('/add-information', [\App\Http\Controllers\GroupController::class, 'addInformation'])->name('groups.add-information');
+    Route::post('/store', [\App\Http\Controllers\GroupController::class, 'store'])->name('groups.store');
+    Route::get('/edit/{id}', [\App\Http\Controllers\GroupController::class, 'edit'])->name('groups.edit');
+    Route::put('/update/{id}', [\App\Http\Controllers\GroupController::class, 'update'])->name('groups.update');
+    Route::delete('/destroy/{id}', [\App\Http\Controllers\GroupController::class, 'destroy'])->name('groups.destroy');
+});
+
 Route::get('users',function() {
     return view('users.index');
 });
