@@ -186,6 +186,19 @@ class SellerController extends Controller
             ->forUser(auth()->user())
             ->findOrFail($id);
 
+        $accessibleEntityIds = auth()->user()->accessibleEntityIds();
+        if (!empty($accessibleEntityIds)) {
+            $filteredEntities = $seller->entities->whereIn('id', $accessibleEntityIds)->values();
+        } else {
+            $filteredEntities = collect();
+        }
+
+        if ($filteredEntities->isEmpty()) {
+            abort(403, 'No tienes permisos para ver las entidades de este vendedor.');
+        }
+
+        $seller->setRelation('entities', $filteredEntities);
+
         // Verificar que el vendedor tenga al menos una entidad
         if ($seller->entities->isEmpty()) {
             return back()->withErrors(['error' => 'El vendedor no tiene entidades asignadas']);
