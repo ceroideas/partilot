@@ -16,6 +16,7 @@ class SetController extends Controller
     public function index()
     {
         $sets = Set::with(['entity', 'reserve'])
+            ->forUser(auth()->user())
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -27,7 +28,9 @@ class SetController extends Controller
      */
     public function create()
     {
-        $entities = Entity::with(['administration', 'manager'])->get();
+        $entities = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->get();
         return view('sets.add', compact('entities'));
     }
 
@@ -40,11 +43,17 @@ class SetController extends Controller
             'entity_id' => 'required|integer|exists:entities,id'
         ]);
 
-        $entity = Entity::with(['administration', 'manager'])->find($request->entity_id);
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($request->entity_id);
+
         $request->session()->put('selected_entity', $entity);
+        $request->session()->put('selected_entity_id', $entity->id);
+        $request->session()->forget(['selected_reserve', 'selected_reserve_id']);
 
         // Obtener reservas activas de la entidad
-        $reserves = Reserve::where('entity_id', $entity->id)
+        $reserves = Reserve::forUser(auth()->user())
+            ->where('entity_id', $entity->id)
             ->where('status', 1) // confirmed
             ->with(['lottery'])
             ->get()
@@ -64,8 +73,13 @@ class SetController extends Controller
             'entity_id' => 'required|integer|exists:entities,id'
         ]);
 
-        $entity = Entity::with(['administration', 'manager'])->find($request->entity_id);
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($request->entity_id);
+
         $request->session()->put('selected_entity', $entity);
+        $request->session()->put('selected_entity_id', $entity->id);
+        $request->session()->forget(['selected_reserve', 'selected_reserve_id']);
 
         return response()->json(['success' => true]);
     }
@@ -75,15 +89,21 @@ class SetController extends Controller
      */
     public function add_reserve()
     {
-        $entity = session('selected_entity');
-        
-        if (!$entity) {
+        $entityId = session('selected_entity_id');
+
+        if (!$entityId || !auth()->user()->canAccessEntity((int) $entityId)) {
             return redirect()->route('sets.create')
                 ->with('error', 'Error: No se encontró la entidad seleccionada');
         }
 
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($entityId);
+        session(['selected_entity' => $entity]);
+
         // Obtener reservas activas de la entidad
-        $reserves = Reserve::where('entity_id', $entity->id)
+        $reserves = Reserve::forUser(auth()->user())
+            ->where('entity_id', $entity->id)
             ->where('status', 1) // confirmed
             ->with(['lottery'])
             ->orderBy('lottery.draw_date','desc')
@@ -101,16 +121,28 @@ class SetController extends Controller
             'reserve_id' => 'required|integer|exists:reserves,id'
         ]);
 
-        $reserve = Reserve::with(['lottery', 'entity'])->find($request->reserve_id);
-        $request->session()->put('selected_reserve', $reserve);
-
-        // Obtener también la entidad de la sesión
-        $entity = session('selected_entity');
-        
-        if (!$entity || !$reserve) {
+        $entityId = session('selected_entity_id');
+        if (!$entityId || !auth()->user()->canAccessEntity((int) $entityId)) {
             return redirect()->route('sets.create')
                 ->with('error', 'Error: No se encontraron los datos de entidad o reserva');
         }
+
+        $reserve = Reserve::with(['lottery', 'entity'])
+            ->forUser(auth()->user())
+            ->findOrFail($request->reserve_id);
+
+        if ($reserve->entity_id !== (int) $entityId) {
+            return redirect()->route('sets.create')
+                ->with('error', 'La reserva seleccionada no pertenece a la entidad actual.');
+        }
+
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($entityId);
+
+        $request->session()->put('selected_entity', $entity);
+        $request->session()->put('selected_reserve', $reserve);
+        $request->session()->put('selected_reserve_id', $reserve->id);
 
         // return view('sets.add_information', compact('entity', 'reserve'));
         return redirect('sets/add/information');
@@ -125,8 +157,32 @@ class SetController extends Controller
             'reserve_id' => 'required|integer|exists:reserves,id'
         ]);
 
-        $reserve = Reserve::with(['lottery', 'entity'])->find($request->reserve_id);
+        $entityId = session('selected_entity_id');
+        if (!$entityId || !auth()->user()->canAccessEntity((int) $entityId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debe seleccionar una entidad válida antes de elegir la reserva.'
+            ], 422);
+        }
+
+        $reserve = Reserve::with(['lottery', 'entity'])
+            ->forUser(auth()->user())
+            ->findOrFail($request->reserve_id);
+
+        if ($reserve->entity_id !== (int) $entityId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La reserva seleccionada no pertenece a la entidad actual.'
+            ], 422);
+        }
+
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($entityId);
+
+        $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_reserve', $reserve);
+        $request->session()->put('selected_reserve_id', $reserve->id);
 
         return response()->json(['success' => true]);
     }
@@ -136,13 +192,30 @@ class SetController extends Controller
      */
     public function add_information()
     {
-        $entity = session('selected_entity');
-        $reserve = session('selected_reserve');
-        
-        if (!$entity || !$reserve) {
+        $entityId = session('selected_entity_id');
+        $reserveId = session('selected_reserve_id');
+
+        if (!$entityId || !$reserveId || !auth()->user()->canAccessEntity((int) $entityId)) {
             return redirect()->route('sets.create')
                 ->with('error', 'Error: No se encontraron los datos de entidad o reserva. Por favor, selecciona una entidad y reserva.');
         }
+
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($entityId);
+        $reserve = Reserve::with(['lottery', 'entity'])
+            ->forUser(auth()->user())
+            ->findOrFail($reserveId);
+
+        if ($reserve->entity_id !== $entity->id) {
+            return redirect()->route('sets.create')
+                ->with('error', 'La reserva seleccionada no pertenece a la entidad actual.');
+        }
+
+        session([
+            'selected_entity' => $entity,
+            'selected_reserve' => $reserve,
+        ]);
 
         // Calcular importe disponible para la reserva
         // Obtener todos los sets de la reserva
@@ -181,13 +254,28 @@ class SetController extends Controller
     public function store_information(Request $request)
     {
         // Obtener datos de sesión primero para la validación
-        $entity = $request->session()->get('selected_entity');
-        $reserve = $request->session()->get('selected_reserve');
+        $entityId = $request->session()->get('selected_entity_id');
+        $reserveId = $request->session()->get('selected_reserve_id');
 
-        if (!$entity || !$reserve) {
+        if (!$entityId || !$reserveId || !auth()->user()->canAccessEntity((int) $entityId)) {
             return redirect()->route('sets.create')
                 ->with('error', 'Error: No se encontraron los datos de entidad o reserva');
         }
+
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($entityId);
+        $reserve = Reserve::with(['lottery', 'entity'])
+            ->forUser(auth()->user())
+            ->findOrFail($reserveId);
+
+        if ($reserve->entity_id !== $entity->id) {
+            return redirect()->route('sets.create')
+                ->with('error', 'La reserva seleccionada no pertenece a la entidad actual.');
+        }
+
+        $request->session()->put('selected_entity', $entity);
+        $request->session()->put('selected_reserve', $reserve);
 
         $validated = $request->validate([
             'set_name' => 'required|string|max:255',
@@ -238,7 +326,7 @@ class SetController extends Controller
         Set::create($setData);
 
         // Limpiar sesión
-        $request->session()->forget(['selected_entity', 'selected_reserve']);
+        $request->session()->forget(['selected_entity', 'selected_reserve', 'selected_entity_id', 'selected_reserve_id']);
 
         return redirect()->route('sets.index')
             ->with('success', 'Set creado exitosamente');
@@ -249,6 +337,10 @@ class SetController extends Controller
      */
     public function show(Set $set)
     {
+        if (!auth()->user()->canAccessEntity($set->entity_id)) {
+            abort(403, 'No tienes permisos para ver este set.');
+        }
+
         $set->load(['entity', 'reserve']);
         return view('sets.show', compact('set'));
     }
@@ -258,8 +350,12 @@ class SetController extends Controller
      */
     public function edit(Set $set)
     {
-        $entities = Entity::all();
-        $reserves = Reserve::all();
+        if (!auth()->user()->canAccessEntity($set->entity_id)) {
+            abort(403, 'No tienes permisos para editar este set.');
+        }
+
+        $entities = Entity::forUser(auth()->user())->get();
+        $reserves = Reserve::forUser(auth()->user())->get();
         // Calcular importe disponible para la reserva, excluyendo participaciones anuladas
         $sets = Set::where('reserve_id', $set->reserve_id)->get();
         $usedAmount = 0;
@@ -290,6 +386,10 @@ class SetController extends Controller
      */
     public function update(Request $request, Set $set)
     {
+        if (!auth()->user()->canAccessEntity($set->entity_id)) {
+            abort(403, 'No tienes permisos para actualizar este set.');
+        }
+
         $validated = $request->validate([
             'set_name' => 'required|string|max:255',
             'played_amount' => 'nullable|numeric|min:0',
@@ -344,6 +444,10 @@ class SetController extends Controller
      */
     public function destroy(Set $set)
     {
+        if (!auth()->user()->canAccessEntity($set->entity_id)) {
+            abort(403, 'No tienes permisos para eliminar este set.');
+        }
+
         $set->delete();
 
         return redirect()->route('sets.index')
@@ -355,6 +459,13 @@ class SetController extends Controller
      */
     public function changeStatus(Request $request, Set $set)
     {
+        if (!auth()->user()->canAccessEntity($set->entity_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para actualizar este set.'
+            ], 403);
+        }
+
         $request->validate([
             'status' => 'required|in:0,1,2'
         ]);
@@ -372,6 +483,10 @@ class SetController extends Controller
      */
     public function downloadXml(Set $set)
     {
+        if (!auth()->user()->canAccessEntity($set->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este set.');
+        }
+
         // Cargar las relaciones necesarias
         $set->load(['entity.administration', 'reserve.lottery', 'reserve']);
 
@@ -437,7 +552,12 @@ class SetController extends Controller
             'entity_id' => 'required|integer|exists:entities,id'
         ]);
 
-        $reserves = Reserve::where('entity_id', $request->entity_id)
+        if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+            return response()->json([], 403);
+        }
+
+        $reserves = Reserve::forUser(auth()->user())
+            ->where('entity_id', $request->entity_id)
             ->where('status', 1) // confirmed
             ->with(['lottery'])
             ->get();
@@ -454,7 +574,9 @@ class SetController extends Controller
             'xml_file' => 'required|file|mimes:xml',
         ]);
 
-        $set = Set::with('reserve.lottery')->findOrFail($id);
+        $set = Set::with('reserve.lottery')
+            ->forUser(auth()->user())
+            ->findOrFail($id);
 
         // Leer el archivo XML
         $xml = simplexml_load_file($request->file('xml_file')->getPathname());
@@ -508,7 +630,7 @@ class SetController extends Controller
         ]);
 
         try {
-            $set = Set::findOrFail($request->set_id);
+            $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
             
             return response()->json([
                 'success' => true,

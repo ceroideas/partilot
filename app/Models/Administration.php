@@ -66,4 +66,22 @@ class Administration extends Model
     {
         return $this->status ? 'success' : 'danger';
     }
+
+    /**
+     * Scope para filtrar administraciones accesibles por usuario.
+     */
+    public function scopeForUser($query, User $user)
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $administrationIds = $user->accessibleAdministrationIds();
+
+        if (empty($administrationIds)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('id', $administrationIds);
+    }
 }

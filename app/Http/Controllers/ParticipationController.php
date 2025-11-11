@@ -14,8 +14,9 @@ class ParticipationController extends Controller
     public function index()
     {
         $entities = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
             ->orderBy('created_at', 'desc')
-            ->get(); // Mostrar todas las entidades independientemente del status
+            ->get(); // Mostrar solo entidades accesibles
         
         return view('participations.index', compact('entities'));
     }
@@ -26,11 +27,16 @@ class ParticipationController extends Controller
     public function create()
     {
         // Si no hay entidad seleccionada en sesión, redirigir al index
-        if (!session('selected_entity')) {
+        $entityId = session('selected_entity_id');
+
+        if (!$entityId || !auth()->user()->canAccessEntity((int) $entityId)) {
             return redirect()->route('participations.index');
         }
         
-        $entity = session('selected_entity');
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($entityId);
+        session(['selected_entity' => $entity]);
         
         // Obtener los design_formats de la entidad seleccionada
         $designFormats = \App\Models\DesignFormat::where('entity_id', $entity->id)
@@ -42,7 +48,7 @@ class ParticipationController extends Controller
             $this->calculateBooks($designFormat);
         }
         
-        return view('participations.add', compact('designFormats'));
+        return view('participations.add', compact('entity', 'designFormats'));
     }
 
     /**
@@ -54,8 +60,11 @@ class ParticipationController extends Controller
             'entity_id' => 'required|integer|exists:entities,id'
         ]);
 
-        $entity = Entity::with(['administration', 'manager'])->find($request->entity_id);
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($request->entity_id);
         $request->session()->put('selected_entity', $entity);
+        $request->session()->put('selected_entity_id', $entity->id);
 
         // Obtener los design_formats de la entidad seleccionada
         $designFormats = \App\Models\DesignFormat::where('entity_id', $entity->id)
@@ -80,7 +89,9 @@ class ParticipationController extends Controller
             'set.reserve.entity.administration',
             'seller.user',
             'designFormat'
-        ])->findOrFail($id);
+        ])
+        ->forUser(auth()->user())
+        ->findOrFail($id);
         
         return view('participations.view', compact('participation'));
     }
@@ -95,7 +106,9 @@ class ParticipationController extends Controller
             'set.reserve.entity.administration',
             'seller.user',
             'designFormat'
-        ])->findOrFail($id);
+        ])
+        ->forUser(auth()->user())
+        ->findOrFail($id);
         
         // Buscar la referencia del ticket en el set
         $ticketReference = null;
@@ -120,7 +133,7 @@ class ParticipationController extends Controller
      */
     public function show_seller($id)
     {
-        $participation = Participation::findOrFail($id);
+        $participation = Participation::forUser(auth()->user())->findOrFail($id);
         return view('participations.show_seller', compact('participation'));
     }
 
@@ -221,7 +234,7 @@ class ParticipationController extends Controller
      */
     public function getBookParticipations($set_id, $book_number)
     {
-        $set = \App\Models\Set::findOrFail($set_id);
+        $set = \App\Models\Set::forUser(auth()->user())->findOrFail($set_id);
         
         // Obtener el designFormat asociado
         $designFormat = \App\Models\DesignFormat::where('set_id', $set_id)->first();

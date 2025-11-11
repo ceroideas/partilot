@@ -75,11 +75,16 @@ Route::group(['prefix' => 'administrations'], function() {
     Route::post('/add/manager', [AdministratorController::class, 'store_information']);
     Route::post('/store', [AdministratorController::class, 'store']);
 
-    Route::get('/view/{id}', function($id) { $administration = Administration::find($id); return view('admins.show', compact('administration'));})->name('administrations.show');
+    Route::get('/view/{id}', function($id) { 
+        $administration = Administration::forUser(auth()->user())->findOrFail($id); 
+        return view('admins.show', compact('administration'));
+    })->name('administrations.show');
     Route::get('/edit/{id}', [AdministratorController::class, 'edit'])->name('administrations.edit');
     Route::put('/update/{id}', [AdministratorController::class, 'update'])->name('administrations.update');
     Route::get('/edit/manager/{id}', function($id) { 
-        $administration = Administration::with('manager')->findOrFail($id); 
+        $administration = Administration::with('manager')
+            ->forUser(auth()->user())
+            ->findOrFail($id); 
         return view('admins.edit_manager', compact('administration')); 
     })->name('administrations.edit-manager');
     Route::get('/edit/api/{id}', function() {return view('admins.edit_api');});

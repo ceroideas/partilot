@@ -42,6 +42,13 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
 
+            if (Auth::user()->isClient()) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Tu cuenta no tiene acceso al panel.',
+                ])->withInput($request->only('email'));
+            }
+
             return redirect()->intended('/dashboard');
         }
 
@@ -84,6 +91,7 @@ class AuthController extends Controller
                 'name' => 'Administrador',
                 'email' => 'admin@partilot.com',
                 'password' => Hash::make('admin123'),
+                'role' => User::ROLE_SUPER_ADMIN,
             ]);
             
             return 'Usuario administrador creado exitosamente. Email: admin@partilot.com, Contraseña: admin123';

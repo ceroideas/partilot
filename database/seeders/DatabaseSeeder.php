@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test Admin',
             'email' => 'admin@partilot.com',
             'password' => bcrypt(12345678),
+            'role' => User::ROLE_SUPER_ADMIN,
         ]);
 
         // Crear usuario para el manager
@@ -28,6 +29,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Jorge Ruiz Ortega',
             'email' => 'jorge@elbuholotero.com',
             'password' => bcrypt(12345678),
+            'role' => User::ROLE_ADMINISTRATION,
         ]);
 
         // Crear manager

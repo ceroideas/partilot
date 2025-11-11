@@ -15,7 +15,10 @@ class EntityController extends Controller
      */
     public function index()
     {
-        $entities = Entity::with(['administration', 'manager'])->orderBy('created_at', 'desc')->get();
+        $entities = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->orderBy('created_at', 'desc')
+            ->get();
         return view('entities.index', compact('entities'));
     }
 
@@ -24,7 +27,7 @@ class EntityController extends Controller
      */
     public function create()
     {
-        $administrations = Administration::all();
+        $administrations = Administration::forUser(auth()->user())->get();
         return view('entities.add', compact('administrations'));
     }
 
@@ -37,7 +40,7 @@ class EntityController extends Controller
             'administration_id' => 'required|integer|exists:administrations,id'
         ]);
 
-        $administration = Administration::find($request->administration_id);
+        $administration = Administration::forUser(auth()->user())->findOrFail($request->administration_id);
         $request->session()->put('selected_administration', $administration);
 
         return redirect()->route('entities.add-information');
@@ -48,7 +51,9 @@ class EntityController extends Controller
      */
     public function create_information()
     {
-        if (!session('selected_administration')) {
+        $administration = session('selected_administration');
+
+        if (!$administration || !auth()->user()->canAccessAdministration($administration->id)) {
             return redirect()->route('entities.create')
                 ->with('error', 'Sesión expirada. Por favor, seleccione una administración.');
         }
@@ -92,7 +97,10 @@ class EntityController extends Controller
      */
     public function create_manager()
     {
-        if (!session('selected_administration') || !session('entity_information')) {
+        $administration = session('selected_administration');
+        $entityInformation = session('entity_information');
+
+        if (!$administration || !auth()->user()->canAccessAdministration($administration->id) || !$entityInformation) {
             return redirect()->route('entities.create')
                 ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
         }
@@ -135,6 +143,7 @@ class EntityController extends Controller
             'nif_cif' => $validated['manager_nif_cif'],
             'birthday' => $validated['manager_birthday'],
             'phone' => $validated['manager_phone'],
+            'role' => User::ROLE_ENTITY,
         ]);
 
         // Manejo de imagen del manager
@@ -148,6 +157,11 @@ class EntityController extends Controller
         // Obtener datos de sesión
         $administration = $request->session()->get('selected_administration');
         $entityInformation = $request->session()->get('entity_information');
+
+        if (!$administration || !auth()->user()->canAccessAdministration($administration->id) || !$entityInformation) {
+            return redirect()->route('entities.create')
+                ->with('error', 'Sesión expirada o permisos insuficientes. Por favor, vuelva a empezar.');
+        }
 
         // Crear entidad
         $entityData = array_merge($entityInformation, [
@@ -204,7 +218,7 @@ class EntityController extends Controller
         $administration = $request->session()->get('selected_administration');
         $entityInformation = $request->session()->get('entity_information');
 
-        if (!$administration || !$entityInformation) {
+        if (!$administration || !auth()->user()->canAccessAdministration($administration->id) || !$entityInformation) {
             return redirect()->route('entities.create')
                 ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
         }
@@ -221,6 +235,11 @@ class EntityController extends Controller
             'user_id' => $request->user_id,
             'entity_id' => $entity->id
         ]);
+
+        $user = User::find($request->user_id);
+        if ($user && $user->role !== User::ROLE_ENTITY) {
+            $user->update(['role' => User::ROLE_ENTITY]);
+        }
 
         // Limpiar sesión
         $request->session()->forget(['selected_administration', 'entity_information']);
@@ -242,7 +261,7 @@ class EntityController extends Controller
         $administration = $request->session()->get('selected_administration');
         $entityInformation = $request->session()->get('entity_information');
 
-        if (!$administration || !$entityInformation) {
+        if (!$administration || !auth()->user()->canAccessAdministration($administration->id) || !$entityInformation) {
             return redirect()->route('entities.create')
                 ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
         }
@@ -318,8 +337,9 @@ class EntityController extends Controller
      */
     public function show($id)
     {
-        $entity = Entity::find($id);
-        $entity->load(['administration', 'manager']);
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($id);
         return view('entities.show', compact('entity'));
     }
 
@@ -328,8 +348,8 @@ class EntityController extends Controller
      */
     public function edit($id)
     {
-        $entity = Entity::findOrFail($id);
-        $administrations = Administration::all();
+        $entity = Entity::forUser(auth()->user())->findOrFail($id);
+        $administrations = Administration::forUser(auth()->user())->get();
         $users = User::all();
         return view('entities.edit', compact('entity', 'administrations', 'users'));
     }
@@ -339,7 +359,7 @@ class EntityController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $entity = Entity::findOrFail($id);
+        $entity = Entity::forUser(auth()->user())->findOrFail($id);
         
         $validated = $request->validate([
             'administration_id' => 'nullable|integer|exists:administrations,id',
@@ -383,6 +403,10 @@ class EntityController extends Controller
      */
     public function destroy(Entity $entity)
     {
+        if (!auth()->user()->canAccessEntity($entity->id)) {
+            abort(403, 'No tienes permisos para eliminar esta entidad.');
+        }
+
         // Eliminar imagen si existe
         if ($entity->image && file_exists(public_path('uploads/' . $entity->image))) {
             unlink(public_path('uploads/' . $entity->image));
@@ -399,7 +423,9 @@ class EntityController extends Controller
      */
     public function edit_manager($id)
     {
-        $entity = Entity::with(['administration', 'manager'])->findOrFail($id);
+        $entity = Entity::with(['administration', 'manager'])
+            ->forUser(auth()->user())
+            ->findOrFail($id);
         return view('entities.edit_manager', compact('entity'));
     }
 
@@ -408,7 +434,9 @@ class EntityController extends Controller
      */
     public function update_manager(Request $request, $id)
     {
-        $entity = Entity::with('manager')->findOrFail($id);
+        $entity = Entity::with('manager')
+            ->forUser(auth()->user())
+            ->findOrFail($id);
         
         $request->validate([
             'manager_name' => 'required|string|max:255',

@@ -236,4 +236,31 @@ class Participation extends Model
 
         return $badges[$this->status] ?? 'bg-secondary';
     }
+
+    /**
+     * Scope para filtrar participaciones accesibles por usuario.
+     */
+    public function scopeForUser($query, User $user)
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $entityIds = $user->accessibleEntityIds();
+        $sellerIds = $user->accessibleSellerIds();
+
+        if (empty($entityIds) && empty($sellerIds)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($q) use ($entityIds, $sellerIds) {
+            if (!empty($entityIds)) {
+                $q->whereIn('entity_id', $entityIds);
+            }
+
+            if (!empty($sellerIds)) {
+                $q->orWhereIn('seller_id', $sellerIds);
+            }
+        });
+    }
 }

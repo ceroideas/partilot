@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\User;
 
 class Devolution extends Model
 {
@@ -112,5 +113,32 @@ class Devolution extends Model
     {
         $seller = $this->seller ? " - {$this->seller->name}" : "";
         return "Devolución #{$this->id} - {$this->entity->name}{$seller}";
+    }
+
+    /**
+     * Scope para filtrar devoluciones accesibles por el usuario.
+     */
+    public function scopeForUser($query, User $user)
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $entityIds = $user->accessibleEntityIds();
+        $sellerIds = $user->accessibleSellerIds();
+
+        if (empty($entityIds) && empty($sellerIds)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($q) use ($entityIds, $sellerIds) {
+            if (!empty($entityIds)) {
+                $q->whereIn('entity_id', $entityIds);
+            }
+
+            if (!empty($sellerIds)) {
+                $q->orWhereIn('seller_id', $sellerIds);
+            }
+        });
     }
 }

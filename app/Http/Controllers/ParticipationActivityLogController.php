@@ -16,11 +16,13 @@ class ParticipationActivityLogController extends Controller
     public function getParticipationHistory($participationId)
     {
         try {
-            $participation = Participation::findOrFail($participationId);
+            $participation = Participation::forUser(auth()->user())->findOrFail($participationId);
             
-            $activities = ParticipationActivityLog::with(['user', 'seller', 'entity', 'oldSeller', 'newSeller'])
+            $activitiesQuery = ParticipationActivityLog::with(['user', 'seller', 'entity', 'oldSeller', 'newSeller'])
                 ->forParticipation($participationId)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('created_at', 'desc');
+
+            $activities = $this->applyAccessFilter($activitiesQuery)
                 ->get()
                 ->map(function ($activity) {
                     return [
@@ -66,14 +68,16 @@ class ParticipationActivityLogController extends Controller
     public function getSellerHistory(Request $request, $sellerId)
     {
         try {
-            $seller = Seller::findOrFail($sellerId);
+            $seller = Seller::forUser(auth()->user())->findOrFail($sellerId);
             
             $query = ParticipationActivityLog::with(['participation', 'user', 'entity'])
                 ->where(function($q) use ($sellerId) {
                     $q->where('seller_id', $sellerId)
                       ->orWhere('old_seller_id', $sellerId)
                       ->orWhere('new_seller_id', $sellerId);
-                })
+                });
+
+            $query = $this->applyAccessFilter($query)
                 ->orderBy('created_at', 'desc');
 
             // Filtros opcionales
@@ -114,10 +118,12 @@ class ParticipationActivityLogController extends Controller
     public function getEntityHistory(Request $request, $entityId)
     {
         try {
-            $entity = Entity::findOrFail($entityId);
+            $entity = Entity::forUser(auth()->user())->findOrFail($entityId);
             
             $query = ParticipationActivityLog::with(['participation', 'user', 'seller'])
-                ->byEntity($entityId)
+                ->byEntity($entityId);
+
+            $query = $this->applyAccessFilter($query)
                 ->orderBy('created_at', 'desc');
 
             // Filtros opcionales
@@ -158,14 +164,40 @@ class ParticipationActivityLogController extends Controller
     public function getActivityStats(Request $request)
     {
         try {
-            $query = ParticipationActivityLog::query();
+            $query = $this->applyAccessFilter(ParticipationActivityLog::query());
 
             // Filtros opcionales
             if ($request->has('seller_id')) {
-                $query->where('seller_id', $request->seller_id);
+                if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
+                    return response()->json([
+                        'success' => true,
+                        'stats' => [
+                            'total' => 0,
+                            'by_type' => collect(),
+                            'recent_7_days' => 0,
+                            'recent_30_days' => 0,
+                        ],
+                    ]);
+                }
+                $query->where(function($q) use ($request) {
+                    $q->where('seller_id', $request->seller_id)
+                      ->orWhere('old_seller_id', $request->seller_id)
+                      ->orWhere('new_seller_id', $request->seller_id);
+                });
             }
 
             if ($request->has('entity_id')) {
+                if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+                    return response()->json([
+                        'success' => true,
+                        'stats' => [
+                            'total' => 0,
+                            'by_type' => collect(),
+                            'recent_7_days' => 0,
+                            'recent_30_days' => 0,
+                        ],
+                    ]);
+                }
                 $query->where('entity_id', $request->entity_id);
             }
 
@@ -177,14 +209,17 @@ class ParticipationActivityLogController extends Controller
                 $query->whereDate('created_at', '<=', $request->date_to);
             }
 
+            $baseQuery = clone $query;
+            $byTypeQuery = clone $query;
+
             $stats = [
-                'total' => $query->count(),
-                'by_type' => $query->selectRaw('activity_type, count(*) as count')
+                'total' => $baseQuery->count(),
+                'by_type' => $byTypeQuery->selectRaw('activity_type, count(*) as count')
                     ->groupBy('activity_type')
                     ->get()
                     ->pluck('count', 'activity_type'),
-                'recent_7_days' => ParticipationActivityLog::recent(7)->count(),
-                'recent_30_days' => ParticipationActivityLog::recent(30)->count(),
+                'recent_7_days' => $this->applyAccessFilter(ParticipationActivityLog::recent(7))->count(),
+                'recent_30_days' => $this->applyAccessFilter(ParticipationActivityLog::recent(30))->count(),
             ];
 
             return response()->json([
@@ -206,6 +241,7 @@ class ParticipationActivityLogController extends Controller
     public function show($participationId)
     {
         $participation = Participation::with(['activityLogs.user', 'activityLogs.seller', 'entity', 'set'])
+            ->forUser(auth()->user())
             ->findOrFail($participationId);
 
         return view('participations.activity_log', compact('participation'));
@@ -220,8 +256,10 @@ class ParticipationActivityLogController extends Controller
             $days = $request->get('days', 7);
             $limit = $request->get('limit', 50);
 
-            $activities = ParticipationActivityLog::with(['participation', 'user', 'seller', 'entity'])
-                ->recent($days)
+            $activities = $this->applyAccessFilter(
+                ParticipationActivityLog::with(['participation', 'user', 'seller', 'entity'])
+                    ->recent($days)
+            )
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
                 ->get()
@@ -251,5 +289,48 @@ class ParticipationActivityLogController extends Controller
                 'message' => 'Error al obtener actividades recientes: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Aplicar filtros de acceso según el rol del usuario autenticado.
+     */
+    private function applyAccessFilter($query)
+    {
+        $user = auth()->user();
+
+        if (!$user || $user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $entityIds = $user->accessibleEntityIds();
+        $sellerIds = $user->accessibleSellerIds();
+
+        return $query->where(function ($q) use ($entityIds, $sellerIds) {
+            $hasCondition = false;
+
+            if (!empty($entityIds)) {
+                $q->whereIn('entity_id', $entityIds);
+                $hasCondition = true;
+            }
+
+            if (!empty($sellerIds)) {
+                $sellerClosure = function ($sellerQuery) use ($sellerIds) {
+                    $sellerQuery->whereIn('seller_id', $sellerIds)
+                        ->orWhereIn('old_seller_id', $sellerIds)
+                        ->orWhereIn('new_seller_id', $sellerIds);
+                };
+
+                if ($hasCondition) {
+                    $q->orWhere($sellerClosure);
+                } else {
+                    $q->where($sellerClosure);
+                    $hasCondition = true;
+                }
+            }
+
+            if (!$hasCondition) {
+                $q->whereRaw('1 = 0');
+            }
+        });
     }
 }

@@ -32,7 +32,7 @@ class LotteryScrutinyController extends Controller
                 ->with('error', 'Debe seleccionar una administración primero');
         }
 
-        $administration = Administration::findOrFail($administrationId);
+        $administration = Administration::forUser(auth()->user())->findOrFail($administrationId);
 
         // Verificar que el sorteo tiene resultados
         if (!$lottery->result) {
@@ -51,7 +51,8 @@ class LotteryScrutinyController extends Controller
         }
 
         // Obtener entidades de la administración que tienen reservas para este sorteo
-        $entitiesWithReserves = Entity::where('administration_id', $administrationId)
+        $entitiesWithReserves = Entity::forUser(auth()->user())
+            ->where('administration_id', $administrationId)
             ->whereHas('reserves', function ($query) use ($lotteryId) {
                 $query->where('lottery_id', $lotteryId)
                       ->where('status', 1); // Solo reservas confirmadas
@@ -104,7 +105,8 @@ class LotteryScrutinyController extends Controller
             DB::beginTransaction();
 
             // Obtener entidades con reservas para este sorteo
-            $entitiesWithReserves = Entity::where('administration_id', $administrationId)
+        $entitiesWithReserves = Entity::forUser(auth()->user())
+            ->where('administration_id', $administrationId)
                 ->whereHas('reserves', function ($query) use ($lottery) {
                     $query->where('lottery_id', $lottery->id)
                           ->where('status', 1);
@@ -210,7 +212,7 @@ class LotteryScrutinyController extends Controller
     public function showResults($lotteryId, $administrationId)
     {
         $lottery = Lottery::with(['lotteryType', 'result'])->findOrFail($lotteryId);
-        $administration = Administration::findOrFail($administrationId);
+        $administration = Administration::forUser(auth()->user())->findOrFail($administrationId);
 
         $scrutiny = AdministrationLotteryScrutiny::where('administration_id', $administrationId)
             ->where('lottery_id', $lotteryId)
@@ -583,7 +585,8 @@ class LotteryScrutinyController extends Controller
         $lotteryResult = $lottery->result;
         
         // Obtener entidades con reservas para este sorteo
-        $entitiesWithReserves = Entity::where('administration_id', $scrutiny->administration_id)
+        $entitiesWithReserves = Entity::forUser(auth()->user())
+            ->where('administration_id', $scrutiny->administration_id)
             ->whereHas('reserves', function ($query) use ($lottery) {
                 $query->where('lottery_id', $lottery->id)
                       ->where('status', 1);
@@ -733,7 +736,8 @@ class LotteryScrutinyController extends Controller
     {
         $reservedNumbers = [];
         
-        $entities = Entity::where('administration_id', $administrationId)
+        $entities = Entity::forUser(auth()->user())
+            ->where('administration_id', $administrationId)
             ->whereHas('reserves', function ($query) use ($lotteryId) {
                 $query->where('lottery_id', $lotteryId)
                       ->where('status', 1);
@@ -1517,11 +1521,15 @@ class LotteryScrutinyController extends Controller
                     \Log::info("Total Participations: " . ($decimosInfo['total_participations'] ?? 0));
                     
                     // Buscar el primer set de la entidad para obtener el set_id
-                    $entity = \App\Models\Entity::find($entityId);
+                    $entity = \App\Models\Entity::forUser(auth()->user())
+                        ->with('reserves')
+                        ->find($entityId);
                     $firstSet = null;
                     if ($entity) {
                         foreach ($entity->reserves as $reserve) {
-                            $set = \App\Models\Set::where('reserve_id', $reserve->id)->first();
+                            $set = \App\Models\Set::forUser(auth()->user())
+                                ->where('reserve_id', $reserve->id)
+                                ->first();
                             if ($set) {
                                 $firstSet = $set;
                                 break;

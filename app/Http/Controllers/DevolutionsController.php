@@ -23,6 +23,7 @@ class DevolutionsController extends Controller
     public function index()
     {
         $devolutions = Devolution::with(['entity', 'lottery', 'seller', 'user', 'payments'])
+            ->forUser(auth()->user())
             ->orderBy('devolution_date', 'desc')
             ->orderBy('devolution_time', 'desc')
             ->get();
@@ -68,8 +69,24 @@ class DevolutionsController extends Controller
                 'liquidacion.pagos.*.amount' => 'required|numeric'
             ]);
 
+            if (!auth()->user()->canAccessEntity((int) $data['entity_id'])) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para gestionar devoluciones de esta entidad'
+                ], 403);
+            }
+
             // VALIDAR: Si hay seller_id, verificar que pertenezca a la entidad
             if (!empty($data['seller_id'])) {
+                if (!auth()->user()->canAccessSeller((int) $data['seller_id'])) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permisos para gestionar devoluciones de este vendedor'
+                    ], 403);
+                }
+
                 $seller = Seller::with('entities')->find($data['seller_id']);
                 
                 if (!$seller || !$seller->belongsToEntity($data['entity_id'])) {
@@ -88,7 +105,8 @@ class DevolutionsController extends Controller
             );
             
             if (!empty($allParticipationIds)) {
-                $anuladas = Participation::whereIn('id', $allParticipationIds)
+                $anuladas = Participation::forUser(auth()->user())
+                    ->whereIn('id', $allParticipationIds)
                     ->where('status', 'anulada')
                     ->pluck('participation_code')
                     ->toArray();
@@ -111,8 +129,11 @@ class DevolutionsController extends Controller
             // Caso 1: No hay participaciones a devolver pero hay set_id (liquidar set completo)
             if (empty($participationsToReturn) && isset($data['set_id'])) {
                 $setId = $data['set_id'];
+
+                Set::forUser(auth()->user())->findOrFail($setId);
                 // Todas las participaciones del set se venden (EXCLUIR ANULADAS)
-                $participationsToSell = Participation::where('set_id', $setId)
+                $participationsToSell = Participation::forUser(auth()->user())
+                    ->where('set_id', $setId)
                     ->whereIn('status', ['disponible', 'asignada', 'vendida'])
                     ->where('status', '!=', 'anulada')
                     ->pluck('id')
@@ -121,7 +142,8 @@ class DevolutionsController extends Controller
             // Caso 2: Hay participaciones a devolver
             elseif (!empty($participationsToReturn)) {
                 // Obtener los sets únicos de las participaciones seleccionadas
-                $participations = Participation::whereIn('id', $participationsToReturn)->get();
+                $participations = Participation::forUser(auth()->user())
+                    ->whereIn('id', $participationsToReturn)->get();
                 $setIds = $participations->pluck('set_id')->unique()->toArray();
                 
                 // Para cada set, obtener todas las participaciones disponibles y calcular cuáles vender
@@ -130,7 +152,8 @@ class DevolutionsController extends Controller
                     $returnedInSet = $participations->where('set_id', $setId)->pluck('id')->toArray();
                     
                     // Todas las participaciones disponibles del set (EXCLUIR ANULADAS)
-                    $allInSet = Participation::where('set_id', $setId)
+                    $allInSet = Participation::forUser(auth()->user())
+                        ->where('set_id', $setId)
                         ->whereIn('status', ['disponible', 'asignada'])
                         ->where('status', '!=', 'anulada')
                         ->pluck('id')
@@ -163,7 +186,8 @@ class DevolutionsController extends Controller
             // Procesar participaciones a devolver
             if (!empty($participationsToReturn)) {
                 // USAR MODELO ELOQUENT para disparar el Observer
-                $participationsToUpdateReturn = Participation::whereIn('id', $participationsToReturn)->get();
+                $participationsToUpdateReturn = Participation::forUser(auth()->user())
+                    ->whereIn('id', $participationsToReturn)->get();
                 
                 foreach ($participationsToUpdateReturn as $participation) {
                     $participation->update([
@@ -186,7 +210,9 @@ class DevolutionsController extends Controller
             // Procesar participaciones a vender
             if (!empty($participationsToSell)) {
                 // USAR MODELO ELOQUENT para disparar el Observer
-                $participationsToUpdateSell = Participation::with('set')->whereIn('id', $participationsToSell)->get();
+                $participationsToUpdateSell = Participation::with('set')
+                    ->forUser(auth()->user())
+                    ->whereIn('id', $participationsToSell)->get();
                 
                 foreach ($participationsToUpdateSell as $participation) {
                     // Obtener el precio del set
@@ -257,7 +283,9 @@ class DevolutionsController extends Controller
             'user', 
             'details.participation.set',
             'payments'
-        ])->findOrFail($id);
+        ])
+        ->forUser(auth()->user())
+        ->findOrFail($id);
         
         return view('devolutions.show', compact('devolution'));
     }
@@ -268,6 +296,7 @@ class DevolutionsController extends Controller
     public function edit(string $id)
     {
         $devolution = Devolution::with(['entity', 'lottery', 'seller', 'user', 'details.participation.set', 'payments'])
+            ->forUser(auth()->user())
             ->findOrFail($id);
         
         return view('devolutions.edit', compact('devolution'));
@@ -289,14 +318,17 @@ class DevolutionsController extends Controller
         try {
             DB::beginTransaction();
 
-            $devolution = Devolution::with('details')->findOrFail($id);
+            $devolution = Devolution::with('details')
+                ->forUser(auth()->user())
+                ->findOrFail($id);
 
             // Obtener IDs de participaciones afectadas
             $participationIds = $devolution->details->pluck('participation_id')->toArray();
 
             // Revertir estado de participaciones
             // USAR MODELO ELOQUENT para disparar el Observer
-            $participationsToRevert = Participation::whereIn('id', $participationIds)->get();
+            $participationsToRevert = Participation::forUser(auth()->user())
+                ->whereIn('id', $participationIds)->get();
             
             foreach ($participationsToRevert as $participation) {
                 $participation->update([
@@ -345,6 +377,7 @@ class DevolutionsController extends Controller
     public function data()
     {
         $devolutions = Devolution::with(['entity', 'lottery', 'seller', 'user', 'details', 'payments'])
+            ->forUser(auth()->user())
             ->select([
                 'devolutions.id',
                 'devolutions.entity_id',
@@ -409,16 +442,8 @@ class DevolutionsController extends Controller
      */
     public function getEntities()
     {
-        $entities = Entity::select([
-                'entities.id', 
-                'entities.name', 
-                'entities.province', 
-                'entities.city',
-                'entities.status',
-                'administrations.name as administration_name'
-            ])
-            ->leftJoin('administrations', 'entities.administration_id', '=', 'administrations.id')
-            // ->where('entities.status', true) // status es boolean, true = activo
+        $entities = Entity::with('administration')
+            ->forUser(auth()->user())
             ->get()
             ->map(function($entity) {
                 return [
@@ -426,7 +451,7 @@ class DevolutionsController extends Controller
                     'name' => $entity->name,
                     'province' => $entity->province ?? 'N/A',
                     'city' => $entity->city ?? 'N/A',
-                    'administration_name' => $entity->administration_name ?? 'Sin administración',
+                    'administration_name' => $entity->administration->name ?? 'Sin administración',
                     'status' => $entity->status ? 'activo' : 'inactivo'
                 ];
             });
@@ -443,7 +468,13 @@ class DevolutionsController extends Controller
     public function getLotteriesByEntity(Request $request)
     {
         $entityId = $request->get('entity_id');
-        
+        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+            return response()->json([
+                'success' => true,
+                'lotteries' => collect()
+            ]);
+        }
+
         $lotteries = Lottery::select(['lotteries.id', 'lotteries.name', 'lotteries.description', 'lotteries.draw_date'])
             ->join('reserves', 'lotteries.id', '=', 'reserves.lottery_id')
             ->where('reserves.entity_id', $entityId)
@@ -462,9 +493,16 @@ class DevolutionsController extends Controller
     public function getSellersByEntity(Request $request)
     {
         $entityId = $request->get('entity_id');
+        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+            return response()->json([
+                'success' => true,
+                'sellers' => collect()
+            ]);
+        }
         
         // Ahora usamos la relación many-to-many
         $sellers = Seller::with(['user:id,name,last_name,email,phone'])
+            ->forUser(auth()->user())
             ->whereHas('entities', function($query) use ($entityId) {
                 $query->where('entities.id', $entityId);
             })
@@ -500,7 +538,12 @@ class DevolutionsController extends Controller
         $sellerId = $request->get('seller_id');
         $lotteryId = $request->get('lottery_id');
 
+        if (!auth()->user()->canAccessSeller((int) $sellerId)) {
+            return response()->json([]);
+        }
+
         $sets = Set::with(['reserve'])
+            ->forUser(auth()->user())
             ->whereHas('reserve', function($query) use ($lotteryId) {
                 $query->where('lottery_id', $lotteryId);
             })
@@ -529,8 +572,16 @@ class DevolutionsController extends Controller
         $entityId = $request->get('entity_id');
         $lotteryId = $request->get('lottery_id');
 
+        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+            return response()->json([
+                'success' => true,
+                'sets' => collect()
+            ]);
+        }
+
         // Obtener sets que tienen participaciones disponibles o asignadas (no devueltas completamente)
         $sets = Set::with(['reserve'])
+            ->forUser(auth()->user())
             ->where('entity_id', $entityId)
             ->whereHas('reserve', function($query) use ($lotteryId) {
                 $query->where('lottery_id', $lotteryId);
@@ -562,6 +613,13 @@ class DevolutionsController extends Controller
     {
         $sellerId = $request->get('seller_id');
         $lotteryId = $request->get('lottery_id');
+
+        if (!auth()->user()->canAccessSeller((int) $sellerId)) {
+            return response()->json([
+                'success' => true,
+                'participations' => collect()
+            ]);
+        }
         
         $participations = Participation::select([
                 'participations.id',
@@ -574,6 +632,7 @@ class DevolutionsController extends Controller
             ])
             ->join('sets', 'participations.set_id', '=', 'sets.id')
             ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
+            ->forUser(auth()->user())
             ->where('participations.seller_id', $sellerId)
             ->where('reserves.lottery_id', $lotteryId)
             ->where(function($query) {
@@ -604,6 +663,22 @@ class DevolutionsController extends Controller
             'participation_id' => 'nullable|integer' // Número de participación, no ID de base de datos
         ]);
 
+        if (!empty($data['seller_id']) && !auth()->user()->canAccessSeller((int) $data['seller_id'])) {
+            return response()->json([
+                'success' => true,
+                'participations' => collect()
+            ]);
+        }
+
+        if (!empty($data['entity_id']) && !auth()->user()->canAccessEntity((int) $data['entity_id'])) {
+            return response()->json([
+                'success' => true,
+                'participations' => collect()
+            ]);
+        }
+
+        Set::forUser(auth()->user())->findOrFail($data['set_id']);
+
         $query = Participation::select([
                 'participations.id',
                 'participations.participation_number as number',
@@ -611,6 +686,7 @@ class DevolutionsController extends Controller
             ])
             ->join('sets', 'participations.set_id', '=', 'sets.id')
             ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
+            ->forUser(auth()->user())
             ->where('reserves.lottery_id', $data['lottery_id'])
             ->where('participations.set_id', $data['set_id']);
 
@@ -654,6 +730,13 @@ class DevolutionsController extends Controller
         $setId = $request->get('set_id');
         $selectedParticipations = $request->get('participations', []);
 
+        if ($entityId && !auth()->user()->canAccessEntity((int) $entityId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para consultar esta entidad'
+            ], 403);
+        }
+
         \Log::info('=== LIQUIDATION SUMMARY REQUEST ===');
         \Log::info('Entity ID:', [$entityId]);
         \Log::info('Lottery ID:', [$lotteryId]);
@@ -664,7 +747,7 @@ class DevolutionsController extends Controller
         if (empty($selectedParticipations) && $setId) {
             \Log::info('No participations selected but set provided, calculating full set liquidation');
             
-            $set = Set::find($setId);
+            $set = Set::forUser(auth()->user())->find($setId);
             if (!$set) {
                 \Log::warning("Set not found: $setId");
                 return response()->json([
@@ -674,7 +757,8 @@ class DevolutionsController extends Controller
             }
 
             // Contar todas las participaciones del set que están disponibles o asignadas (vendibles) - EXCLUIR ANULADAS
-            $allParticipations = Participation::where('set_id', $setId)
+            $allParticipations = Participation::forUser(auth()->user())
+                ->where('set_id', $setId)
                 ->whereIn('status', ['disponible', 'asignada', 'vendida'])
                 ->where('status', '!=', 'anulada')
                 ->count();
@@ -730,7 +814,8 @@ class DevolutionsController extends Controller
         }
 
         // Obtener las participaciones seleccionadas (EXCLUIR ANULADAS)
-        $participations = Participation::whereIn('id', $selectedParticipations)
+        $participations = Participation::forUser(auth()->user())
+            ->whereIn('id', $selectedParticipations)
             ->where('status', '!=', 'anulada')
             ->get();
         \Log::info('Found participations (excluding cancelled):', $participations->toArray());
@@ -745,7 +830,7 @@ class DevolutionsController extends Controller
         $totalLiquidation = 0;
 
         foreach ($setIds as $setId) {
-            $set = Set::find($setId);
+            $set = Set::forUser(auth()->user())->find($setId);
             if (!$set) {
                 \Log::warning("Set not found: $setId");
                 continue;
@@ -757,7 +842,8 @@ class DevolutionsController extends Controller
             $returnedInSet = $participations->where('set_id', $setId)->count();
             
             // Todas las participaciones del set (EXCLUIR ANULADAS)
-            $allInSet = Participation::where('set_id', $setId)
+            $allInSet = Participation::forUser(auth()->user())
+                ->where('set_id', $setId)
                 ->whereIn('status', ['disponible', 'asignada'])
                 ->where('status', '!=', 'anulada')
                 ->count();
@@ -839,7 +925,7 @@ class DevolutionsController extends Controller
      */
     public function getPayments($id)
     {
-        $devolution = Devolution::findOrFail($id);
+        $devolution = Devolution::forUser(auth()->user())->findOrFail($id);
         $payments = $devolution->payments()->orderBy('created_at', 'desc')->get();
 
         return response()->json([
@@ -854,7 +940,7 @@ class DevolutionsController extends Controller
     public function addPayment(Request $request, $id)
     {
         try {
-            $devolution = Devolution::findOrFail($id);
+            $devolution = Devolution::forUser(auth()->user())->findOrFail($id);
 
             $data = $request->validate([
                 'pagos' => 'required|array',
@@ -898,7 +984,9 @@ class DevolutionsController extends Controller
     public function updatePayment(Request $request, $devolutionId, $paymentId)
     {
         try {
-            $payment = DevolutionPayment::where('devolution_id', $devolutionId)
+            $devolution = Devolution::forUser(auth()->user())->findOrFail($devolutionId);
+
+            $payment = DevolutionPayment::where('devolution_id', $devolution->id)
                 ->where('id', $paymentId)
                 ->firstOrFail();
 
@@ -931,7 +1019,9 @@ class DevolutionsController extends Controller
     public function deletePayment($devolutionId, $paymentId)
     {
         try {
-            $payment = DevolutionPayment::where('devolution_id', $devolutionId)
+            $devolution = Devolution::forUser(auth()->user())->findOrFail($devolutionId);
+
+            $payment = DevolutionPayment::where('devolution_id', $devolution->id)
                 ->where('id', $paymentId)
                 ->firstOrFail();
 
@@ -970,11 +1060,24 @@ class DevolutionsController extends Controller
                 'motivo' => 'required|string|max:500'
             ]);
 
+            if (!auth()->user()->canAccessEntity((int) $data['entity_id'])) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para gestionar anulaciones de esta entidad'
+                ], 403);
+            }
+
+            if (!empty($data['set_id'])) {
+                Set::forUser(auth()->user())->findOrFail($data['set_id']);
+            }
+
             $now = Carbon::now();
             $userId = auth()->id();
 
             // Obtener las participaciones a anular
-            $participations = Participation::whereIn('id', $data['participations'])->get();
+            $participations = Participation::forUser(auth()->user())
+                ->whereIn('id', $data['participations'])->get();
             
             if ($participations->isEmpty()) {
                 return response()->json([

@@ -84,4 +84,22 @@ class Entity extends Model
     {
         return $this->status ? 'success' : 'danger';
     }
+
+    /**
+     * Scope para filtrar entidades accesibles por usuario.
+     */
+    public function scopeForUser($query, User $user)
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $entityIds = $user->accessibleEntityIds();
+
+        if (empty($entityIds)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('id', $entityIds);
+    }
 }

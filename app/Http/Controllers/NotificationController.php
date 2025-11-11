@@ -70,6 +70,7 @@ class NotificationController extends Controller
         }
 
         $entities = Entity::with(['administration'])
+            ->forUser(auth()->user())
             ->where('status', 1)
             ->get();
 
@@ -85,7 +86,9 @@ class NotificationController extends Controller
             'entity_id' => 'required|exists:entities,id'
         ]);
 
-        $entity = Entity::with('administration')->findOrFail($request->entity_id);
+        $entity = Entity::with('administration')
+            ->forUser(auth()->user())
+            ->findOrFail($request->entity_id);
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_entities', [$entity->id]);
 
@@ -101,7 +104,9 @@ class NotificationController extends Controller
             return redirect()->route('notifications.create');
         }
 
-        $administrations = Administration::where('status', 1)->get();
+        $administrations = Administration::forUser(auth()->user())
+            ->where('status', 1)
+            ->get();
 
         return view('notifications.select-administration', compact('administrations'));
     }
@@ -115,7 +120,7 @@ class NotificationController extends Controller
             'administration_id' => 'required|exists:administrations,id'
         ]);
 
-        $administration = Administration::findOrFail($request->administration_id);
+        $administration = Administration::forUser(auth()->user())->findOrFail($request->administration_id);
         $request->session()->put('selected_administration', $administration);
 
         return redirect()->route('notifications.select-administration-entities');
@@ -131,7 +136,14 @@ class NotificationController extends Controller
         }
 
         $administration = session('selected_administration');
-        $entities = Entity::where('administration_id', $administration->id)
+
+        if (!$administration || !auth()->user()->canAccessAdministration($administration->id)) {
+            return redirect()->route('notifications.create')
+                ->with('error', 'Permisos insuficientes para la administración seleccionada.');
+        }
+
+        $entities = Entity::forUser(auth()->user())
+            ->where('administration_id', $administration->id)
             ->where('status', 1)
             ->get();
 
@@ -151,15 +163,31 @@ class NotificationController extends Controller
 
         if ($request->send_to_all) {
             $administration = session('selected_administration');
-            $entityIds = Entity::where('administration_id', $administration->id)
+
+            if (!$administration || !auth()->user()->canAccessAdministration($administration->id)) {
+                return redirect()->route('notifications.create')
+                    ->with('error', 'Permisos insuficientes para la administración seleccionada.');
+            }
+
+            $entityIds = Entity::forUser(auth()->user())
+                ->where('administration_id', $administration->id)
                 ->where('status', 1)
                 ->pluck('id')
                 ->toArray();
         } else {
-            $entityIds = $request->entity_ids;
+            $entityIds = collect($request->entity_ids)
+                ->filter(fn ($id) => auth()->user()->canAccessEntity((int) $id))
+                ->values()
+                ->all();
+
+            if (empty($entityIds)) {
+                return back()->withErrors(['entity_ids' => 'Debes seleccionar al menos una entidad válida.']);
+            }
         }
 
-        $entities = Entity::whereIn('id', $entityIds)->get();
+        $entities = Entity::forUser(auth()->user())
+            ->whereIn('id', $entityIds)
+            ->get();
         $request->session()->put('selected_entities', $entityIds);
         $request->session()->put('selected_entities_data', $entities);
 
@@ -171,14 +199,18 @@ class NotificationController extends Controller
      */
     public function message()
     {
-        if (!session('selected_entities')) {
+        $selectedEntityIds = collect(session('selected_entities', []))
+            ->filter(fn ($id) => auth()->user()->canAccessEntity((int) $id))
+            ->values()
+            ->all();
+
+        if (empty($selectedEntityIds)) {
             return redirect()->route('notifications.create');
         }
 
-        $selectedEntities = session('selected_entities_data', []);
-        if (empty($selectedEntities)) {
-            $selectedEntities = Entity::whereIn('id', session('selected_entities'))->get();
-        }
+        $selectedEntities = Entity::forUser(auth()->user())
+            ->whereIn('id', $selectedEntityIds)
+            ->get();
 
         return view('notifications.message', compact('selectedEntities'));
     }
@@ -193,10 +225,19 @@ class NotificationController extends Controller
             'message' => 'required|string'
         ]);
 
-        $selectedEntities = session('selected_entities_data', []);
-        if (empty($selectedEntities)) {
-            $selectedEntities = Entity::whereIn('id', session('selected_entities'))->get();
+        $selectedEntityIds = collect(session('selected_entities', []))
+            ->filter(fn ($id) => auth()->user()->canAccessEntity((int) $id))
+            ->values()
+            ->all();
+
+        if (empty($selectedEntityIds)) {
+            return redirect()->route('notifications.create')
+                ->with('error', 'No se han seleccionado entidades válidas para la notificación.');
         }
+
+        $selectedEntities = Entity::forUser(auth()->user())
+            ->whereIn('id', $selectedEntityIds)
+            ->get();
 
         $notification = null;
         $successCount = 0;
@@ -337,7 +378,13 @@ class NotificationController extends Controller
     public function getEntitiesByAdministration(Request $request)
     {
         $administrationId = $request->administration_id;
-        $entities = Entity::where('administration_id', $administrationId)
+
+        if (!auth()->user()->canAccessAdministration((int) $administrationId)) {
+            return response()->json([]);
+        }
+
+        $entities = Entity::forUser(auth()->user())
+            ->where('administration_id', $administrationId)
             ->where('status', 1)
             ->get();
 

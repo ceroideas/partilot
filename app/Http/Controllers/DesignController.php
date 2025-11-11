@@ -19,7 +19,7 @@ class DesignController extends Controller
     // Paso 1: Seleccionar entidad
     public function selectEntity()
     {
-        $entities = Entity::all();
+        $entities = Entity::forUser(auth()->user())->get();
         return view('design.add', compact('entities'));
     }
 
@@ -29,7 +29,12 @@ class DesignController extends Controller
         if (!$entity_id) {
             $entity_id = session('design_entity_id');
         }
-        $entity = Entity::findOrFail($entity_id);
+
+        if (!auth()->user()->canAccessEntity((int) $entity_id)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
         
         // Mostrar solo sorteos que tienen sets asociados para esta entidad
         $lotteries = \App\Models\Lottery::whereHas('reserves', function($query) use ($entity_id) {
@@ -51,25 +56,34 @@ class DesignController extends Controller
         $entity_id = session('design_entity_id');
         $lottery_id = session('design_lottery_id');
 
-        $entity = \App\Models\Entity::findOrFail($entity_id);
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
         $lottery = \App\Models\Lottery::findOrFail($lottery_id);
         // Buscar todos los sets de la entidad y sorteo (a través de la reserva)
-        $sets = \App\Models\Set::where('entity_id', $entity_id)
+        $sets = Set::forUser(auth()->user())
+            ->where('entity_id', $entity_id)
             ->whereHas('reserve', function($q) use ($lottery_id) {
                 $q->where('lottery_id', $lottery_id);
             })
             ->get();
         // Obtener la reserva principal (opcional, para la vista)
-        $reserve = \App\Models\Reserve::where('entity_id', $entity_id)->where('lottery_id', $lottery_id)->first();
+        $reserve = \App\Models\Reserve::forUser(auth()->user())
+            ->where('entity_id', $entity_id)
+            ->where('lottery_id', $lottery_id)
+            ->first();
         return view('design.add_set', compact('entity', 'lottery', 'sets', 'reserve'));
     }
 
     // Paso 4: Mostrar formato final
     public function format(Request $request)
     {
-        $entity = Entity::findOrFail(session('design_entity_id'));
+        $entityId = session('design_entity_id');
+        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+
+        $entity = Entity::forUser(auth()->user())->findOrFail($entityId);
         $lottery = Lottery::findOrFail(session('design_lottery_id'));
-        $set = Set::findOrFail($request->set_id);
+        $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
         $reservation_numbers = $set->reserve ? $set->reserve->reservation_numbers : [];
         return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers'));
     }
@@ -81,6 +95,11 @@ class DesignController extends Controller
             'entity_id' => 'required|integer|exists:entities,id'
         ]);
         $entity_id = $request->entity_id;
+
+        if (!auth()->user()->canAccessEntity((int) $entity_id)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+
         session(['design_entity_id' => $entity_id]);
         return redirect()->route('design.selectLottery');
     }
@@ -92,6 +111,11 @@ class DesignController extends Controller
             'entity_id' => 'required|integer|exists:entities,id',
             'lottery_id' => 'required|integer|exists:lotteries,id'
         ]);
+
+        if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+
         session(['design_entity_id' => $request->entity_id]);
         session(['design_lottery_id' => $request->lottery_id]);
 

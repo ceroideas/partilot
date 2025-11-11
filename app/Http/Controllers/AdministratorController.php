@@ -21,13 +21,15 @@ class AdministratorController extends Controller
 
     public function edit($id)
     {
-        $administration = Administration::with('manager')->findOrFail($id);
+        $administration = Administration::with('manager')
+            ->forUser(auth()->user())
+            ->findOrFail($id);
         return view('admins.edit', compact('administration'));
     }
 
     public function update(Request $request, $id)
     {
-        $administration = Administration::findOrFail($id);
+        $administration = Administration::forUser(auth()->user())->findOrFail($id);
         
         $request->validate([
             'web' => 'nullable|string|max:255',
@@ -177,6 +179,7 @@ class AdministratorController extends Controller
             $u->name = $validated["name"].' '.$validated["last_name"];
             $u->email = $validated["email"];
             $u->password = bcrypt(12345678);
+            $u->role = User::ROLE_ADMINISTRATION;
             $u->save();
         }
 
@@ -189,6 +192,7 @@ class AdministratorController extends Controller
             'birthday' => $validated["birthday"],
             'phone' => $validated["phone"] ?? null,
             'comment' => $validated["comment"] ?? null,
+            'role' => User::ROLE_ADMINISTRATION,
         ]);
 
         // Manejo de imagen del manager

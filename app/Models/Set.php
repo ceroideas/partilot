@@ -261,4 +261,22 @@ class Set extends Model
         $cancelledAmount = $cancelledCount * ($this->played_amount ?? 0);
         return $this->attributes['total_amount'] - $cancelledAmount;
     }
+
+    /**
+     * Scope para filtrar sets accesibles por usuario.
+     */
+    public function scopeForUser($query, User $user)
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $entityIds = $user->accessibleEntityIds();
+
+        if (empty($entityIds)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('entity_id', $entityIds);
+    }
 }

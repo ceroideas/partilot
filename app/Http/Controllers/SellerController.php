@@ -24,7 +24,10 @@ class SellerController extends Controller
      */
     public function index()
     {
-        $sellers = Seller::with(['entities', 'groups'])->orderBy('created_at', 'desc')->get();
+        $sellers = Seller::with(['entities', 'groups'])
+            ->forUser(auth()->user())
+            ->orderBy('created_at', 'desc')
+            ->get();
         return view('sellers.index', compact('sellers'));
     }
 
@@ -33,7 +36,9 @@ class SellerController extends Controller
      */
     public function create()
     {
-        $entities = Entity::with('administration')->get();
+        $entities = Entity::with('administration')
+            ->forUser(auth()->user())
+            ->get();
         return view('sellers.add', compact('entities'));
     }
 
@@ -46,7 +51,9 @@ class SellerController extends Controller
             'entity_id' => 'required|exists:entities,id'
         ]);
 
-        $entity = Entity::with('administration')->findOrFail($request->entity_id);
+        $entity = Entity::with('administration')
+            ->forUser(auth()->user())
+            ->findOrFail($request->entity_id);
         session(['selected_entity' => $entity]);
 
         return redirect()->route('sellers.add-information');
@@ -57,7 +64,9 @@ class SellerController extends Controller
      */
     public function add_information()
     {
-        if (!session('selected_entity')) {
+        $entity = session('selected_entity');
+
+        if (!$entity || !auth()->user()->canAccessEntity($entity->id)) {
             return redirect()->route('sellers.create');
         }
 
@@ -80,6 +89,10 @@ class SellerController extends Controller
             'phone' => 'nullable|string|max:255',
             'comment' => 'nullable|string'
         ]);
+
+        if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+            abort(403, 'No tienes permisos para gestionar vendedores de esta entidad.');
+        }
 
         try {
             $sellerService = new SellerService();
@@ -124,6 +137,10 @@ class SellerController extends Controller
             'entity_id' => 'required|exists:entities,id'
         ]);
 
+        if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+            abort(403, 'No tienes permisos para gestionar vendedores de esta entidad.');
+        }
+
         try {
             $sellerService = new SellerService();
             
@@ -165,7 +182,9 @@ class SellerController extends Controller
      */
     public function show($id, Request $request)
     {
-        $seller = Seller::with(['entities.administration'])->findOrFail($id);
+        $seller = Seller::with(['entities.administration'])
+            ->forUser(auth()->user())
+            ->findOrFail($id);
 
         // Verificar que el vendedor tenga al menos una entidad
         if ($seller->entities->isEmpty()) {
@@ -200,11 +219,14 @@ class SellerController extends Controller
      */
     public function edit($id)
     {
-        $seller = Seller::with('entities')->findOrFail($id);
-        $entities = Entity::all();
+        $seller = Seller::with('entities')
+            ->forUser(auth()->user())
+            ->findOrFail($id);
+        $entities = Entity::forUser(auth()->user())->get();
         
         // Obtener grupos de la nueva tabla groups
         $groups = \App\Models\Group::with('entity')
+            ->forUser(auth()->user())
             ->orderBy('name', 'asc')
             ->get();
             
@@ -216,7 +238,7 @@ class SellerController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $seller = Seller::findOrFail($id);
+        $seller = Seller::forUser(auth()->user())->findOrFail($id);
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -265,7 +287,8 @@ class SellerController extends Controller
                         'nif_cif' => $request->nif_cif,
                         'birthday' => $request->birthday,
                         'email' => $request->email,
-                        'phone' => $request->phone
+                        'phone' => $request->phone,
+                        'role' => User::ROLE_SELLER
                     ]);
                 }
             }
@@ -286,7 +309,7 @@ class SellerController extends Controller
     public function destroy($id)
     {
         try {
-            $seller = Seller::findOrFail($id);
+            $seller = Seller::forUser(auth()->user())->findOrFail($id);
             $seller->delete();
 
             return redirect()->route('sellers.index')->with('success', 'Vendedor eliminado exitosamente');
@@ -304,8 +327,11 @@ class SellerController extends Controller
             'reserve_id' => 'required|integer|exists:reserves,id'
         ]);
 
+        $reserve = Reserve::forUser(auth()->user())->findOrFail($request->reserve_id);
+
         // Obtener solo sets que tienen participaciones creadas (diseño)
-        $sets = Set::where('reserve_id', $request->reserve_id)
+        $sets = Set::forUser(auth()->user())
+            ->where('reserve_id', $reserve->id)
             ->where('status', 1) // activos
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
@@ -330,8 +356,12 @@ class SellerController extends Controller
         ]);
 
         try {
+            if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
+                abort(403, 'No tienes permisos para gestionar este vendedor.');
+            }
+
             // Obtener el set
-            $set = Set::findOrFail($request->set_id);
+            $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
             
             // Verificar que el set tiene participaciones creadas
             $totalParticipationsInSet = DB::table('participations')
@@ -487,7 +517,11 @@ class SellerController extends Controller
         try {
             DB::beginTransaction();
 
-            $seller = Seller::findOrFail($request->seller_id);
+            if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
+                abort(403, 'No tienes permisos para gestionar este vendedor.');
+            }
+
+            $seller = Seller::forUser(auth()->user())->findOrFail($request->seller_id);
             $assignedCount = 0;
 
             foreach ($participations as $participationData) {
@@ -547,6 +581,12 @@ class SellerController extends Controller
         ]);
 
         try {
+            if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
+                abort(403, 'No tienes permisos para consultar este vendedor.');
+            }
+
+            Set::forUser(auth()->user())->findOrFail($request->set_id);
+
             $participations = DB::table('participations')
                 ->where('seller_id', $request->seller_id)
                 ->where('set_id', $request->set_id)
@@ -580,6 +620,10 @@ class SellerController extends Controller
 
         try {
             DB::beginTransaction();
+
+            if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
+                abort(403, 'No tienes permisos para gestionar este vendedor.');
+            }
 
             // Verificar que la participación pertenece al vendedor
             // USAR MODELO ELOQUENT para que se dispare el Observer
@@ -632,10 +676,12 @@ class SellerController extends Controller
                 'book_number' => 'required|integer'
             ]);
 
+            if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
+                abort(403, 'No tienes permisos para consultar este vendedor.');
+            }
+
             // Obtener información del set
-            $set = DB::table('sets')
-                ->where('id', $request->set_id)
-                ->first();
+            $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
 
             if (!$set) {
                 return response()->json([
@@ -698,6 +744,14 @@ class SellerController extends Controller
     {
         $sellerId = $request->get('seller_id');
         $lotteryId = $request->get('lottery_id');
+
+        if (!auth()->user()->canAccessSeller((int) $sellerId)) {
+            abort(403, 'No tienes permisos para consultar este vendedor.');
+        }
+
+        if (!auth()->user()->canAccessSeller((int) $sellerId)) {
+            abort(403, 'No tienes permisos para consultar este vendedor.');
+        }
 
         \Log::info('=== SELLER SETTLEMENT SUMMARY ===');
         \Log::info('Seller ID:', [$sellerId]);
@@ -771,6 +825,10 @@ class SellerController extends Controller
                 'pagos.*.payment_method' => 'required|string',
                 'pagos.*.amount' => 'required|numeric|min:0.01'
             ]);
+
+            if (!auth()->user()->canAccessSeller((int) $data['seller_id'])) {
+                abort(403, 'No tienes permisos para gestionar este vendedor.');
+            }
 
             // Calcular totales
             $totalPagoNuevo = collect($data['pagos'])->sum('amount');
@@ -878,7 +936,7 @@ class SellerController extends Controller
         ]);
 
         try {
-            $seller = Seller::findOrFail($id);
+            $seller = Seller::forUser(auth()->user())->findOrFail($id);
             $seller->update([
                 'group_name' => $request->group_name,
                 'group_color' => $request->group_color,
@@ -907,10 +965,12 @@ class SellerController extends Controller
         if ($groupName) {
             $sellers = Seller::with('entities')
                 ->byGroup($groupName)
+                ->forUser(auth()->user())
                 ->orderByGroup()
                 ->get();
         } else {
             $sellers = Seller::with('entities')
+                ->forUser(auth()->user())
                 ->orderByGroup()
                 ->get();
         }
@@ -926,13 +986,27 @@ class SellerController extends Controller
      */
     public function getGroupStats()
     {
-        $stats = Seller::select('group_name', 'group_color')
+        $query = Seller::select('group_name', 'group_color')
             ->selectRaw('COUNT(*) as count')
             ->whereNotNull('group_name')
             ->where('group_name', '!=', '')
             ->groupBy('group_name', 'group_color')
-            ->orderBy('count', 'desc')
-            ->get();
+            ->orderBy('count', 'desc');
+
+        if (!auth()->user()->isSuperAdmin()) {
+            $sellerIds = auth()->user()->accessibleSellerIds();
+
+            if (empty($sellerIds)) {
+                return response()->json([
+                    'success' => true,
+                    'stats' => collect()
+                ]);
+            }
+
+            $query->whereIn('id', $sellerIds);
+        }
+
+        $stats = $query->get();
 
         return response()->json([
             'success' => true,

@@ -53,6 +53,10 @@ class SellerService
                 
                 // Vincular con la entidad (tabla pivote)
                 $seller->entities()->attach($entityId);
+
+                if ($user->role !== User::ROLE_SELLER) {
+                    $user->update(['role' => User::ROLE_SELLER]);
+                }
                 
                 Log::info("Vendedor PARTILOT creado y vinculado al usuario {$user->id} y entidad {$entityId}");
             } else {

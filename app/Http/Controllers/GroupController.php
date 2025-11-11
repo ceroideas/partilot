@@ -15,7 +15,10 @@ class GroupController extends Controller
      */
     public function index()
     {
-        $groups = Group::with(['entity', 'sellers'])->orderBy('created_at', 'desc')->get();
+        $groups = Group::with(['entity', 'sellers'])
+            ->forUser(auth()->user())
+            ->orderBy('created_at', 'desc')
+            ->get();
         return view('groups.index', compact('groups'));
     }
 
@@ -24,7 +27,9 @@ class GroupController extends Controller
      */
     public function create()
     {
-        $entities = Entity::with('administration')->get();
+        $entities = Entity::with('administration')
+            ->forUser(auth()->user())
+            ->get();
         return view('groups.add', compact('entities'));
     }
 
@@ -37,7 +42,9 @@ class GroupController extends Controller
             'entity_id' => 'required|exists:entities,id'
         ]);
 
-        $entity = Entity::with('administration')->findOrFail($request->entity_id);
+        $entity = Entity::with('administration')
+            ->forUser(auth()->user())
+            ->findOrFail($request->entity_id);
         session(['group_entity' => $entity]);
 
         return redirect()->route('groups.add-information');
@@ -56,9 +63,16 @@ class GroupController extends Controller
         
         // Si es un array (serializado), obtener la entidad de la BD
         if (is_array($entityData)) {
-            $entity = Entity::with('administration')->findOrFail($entityData['id']);
+            $entity = Entity::with('administration')
+                ->forUser(auth()->user())
+                ->findOrFail($entityData['id']);
         } else {
             $entity = $entityData;
+        }
+
+        if (!auth()->user()->canAccessEntity($entity->id)) {
+            return redirect()->route('groups.create')
+                ->with('error', 'No tienes permisos para gestionar esta entidad.');
         }
         
         // Obtener vendedores de la entidad seleccionada que NO tienen grupo asignado
@@ -86,7 +100,11 @@ class GroupController extends Controller
         try {
             DB::beginTransaction();
 
-            $entity = Entity::findOrFail($request->entity_id);
+            if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+                abort(403, 'No tienes permisos para gestionar esta entidad.');
+            }
+
+            $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
 
             // Crear el grupo
             $group = Group::create([
@@ -107,7 +125,14 @@ class GroupController extends Controller
                     return !empty($id) && is_numeric($id);
                 });
                 if (!empty($sellerIds)) {
-                    $group->sellers()->sync($sellerIds);
+                    $accessibleSellerIds = collect($sellerIds)
+                        ->filter(fn ($id) => auth()->user()->canAccessSeller((int) $id))
+                        ->values()
+                        ->all();
+
+                    if (!empty($accessibleSellerIds)) {
+                        $group->sellers()->sync($accessibleSellerIds);
+                    }
                 }
             }
 
@@ -128,7 +153,9 @@ class GroupController extends Controller
      */
     public function edit($id)
     {
-        $group = Group::with(['entity', 'sellers'])->findOrFail($id);
+        $group = Group::with(['entity', 'sellers'])
+            ->forUser(auth()->user())
+            ->findOrFail($id);
         $entity = $group->entity;
         
         // Obtener vendedores de la entidad del grupo que NO tienen grupo asignado
@@ -160,7 +187,7 @@ class GroupController extends Controller
         try {
             DB::beginTransaction();
 
-            $group = Group::findOrFail($id);
+            $group = Group::forUser(auth()->user())->findOrFail($id);
 
             // Actualizar el nombre del grupo
             $group->update([
@@ -175,7 +202,12 @@ class GroupController extends Controller
                     $sellerIds = is_string($sellerIds) ? json_decode($sellerIds, true) : [$sellerIds];
                 }
                 if (is_array($sellerIds) && !empty($sellerIds)) {
-                    $group->sellers()->sync($sellerIds);
+                    $accessibleSellerIds = collect($sellerIds)
+                        ->filter(fn ($sellerId) => auth()->user()->canAccessSeller((int) $sellerId))
+                        ->values()
+                        ->all();
+
+                    $group->sellers()->sync($accessibleSellerIds);
                 } else {
                     $group->sellers()->detach();
                 }
@@ -199,7 +231,7 @@ class GroupController extends Controller
     public function destroy($id)
     {
         try {
-            $group = Group::findOrFail($id);
+            $group = Group::forUser(auth()->user())->findOrFail($id);
             $group->delete();
 
             return redirect()->route('groups.index')->with('success', 'Grupo eliminado exitosamente');

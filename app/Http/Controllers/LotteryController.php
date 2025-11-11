@@ -361,7 +361,9 @@ class LotteryController extends Controller
      */
     public function showAdministrations()
     {
-        $administrations = Administration::where('status', 1)->get();
+        $administrations = Administration::forUser(auth()->user())
+            ->where('status', 1)
+            ->get();
         return view('lottery.administrations', compact('administrations'));
     }
 
@@ -375,7 +377,9 @@ class LotteryController extends Controller
         ]);
 
         // Guardar la administración seleccionada en la sesión con su manager
-        $administration = Administration::with('manager')->find($request->administration_id);
+        $administration = Administration::with('manager')
+            ->forUser(auth()->user())
+            ->findOrFail($request->administration_id);
         $request->session()->put('selected_administration', $administration);
 
         return redirect()->route('lottery.results')

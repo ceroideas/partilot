@@ -11,13 +11,16 @@ class SocialWebController extends Controller
 {
     public function index()
     {
-        $socialWebs = SocialWeb::with('entity')->get();
+        $socialWebs = SocialWeb::with('entity')
+            ->forUser(auth()->user())
+            ->orderBy('created_at', 'desc')
+            ->get();
         return view('social.index', compact('socialWebs'));
     }
 
     public function create()
     {
-        $entities = Entity::all();
+        $entities = Entity::forUser(auth()->user())->get();
         return view('social.add', compact('entities'));
     }
 
@@ -31,6 +34,10 @@ class SocialWebController extends Controller
             'small_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'status' => 'required|in:draft,published'
         ]);
+
+        if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para gestionar esta entidad'], 403);
+        }
 
         $data = $request->only(['entity_id', 'title', 'description', 'status']);
 
@@ -53,14 +60,16 @@ class SocialWebController extends Controller
 
     public function edit($id)
     {
-        $socialWeb = SocialWeb::with('entity')->findOrFail($id);
-        $entities = Entity::all();
+        $socialWeb = SocialWeb::with('entity')
+            ->forUser(auth()->user())
+            ->findOrFail($id);
+        $entities = Entity::forUser(auth()->user())->get();
         return view('social.edit', compact('socialWeb', 'entities'));
     }
 
     public function update(Request $request, $id)
     {
-        $socialWeb = SocialWeb::findOrFail($id);
+        $socialWeb = SocialWeb::forUser(auth()->user())->findOrFail($id);
 
         $request->validate([
             'entity_id' => 'required|exists:entities,id',
@@ -70,6 +79,10 @@ class SocialWebController extends Controller
             'small_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'status' => 'required|in:draft,published'
         ]);
+
+        if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para gestionar esta entidad'], 403);
+        }
 
         $data = $request->only(['entity_id', 'title', 'description', 'status']);
 
@@ -100,7 +113,7 @@ class SocialWebController extends Controller
 
     public function destroy($id)
     {
-        $socialWeb = SocialWeb::findOrFail($id);
+        $socialWeb = SocialWeb::forUser(auth()->user())->findOrFail($id);
         
         // Delete images if they exist
         if ($socialWeb->banner_image) {
@@ -117,7 +130,7 @@ class SocialWebController extends Controller
 
     public function changeStatus($id)
     {
-        $socialWeb = SocialWeb::findOrFail($id);
+        $socialWeb = SocialWeb::forUser(auth()->user())->findOrFail($id);
         $socialWeb->status = $socialWeb->status === 'published' ? 'draft' : 'published';
         $socialWeb->save();
 
@@ -130,12 +143,16 @@ class SocialWebController extends Controller
             'entity_id' => 'required|exists:entities,id'
         ]);
 
+        if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+
         return redirect()->route('social.add-design', ['entity_id' => $request->entity_id]);
     }
 
     public function addDesign($entity_id)
     {
-        $entity = Entity::findOrFail($entity_id);
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
         return view('social.add_design', compact('entity'));
     }
 }

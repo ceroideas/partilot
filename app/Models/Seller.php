@@ -188,4 +188,22 @@ class Seller extends Model
                     ->orderBy('group_name', 'asc')
                     ->orderBy('name', 'asc');
     }
+
+    /**
+     * Scope para filtrar vendedores accesibles por usuario.
+     */
+    public function scopeForUser($query, User $user)
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $sellerIds = $user->accessibleSellerIds();
+
+        if (empty($sellerIds)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('id', $sellerIds);
+    }
 }
