@@ -127,8 +127,14 @@
                     </div>
 
                     <!--- Menu -->
+                    @php
+                        $currentUser = Auth::user();
+                        $selected = null;
+                        $canSeeAdminModules = $currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration());
+                        $canSeeEntityModules = $currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration() || $currentUser->isEntity());
+                        $canSeeSellerModules = $canSeeEntityModules;
+                    @endphp
                     <ul class="menu">
-                        @php $selected = null; @endphp
 
                         <li class="menu-title">Navigation</li>
 
@@ -142,125 +148,149 @@
                             </a>
                         </li>
 
-                        <li class="menu-item @if (Request::is('administrations/*') || Request::is('administrations')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/administrations')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/administraciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Administraciones </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeAdminModules)
+                            <li class="menu-item @if (Request::is('administrations/*') || Request::is('administrations')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/administrations')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/administraciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Administraciones </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('entities/*') || Request::is('entities')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/entities')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/entidades{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Entidades </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeAdminModules)
+                            <li class="menu-item @if (Request::is('entities/*') || Request::is('entities')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/entities')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/entidades{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Entidades </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('sellers/*') || Request::is('sellers')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/sellers')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/vendedores{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Vendedores/Asignación </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeSellerModules)
+                            <li class="menu-item @if (Request::is('sellers/*') || Request::is('sellers')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/sellers')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/vendedores{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Vendedores/Asignación </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('users/*') || Request::is('users')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/users')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/usuarios{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Usuarios </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeAdminModules)
+                            <li class="menu-item @if (Request::is('users/*') || Request::is('users')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/users')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/usuarios{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Usuarios </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('lottery/*') || Request::is('lottery') || Request::is('lottery_types/*') || Request::is('lottery_types')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/lottery')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Sorteos </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeEntityModules)
+                            <li class="menu-item @if (Request::is('lottery/*') || Request::is('lottery') || Request::is('lottery_types/*') || Request::is('lottery_types')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/lottery')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Sorteos </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('scrutiny/*') || Request::is('scrutiny')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/scrutiny')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Escrutinio </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeAdminModules)
+                            <li class="menu-item @if (Request::is('scrutiny/*') || Request::is('scrutiny')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/scrutiny')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/sorteos{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Escrutinio </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('reserves/*') || Request::is('reserves')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/reserves')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/reservas{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Reservas </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeEntityModules)
+                            <li class="menu-item @if (Request::is('reserves/*') || Request::is('reserves')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/reserves')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/reservas{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Reservas </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('sets/*') || Request::is('sets')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/sets')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img style="width: 20px;" src="{{url('icons_')}}/sets{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Set particip. </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeEntityModules)
+                            <li class="menu-item @if (Request::is('sets/*') || Request::is('sets')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/sets')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img style="width: 20px;" src="{{url('icons_')}}/sets{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Set particip. </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('design/*') || Request::is('design')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('/design')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img style="width: 20px;" src="{{url('icons_')}}/diseno{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Diseño e Impresión </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeEntityModules)
+                            <li class="menu-item @if (Request::is('design/*') || Request::is('design')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('/design')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img style="width: 20px;" src="{{url('icons_')}}/diseno{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Diseño e Impresión </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('participations/*') || Request::is('participations')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('participations')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/participaciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Participaciones </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeEntityModules)
+                            <li class="menu-item @if (Request::is('participations/*') || Request::is('participations')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('participations')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/participaciones{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Participaciones </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('devolutions/*') || Request::is('devolutions')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('devolutions')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img style="width: 19.5px;" src="{{url('icons_')}}/devolucion{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Devolución </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeEntityModules)
+                            <li class="menu-item @if (Request::is('devolutions/*') || Request::is('devolutions')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('devolutions')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img style="width: 19.5px;" src="{{url('icons_')}}/devolucion{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Devolución </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
-                        <li class="menu-item @if (Request::is('social/*') || Request::is('social')) menuitem-active @php $selected = 1; @endphp @endif">
-                            <a href="{{url('social')}}" class="menu-link">
-                                <span class="menu-icon">
-                                    <img src="{{url('icons_')}}/websocial{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
-                                </span>
-                                <span class="menu-text"> Web Social </span>
-                                @php $selected = null; @endphp
-                            </a>
-                        </li>
+                        @if($canSeeEntityModules)
+                            <li class="menu-item @if (Request::is('social/*') || Request::is('social')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('social')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/websocial{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Web Social </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
 
                         <li class="menu-item @if (Request::is('requests/*') || Request::is('requests')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('requests')}}" class="menu-link">

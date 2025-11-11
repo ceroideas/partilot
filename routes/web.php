@@ -67,7 +67,7 @@ Route::middleware(['auth'])->group(function () {
     
     Route::get('dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
-Route::group(['prefix' => 'administrations'], function() {
+Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin,administration'], function() {
     //
     Route::get('/', function() {return view('admins.index');})->name('administrations.index');
     Route::get('/add', function() {return view('admins.add');})->name('administrations.create');
@@ -120,7 +120,7 @@ Route::group(['prefix' => 'entities'], function() {
     
 });
 
-Route::group(['prefix' => 'managers'], function() {
+Route::group(['prefix' => 'managers', 'middleware' => 'role:super_admin,administration'], function() {
     //
     Route::get('/edit/{id}', [ManagerController::class, 'edit'])->name('managers.edit');
     Route::put('/update/{id}', [ManagerController::class, 'update'])->name('managers.update');
@@ -131,7 +131,7 @@ Route::group(['prefix' => 'managers'], function() {
 /*Route::get('entities',function() {
     return view('entities.index');
 });*/
-Route::group(['prefix' => 'sellers'], function() {
+Route::group(['prefix' => 'sellers', 'middleware' => 'role:super_admin,administration,entity'], function() {
     Route::get('/', [SellerController::class, 'index'])->name('sellers.index');
     Route::get('/add', [SellerController::class, 'create'])->name('sellers.create');
     Route::post('/store-entity', [SellerController::class, 'store_entity'])->name('sellers.store-entity');
@@ -229,7 +229,7 @@ Route::group(['prefix' => 'lottery_types'], function() {
     Route::get('/available-categories', [LotteryTypeController::class, 'getAvailablePrizeCategories'])->name('lottery-types.available-categories');
 });
 
-Route::group(['prefix' => 'reserves'], function() {
+Route::group(['prefix' => 'reserves', 'middleware' => 'role:super_admin,administration,entity'], function() {
     //
     Route::get('/', [ReserveController::class, 'index'])->name('reserves.index');
     Route::get('/add', [ReserveController::class, 'create'])->name('reserves.create');
@@ -249,7 +249,7 @@ Route::group(['prefix' => 'reserves'], function() {
     Route::get('/lotteries-by-entity', [ReserveController::class, 'getLotteriesByEntity'])->name('reserves.lotteries-by-entity');
 });
 
-Route::group(['prefix' => 'sets'], function() {
+Route::group(['prefix' => 'sets', 'middleware' => 'role:super_admin,administration,entity'], function() {
     //
     Route::get('/', [SetController::class, 'index'])->name('sets.index');
     Route::get('/add', [SetController::class, 'create'])->name('sets.create');
