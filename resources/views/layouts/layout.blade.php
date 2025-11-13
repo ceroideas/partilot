@@ -148,7 +148,7 @@
                             </a>
                         </li>
 
-                        @if($canSeeAdminModules)
+                        @if($currentUser && $currentUser->isSuperAdmin())
                             <li class="menu-item @if (Request::is('administrations/*') || Request::is('administrations')) menuitem-active @php $selected = 1; @endphp @endif">
                                 <a href="{{url('/administrations')}}" class="menu-link">
                                     <span class="menu-icon">

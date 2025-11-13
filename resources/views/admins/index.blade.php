@@ -26,7 +26,7 @@
                 <div class="card-body">
 
                     @php
-                        $administrations = App\Models\Administration::orderBy('created_at', 'desc')->get();
+                        $administrations = App\Models\Administration::forUser(auth()->user())->orderBy('created_at', 'desc')->get();
                     @endphp
 
                 	<div class="{{count($administrations) ? '' : 'd-none'}}">

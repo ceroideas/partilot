@@ -67,7 +67,7 @@ Route::middleware(['auth'])->group(function () {
     
     Route::get('dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
-Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin,administration'], function() {
+Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin'], function() {
     //
     Route::get('/', function() {return view('admins.index');})->name('administrations.index');
     Route::get('/add', function() {return view('admins.add');})->name('administrations.create');

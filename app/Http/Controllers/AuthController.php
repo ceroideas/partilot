@@ -42,7 +42,7 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
 
-            if (Auth::user()->isClient()) {
+            if (Auth::user()->isClient() || Auth::user()->isSeller()) {
                 Auth::logout();
                 return back()->withErrors([
                     'email' => 'Tu cuenta no tiene acceso al panel.',
