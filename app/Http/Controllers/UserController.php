@@ -55,7 +55,8 @@ class UserController extends Controller
                 $imagePath = $request->file('image')->store('users', 'public');
             }
 
-            // Crear usuario
+            // Crear usuario con rol 'client' por defecto
+            // Si hay vendedores pendientes con este email, el UserObserver cambiará el rol a 'seller'
             $user = User::create([
                 'name' => $request->name,
                 'last_name' => $request->last_name,
@@ -67,6 +68,7 @@ class UserController extends Controller
                 'password' => Hash::make($request->password),
                 'image' => $imagePath,
                 'status' => true,
+                'role' => User::ROLE_CLIENT, // Rol por defecto: cliente
             ]);
 
             // El UserObserver se encargará de vincular vendedores automáticamente

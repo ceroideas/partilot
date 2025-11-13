@@ -19,6 +19,15 @@ class UserObserver
             ->where('user_id', 0) // Vendedores con user_id = 0 (pendientes o externos)
             ->get();
 
+        if ($pendingSellers->isNotEmpty()) {
+            // Si hay vendedores pendientes, asignar rol de seller si el usuario no tiene un rol específico
+            // (si es super_admin, client por defecto, o no tiene rol específico)
+            if (!$user->role || $user->role === User::ROLE_SUPER_ADMIN || $user->role === User::ROLE_CLIENT) {
+                $user->update(['role' => User::ROLE_SELLER]);
+                Log::info("Rol de seller asignado al usuario {$user->id} debido a vendedores pendientes");
+            }
+        }
+
         foreach ($pendingSellers as $seller) {
             try {
                 // Vincular el vendedor al usuario
