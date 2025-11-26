@@ -116,17 +116,57 @@
 
                     			<div class="form-group mt-2">
 	                    			<label class="">Estado Actual</label> 
-                                    <label class="badge badge-lg {{ $administration->status ? 'bg-success' : 'bg-danger' }} float-end">
-                                        {{ $administration->status ? 'Activo' : 'Inactivo' }}
+                                    @php
+                                        $statusValue = $administration->status;
+                                        if ($statusValue === null || $statusValue === -1) {
+                                            $statusText = 'Pendiente';
+                                            $statusClass = 'bg-secondary';
+                                        } elseif ($statusValue == 1) {
+                                            $statusText = 'Activo';
+                                            $statusClass = 'bg-success';
+                                        } else {
+                                            $statusText = 'Inactivo';
+                                            $statusClass = 'bg-danger';
+                                        }
+                                    @endphp
+                                    <label class="badge badge-lg {{ $statusClass }} float-end">
+                                        {{ $statusText }}
                                     </label>
 	                    			<div style="clear: both;"></div>
 	                    			
-	                    			<div class="form-check mt-2">
-	                    				<input class="form-check-input" type="checkbox" name="status" value="1" {{ $administration->status ? 'checked' : '' }}>
-	                    				<label class="form-check-label">
-	                    					Activar administración
-	                    				</label>
+	                    			<div class="form-group mt-3">
+	                    				<label class="form-label">Cambiar Estado</label>
+	                    				<select name="status" id="admin_status" class="form-select">
+	                    					<option value="-1" {{ ($statusValue === null || $statusValue === -1) ? 'selected' : '' }}>Pendiente</option>
+	                    					<option value="1" {{ $statusValue == 1 ? 'selected' : '' }}>Activo</option>
+	                    					<option value="0" {{ $statusValue == 0 ? 'selected' : '' }}>Inactivo</option>
+	                    				</select>
 	                    			</div>
+	                    			<script>
+	                    			// Actualizar el badge de estado cuando se cambie el select
+	                    			document.addEventListener('DOMContentLoaded', function() {
+	                    				const select = document.getElementById('admin_status');
+	                    				if (select) {
+	                    					const formCard = select.closest('.form-card');
+	                    					const badge = formCard ? formCard.querySelector('.badge') : null;
+	                    					if (badge) {
+	                    						select.addEventListener('change', function() {
+	                    							const value = this.value;
+	                    							if (value === '-1' || value === '') {
+	                    								badge.textContent = 'Pendiente';
+	                    								badge.className = 'badge badge-lg bg-secondary float-end';
+	                    							} else if (value === '1') {
+	                    								badge.textContent = 'Activo';
+	                    								badge.className = 'badge badge-lg bg-success float-end';
+	                    							} else {
+	                    								badge.textContent = 'Inactivo';
+	                    								badge.className = 'badge badge-lg bg-danger float-end';
+	                    							}
+	                    						});
+	                    					}
+	                    				}
+	                    			});
+	                    			</script>
                     			</div>
                     		</div>
 
@@ -326,6 +366,9 @@
                     				</div>
                     			</div>
 
+								<br>
+								<br>
+
                     			<h4 class="mb-0 mt-1">
                     				Datos Pago
                     			</h4>
@@ -336,39 +379,34 @@
                     				<div class="col-8">
                     					
                     					<div class="form-group mt-2">
-			                    			<div class="input-group input-group-merge group-account">
+			                    			<div class="input-group input-group-merge group-form">
 			                    				@php
-			                    					$accountParts = explode(' ', $administration->account ?? '');
-			                    					$accountArray = array_pad($accountParts, 5, '');
+			                    					$accountValue = $administration->account ?? '';
+			                    					// Si empieza con ES, quitarlo para mostrar solo los dígitos
+			                    					if (str_starts_with($accountValue, 'ES')) {
+			                    						$accountValue = substr($accountValue, 2);
+			                    					} else {
+			                    						// Si es formato antiguo (con espacios), intentar convertir
+			                    						$accountParts = explode(' ', $accountValue);
+			                    						if (count($accountParts) >= 5) {
+			                    							// Formato antiguo: 4-4-4-2-10
+			                    							$accountValue = str_pad($accountParts[0] ?? '', 4, '0', STR_PAD_LEFT) .
+			                    											str_pad($accountParts[1] ?? '', 4, '0', STR_PAD_LEFT) .
+			                    											str_pad($accountParts[2] ?? '', 4, '0', STR_PAD_LEFT) .
+			                    											str_pad($accountParts[3] ?? '', 2, '0', STR_PAD_LEFT) .
+			                    											str_pad($accountParts[4] ?? '', 10, '0', STR_PAD_LEFT);
+			                    						} else {
+			                    							$accountValue = str_replace(' ', '', $accountValue);
+			                    						}
+			                    					}
 			                    				@endphp
-			                                    <input class="" type="number" name="account[0]" placeholder="1234" max="9999" min="1000" value="{{ old('account.0', $accountArray[0]) }}" required>
-
-			                                    <label>
-			                                    	-
-			                                    </label>
-
-			                                    <input class="" type="number" name="account[1]" placeholder="1234" max="9999" min="1000" value="{{ old('account.1', $accountArray[1]) }}" required>
-
-			                                    <label>
-			                                    	-
-			                                    </label>
-
-			                                    <input class="" type="number" name="account[2]" placeholder="1234" max="9999" min="1000" value="{{ old('account.2', $accountArray[2]) }}" required>
-
-			                                    <label>
-			                                    	-
-			                                    </label>
-
-			                                    <input class="" type="number" name="account[3]" placeholder="12" max="99" min="10" value="{{ old('account.3', $accountArray[3]) }}" required>
-
-			                                    <label>
-			                                    	-
-			                                    </label>
-
-			                                    <input class="" type="number" name="account[4]" placeholder="1234567890" max="9999999999" min="1000000000" value="{{ old('account.4', $accountArray[4]) }}" required>
-
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <span style="font-weight: bold;">ES</span>
+			                                    </div>
+			                                    <input class="form-control" type="text" name="account" placeholder="1234567890123456789012" maxlength="22" value="{{ old('account', $accountValue) }}" style="border-radius: 0 30px 30px 0;" required>
 			                                </div>
 		                    			</div>
+		                    			<small class="text-muted">Ingrese los 22 dígitos de la cuenta bancaria (sin espacios). El prefijo ES se añadirá automáticamente.</small>
 
                     				</div>
 

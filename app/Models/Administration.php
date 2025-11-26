@@ -28,7 +28,7 @@ class Administration extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status' => 'integer',
     ];
 
     /**
@@ -57,7 +57,13 @@ class Administration extends Model
      */
     public function getStatusTextAttribute()
     {
-        return $this->status ? 'Activo' : 'Inactivo';
+        if ($this->status === null || $this->status === -1) {
+            return 'Pendiente';
+        } elseif ($this->status == 1) {
+            return 'Activo';
+        } else {
+            return 'Inactivo';
+        }
     }
 
     /**
@@ -65,7 +71,13 @@ class Administration extends Model
      */
     public function getStatusClassAttribute()
     {
-        return $this->status ? 'success' : 'danger';
+        if ($this->status === null || $this->status === -1) {
+            return 'secondary';
+        } elseif ($this->status == 1) {
+            return 'success';
+        } else {
+            return 'danger';
+        }
     }
 
     /**

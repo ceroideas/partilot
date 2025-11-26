@@ -409,7 +409,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="date" name="manager_birthday" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="date" name="manager_birthday" placeholder="01/01/1990" required style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     						</div>
@@ -454,7 +454,7 @@
             										<h4 class="mb-0 mt-1">
 					                    				Permisos Gestor
 					                    			</h4>
-					                    			<small><i>Puedes modificar los permisos en cualquier momento</i></small>
+					                    			<small><i>Este gestor es el principal y tiene todos los permisos</i></small>
 
 					                    			<br>
 
@@ -463,7 +463,7 @@
 						                    			<div class="text-start col-6">
 
 							                    			<div class="form-check form-switch mt-2 mb-2">
-																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="all" checked>
+																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="all" checked disabled>
 																<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="all"><b>
 																	Todos los permisos
 																</b></label>
@@ -479,14 +479,14 @@
 														<div class="text-start col-6">
 
 															<div class="form-check form-switch mt-2 mb-2">
-																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="sellers" checked>
+																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="sellers" checked disabled>
 																<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="sellers"><b>
 																	Administrar Vendedores
 																</b></label>
 															</div>
 
 															<div class="form-check form-switch mt-2 mb-2">
-																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="design" checked>
+																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="design" checked disabled>
 																<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="design"><b>
 																	Diseñar Participaciones
 																</b></label>
@@ -497,14 +497,14 @@
 														<div class="text-start col-6">
 
 															<div class="form-check form-switch mt-2 mb-2">
-																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="total" checked>
+																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="total" checked disabled>
 																<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="total"><b>
 																	Estadísticas Totales
 																</b></label>
 															</div>
 
 															<div class="form-check form-switch mt-2 mb-2">
-																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="pay" checked>
+																<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="pay" checked disabled>
 																<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="pay"><b>
 																	Pagar Participaciones
 																</b></label>

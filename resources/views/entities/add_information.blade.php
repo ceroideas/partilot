@@ -115,7 +115,19 @@
 
                 						<h4 class="mt-0 mb-0">{{session('selected_administration')->name ?? 'Administración'}}</h4>
 
-                						<small>{{session('selected_administration')->manager->name ?? 'Gestor'}}</small> <br>
+                						<small>
+                							@php
+                								$admin = session('selected_administration');
+                								$managerName = 'Gestor';
+                								if ($admin && $admin->manager && $admin->manager->user) {
+                									$managerName = trim(($admin->manager->user->name ?? '') . ' ' . ($admin->manager->user->last_name ?? ''));
+                									if (empty($managerName)) {
+                										$managerName = 'Gestor';
+                									}
+                								}
+                							@endphp
+                							{{ $managerName }}
+                						</small> <br>
 
                 						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{session('selected_administration')->province ?? 'Provincia'}}
                 						
@@ -135,6 +147,16 @@
 	                    				Datos legales de la entidad
 	                    			</h4>
 	                    			<small><i>Todos los campos son obligatorios</i></small>
+
+	                    			@if ($errors->any())
+	                    				<div class="alert alert-danger mt-3">
+	                    					<ul class="mb-0">
+	                    						@foreach ($errors->all() as $error)
+	                    							<li>{{ $error }}</li>
+	                    						@endforeach
+	                    					</ul>
+	                    				</div>
+	                    			@endif
 
 	                    			<div class="form-group mt-2 mb-3">
 
@@ -176,7 +198,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="name" placeholder="Nombre Entidad" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="name" placeholder="Nombre Entidad" value="{{ old('name') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('name')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -191,7 +216,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="province" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="province" placeholder="Provincia" value="{{ old('province') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('province')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -206,7 +234,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="city" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="city" placeholder="Localidad" value="{{ old('city') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('city')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -221,7 +252,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="number" name="postal_code" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="postal_code" placeholder="C.P." value="{{ old('postal_code') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('postal_code')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -236,7 +270,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="address" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="address" placeholder="Dirección" value="{{ old('address') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('address')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -251,7 +288,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="nif_cif" placeholder="B26262626" value="{{ old('nif_cif') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('nif_cif')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -266,7 +306,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="phone" name="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="phone" placeholder="940 200 200" value="{{ old('phone') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('phone')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -281,7 +324,10 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" value="{{ old('email') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    @error('email')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -304,7 +350,10 @@
 
 				                    			<div class="input-group input-group-merge group-form">
 
-				                                    <textarea class="form-control" placeholder="Añade tu comentario" name="comments" id="" rows="6"></textarea>
+				                                    <textarea class="form-control" placeholder="Añade tu comentario" name="comments" id="" rows="6">{{ old('comments') }}</textarea>
+				                                    @error('comments')
+				                                        <div class="text-danger small mt-1">{{ $message }}</div>
+				                                    @enderror
 				                                </div>
 			                    			</div>
 

@@ -31,22 +31,32 @@ class AdministratorController extends Controller
     {
         $administration = Administration::forUser(auth()->user())->findOrFail($id);
         
+        // Validar formato básico primero
         $request->validate([
             'web' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
             'receiving' => 'required|string|max:255',
             'society' => 'required|string|max:255',
-            'nif_cif' => 'required|string|max:255',
+            'nif_cif' => ['required', 'string', 'max:255', new \App\Rules\SpanishDocument],
             'province' => 'required|string|max:255',
             'city' => 'required|string|max:255',
             'postal_code' => 'required|string|max:10',
             'address' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|max:255',
-            /*'account' => 'required|array',
-            'account.*' => 'required|string|max:4',*/
-            'status' => 'nullable|boolean',
+            'account' => ['required', 'string', 'max:22', 'regex:/^[0-9]{22}$/'],
+            'status' => 'nullable|in:-1,0,1',
         ]);
+
+        // Validar IBAN completo
+        $iban = 'ES' . $request->account;
+        $validator = \Validator::make(['iban' => $iban], [
+            'iban' => [new \App\Rules\SpanishIban]
+        ]);
+        
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
 
         $data = [
             "web" => $request->web ?? '',
@@ -60,8 +70,8 @@ class AdministratorController extends Controller
             "address" => $request->address,
             "email" => $request->email,
             "phone" => $request->phone,
-            "account" => implode(' ', $request->account),
-            "status" => $request->status ?? true,
+            "account" => 'ES' . $request->account,
+            "status" => $request->status === '-1' ? null : ($request->status ?? null),
         ];
 
         if ($request->file('image')) {
@@ -91,7 +101,7 @@ class AdministratorController extends Controller
             "address" => $request->validated()['address'],
             "email" => $request->validated()['email'],
             "phone" => $request->validated()['phone'],
-            "account" => implode(' ', $request->account),
+            "account" => 'ES' . $request->account,
         ];
         if ($request->file('image')) {
             $file = $request->file('image');
@@ -148,7 +158,7 @@ class AdministratorController extends Controller
             "name" => "required|string|max:255",
             "last_name" => "required|string|max:255",
             "last_name2" => "nullable|string|max:255",
-            "nif_cif" => "nullable|string|max:255",
+            "nif_cif" => ["nullable", "string", "max:255", new \App\Rules\SpanishDocument],
             "birthday" => ["required", "date", new \App\Rules\MinimumAge(18)],
             "email" => "required|string|max:255",
             "phone" => "nullable|string|max:255",
@@ -209,7 +219,13 @@ class AdministratorController extends Controller
             // Crear el manager con user_id y administration_id
             $manager = Manager::create([
                 'user_id' => $u->id,
-                'administration_id' => null // Se asignará después de crear la administración
+                'administration_id' => null, // Se asignará después de crear la administración
+                'is_primary' => true,
+                'permission_sellers' => true,
+                'permission_design' => true,
+                'permission_statistics' => true,
+                'permission_payments' => true,
+                'status' => 1, // Activo por defecto para el gestor principal
             ]);
         }
 

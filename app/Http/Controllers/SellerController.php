@@ -85,7 +85,7 @@ class SellerController extends Controller
             'last_name' => 'nullable|string|max:255',
             'last_name2' => 'nullable|string|max:255',
             'nif_cif' => 'nullable|string|max:255',
-            'birthday' => 'nullable|date',
+            'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'phone' => 'nullable|string|max:255',
             'comment' => 'nullable|string'
         ]);
@@ -131,7 +131,7 @@ class SellerController extends Controller
             'last_name' => 'nullable|string|max:255', // No requerido
             'last_name2' => 'nullable|string|max:255',
             'nif_cif' => 'nullable|string|max:255',
-            'birthday' => 'nullable|date',
+            'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email',
             'phone' => 'nullable|string|max:255',
             'entity_id' => 'required|exists:entities,id'
@@ -258,7 +258,7 @@ class SellerController extends Controller
             'last_name' => 'required|string|max:255',
             'last_name2' => 'nullable|string|max:255',
             'nif_cif' => 'nullable|string|max:255',
-            'birthday' => 'nullable|date',
+            'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email|unique:users,email,' . ($seller->user_id ?? 0),
             'phone' => 'nullable|string|max:255',
             'group_id' => 'nullable|exists:groups,id',

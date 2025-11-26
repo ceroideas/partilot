@@ -25,7 +25,7 @@ class Entity extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status' => 'integer',
     ];
 
     /**
@@ -37,11 +37,19 @@ class Entity extends Model
     }
 
     /**
-     * Relación con Manager
+     * Relación con Manager (singular - para compatibilidad)
      */
     public function manager()
     {
         return $this->hasOne(Manager::class,'entity_id','id');
+    }
+
+    /**
+     * Relación con Managers (plural)
+     */
+    public function managers()
+    {
+        return $this->hasMany(Manager::class,'entity_id','id');
     }
 
     /**
@@ -74,7 +82,13 @@ class Entity extends Model
      */
     public function getStatusTextAttribute()
     {
-        return $this->status ? 'Activo' : 'Inactivo';
+        if ($this->status === null || $this->status === -1) {
+            return 'Pendiente';
+        } elseif ($this->status == 1) {
+            return 'Activo';
+        } else {
+            return 'Inactivo';
+        }
     }
 
     /**
@@ -82,7 +96,13 @@ class Entity extends Model
      */
     public function getStatusClassAttribute()
     {
-        return $this->status ? 'success' : 'danger';
+        if ($this->status === null || $this->status === -1) {
+            return 'secondary';
+        } elseif ($this->status == 1) {
+            return 'success';
+        } else {
+            return 'danger';
+        }
     }
 
     /**

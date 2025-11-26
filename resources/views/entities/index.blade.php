@@ -71,9 +71,20 @@
                                     <td>{{$entity->email ?? 'Sin email'}}</td>
                                     <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
                                     <td>
-                                        <label class="badge {{ $entity->status ? 'bg-success' : 'bg-danger' }}">
-                                            {{ $entity->status ? 'Activo' : 'Inactivo' }}
-                                        </label>
+                                        @php
+                                            $statusValue = $entity->status;
+                                            if ($statusValue === null || $statusValue === -1) {
+                                                $statusText = 'Pendiente';
+                                                $statusClass = 'bg-secondary';
+                                            } elseif ($statusValue == 1) {
+                                                $statusText = 'Activo';
+                                                $statusClass = 'bg-success';
+                                            } else {
+                                                $statusText = 'Inactivo';
+                                                $statusClass = 'bg-danger';
+                                            }
+                                        @endphp
+                                        <label class="badge {{ $statusClass }}">{{ $statusText }}</label>
                                     </td>
                                     <td>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons_/persons.svg')}}" alt="" width="12"></a>

@@ -28,14 +28,20 @@ class MinimumAge implements Rule
      */
     public function passes($attribute, $value)
     {
-        if (!$value) {
-            return false;
+        // Si el valor es null o vacío, permitir (para campos nullable)
+        // La validación 'required' se encargará de campos obligatorios
+        if (!$value || $value === null || $value === '') {
+            return true; // Permitir null/empty, la validación 'required' se encargará si es necesario
         }
 
-        $birthday = Carbon::parse($value);
-        $age = $birthday->age;
-        
-        return $age >= $this->minAge;
+        try {
+            $birthday = Carbon::parse($value);
+            $age = $birthday->age;
+            
+            return $age >= $this->minAge;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**

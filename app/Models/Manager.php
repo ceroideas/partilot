@@ -13,6 +13,20 @@ class Manager extends Model
         "user_id",
         "entity_id",
         "administration_id",
+        "is_primary",
+        "permission_sellers",
+        "permission_design",
+        "permission_statistics",
+        "permission_payments",
+        "status",
+    ];
+
+    protected $casts = [
+        'is_primary' => 'boolean',
+        'permission_sellers' => 'boolean',
+        'permission_design' => 'boolean',
+        'permission_statistics' => 'boolean',
+        'permission_payments' => 'boolean',
     ];
 
     /**

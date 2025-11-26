@@ -20,6 +20,7 @@ use App\Http\Controllers\ParticipationActivityLogController;
 use App\Http\Controllers\DevolutionsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SepaPaymentOrderController;
 use App\Models\Administration;
 /*
 |--------------------------------------------------------------------------
@@ -103,6 +104,7 @@ Route::group(['prefix' => 'entities'], function() {
     // Nuevas rutas para invitación de gestores
     Route::post('/check-manager-email', [EntityController::class, 'check_manager_email'])->name('entities.check-manager-email');
     Route::post('/invite-manager', [EntityController::class, 'invite_manager'])->name('entities.invite-manager');
+    Route::post('/register-manager/{id}', [EntityController::class, 'register_manager'])->name('entities.register-manager');
     Route::post('/create-pending-entity', [EntityController::class, 'create_pending_entity'])->name('entities.create-pending-entity');
     
     // Ruta temporal para crear gestor de prueba
@@ -117,6 +119,8 @@ Route::group(['prefix' => 'entities'], function() {
     // Rutas para editar manager
     Route::get('/edit/manager/{id}', [EntityController::class, 'edit_manager'])->name('entities.edit-manager');
     Route::put('/update/manager/{id}', [EntityController::class, 'update_manager'])->name('entities.update-manager');
+    Route::get('/edit/manager-permissions/{entity_id}/{manager_id}', [EntityController::class, 'edit_manager_permissions'])->name('entities.edit-manager-permissions');
+    Route::put('/update/manager-permissions/{entity_id}/{manager_id}', [EntityController::class, 'update_manager_permissions'])->name('entities.update-manager-permissions');
     
 });
 
@@ -409,6 +413,16 @@ Route::group(['prefix' => 'notifications'], function() {
     
     // Ruta para eliminar notificación (al final para evitar conflictos)
     Route::delete('/delete/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+});
+
+// Rutas de Órdenes de Pago SEPA
+Route::group(['prefix' => 'sepa-payments'], function() {
+    Route::get('/', [SepaPaymentOrderController::class, 'index'])->name('sepa-payments.index');
+    Route::get('/create', [SepaPaymentOrderController::class, 'create'])->name('sepa-payments.create');
+    Route::post('/', [SepaPaymentOrderController::class, 'store'])->name('sepa-payments.store');
+    Route::get('/{sepaPaymentOrder}', [SepaPaymentOrderController::class, 'show'])->name('sepa-payments.show');
+    Route::get('/{sepaPaymentOrder}/generate-xml', [SepaPaymentOrderController::class, 'generateXml'])->name('sepa-payments.generate-xml');
+    Route::delete('/{sepaPaymentOrder}', [SepaPaymentOrderController::class, 'destroy'])->name('sepa-payments.destroy');
 });
 
 }); // Cierre del middleware auth

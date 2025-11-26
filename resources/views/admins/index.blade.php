@@ -75,8 +75,20 @@
 	                                <td>{{$admins->phone}}</td>
 	                                <td>{{$admins->email}}</td>
 	                                <td>
-                                        {!!$admins->status ? '<label class="badge bg-success">Activo</label>' : '<label class="badge bg-danger">Inactivo</label>' !!}
-                                        
+                                        @php
+                                            $statusValue = $admins->status;
+                                            if ($statusValue === null || $statusValue === -1) {
+                                                $statusText = 'Pendiente';
+                                                $statusClass = 'bg-secondary';
+                                            } elseif ($statusValue == 1) {
+                                                $statusText = 'Activo';
+                                                $statusClass = 'bg-success';
+                                            } else {
+                                                $statusText = 'Inactivo';
+                                                $statusClass = 'bg-danger';
+                                            }
+                                        @endphp
+                                        <label class="badge {{ $statusClass }}">{{ $statusText }}</label>
                                     </td>
 	                                <td>
 	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/entidades.svg')}}" alt="" width="12"></a>

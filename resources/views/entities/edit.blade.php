@@ -90,17 +90,31 @@
 
                     			<div class="form-group mt-2">
 	                    			<label class="">Estado Actual</label> 
-	                    			<label class="badge badge-lg {{ $entity->status ? 'bg-success' : 'bg-danger' }} float-end">
-	                    				{{ $entity->status ? 'Activo' : 'Inactivo' }}
+	                    			@php
+	                    				$statusValue = $entity->status;
+	                    				if ($statusValue === null || $statusValue === -1) {
+	                    					$statusText = 'Pendiente';
+	                    					$statusClass = 'bg-secondary';
+	                    				} elseif ($statusValue == 1) {
+	                    					$statusText = 'Activo';
+	                    					$statusClass = 'bg-success';
+	                    				} else {
+	                    					$statusText = 'Inactivo';
+	                    					$statusClass = 'bg-danger';
+	                    				}
+	                    			@endphp
+	                    			<label class="badge badge-lg {{ $statusClass }} float-end">
+	                    				{{ $statusText }}
 	                    			</label>
 	                    			<div style="clear: both;"></div>
 	                    			
-	                    			<div class="form-check form-switch mt-3">
-	                    				<input class="form-check-input" type="checkbox" name="status" value="1" id="entity_status" {{ $entity->status ? 'checked' : '' }}>
-	                    				<input type="hidden" name="status" value="0">
-	                    				<label class="form-check-label" for="entity_status">
-	                    					Entidad Activa
-	                    				</label>
+	                    			<div class="form-group mt-3">
+	                    				<label class="form-label">Cambiar Estado</label>
+	                    				<select name="status" id="entity_status" class="form-select">
+	                    					<option value="-1" {{ ($statusValue === null || $statusValue === -1) ? 'selected' : '' }}>Pendiente</option>
+	                    					<option value="1" {{ $statusValue == 1 ? 'selected' : '' }}>Activo</option>
+	                    					<option value="0" {{ $statusValue == 0 ? 'selected' : '' }}>Inactivo</option>
+	                    				</select>
 	                    			</div>
                     			</div>
                     		</div>
@@ -337,26 +351,27 @@
 @section('scripts')
 
 <script>
-// Actualizar el badge de estado cuando se cambie el checkbox
+// Actualizar el badge de estado cuando se cambie el select
 document.addEventListener('DOMContentLoaded', function() {
-    const checkbox = document.getElementById('entity_status');
-    const hiddenInput = document.querySelector('input[name="status"][type="hidden"]');
+    const select = document.getElementById('entity_status');
     
-    if (checkbox && hiddenInput) {
-        // Buscar el badge específico en el contexto del formulario, no el del header
-        const formCard = checkbox.closest('.form-card');
+    if (select) {
+        // Buscar el badge específico en el contexto del formulario
+        const formCard = select.closest('.form-card');
         const badge = formCard ? formCard.querySelector('.badge') : null;
         
         if (badge) {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
+            select.addEventListener('change', function() {
+                const value = this.value;
+                if (value === '-1' || value === '') {
+                    badge.textContent = 'Pendiente';
+                    badge.className = 'badge badge-lg bg-secondary float-end';
+                } else if (value === '1') {
                     badge.textContent = 'Activo';
                     badge.className = 'badge badge-lg bg-success float-end';
-                    hiddenInput.value = '1';
                 } else {
                     badge.textContent = 'Inactivo';
                     badge.className = 'badge badge-lg bg-danger float-end';
-                    hiddenInput.value = '0';
                 }
             });
         }

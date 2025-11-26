@@ -84,7 +84,7 @@
 	                                        <img src="{{url('assets/form-groups/admin/0.svg')}}" alt="">
 	                                    </div>
 
-                                        <input class="form-control" type="text" name="web" value="{{ session('administration.web', '') }}" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;" readonly>
+                                        <input class="form-control" type="text" id="web-field" value="{{ old('web', session('administration.web', '')) }}" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
 	                                </div>
                     			</div>
                     		</div>
@@ -105,9 +105,11 @@
                     					<div class="col-1">
                     						
 		                    				<div class="photo-preview-2">
-		                    					
-		                    					<i class="ri-account-circle-fill"></i>
-
+		                    					@if(session('administration.image'))
+		                    						<img src="{{ url('images/' . session('administration.image')) }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+		                    					@else
+		                    						<i class="ri-account-circle-fill"></i>
+		                    					@endif
 		                    				</div>
 		                    				
 		                    				<div style="clear: both;"></div>
@@ -115,19 +117,19 @@
 
                     					<div class="col-4 text-center">
 
-                    						<h4 class="mt-0 mb-0">El Buho Lotero</h4>
+                    						<h4 class="mt-0 mb-0">{{ session('administration.name', 'Administración') }}</h4>
 
-                    						<small>Jorge Ruíz Ortega</small> <br>
+                    						<small>Gestor</small> <br>
 
-                    						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> 05716
+                    						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ session('administration.receiving', '') }}
                     						
                     					</div>
 
                     					<div class="col-4">
 
                     						<div class="mt-2">
-                    							Provincia: La Rioja <br>
-                    							Dirección: Avd. Club Deportivo 28
+                    							Provincia: {{ session('administration.province', '') }} <br>
+                    							Dirección: {{ session('administration.address', '') }}
                     						</div>
                     						
                     					</div>
@@ -135,8 +137,8 @@
                     					<div class="col-3">
 
                     						<div class="mt-2">
-                    							Ciudad: Logroño <br>
-                    							Tel: 941 900 900
+                    							Ciudad: {{ session('administration.city', '') }} <br>
+                    							Tel: {{ session('administration.phone', '') }}
                     						</div>
                     						
                     					</div>
@@ -149,6 +151,9 @@
                     			<form action="{{url('administrations/store')}}" method="POST" enctype="multipart/form-data">
 
                     				@csrf()
+
+                    				<!-- Campo web oculto que se sincroniza con el campo visible -->
+                    				<input type="hidden" name="web" id="web-hidden" value="{{ old('web', session('administration.web', '')) }}">
 
 	                    			<div>
 
@@ -310,6 +315,11 @@
 @section('scripts')
 
 <script>
+	// Sincronizar el campo web visible con el campo oculto del formulario
+	document.getElementById('web-field').addEventListener('input', function() {
+	    document.getElementById('web-hidden').value = this.value;
+	});
+
 	// Limpiar datos de formulario de administración al enviar el formulario de manager
 	document.querySelector('form').addEventListener('submit', function() {
 	    localStorage.removeItem('administration_form_data');

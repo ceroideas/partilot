@@ -298,35 +298,14 @@
 	                    				<div class="col-8">
 	                    					
 	                    					<div class="form-group mt-2">
-				                    			<div class="input-group input-group-merge group-account">
-				                                    <input class="" type="number" name="account[]" placeholder="1234" max="9999" min="1000">
-
-				                                    <label>
-				                                    	-
-				                                    </label>
-
-				                                    <input class="" type="number" name="account[]" placeholder="1234" max="9999" min="1000">
-
-				                                    <label>
-				                                    	-
-				                                    </label>
-
-				                                    <input class="" type="number" name="account[]" placeholder="1234" max="9999" min="1000">
-
-				                                    <label>
-				                                    	-
-				                                    </label>
-
-				                                    <input class="" type="number" name="account[]" placeholder="12" max="99" min="10">
-
-				                                    <label>
-				                                    	-
-				                                    </label>
-
-				                                    <input class="" type="number" name="account[]" placeholder="1234567890" max="9999999999" min="1000000000">
-
+				                    			<div class="input-group input-group-merge group-form">
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <span style="font-weight: bold;">ES</span>
+				                                    </div>
+				                                    <input class="form-control" type="text" name="account" placeholder="1234567890123456789012" maxlength="22" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
+			                    			<small class="text-muted">Ingrese los 22 dígitos de la cuenta bancaria (sin espacios). El prefijo ES se añadirá automáticamente.</small>
 
 	                    				</div>
 

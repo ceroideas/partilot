@@ -130,8 +130,21 @@
 
                     			<div class="form-group mt-2">
 	                    			<label class="">Estado Actual</label> 
-	                    			<label class="badge badge-lg {{$administration->status ? 'bg-success' : 'bg-danger'}} float-end">
-	                    				{{$administration->status ? 'Activo' : 'Inactivo'}}
+	                    			@php
+	                    				$statusValue = $administration->status;
+	                    				if ($statusValue === null || $statusValue === -1) {
+	                    					$statusText = 'Pendiente';
+	                    					$statusClass = 'bg-secondary';
+	                    				} elseif ($statusValue == 1) {
+	                    					$statusText = 'Activo';
+	                    					$statusClass = 'bg-success';
+	                    				} else {
+	                    					$statusText = 'Inactivo';
+	                    					$statusClass = 'bg-danger';
+	                    				}
+	                    			@endphp
+	                    			<label class="badge badge-lg {{ $statusClass }} float-end">
+	                    				{{ $statusText }}
 	                    			</label>
 	                    			<div style="clear: both;"></div>
                     			</div>

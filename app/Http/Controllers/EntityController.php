@@ -40,7 +40,9 @@ class EntityController extends Controller
             'administration_id' => 'required|integer|exists:administrations,id'
         ]);
 
-        $administration = Administration::forUser(auth()->user())->findOrFail($request->administration_id);
+        $administration = Administration::with('manager.user')
+            ->forUser(auth()->user())
+            ->findOrFail($request->administration_id);
         $request->session()->put('selected_administration', $administration);
 
         return redirect()->route('entities.add-information');
@@ -51,12 +53,25 @@ class EntityController extends Controller
      */
     public function create_information()
     {
-        $administration = session('selected_administration');
+        $administrationSession = session('selected_administration');
+
+        if (!$administrationSession) {
+            return redirect()->route('entities.create')
+                ->with('error', 'Sesión expirada. Por favor, seleccione una administración.');
+        }
+
+        // Recargar la administración con las relaciones necesarias
+        $administration = Administration::with('manager.user')
+            ->forUser(auth()->user())
+            ->find($administrationSession->id ?? $administrationSession['id'] ?? null);
 
         if (!$administration || !auth()->user()->canAccessAdministration($administration->id)) {
             return redirect()->route('entities.create')
                 ->with('error', 'Sesión expirada. Por favor, seleccione una administración.');
         }
+
+        // Actualizar la sesión con la administración recargada
+        session(['selected_administration' => $administration]);
 
         return view('entities.add_information');
     }
@@ -67,14 +82,14 @@ class EntityController extends Controller
     public function store_information(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'province' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:10',
-            'address' => 'nullable|string|max:500',
-            'nif_cif' => 'nullable|string|max:20',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:10',
+            'address' => 'required|string|max:500',
+            'nif_cif' => 'required|string|max:20',
+            'phone' => 'required|string|max:20',
+            'email' => 'required|email|max:255',
             'comments' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
@@ -118,7 +133,7 @@ class EntityController extends Controller
             'manager_last_name' => 'required|string|max:255',
             'manager_last_name2' => 'nullable|string|max:255',
             'manager_nif_cif' => 'nullable|string|max:20',
-            'manager_birthday' => 'nullable|date',
+            'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'manager_email' => 'required|email|max:255',
             'manager_phone' => 'nullable|string|max:20',
             // 'manager_comment' => 'nullable|string|max:1000',
@@ -170,10 +185,16 @@ class EntityController extends Controller
 
         $entity = Entity::create($entityData);
 
-        // Crear la relación manager-entity
+        // Crear la relación manager-entity (primer gestor es siempre principal con todos los permisos)
         Manager::create([
             'user_id' => $user->id,
-            'entity_id' => $entity->id
+            'entity_id' => $entity->id,
+            'is_primary' => true,
+            'permission_sellers' => true,
+            'permission_design' => true,
+            'permission_statistics' => true,
+            'permission_payments' => true,
+            'status' => 1, // Activo por defecto para el gestor principal
         ]);
 
         // Limpiar sesión
@@ -205,35 +226,41 @@ class EntityController extends Controller
     }
 
     /**
-     * Invitar gestor existente y crear entidad
+     * Invitar gestor existente a una entidad
      */
     public function invite_manager(Request $request)
     {
         $request->validate([
+            'entity_id' => 'required|integer|exists:entities,id',
             'user_id' => 'required|integer|exists:users,id',
-            'invite_email' => 'required|email'
+            'permission_sellers' => 'nullable|boolean',
+            'permission_design' => 'nullable|boolean',
+            'permission_statistics' => 'nullable|boolean',
+            'permission_payments' => 'nullable|boolean',
         ]);
 
-        // Obtener datos de sesión
-        $administration = $request->session()->get('selected_administration');
-        $entityInformation = $request->session()->get('entity_information');
+        $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
 
-        if (!$administration || !auth()->user()->canAccessAdministration($administration->id) || !$entityInformation) {
-            return redirect()->route('entities.create')
-                ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
+        // Verificar si ya existe un manager con este usuario para esta entidad
+        $existingManager = Manager::where('user_id', $request->user_id)
+            ->where('entity_id', $entity->id)
+            ->first();
+
+        if ($existingManager) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'Este usuario ya es gestor de esta entidad.');
         }
 
-        // Crear entidad
-        $entityData = array_merge($entityInformation, [
-            'administration_id' => $administration->id,
-        ]);
-
-        $entity = Entity::create($entityData);
-
-        // Crear la relación manager-entity
+        // Crear la relación manager-entity (gestor secundario)
         Manager::create([
             'user_id' => $request->user_id,
-            'entity_id' => $entity->id
+            'entity_id' => $entity->id,
+            'is_primary' => false,
+            'permission_sellers' => $request->has('permission_sellers') ? true : false,
+            'permission_design' => $request->has('permission_design') ? true : false,
+            'permission_statistics' => $request->has('permission_statistics') ? true : false,
+            'permission_payments' => $request->has('permission_payments') ? true : false,
+            'status' => null, // Pendiente por defecto
         ]);
 
         $user = User::find($request->user_id);
@@ -241,11 +268,77 @@ class EntityController extends Controller
             $user->update(['role' => User::ROLE_ENTITY]);
         }
 
-        // Limpiar sesión
-        $request->session()->forget(['selected_administration', 'entity_information']);
+        return redirect()->route('entities.show', $entity->id)
+            ->with('success', 'Gestor invitado exitosamente.');
+    }
 
-        return redirect()->route('entities.index')
-            ->with('success', 'Entidad creada exitosamente con gestor invitado.');
+    /**
+     * Registrar nuevo gestor para una entidad
+     */
+    public function register_manager(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'manager_name' => 'required|string|max:255',
+            'manager_last_name' => 'required|string|max:255',
+            'manager_last_name2' => 'nullable|string|max:255',
+            'manager_nif_cif' => 'nullable|string|max:20',
+            'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
+            'manager_email' => 'required|email|max:255',
+            'manager_phone' => 'nullable|string|max:20',
+            'permission_sellers' => 'nullable|boolean',
+            'permission_design' => 'nullable|boolean',
+            'permission_statistics' => 'nullable|boolean',
+            'permission_payments' => 'nullable|boolean',
+        ]);
+
+        $entity = Entity::forUser(auth()->user())->findOrFail($id);
+
+        // Crear o encontrar usuario
+        $user = User::where('email', $validated['manager_email'])->first();
+        if (!$user) {
+            $user = new User;
+            $user->name = $validated['manager_name'] . ' ' . $validated['manager_last_name'];
+            $user->email = $validated['manager_email'];
+            $user->password = bcrypt(12345678);
+            $user->role = User::ROLE_ENTITY;
+            $user->save();
+        }
+
+        // Actualizar datos del usuario
+        $user->update([
+            'name' => $validated['manager_name'],
+            'last_name' => $validated['manager_last_name'],
+            'last_name2' => $validated['manager_last_name2'] ?? null,
+            'nif_cif' => $validated['manager_nif_cif'] ?? null,
+            'birthday' => $validated['manager_birthday'] ?? null,
+            'phone' => $validated['manager_phone'] ?? null,
+            'role' => User::ROLE_ENTITY,
+        ]);
+
+        // Verificar si ya existe un manager con este usuario para esta entidad
+        $existingManager = Manager::where('user_id', $user->id)
+            ->where('entity_id', $entity->id)
+            ->first();
+
+        if ($existingManager) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'Este usuario ya es gestor de esta entidad.');
+        }
+
+        // Crear la relación manager-entity (gestor secundario)
+        Manager::create([
+            'user_id' => $user->id,
+            'entity_id' => $entity->id,
+            'is_primary' => false,
+            'permission_sellers' => $request->has('permission_sellers') ? true : false,
+            'permission_design' => $request->has('permission_design') ? true : false,
+            'permission_statistics' => $request->has('permission_statistics') ? true : false,
+            'permission_payments' => $request->has('permission_payments') ? true : false,
+            'status' => null, // Pendiente por defecto
+        ]);
+
+        return redirect()->route('entities.show', $entity->id)
+            ->with('success', 'Gestor registrado exitosamente.');
     }
 
     /**
@@ -337,7 +430,7 @@ class EntityController extends Controller
      */
     public function show($id)
     {
-        $entity = Entity::with(['administration', 'manager'])
+        $entity = Entity::with(['administration', 'manager', 'managers.user'])
             ->forUser(auth()->user())
             ->findOrFail($id);
         return view('entities.show', compact('entity'));
@@ -372,12 +465,12 @@ class EntityController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'comments' => 'nullable|string|max:1000',
-            'status' => 'nullable|in:0,1',
+            'status' => 'nullable|in:-1,0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
-        // Convertir status a boolean
-        $validated['status'] = $validated['status'] == '1' ? true : false;
+        // Convertir status: -1 = null (pendiente), 1 = activo, 0 = inactivo
+        $validated['status'] = $validated['status'] === '-1' ? null : ($validated['status'] ?? null);
 
         // Manejo de imagen
         if ($request->hasFile('image')) {
@@ -443,7 +536,7 @@ class EntityController extends Controller
             'manager_last_name' => 'required|string|max:255',
             'manager_last_name2' => 'nullable|string|max:255',
             'manager_nif_cif' => 'nullable|string|max:20',
-            'manager_birthday' => 'nullable|date',
+            'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'manager_email' => 'required|email|max:255',
             'manager_phone' => 'nullable|string|max:20',
             'manager_comment' => 'nullable|string|max:1000',
@@ -491,11 +584,65 @@ class EntityController extends Controller
         } else {
             Manager::create([
                 'user_id' => $user->id,
-                'entity_id' => $entity->id
+                'entity_id' => $entity->id,
+                'is_primary' => true,
+                'permission_sellers' => true,
+                'permission_design' => true,
+                'permission_statistics' => true,
+                'permission_payments' => true,
+                'status' => 1, // Activo por defecto para el gestor principal
             ]);
         }
 
         return redirect()->route('entities.show', $entity->id)
             ->with('success', 'Gestor actualizado correctamente.');
+    }
+
+    /**
+     * Show the form for editing manager permissions.
+     */
+    public function edit_manager_permissions($entity_id, $manager_id)
+    {
+        $entity = Entity::with('managers.user')
+            ->forUser(auth()->user())
+            ->findOrFail($entity_id);
+        
+        $manager = Manager::with('user')
+            ->where('id', $manager_id)
+            ->where('entity_id', $entity_id)
+            ->where('is_primary', false)
+            ->firstOrFail();
+
+        return view('entities.edit_manager_permissions', compact('entity', 'manager'));
+    }
+
+    /**
+     * Update manager permissions.
+     */
+    public function update_manager_permissions(Request $request, $entity_id, $manager_id)
+    {
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
+        
+        $manager = Manager::where('id', $manager_id)
+            ->where('entity_id', $entity_id)
+            ->where('is_primary', false)
+            ->firstOrFail();
+
+        $request->validate([
+            'permission_sellers' => 'nullable|boolean',
+            'permission_design' => 'nullable|boolean',
+            'permission_statistics' => 'nullable|boolean',
+            'permission_payments' => 'nullable|boolean',
+        ]);
+
+        $manager->update([
+            'permission_sellers' => $request->has('permission_sellers') ? true : false,
+            'permission_design' => $request->has('permission_design') ? true : false,
+            'permission_statistics' => $request->has('permission_statistics') ? true : false,
+            'permission_payments' => $request->has('permission_payments') ? true : false,
+        ]);
+
+        return redirect()->route('entities.show', $entity->id)
+            ->with('success', 'Permisos del gestor actualizados correctamente.');
     }
 } 

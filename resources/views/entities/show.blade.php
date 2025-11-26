@@ -110,8 +110,21 @@
 
                     			<div class="form-group mt-2">
 	                    			<label class="">Estado Actual</label> 
-	                    			<label class="badge badge-lg {{ $entity->status ? 'bg-success' : 'bg-danger' }} float-end">
-	                    				{{ $entity->status ? 'Activo' : 'Inactivo' }}
+	                    			@php
+	                    				$statusValue = $entity->status;
+	                    				if ($statusValue === null || $statusValue === -1) {
+	                    					$statusText = 'Pendiente';
+	                    					$statusClass = 'bg-secondary';
+	                    				} elseif ($statusValue == 1) {
+	                    					$statusText = 'Activo';
+	                    					$statusClass = 'bg-success';
+	                    				} else {
+	                    					$statusText = 'Inactivo';
+	                    					$statusClass = 'bg-danger';
+	                    				}
+	                    			@endphp
+	                    			<label class="badge badge-lg {{ $statusClass }} float-end">
+	                    				{{ $statusText }}
 	                    			</label>
 	                    			<div style="clear: both;"></div>
                     			</div>
@@ -582,26 +595,64 @@
 							                    
 							                    
 							                        <tbody>
+							                            @forelse($entity->managers as $manager)
 							                            <tr>
-							                                <td>#GE9801</td>
-							                                <td>Alberto García Montes</td>
-							                                <td>Administrador</td>
-							                                <td>Total</td>
-							                                <td><label class="badge bg-success">Activo</label></td>
+							                                <td>#GE{{ str_pad($manager->id, 4, '0', STR_PAD_LEFT) }}</td>
+							                                <td>{{ $manager->user->name ?? '' }} {{ $manager->user->last_name ?? '' }}</td>
 							                                <td>
-							                                	<a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+							                                	@if($manager->is_primary)
+							                                		Administrador
+							                                	@else
+							                                		Gestor
+							                                	@endif
+							                                </td>
+							                                <td>
+							                                	@if($manager->is_primary)
+							                                		Total
+							                                	@else
+							                                		@php
+							                                			$allPermissions = $manager->permission_sellers && 
+							                                								$manager->permission_design && 
+							                                								$manager->permission_statistics && 
+							                                								$manager->permission_payments;
+							                                		@endphp
+							                                		@if($allPermissions)
+							                                			Total
+							                                		@else
+							                                			Parcial
+							                                		@endif
+							                                	@endif
+							                                </td>
+							                                <td>
+							                                	@php
+							                                		$status = $manager->status;
+							                                		if ($status === null || $status == -1) {
+							                                			$statusText = 'Pendiente';
+							                                			$statusClass = 'bg-secondary';
+							                                		} elseif ($status == 1) {
+							                                			$statusText = 'Activo';
+							                                			$statusClass = 'bg-success';
+							                                		} else {
+							                                			$statusText = 'Inactivo';
+							                                			$statusClass = 'bg-danger';
+							                                		}
+							                                	@endphp
+							                                	<label class="badge {{ $statusClass }}">{{ $statusText }}</label>
+							                                </td>
+							                                <td>
+							                                	@if(!$manager->is_primary)
+							                                		<a href="{{ route('entities.edit-manager-permissions', ['entity_id' => $entity->id, 'manager_id' => $manager->id]) }}" class="btn btn-sm btn-warning" title="Editar permisos"><i class="ri-settings-3-line"></i></a>
+							                                		<a href="#" class="btn btn-sm btn-danger delete-manager" data-manager-id="{{ $manager->id }}" title="Eliminar"><i class="ri-delete-bin-6-line"></i></a>
+							                                	@else
+							                                		<span class="text-muted">-</span>
+							                                	@endif
 							                                </td>
 							                            </tr>
+							                            @empty
 							                            <tr>
-							                                <td>#GE9802</td>
-							                                <td>María Molina Jimenez</td>
-							                                <td>Gestor</td>
-							                                <td>Total</td>
-							                                <td><label class="badge bg-danger">Bloqueado</label></td>
-							                                <td>
-							                                	<a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
-							                                </td>
+							                                <td colspan="6" class="text-center">No hay gestores asignados</td>
 							                            </tr>
+							                            @endforelse
 							                        </tbody>
 						                        </table>
 						                    </div>
@@ -678,8 +729,10 @@
 
 			                    							</div>
 
-			                    							<div class="d-none" id="invite-form">
-
+			                    							<form action="{{ route('entities.invite-manager') }}" method="POST" id="invite-form" class="d-none">
+			                    								@csrf
+			                    								<input type="hidden" name="entity_id" value="{{ $entity->id }}">
+			                    								<input type="hidden" name="user_id" id="invite-user-id">
 			                    								<div class="row">
 			                    									
 			                    									<div class="col-7">
@@ -695,8 +748,8 @@
 												                    			<div style="width: 50%; margin: auto;" class="text-start">
 
 												                    			<div class="form-check form-switch mt-2 mb-2">
-																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="all" checked>
-																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="all"><b>
+																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="invite-all" checked>
+																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="invite-all"><b>
 																						Todos los permisos
 																					</b></label>
 																				</div>
@@ -708,29 +761,29 @@
 																				<div style="width: 50%; margin: auto;" class="text-start">
 
 																				<div class="form-check form-switch mt-2 mb-2">
-																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="sellers" checked>
-																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="sellers"><b>
+																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_sellers" id="invite-sellers" value="1" checked>
+																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="invite-sellers"><b>
 																						Administrar Vendedores
 																					</b></label>
 																				</div>
 
 																				<div class="form-check form-switch mt-2 mb-2">
-																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="design" checked>
-																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="design"><b>
+																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_design" id="invite-design" value="1" checked>
+																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="invite-design"><b>
 																						Diseñar Participaciones
 																					</b></label>
 																				</div>
 
 																				<div class="form-check form-switch mt-2 mb-2">
-																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="total" checked>
-																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="total"><b>
+																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_statistics" id="invite-total" value="1" checked>
+																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="invite-total"><b>
 																						Estadísticas Totales
 																					</b></label>
 																				</div>
 
 																				<div class="form-check form-switch mt-2 mb-2">
-																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="pay" checked>
-																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="pay"><b>
+																					<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_payments" id="invite-pay" value="1" checked>
+																					<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="invite-pay"><b>
 																						Pagar Participaciones
 																					</b></label>
 																				</div>
@@ -755,16 +808,17 @@
 												                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 												                                    </div>
 
-												                                    <input class="form-control invite-email" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+												                                    <input class="form-control invite-email" type="email" name="invite_email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 												                                </div>
 
-												                                <button disabled style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3" id="invite-button">Invitar</button>
+												                                <button type="submit" disabled style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3" id="invite-button">Invitar</button>
 					                    										
 					                    									</div>
 
 					                    								</div>
 			                    									</div>
 			                    								</div>
+			                    							</form>
 
 
 
@@ -814,6 +868,8 @@
 
                     					<div id="register-manager-form" class="d-none">
 
+                    						<form action="{{ route('entities.register-manager', $entity->id) }}" method="POST" enctype="multipart/form-data">
+                    							@csrf
                     						<div class="form-card bs" style="min-height: 658px;">
 
                     							<h4 class="mb-0 mt-1">
@@ -875,7 +931,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="text" name="manager_name" placeholder="Nombre" required style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -889,7 +945,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="text" name="manager_last_name" placeholder="Primer Apellido" required style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -904,7 +960,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="text" name="manager_last_name2" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -919,7 +975,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="text" name="manager_nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -934,7 +990,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="date" name="manager_birthday" placeholder="01/01/1990" required style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -949,7 +1005,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="email" name="manager_email" placeholder="ejemplo@cuentaemail.com" required style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -964,7 +1020,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="text" name="manager_phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -1004,15 +1060,15 @@
 																	<div class="text-start col-6">
 
 																		<div class="form-check form-switch mt-2 mb-2">
-																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="sellers" checked>
-																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="sellers"><b>
+																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_sellers" id="register-sellers" value="1" checked>
+																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="register-sellers"><b>
 																				Administrar Vendedores
 																			</b></label>
 																		</div>
 
 																		<div class="form-check form-switch mt-2 mb-2">
-																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="design" checked>
-																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="design"><b>
+																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_design" id="register-design" value="1" checked>
+																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="register-design"><b>
 																				Diseñar Participaciones
 																			</b></label>
 																		</div>
@@ -1022,15 +1078,15 @@
 																	<div class="text-start col-6">
 
 																		<div class="form-check form-switch mt-2 mb-2">
-																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="total" checked>
-																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="total"><b>
+																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_statistics" id="register-total" value="1" checked>
+																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="register-total"><b>
 																				Estadísticas Totales
 																			</b></label>
 																		</div>
 
 																		<div class="form-check form-switch mt-2 mb-2">
-																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="pay" checked>
-																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="pay"><b>
+																			<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" name="permission_payments" id="register-pay" value="1" checked>
+																			<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="register-pay"><b>
 																				Pagar Participaciones
 																			</b></label>
 																		</div>
@@ -1043,7 +1099,7 @@
 			    									</div>
 
 				                    				<div class="col-4 text-end">
-				                    					<button style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2 save-manager">Guardar
+				                    					<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
 				                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
 				                    				</div>
 
@@ -1053,6 +1109,8 @@
 		                    				
 		                    			</div>
 					                </div>
+					                </form>
+					                </form>
 			                    </div>
 			                </div>
                     	</div>
@@ -1099,27 +1157,27 @@ $('#invite-manager').click(function (e) {
 });
 
 $('.invite-email').keyup(function(event) {
-	
-	if ($(this).val()) {
-		$('#invite-button').prop('disabled',false);
-	}else{
-		$('#invite-button').prop('disabled',true);
-	}
-});
-
-$('#invite-button').click(function (e) {
-	e.preventDefault();
-
-	$('#invite-form').addClass('d-none');
-
-	$('#accept-invite').removeClass('d-none');
-
-	if ($('.invite-email').val() == 'admin@partilot.com') {
-		$('#coincidence').removeClass('d-none');
-		$('#no-coincidence').addClass('d-none');
-	}else{
-		$('#coincidence').addClass('d-none');
-		$('#no-coincidence').removeClass('d-none');
+	var email = $(this).val();
+	if (email) {
+		$('#invite-button').prop('disabled', false);
+		// Verificar si el email existe
+		$.ajax({
+			url: '{{ route("entities.check-manager-email") }}',
+			method: 'POST',
+			data: {
+				_token: '{{ csrf_token() }}',
+				email: email
+			},
+			success: function(response) {
+				if (response.exists) {
+					$('#invite-user-id').val(response.user_id);
+				} else {
+					$('#invite-user-id').val('');
+				}
+			}
+		});
+	} else {
+		$('#invite-button').prop('disabled', true);
 	}
 });
 
