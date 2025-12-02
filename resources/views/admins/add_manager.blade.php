@@ -104,10 +104,8 @@
                     				<div class="row">
                     					<div class="col-1">
                     						
-		                    				<div class="photo-preview-2">
-		                    					@if(session('administration.image'))
-		                    						<img src="{{ url('images/' . session('administration.image')) }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
-		                    					@else
+		                    				<div class="photo-preview-2" @if(session('administration.image')) style="background-image: url('{{ url('images/' . session('administration.image')) }}'); background-size: cover; background-position: center;" @endif>
+		                    					@if(!session('administration.image'))
 		                    						<i class="ri-account-circle-fill"></i>
 		                    					@endif
 		                    				</div>
