@@ -61,7 +61,7 @@
                         
                             <tbody>
                                 @foreach($entities as $entity)
-                                <tr>
+                                <tr class="row-clickable" data-href="{{url('entities/view', $entity->id)}}" style="cursor: pointer;">
                                     <td><a href="{{url('entities/view', $entity->id)}}">#EN{{str_pad($entity->id, 4, '0', STR_PAD_LEFT)}}</a></td>
                                     <td>{{$entity->name ?? 'Sin nombre'}}</td>
                                     <td>{{$entity->province ?? 'Sin provincia'}}</td>
@@ -86,7 +86,7 @@
                                         @endphp
                                         <label class="badge {{ $statusClass }}">{{ $statusText }}</label>
                                     </td>
-                                    <td>
+                                    <td class="no-click" style="cursor: default;">
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons_/persons.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons_/design.svg')}}" alt="" width="12"></a>
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
@@ -224,8 +224,35 @@
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
+  // Hacer las filas clickeables (excepto la última columna de acciones)
+  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+    // No activar si se hace clic en la última columna o en sus elementos
+    if ($(e.target).closest('td.no-click').length || $(e.target).closest('td.no-click').length) {
+      return;
+    }
+    
+    // No activar si se hace clic directamente en un enlace o botón
+    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) {
+      return;
+    }
+    
+    // Redirigir a la URL de la fila
+    var href = $(this).data('href');
+    if (href) {
+      window.location.href = href;
+    }
+  });
+  
+  // Agregar efecto hover visual
+  $(document).on('mouseenter', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '#f8f9fa');
+  }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '');
+  });
+
   // Eliminar entidad
-  $('.delete-btn').on('click', function() {
+  $('.delete-btn').on('click', function(e) {
+    e.stopPropagation(); // Evitar que se active el clic de la fila
     const id = $(this).data('id');
     const name = $(this).data('name');
     

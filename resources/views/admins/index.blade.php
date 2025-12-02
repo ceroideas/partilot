@@ -65,7 +65,7 @@
 	                    
 	                        <tbody>
                                 @foreach ($administrations as $admins)
-	                            <tr>
+	                            <tr class="row-clickable" data-href="{{url('administrations/view',$admins->id)}}" style="cursor: pointer;">
 	                                <td><a href="{{url('administrations/view',$admins->id)}}">#AD{{ str_pad($admins->id, 5,0, STR_PAD_LEFT) }}</a></td>
 	                                <td>{{$admins->name}}</td>
 	                                <td>{{$admins->receiving}}</td>
@@ -90,7 +90,7 @@
                                         @endphp
                                         <label class="badge {{ $statusClass }}">{{ $statusText }}</label>
                                     </td>
-	                                <td>
+	                                <td class="no-click" style="cursor: default;">
 	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/entidades.svg')}}" alt="" width="12"></a>
 	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/sorteos.svg')}}" alt="" width="12"></a>
 	                                	<a class="btn btn-sm btn-light"><img src="{{url('icons_/reservas.svg')}}" alt="" width="12"></a>
@@ -233,6 +233,32 @@
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+  
+  // Hacer las filas clickeables (excepto la última columna de acciones)
+  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+    // No activar si se hace clic en la última columna o en sus elementos
+    if ($(e.target).closest('td.no-click').length || $(e.target).closest('td.no-click').length) {
+      return;
+    }
+    
+    // No activar si se hace clic directamente en un enlace o botón
+    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) {
+      return;
+    }
+    
+    // Redirigir a la URL de la fila
+    var href = $(this).data('href');
+    if (href) {
+      window.location.href = href;
+    }
+  });
+  
+  // Agregar efecto hover visual
+  $(document).on('mouseenter', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '#f8f9fa');
+  }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '');
+  });
 
 </script>
 

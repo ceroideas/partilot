@@ -136,7 +136,7 @@
                                             </thead>
                                             <tbody>
                                                 @foreach($entities as $entity)
-                                                <tr>
+                                                <tr class="selectable-row" style="cursor: pointer;">
                                                     <td>#EN{{str_pad($entity->id, 4, '0', STR_PAD_LEFT)}}</td>
                                                     <td>{{$entity->name}}</td>
                                                     <td>{{$entity->province ?? 'Sin provincia'}}</td>
@@ -201,11 +201,42 @@ function initDatatable()
   $(document).ready(function() {
     initDatatable();
 
+    // Hacer las filas clickeables para seleccionar el checkbox
+    $(document).on('click', '#example2 tbody tr.selectable-row', function(e) {
+      // No activar si se hace clic directamente en el checkbox o su label
+      if ($(e.target).is('input[type="checkbox"]') || $(e.target).is('label') || $(e.target).closest('label').length) {
+        return;
+      }
+      
+      // Toggle del checkbox de la fila
+      var checkbox = $(this).find('input[type="checkbox"]');
+      checkbox.prop('checked', !checkbox.is(':checked')).trigger('change');
+    });
+    
+    // Agregar efecto hover visual
+    $(document).on('mouseenter', '#example2 tbody tr.selectable-row', function() {
+      $(this).css('background-color', '#f8f9fa');
+    }).on('mouseleave', '#example2 tbody tr.selectable-row', function() {
+      if (!$(this).find('input[type="checkbox"]').is(':checked')) {
+        $(this).css('background-color', '');
+      }
+    });
+    
+    // Mantener el color cuando está seleccionado
+    $(document).on('change', '#example2 tbody tr.selectable-row input[type="checkbox"]', function() {
+      if ($(this).is(':checked')) {
+        $(this).closest('tr').css('background-color', '#e3f2fd');
+      } else {
+        $(this).closest('tr').css('background-color', '');
+      }
+    });
+
     // Manejar el switch de "Seleccionar todas"
     $('#selectAllSwitch').change(function() {
         if ($(this).is(':checked')) {
             // Deshabilitar todos los checkboxes individuales
             $('.entity-checkbox').prop('disabled', true).prop('checked', false);
+            $('#example2 tbody tr.selectable-row').css('background-color', '');
         } else {
             // Habilitar todos los checkboxes individuales
             $('.entity-checkbox').prop('disabled', false);

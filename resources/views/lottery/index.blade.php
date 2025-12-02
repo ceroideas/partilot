@@ -60,7 +60,7 @@
                         
                             <tbody>
                                 @foreach($lotteries as $lottery)
-                                <tr>
+                                <tr class="row-clickable" data-href="{{url('lottery/view', $lottery->id)}}" style="cursor: pointer;">
                                     <td><a href="{{url('lottery/view', $lottery->id)}}">#SR{{str_pad($lottery->id, 4, '0', STR_PAD_LEFT)}}</a></td>
                                     <td>{{$lottery->name}}</td>
                                     <td>{{$lottery->description}}</td>
@@ -69,7 +69,7 @@
                                     <td>{{$lottery->deadline_date ? \Carbon\Carbon::parse($lottery->deadline_date)->format('d/m/Y') : 'No definida'}}</td>
                                     <td>{{$lottery->draw_time ? \Carbon\Carbon::parse($lottery->draw_time)->format('H:i') : 'No definida'}}</td>
                                     <td><b>{{number_format($lottery->ticket_price, 2)}}€</b></td>
-                                    <td class="text-end">
+                                    <td class="text-end no-click" style="cursor: default;">
                                         <a href="{{route('lotteries.show', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                         <a href="{{route('lottery.show-results', $lottery->id)}}" class="btn btn-sm btn-light" title="Ver Resultados"><img src="{{url('assets/form-groups/results.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('lottery/edit', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
@@ -259,8 +259,35 @@
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
+  // Hacer las filas clickeables (excepto la última columna de acciones)
+  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+    // No activar si se hace clic en la última columna o en sus elementos
+    if ($(e.target).closest('td.no-click').length || $(e.target).closest('td.no-click').length) {
+      return;
+    }
+    
+    // No activar si se hace clic directamente en un enlace o botón
+    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) {
+      return;
+    }
+    
+    // Redirigir a la URL de la fila
+    var href = $(this).data('href');
+    if (href) {
+      window.location.href = href;
+    }
+  });
+  
+  // Agregar efecto hover visual
+  $(document).on('mouseenter', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '#f8f9fa');
+  }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '');
+  });
+
   // Eliminar sorteo
-  $('.delete-btn').on('click', function() {
+  $('.delete-btn').on('click', function(e) {
+    e.stopPropagation(); // Evitar que se active el clic de la fila
     const id = $(this).data('id');
     const name = $(this).data('name');
     

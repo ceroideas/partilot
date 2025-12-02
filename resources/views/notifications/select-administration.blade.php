@@ -124,7 +124,7 @@
                                             </thead>
                                             <tbody>
                                                 @foreach($administrations as $administration)
-                                                <tr>
+                                                <tr class="selectable-row" style="cursor: pointer;">
                                                     <td>#AD{{str_pad($administration->id, 4, '0', STR_PAD_LEFT)}}</td>
                                                     <td>{{$administration->name}}</td>
                                                     <td>{{$administration->province ?? 'Sin provincia'}}</td>
@@ -188,6 +188,34 @@ function initDatatable()
 
   $(document).ready(function() {
     initDatatable();
+    
+    // Hacer las filas clickeables para seleccionar el radio button
+    $(document).on('click', '#example2 tbody tr.selectable-row', function(e) {
+      // No activar si se hace clic directamente en el radio button o su label
+      if ($(e.target).is('input[type="radio"]') || $(e.target).is('label') || $(e.target).closest('label').length) {
+        return;
+      }
+      
+      // Seleccionar el radio button de la fila
+      $(this).find('input[type="radio"]').prop('checked', true).trigger('change');
+    });
+    
+    // Agregar efecto hover visual
+    $(document).on('mouseenter', '#example2 tbody tr.selectable-row', function() {
+      $(this).css('background-color', '#f8f9fa');
+    }).on('mouseleave', '#example2 tbody tr.selectable-row', function() {
+      if (!$(this).find('input[type="radio"]').is(':checked')) {
+        $(this).css('background-color', '');
+      }
+    });
+    
+    // Mantener el color cuando está seleccionado
+    $(document).on('change', '#example2 tbody tr.selectable-row input[type="radio"]', function() {
+      $('#example2 tbody tr.selectable-row').css('background-color', '');
+      if ($(this).is(':checked')) {
+        $(this).closest('tr').css('background-color', '#e3f2fd');
+      }
+    });
 });
 
 </script>

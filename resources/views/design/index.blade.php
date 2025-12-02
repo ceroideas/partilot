@@ -63,7 +63,7 @@
                         
                             <tbody>
                             @foreach($designs as $design)
-                            <tr>
+                            <tr class="row-clickable" data-href="{{ url('design/view', $design->id) }}" style="cursor: pointer;">
                                 <td><a href="{{ url('design/view', $design->id) }}">#DS{{ str_pad($design->id,5,'0',STR_PAD_LEFT) }}</a></td>
                                 <td>{{ $design->set ? $design->set->id : '-' }}</td>
                                 <td>{{ $design->set ? $design->set->set_name : '-' }}</td>
@@ -80,7 +80,7 @@
                                 <td>{{ $design->entity ? $design->entity->province : '-' }}</td>
                                 <td>{{ $design->entity ? $design->entity->city : '-' }}</td>
                                 <td><label class="badge bg-success">Pendiente</label></td>
-                                <td>
+                                <td class="no-click" style="cursor: default;">
                                     <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                     <a target="_blank" href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
                                     {{-- <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a> --}}
@@ -222,6 +222,32 @@
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+  
+  // Hacer las filas clickeables (excepto la última columna de acciones)
+  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+    // No activar si se hace clic en la última columna o en sus elementos
+    if ($(e.target).closest('td.no-click').length || $(e.target).closest('td.no-click').length) {
+      return;
+    }
+    
+    // No activar si se hace clic directamente en un enlace o botón
+    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) {
+      return;
+    }
+    
+    // Redirigir a la URL de la fila
+    var href = $(this).data('href');
+    if (href) {
+      window.location.href = href;
+    }
+  });
+  
+  // Agregar efecto hover visual
+  $(document).on('mouseenter', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '#f8f9fa');
+  }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '');
+  });
 
 </script>
 

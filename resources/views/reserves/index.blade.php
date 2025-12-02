@@ -62,7 +62,7 @@
                         
                             <tbody>
                                 @foreach($reserves as $reserve)
-                                <tr>
+                                <tr class="row-clickable" data-href="{{url('reserves/view', $reserve->id)}}" style="cursor: pointer;">
                                     <td><a href="{{url('reserves/view', $reserve->id)}}">#RS{{str_pad($reserve->id, 4, '0', STR_PAD_LEFT)}}</a></td>
                                     <td>{{$reserve->entity->name ?? 'Sin entidad'}}</td>
                                     <td>{{$reserve->entity->province ?? 'Sin provincia'}}</td>
@@ -81,7 +81,7 @@
                                     <td><b>{{number_format($reserve->total_amount, 2)}}€</b></td>
                                     <td>{{$reserve->reservation_tickets ?? 0}}</td>
                                     <td>{{number_format($reserve->reservation_amount ?? 0, 2)}}€</td>
-                                    <td>
+                                    <td class="no-click" style="cursor: default;">
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('reserves/edit', $reserve->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$reserve->id}}" data-name="reserva #{{$reserve->id}}"><i class="ri-delete-bin-6-line"></i></button>
@@ -220,8 +220,35 @@
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
+  // Hacer las filas clickeables (excepto la última columna de acciones)
+  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+    // No activar si se hace clic en la última columna o en sus elementos
+    if ($(e.target).closest('td.no-click').length || $(e.target).closest('td.no-click').length) {
+      return;
+    }
+    
+    // No activar si se hace clic directamente en un enlace o botón
+    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) {
+      return;
+    }
+    
+    // Redirigir a la URL de la fila
+    var href = $(this).data('href');
+    if (href) {
+      window.location.href = href;
+    }
+  });
+  
+  // Agregar efecto hover visual
+  $(document).on('mouseenter', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '#f8f9fa');
+  }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '');
+  });
+
   // Eliminar reserva
-  $('.delete-btn').on('click', function() {
+  $('.delete-btn').on('click', function(e) {
+    e.stopPropagation(); // Evitar que se active el clic de la fila
     const id = $(this).data('id');
     const name = $(this).data('name');
     

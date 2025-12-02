@@ -62,7 +62,7 @@
                         
                             <tbody>
                                 @foreach($sets as $set)
-                                <tr>
+                                <tr class="row-clickable" data-href="{{url('sets/view', $set->id)}}" style="cursor: pointer;">
                                     <td><a href="{{url('sets/view', $set->id)}}">#SP{{str_pad($set->id, 4, '0', STR_PAD_LEFT)}}</a></td>
                                     <td>{{$set->set_name}}</td>
                                     <td>{{$set->reserve->lottery ? $set->reserve->lottery->name : 'Sin sorteo'}}</td>
@@ -81,7 +81,7 @@
                                     <td>{{$set->total_participations}}</td>
                                     <td>{{$set->entity->name ?? 'Sin entidad'}}</td>
                                     <td>{{$set->entity->province ?? 'Sin provincia'}}</td>
-                                    <td>
+                                    <td class="no-click" style="cursor: default;">
                                         <a href="{{url('sets/download-xml', $set->id)}}" class="btn btn-sm btn-light" title="Descargar XML"><img src="{{url('icons_/diseno.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('sets/edit', $set->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="{{$set->id}}" data-name="set #{{$set->id}}"><i class="ri-delete-bin-6-line"></i></button>
@@ -219,6 +219,37 @@
   setTimeout(()=>{
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
+  
+  // Hacer las filas clickeables (excepto la última columna de acciones)
+  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+    // No activar si se hace clic en la última columna o en sus elementos
+    if ($(e.target).closest('td.no-click').length || $(e.target).closest('td.no-click').length) {
+      return;
+    }
+    
+    // No activar si se hace clic directamente en un enlace o botón
+    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) {
+      return;
+    }
+    
+    // Redirigir a la URL de la fila
+    var href = $(this).data('href');
+    if (href) {
+      window.location.href = href;
+    }
+  });
+  
+  // Agregar efecto hover visual
+  $(document).on('mouseenter', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '#f8f9fa');
+  }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {
+    $(this).css('background-color', '');
+  });
+  
+  // Evitar que los botones de acción activen el clic de la fila
+  $('.delete-btn').on('click', function(e) {
+    e.stopPropagation();
+  });
 
 </script>
 
