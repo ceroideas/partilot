@@ -31,11 +31,14 @@ class AdministratorController extends Controller
     {
         $administration = Administration::forUser(auth()->user())->findOrFail($id);
         
+        // Limpiar espacios del número de cuenta si existe
+        $accountValue = ($request->account && trim($request->account) !== '') ? str_replace(' ', '', trim($request->account)) : null;
+        
         // Validar formato básico primero
         $request->validate([
             'web' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
-            'receiving' => 'required|string|max:255',
+            'receiving' => ['required', 'string', 'regex:/^[0-9]{5}$/'],
             'society' => 'required|string|max:255',
             'nif_cif' => ['required', 'string', 'max:255', new \App\Rules\SpanishDocument],
             'province' => 'required|string|max:255',
@@ -44,18 +47,20 @@ class AdministratorController extends Controller
             'address' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|max:255',
-            'account' => ['required', 'string', 'max:22', 'regex:/^[0-9]{22}$/'],
+            'account' => ['nullable', 'string', 'max:21', 'regex:/^[0-9]{0,21}$/'],
             'status' => 'nullable|in:-1,0,1',
         ]);
 
-        // Validar IBAN completo
-        $iban = 'ES' . $request->account;
-        $validator = \Validator::make(['iban' => $iban], [
-            'iban' => [new \App\Rules\SpanishIban]
-        ]);
-        
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+        // Validar IBAN completo solo si se proporciona cuenta
+        if ($accountValue) {
+            $iban = 'ES' . $accountValue;
+            $validator = \Validator::make(['iban' => $iban], [
+                'iban' => [new \App\Rules\SpanishIban]
+            ]);
+            
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
         }
 
         $data = [
@@ -70,7 +75,7 @@ class AdministratorController extends Controller
             "address" => $request->address,
             "email" => $request->email,
             "phone" => $request->phone,
-            "account" => 'ES' . $request->account,
+            "account" => $accountValue ? ('ES' . $accountValue) : ($administration->account ?? null),
             "status" => $request->status === '-1' ? null : ($request->status ?? null),
         ];
 
@@ -89,6 +94,9 @@ class AdministratorController extends Controller
 
     public function store_information(CreateAdmin $request)
     {
+        // Limpiar espacios del número de cuenta si existe
+        $accountValue = ($request->account && trim($request->account) !== '') ? str_replace(' ', '', trim($request->account)) : null;
+        
         $data = [
             "web" => isset($request->web) ? $request->validated()['web'] : '',
             "name" => $request->validated()['name'],
@@ -101,7 +109,7 @@ class AdministratorController extends Controller
             "address" => $request->validated()['address'],
             "email" => $request->validated()['email'],
             "phone" => $request->validated()['phone'],
-            "account" => 'ES' . $request->account,
+            "account" => $accountValue ? ('ES' . $accountValue) : null,
         ];
         if ($request->file('image')) {
             $file = $request->file('image');

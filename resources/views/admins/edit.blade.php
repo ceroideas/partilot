@@ -239,7 +239,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="{{ old('receiving', $administration->receiving) }}" class="form-control" type="number" name="receiving" placeholder="000000" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input value="{{ old('receiving', $administration->receiving) }}" class="form-control" type="text" name="receiving" placeholder="00000" maxlength="5" pattern="[0-9]{5}" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -399,14 +399,34 @@
 			                    							$accountValue = str_replace(' ', '', $accountValue);
 			                    						}
 			                    					}
+			                    					// Formatear con máscara: 12 1234 1234 12 123456789
+			                    					if ($accountValue) {
+			                    						$numbers = str_replace(' ', '', $accountValue);
+			                    						if (strlen($numbers) >= 2) {
+			                    							$formatted = substr($numbers, 0, 2);
+			                    							if (strlen($numbers) > 2) {
+			                    								$formatted .= ' ' . substr($numbers, 2, 4);
+			                    								if (strlen($numbers) > 6) {
+			                    									$formatted .= ' ' . substr($numbers, 6, 4);
+			                    									if (strlen($numbers) > 10) {
+			                    										$formatted .= ' ' . substr($numbers, 10, 2);
+			                    										if (strlen($numbers) > 12) {
+			                    											$formatted .= ' ' . substr($numbers, 12, 9);
+			                    										}
+			                    									}
+			                    								}
+			                    							}
+			                    							$accountValue = $formatted;
+			                    						}
+			                    					}
 			                    				@endphp
 			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
 			                                        <span style="font-weight: bold;">ES</span>
 			                                    </div>
-			                                    <input class="form-control" type="text" name="account" placeholder="1234567890123456789012" maxlength="22" value="{{ old('account', $accountValue) }}" style="border-radius: 0 30px 30px 0;" required>
+			                                    <input class="form-control" type="text" id="account-input" placeholder="12 1234 1234 12 123456789" value="{{ old('account', $accountValue) }}" style="border-radius: 0 30px 30px 0;">
 			                                </div>
 		                    			</div>
-		                    			<small class="text-muted">Ingrese los 22 dígitos de la cuenta bancaria (sin espacios). El prefijo ES se añadirá automáticamente.</small>
+		                    			<small class="text-muted">Ingrese el número de cuenta bancaria. El prefijo ES se añadirá automáticamente.</small>
 
                     				</div>
 
@@ -458,6 +478,76 @@ document.getElementById('imagenInput').addEventListener('change', function(event
         $('.photo-preview i').show();
     }
 });
+
+// Máscara para Nº Receptor (solo números, máximo 5)
+const receivingInput = document.querySelector('input[name="receiving"]');
+if (receivingInput) {
+	receivingInput.addEventListener('input', function(e) {
+		// Solo permitir números
+		this.value = this.value.replace(/[^0-9]/g, '');
+		// Limitar a 5 dígitos
+		if (this.value.length > 5) {
+			this.value = this.value.slice(0, 5);
+		}
+	});
+}
+
+// Máscara para número de cuenta (formato: ES 12 1234 1234 12 123456789)
+const accountInput = document.getElementById('account-input');
+if (accountInput) {
+	// Función para formatear el número de cuenta
+	function formatAccountNumber(value) {
+		// Remover todos los espacios
+		const numbers = value.replace(/\s/g, '');
+		
+		// Aplicar formato: 12 1234 1234 12 123456789
+		if (numbers.length <= 2) {
+			return numbers;
+		} else if (numbers.length <= 6) {
+			return numbers.slice(0, 2) + ' ' + numbers.slice(2);
+		} else if (numbers.length <= 10) {
+			return numbers.slice(0, 2) + ' ' + numbers.slice(2, 6) + ' ' + numbers.slice(6);
+		} else if (numbers.length <= 12) {
+			return numbers.slice(0, 2) + ' ' + numbers.slice(2, 6) + ' ' + numbers.slice(6, 10) + ' ' + numbers.slice(10);
+		} else {
+			return numbers.slice(0, 2) + ' ' + numbers.slice(2, 6) + ' ' + numbers.slice(6, 10) + ' ' + numbers.slice(10, 12) + ' ' + numbers.slice(12, 21);
+		}
+	}
+
+	// Aplicar máscara mientras el usuario escribe
+	accountInput.addEventListener('input', function(e) {
+		// Obtener la posición del cursor
+		const cursorPosition = this.selectionStart;
+		const oldValue = this.value;
+		
+		// Remover todo excepto números
+		const numbers = this.value.replace(/[^0-9]/g, '');
+		
+		// Limitar a 21 dígitos (2+4+4+2+9)
+		const limitedNumbers = numbers.slice(0, 21);
+		
+		// Aplicar formato
+		const formatted = formatAccountNumber(limitedNumbers);
+		
+		// Actualizar el valor
+		this.value = formatted;
+		
+		// Ajustar posición del cursor
+		const diff = formatted.length - oldValue.length;
+		const newPosition = Math.max(0, cursorPosition + diff);
+		this.setSelectionRange(newPosition, newPosition);
+	});
+
+	// Antes de enviar el formulario, remover espacios y guardar solo números
+	document.querySelector('form').addEventListener('submit', function(e) {
+		// Crear un campo hidden con el valor sin espacios (incluso si está vacío)
+		const hiddenInput = document.createElement('input');
+		hiddenInput.type = 'hidden';
+		hiddenInput.name = 'account';
+		hiddenInput.value = accountInput.value.replace(/\s/g, '');
+		this.appendChild(hiddenInput);
+	});
+}
 
 </script>
 

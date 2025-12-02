@@ -26,7 +26,7 @@ class CreateAdmin extends FormRequest
             "web"=>"nullable|string|max:255",
             // "image"=>"required|string|max:255",
             "name"=>"required|string|max:255",
-            "receiving"=>"required|string|max:255",
+            "receiving"=>["required", "string", "regex:/^[0-9]{5}$/"],
             "society"=>"required|string|max:255",
             "nif_cif"=>"required|string|max:255",
             "province"=>"required|string|max:255",
@@ -35,7 +35,7 @@ class CreateAdmin extends FormRequest
             "address"=>"required|string|max:255",
             "email"=>"required|string|max:255",
             "phone"=>"required|string|max:255",
-            // "account"=>"required|string|max:255",
+            "account"=>"nullable|string|max:21|regex:/^[0-9]{0,21}$/",
         ];
     }
 }

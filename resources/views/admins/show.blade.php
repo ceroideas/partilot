@@ -370,37 +370,52 @@
 			                    				<div class="col-8">
 
 			                    					@php
-			                    						$account = explode(' ', $administration->account);
+			                    						$accountValue = $administration->account ?? '';
+			                    						// Si empieza con ES, quitarlo para mostrar solo los dígitos
+			                    						if (str_starts_with($accountValue, 'ES')) {
+			                    							$accountValue = substr($accountValue, 2);
+			                    						} else {
+			                    							// Si es formato antiguo (con espacios), intentar convertir
+			                    							$accountParts = explode(' ', $accountValue);
+			                    							if (count($accountParts) >= 5) {
+			                    								// Formato antiguo: 4-4-4-2-10
+			                    								$accountValue = str_pad($accountParts[0] ?? '', 4, '0', STR_PAD_LEFT) .
+			                    															str_pad($accountParts[1] ?? '', 4, '0', STR_PAD_LEFT) .
+			                    															str_pad($accountParts[2] ?? '', 4, '0', STR_PAD_LEFT) .
+			                    															str_pad($accountParts[3] ?? '', 2, '0', STR_PAD_LEFT) .
+			                    															str_pad($accountParts[4] ?? '', 10, '0', STR_PAD_LEFT);
+			                    							} else {
+			                    								$accountValue = str_replace(' ', '', $accountValue);
+			                    							}
+			                    						}
+			                    						// Formatear con máscara: 12 1234 1234 12 123456789
+			                    						if ($accountValue) {
+			                    							$numbers = str_replace(' ', '', $accountValue);
+			                    							if (strlen($numbers) >= 2) {
+			                    								$formatted = substr($numbers, 0, 2);
+			                    								if (strlen($numbers) > 2) {
+			                    									$formatted .= ' ' . substr($numbers, 2, 4);
+			                    									if (strlen($numbers) > 6) {
+			                    										$formatted .= ' ' . substr($numbers, 6, 4);
+			                    										if (strlen($numbers) > 10) {
+			                    											$formatted .= ' ' . substr($numbers, 10, 2);
+			                    											if (strlen($numbers) > 12) {
+			                    												$formatted .= ' ' . substr($numbers, 12, 9);
+			                    											}
+			                    										}
+			                    									}
+			                    								}
+			                    								$accountValue = $formatted;
+			                    							}
+			                    						}
 			                    					@endphp
 			                    					
 			                    					<div class="form-group mt-2">
-						                    			<div class="input-group input-group-merge group-account">
-						                                    <input readonly="" class="" type="number" value="{{isset($account[0]) ? $account[0] : ''}}" placeholder="1234" max="9999" min="1000">
-
-						                                    <label>
-						                                    	-
-						                                    </label>
-
-						                                    <input readonly="" class="" type="number" value="{{isset($account[1]) ? $account[1] : ''}}" placeholder="1234" max="9999" min="1000">
-
-						                                    <label>
-						                                    	-
-						                                    </label>
-
-						                                    <input readonly="" class="" type="number" value="{{isset($account[2]) ? $account[2] : ''}}" placeholder="1234" max="9999" min="1000">
-
-						                                    <label>
-						                                    	-
-						                                    </label>
-
-						                                    <input readonly="" class="" type="number" value="{{isset($account[3]) ? $account[3] : ''}}" placeholder="12" max="99" min="10">
-
-						                                    <label>
-						                                    	-
-						                                    </label>
-
-						                                    <input readonly="" class="" type="number" value="{{isset($account[4]) ? $account[4] : ''}}" placeholder="1234567890" max="9999999999" min="1000000000">
-
+						                    			<div class="input-group input-group-merge group-form">
+						                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+						                                        <span style="font-weight: bold;">ES</span>
+						                                    </div>
+						                                    <input readonly="" class="form-control" type="text" value="{{ $accountValue }}" placeholder="12 1234 1234 12 123456789" style="border-radius: 0 30px 30px 0;">
 						                                </div>
 					                    			</div>
 					                    		</div>
