@@ -25,20 +25,21 @@ class ManagerController extends Controller
         // return $request->all();
         $manager = Manager::findOrFail($id);
         
+        // Buscar usuario primero para excluirlo de la validación unique si existe
+        $user = User::where('email', $request->email)->first();
+        $userId = $user ? $user->id : null;
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'last_name2' => 'nullable|string|max:255',
-            'nif_cif' => 'nullable|string|max:20',
+            'nif_cif' => ['nullable', 'string', 'max:20', 'unique:users,nif_cif' . ($userId ? ',' . $userId : '')],
             'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:20',
             'comment' => 'nullable|string|max:1000',
             // 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
-
-        // Actualizar o crear usuario
-        $user = User::where('email', $request->email)->first();
         if (!$user) {
             $user = new User;
             $user->name = $request->name . ' ' . $request->last_name;

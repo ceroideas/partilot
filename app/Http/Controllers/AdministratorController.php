@@ -161,12 +161,16 @@ class AdministratorController extends Controller
             'image' => $request->hasFile('image') ? 'pending' : ''
         ]);
 
+        // Buscar usuario primero para excluirlo de la validación unique si existe
+        $existingUser = User::where('email', $request->email)->first();
+        $userId = $existingUser ? $existingUser->id : null;
+        
         // Validar manualmente para manejar errores
         $validated = $request->validate([
             "name" => "required|string|max:255",
             "last_name" => "required|string|max:255",
             "last_name2" => "nullable|string|max:255",
-            "nif_cif" => ["nullable", "string", "max:255", new \App\Rules\SpanishDocument],
+            "nif_cif" => ["nullable", "string", "max:255", new \App\Rules\SpanishDocument, "unique:users,nif_cif" . ($userId ? ',' . $userId : '')],
             "birthday" => ["required", "date", new \App\Rules\MinimumAge(18)],
             "email" => "required|string|max:255",
             "phone" => "nullable|string|max:255",
@@ -239,6 +243,9 @@ class AdministratorController extends Controller
 
         $administration = $request->session()->get("administration");
         // La relación manager-administration se maneja a través de entities
+        
+        // Establecer status como pendiente por defecto
+        $administration['status'] = null; // null = Pendiente
 
         $newAdministration = Administration::create($administration);
 

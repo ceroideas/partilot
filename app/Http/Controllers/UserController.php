@@ -185,9 +185,19 @@ class UserController extends Controller
                 Storage::disk('public')->delete($user->image);
             }
 
-            // Desvincular vendedores antes de eliminar el usuario
-            Seller::where('user_id', $user->id)->update(['user_id' => 0]);
+            // Eliminar vendedores relacionados
+            $sellers = Seller::where('user_id', $user->id)->get();
+            foreach ($sellers as $seller) {
+                // Eliminar relaciones many-to-many antes de eliminar el seller
+                $seller->entities()->detach();
+                $seller->groups()->detach();
+                $seller->delete();
+            }
 
+            // Eliminar gestores relacionados
+            Manager::where('user_id', $user->id)->delete();
+
+            // Eliminar el usuario
             $user->delete();
 
             DB::commit();

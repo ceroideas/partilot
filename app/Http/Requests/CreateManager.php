@@ -28,7 +28,7 @@ class CreateManager extends FormRequest
             "name" => "required|string|max:255",
             "last_name" => "required|string|max:255",
             "last_name2" => "nullable|string|max:255",
-            "nif_cif" => "nullable|string|max:255",
+            "nif_cif" => ["nullable", "string", "max:255", "unique:users,nif_cif"],
             "birthday" => ["required", "date", new \App\Rules\MinimumAge(18)],
             "email" => "required|string|max:255",
             "phone" => "nullable|string|max:255",

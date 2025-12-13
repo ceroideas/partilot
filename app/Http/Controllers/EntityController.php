@@ -128,20 +128,21 @@ class EntityController extends Controller
      */
     public function store_manager(Request $request)
     {
+        // Buscar usuario primero para excluirlo de la validación unique si existe
+        $user = User::where('email', $request->manager_email)->first();
+        $userId = $user ? $user->id : null;
+        
         $validated = $request->validate([
             'manager_name' => 'required|string|max:255',
             'manager_last_name' => 'required|string|max:255',
             'manager_last_name2' => 'nullable|string|max:255',
-            'manager_nif_cif' => 'nullable|string|max:20',
+            'manager_nif_cif' => ['nullable', 'string', 'max:20', 'unique:users,nif_cif' . ($userId ? ',' . $userId : '')],
             'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'manager_email' => 'required|email|max:255',
             'manager_phone' => 'nullable|string|max:20',
             // 'manager_comment' => 'nullable|string|max:1000',
             'manager_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
-
-        // Crear o encontrar usuario
-        $user = User::where('email', $validated['manager_email'])->first();
         if (!$user) {
             $user = new User;
             $user->name = $validated['manager_name'] . ' ' . $validated['manager_last_name'];
@@ -277,11 +278,17 @@ class EntityController extends Controller
      */
     public function register_manager(Request $request, $id)
     {
+        $entity = Entity::forUser(auth()->user())->findOrFail($id);
+
+        // Buscar usuario primero para excluirlo de la validación unique si existe
+        $user = User::where('email', $request->manager_email)->first();
+        $userId = $user ? $user->id : null;
+        
         $validated = $request->validate([
             'manager_name' => 'required|string|max:255',
             'manager_last_name' => 'required|string|max:255',
             'manager_last_name2' => 'nullable|string|max:255',
-            'manager_nif_cif' => 'nullable|string|max:20',
+            'manager_nif_cif' => ['nullable', 'string', 'max:20', 'unique:users,nif_cif' . ($userId ? ',' . $userId : '')],
             'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'manager_email' => 'required|email|max:255',
             'manager_phone' => 'nullable|string|max:20',
@@ -290,11 +297,6 @@ class EntityController extends Controller
             'permission_statistics' => 'nullable|boolean',
             'permission_payments' => 'nullable|boolean',
         ]);
-
-        $entity = Entity::forUser(auth()->user())->findOrFail($id);
-
-        // Crear o encontrar usuario
-        $user = User::where('email', $validated['manager_email'])->first();
         if (!$user) {
             $user = new User;
             $user->name = $validated['manager_name'] . ' ' . $validated['manager_last_name'];
@@ -531,20 +533,21 @@ class EntityController extends Controller
             ->forUser(auth()->user())
             ->findOrFail($id);
         
+        // Buscar usuario primero para excluirlo de la validación unique si existe
+        $user = User::where('email', $request->manager_email)->first();
+        $userId = $user ? $user->id : null;
+        
         $request->validate([
             'manager_name' => 'required|string|max:255',
             'manager_last_name' => 'required|string|max:255',
             'manager_last_name2' => 'nullable|string|max:255',
-            'manager_nif_cif' => 'nullable|string|max:20',
+            'manager_nif_cif' => ['nullable', 'string', 'max:20', 'unique:users,nif_cif' . ($userId ? ',' . $userId : '')],
             'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'manager_email' => 'required|email|max:255',
             'manager_phone' => 'nullable|string|max:20',
             'manager_comment' => 'nullable|string|max:1000',
             'manager_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
-
-        // Actualizar o crear usuario
-        $user = User::where('email', $request->manager_email)->first();
         if (!$user) {
             $user = new User;
             $user->name = $request->manager_name . ' ' . $request->manager_last_name;
