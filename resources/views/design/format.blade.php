@@ -45,6 +45,55 @@
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
     }
+    .elements.text {
+        position: relative;
+    }
+    .elements.text:hover .edit-btn,
+    .elements.images:hover .edit-btn {
+        display: block;
+    }
+    .edit-btn {
+        display: none;
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        z-index: 10;
+        font-size: 12px;
+    }
+    .edit-btn:hover {
+        background: #0056b3;
+    }
+    .elements.selected {
+        border: 1px solid #007bff !important;
+        box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    }
+
+    .format-box-btn .btn i {
+        font-size: 14px;
+        position: relative;
+        top: 2px;
+    }
+    .text-style-btn {
+        display: none;
+    }
+    .elements.text.selected ~ .text-style-btn,
+    .text-style-btn.show {
+        display: inline-block;
+    }
+    .text-bold { font-weight: bold; }
+    .text-italic { font-style: italic; }
+    .text-underline { text-decoration: underline; }
+    .text-strike { text-decoration: line-through; }
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
 </style>
 
 <!-- Start Content-->
@@ -377,22 +426,33 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
+                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
                                     <div class="btn-group">
-                                        <button class="btn btn-sm btn-dark add-text" data-id="2" type="button">Texto</button>
-                                        <button class="btn btn-sm btn-dark add-image" data-id="2" type="button">Imagen</button>
+                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="2" type="button"><i class="ri-edit-line"></i></button>
+                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="2" type="button"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="2" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
-                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
-                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
-                                            Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
+                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button"><i class="ri-palette-line"></i></button>
+                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button"><i class="ri-ruler-line"></i></button>
+                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
+                                            <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
+                                        <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" style="display:none;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" style="display:none;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" style="display:none;" title="Centrar"><i class="ri-align-center"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" style="display:none;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" style="display:none;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" style="display:none;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
 
                                     <br>
@@ -417,6 +477,7 @@
                                               
 
                                              <div class="elements number text ui-draggable" style="padding: 10px; width: 274px; height: 94px; resize: both; overflow: hidden; position: relative; left: 452px; top: 25.875px;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><h1><span style="color:hsl(0,0%,0%);font-size:{{ getNumberFontSize($reservation_numbers) }};" class="ui-draggable-handle"><strong>{{ is_array($reservation_numbers) ? implode(' - ', $reservation_numbers) : $reservation_numbers }}</strong></span></h1></span>
                                             </div>
 
@@ -427,31 +488,41 @@
                                             
                                             
                                             <div class="elements text ui-draggable" style="padding: 10px; width: 144px; height: 94px; resize: both; overflow: hidden; position: absolute; top: 0px; left: 12px;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><h6 style="text-align:center;"><span style="font-size:20px;" class="ui-draggable-handle"><strong>LOTERÍA</strong></span><br><span style="font-size:20px;" class="ui-draggable-handle"><strong>NACIONAL</strong></span></h6></span>
                                             </div>
                                                 <div class="elements text ui-draggable" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 144px; left: 158px;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><h5 style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">DATOS DE LA EMPRESA</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">NOMBRE</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">C/NOMBRE DE LA VIA</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">TELEFONO</span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle">DATOS</span></h5></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 82px; height: 44px; resize: both; overflow: hidden; position: absolute; top: 144px; left: 42px;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0, 0%, 0%);" class="ui-draggable-handle"><strong>25/07/25</strong></span></p></span>
                                             </div><div class="elements text number mini ui-draggable" style="padding: 10px; width: 74px; height: 43px; resize: both; overflow: hidden; position: absolute; top: 180.797px; left: 51.7969px; z-index: 1001;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-family:Arial, Helvetica, sans-serif;font-size:14px;" class="ui-draggable-handle"><strong>{{ formatMini($reservation_numbers) }}</strong></span></p></span>
                                             </div>
                                                 <div class="elements text ui-draggable" style="padding: 10px; width: 120px; height: 90px; resize: both; overflow: hidden; position: absolute; top: 214px; left: 26px;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><h4 style="text-align:center;"><span style="color:hsl(0, 0%, 0%);font-size:26px;" class="ui-draggable-handle"><strong>{{ number_format($set->played_amount, 2, ',', '.') }}€</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:18px;" class="ui-draggable-handle"><strong>{{ number_format($set->donation_amount, 2, ',', '.') }}€</strong></span></h4></span>
                                             </div>
                                                 <div class="elements participation text ui-draggable" style="padding: 10px; width: 90px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 300px; left: 94px;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div>
-                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 44.9659px; top: 68.9773px; height: 78px; width: 76px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 184.884px; top: 15.9091px; height: 84px; width: 137px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 298px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 258.815px; left: 162.81px;">
+                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 44.9659px; top: 68.9773px; height: 78px; width: 76px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: relative; left: 184.884px; top: 15.9091px; height: 84px; width: 137px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div><div class="elements text ui-draggable" style="padding: 10px; width: 298px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 258.815px; left: 162.81px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Caduca a los 3 meses, Premios sujetos a la ley.</strong></span><br><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nota: Todo talón roto o enmendado será nulo</strong></span></p></span>
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 558px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 304px; left: 172px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%); font-size:6px"><strong>Premios sup. a 2500€ por décimo, tendrán una retención del 20% por encima del importe anterior, que será prorrateada en estas particip. en la proporción correspondiente a su valor nominal.</strong></span></p></span>
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 220px; left: 332px;">
                                             <span class="ui-draggable-handle"><p style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:26px;" class="ui-draggable-handle"><strong>{{ number_format($set->played_amount, 2, ',', '.') }}€</strong></span><br><span style="color:hsl(0,0%,0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0,0%,0%);font-size:18px;" class="ui-draggable-handle"><strong>{{ number_format($set->donation_amount, 2, ',', '.') }}€</strong></span></p></span>
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div><div class="elements participation text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 92px; height: 36px; resize: both; overflow: hidden; position: absolute; top: 247.797px; left: 490.781px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>DEPOSITARIO</strong></span></p></span>
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div><div class="elements reference text ui-draggable" style="padding: 10px; width: 227px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 278.688px; left: 459.703px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>Nº Ref: 00000000000000000000</strong></span></p></span>
                                             </div>
@@ -475,24 +546,35 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
+                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
                                     <div class="btn-group">
-                                        <button class="btn btn-sm btn-dark add-text" data-id="3" type="button">Texto</button>
-                                        <button class="btn btn-sm btn-dark add-image" data-id="3" type="button">Imagen</button>
+                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="3" type="button"><i class="ri-edit-line"></i></button>
+                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="3" type="button"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
-                                        <button class="btn btn-sm btn-dark add-top" data-id="3" type="button">Arriba</button>
-                                        <button class="btn btn-sm btn-dark add-bottom" data-id="3" type="button">Abajo</button>
-                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
-                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
-                                            Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
+                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button"><i class="ri-palette-line"></i></button>
+                                        <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="3" type="button"><i class="ri-layout-top-line"></i></button>
+                                        <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="3" type="button"><i class="ri-layout-bottom-line"></i></button>
+                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button"><i class="ri-ruler-line"></i></button>
+                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
+                                            <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
+                                        <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" style="display:none;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" style="display:none;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" style="display:none;" title="Centrar"><i class="ri-align-center"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" style="display:none;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" style="display:none;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" style="display:none;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
 
                                     <br>
@@ -512,10 +594,13 @@
 
                                             <div class="elements text ui-draggable" style="padding: 10px; width: 351px; height: 93px; resize: both; overflow: hidden; position: absolute; top: 59.8295px; left: 378.71px;">
                                                 <span class="ui-draggable-handle"><h4><span style="color:hsl(0,0%,0%);" class="ui-draggable-handle"><u>&nbsp; Nombre: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</u></span></h4></span>
-                                            </div><div class="elements context ui-draggable" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; inset: 294.67px 0px 20px 2.83209px; margin: auto; background-color: rgb(223, 223, 223);"><span style="padding: 20px; display: block;" class="ui-draggable-handle"></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 49.7045px; left: 25.7074px; width: 90px; height: 36px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('logo.svg')}}" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 203px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 29.4034px; left: 106.426px;">
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
+                                            </div><div class="elements context ui-draggable" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; inset: 294.67px 0px 20px 2.83209px; margin: auto; background-color: rgb(223, 223, 223);"><span style="padding: 20px; display: block;" class="ui-draggable-handle"></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 49.7045px; left: 25.7074px; width: 90px; height: 36px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('logo.svg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div><div class="elements text ui-draggable" style="padding: 10px; width: 203px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 29.4034px; left: 106.426px;">
                                                 <span class="ui-draggable-handle"><h1><span style="font-size:38px;" class="ui-draggable-handle"><strong>PARTI</strong></span><span style="color:hsl(36,100%,48%);font-size:38px;" class="ui-draggable-handle"><strong>LOT</strong></span></h1></span>
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 257px; height: 165px; resize: both; overflow: hidden; position: absolute; top: 107.724px; left: 24.7074px;">
                                                 <span class="ui-draggable-handle"><h3><strong>Descargate la APP</strong><br><strong>PARTILOT</strong><br><strong>Y Comprueba&nbsp;</strong><br><strong>tu Participación</strong></h3></span>
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div>
                                             
                                         </div>
@@ -536,24 +621,35 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
+                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
                                     <div class="btn-group">
-                                        <button class="btn btn-sm btn-dark add-text" data-id="4" type="button">Texto</button>
-                                        <button class="btn btn-sm btn-dark add-image" data-id="4" type="button">Imagen</button>
+                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="4" type="button"><i class="ri-edit-line"></i></button>
+                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="4" type="button"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="4" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
-                                        <button class="btn btn-sm btn-dark add-top" data-id="4" type="button">Arriba</button>
-                                        <button class="btn btn-sm btn-dark add-bottom" data-id="4" type="button">Abajo</button>
-                                        <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
-                                        <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
-                                            Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
+                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button"><i class="ri-palette-line"></i></button>
+                                        <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="4" type="button"><i class="ri-layout-top-line"></i></button>
+                                        <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="4" type="button"><i class="ri-layout-bottom-line"></i></button>
+                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button"><i class="ri-ruler-line"></i></button>
+                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
+                                            <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
+                                        <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" style="display:none;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" style="display:none;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" style="display:none;" title="Centrar"><i class="ri-align-center"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" style="display:none;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" style="display:none;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" style="display:none;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
 
                                     <br>
@@ -573,8 +669,9 @@
 
                                         <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;"> 
 
-                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 38.7969px; left: 44.8125px; width: 111px; height: 74px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('logo.svg')}}" alt=""></span></div><div class="elements text ui-draggable" style="padding: 10px; width: 380px; height: 140px; resize: both; overflow: hidden; position: absolute; top: 17.5938px; left: 173px;">
+                                            <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 38.7969px; left: 44.8125px; width: 111px; height: 74px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('logo.svg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div><div class="elements text ui-draggable" style="padding: 10px; width: 380px; height: 140px; resize: both; overflow: hidden; position: absolute; top: 17.5938px; left: 173px;">
                                                 <span class="ui-draggable-handle"><h3><strong>Descargate la APP</strong><br><strong>PARTILOT</strong><br><strong>Y Comprueba tu Participación</strong></h3></span>
+                                                <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div>
                                         </div>
 
@@ -1214,6 +1311,7 @@ $('#format').change(function (e) {
   }
 
   var step = 1;
+  var selectedElement = null;
 
   $('.prev-step').click(function (e) {
       e.preventDefault();
@@ -1232,9 +1330,9 @@ $('#format').change(function (e) {
 
         $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });    
 
-        $('.elements.text').dblclick(editelements);
+        $('.elements.text .edit-btn').click(editelements);
         $('.elements.context').dblclick(deleteElements);
-        $('.elements.images').dblclick(changeImage);
+        $('.elements.images .edit-btn').click(changeImage);
         {{-- $('.elements.qr').dblclick(setQRtext); --}}
 
         if ($('#containment-wrapper'+step).length) {
@@ -1293,12 +1391,24 @@ $('#format').change(function (e) {
 
           if (localStorage.getItem('step'+step)) {
             $('#containment-wrapper'+step).html(localStorage.getItem('step'+step));
+            // Agregar botón de editar a elementos de texto existentes
+            $('.elements.text').each(function() {
+              if ($(this).find('.edit-btn').length === 0) {
+                $(this).prepend('<button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>');
+              }
+            });
+            // Agregar botón de cambiar imagen a elementos de imagen existentes
+            $('.elements.images').each(function() {
+              if ($(this).find('.edit-btn').length === 0) {
+                $(this).append('<button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button>');
+              }
+            });
           }
 
           $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
-          $('.elements.text').dblclick(editelements);
+          $('.elements.text .edit-btn').click(editelements);
           $('.elements.context').dblclick(deleteElements);
-          $('.elements.images').dblclick(changeImage);
+          $('.elements.images .edit-btn').click(changeImage);
           {{-- $('.elements.qr').dblclick(setQRtext); --}}
 
           if ($('#containment-wrapper'+step).length) {
@@ -1321,6 +1431,35 @@ $('#format').change(function (e) {
 
           configMargins();
           addEventsElement();
+
+          $('.up-layer').unbind('click');
+          $('.up-layer').click(function(e) {
+            e.preventDefault();
+            if (selectedElement) {
+              let zindex = selectedElement.css('z-index') || 0;
+              zindex = parseInt(zindex) + 1;
+              selectedElement.css('z-index', zindex);
+            }
+          });
+          $('.down-layer').unbind('click');
+          $('.down-layer').click(function(e) {
+            e.preventDefault();
+            if (selectedElement) {
+              let zindex = selectedElement.css('z-index') || 0;
+              zindex = parseInt(zindex) - 1;
+              selectedElement.css('z-index', zindex);
+            }
+          });
+
+          // Deseleccionar al hacer clic fuera
+          $('body').unbind('click.deselect');
+          $('body').bind('click.deselect', function(e) {
+            if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn').length) {
+              $('.elements').removeClass('selected');
+              selectedElement = null;
+              $('.up-layer, .down-layer, .text-style-btn').hide();
+            }
+          });
       }
 
       if (step == 2) {
@@ -1369,8 +1508,8 @@ $('#format').change(function (e) {
   var actualElement;
 
   function editelements(event) {
-    var contenidoHTML = $(this).html();
-    actualElement = $(this);
+    var contenidoHTML = $(this).closest('.elements.text').html();
+    actualElement = $(this).closest('.elements.text');
 
     // Destruir instancia previa si existe
     if (editor && CKEDITOR.instances['editor']) {
@@ -1403,7 +1542,7 @@ $('#format').change(function (e) {
 
   function changeImage(event) {
 
-    actualElement = $(this);
+    actualElement = $(this).closest('.elements.images');
 
     $('#imagen-modal').modal('show');
 
@@ -1502,11 +1641,12 @@ $('#format').change(function (e) {
       e.preventDefault();
 
       $('#containment-wrapper'+step).append(`<div class="elements text" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 0">
+            <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
             <span>Escribe aquí...</span>
         </div>`);
 
-      $('.elements.text').unbind('dblclick',editelements);
-      $('.elements.text').dblclick(editelements);
+      $('.elements.text .edit-btn').unbind('click', editelements);
+      $('.elements.text .edit-btn').click(editelements);
       addEventsElement();
 
       $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
@@ -1514,12 +1654,12 @@ $('#format').change(function (e) {
   $('.add-image').click(function (e) {
       e.preventDefault();
 
-      $('#containment-wrapper'+step).append(`<div class="elements images" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span></div>`);
+      $('#containment-wrapper'+step).append(`<div class="elements images" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div>`);
 
       $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
 
       $('.elements.images').unbind('dblclick',changeImage);
-      $('.elements.images').dblclick(changeImage);
+      $('.elements.images .edit-btn').click(changeImage);
       addEventsElement();
   });
 
@@ -1571,7 +1711,80 @@ $('#format').change(function (e) {
   {
     $('.elements').unbind('contextmenu',changePositionElement);
     $('.elements').contextmenu(changePositionElement);
+    $('.elements').unbind('click.select');
+    $('.elements').bind('click.select', function(e) {
+      e.stopPropagation();
+      $('.elements').removeClass('selected');
+      $(this).addClass('selected');
+      selectedElement = $(this);
+      $('.up-layer, .down-layer').show();
+      if ($(this).hasClass('text')) {
+        $('.text-style-btn').show();
+      } else {
+        $('.text-style-btn').hide();
+      }
+    });
   }
+
+  // Event listeners for text style buttons
+  $('.bold-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      selectedElement.find('span').toggleClass('text-bold');
+    }
+  });
+  $('.italic-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      selectedElement.find('span').toggleClass('text-italic');
+    }
+  });
+  $('.underline-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      selectedElement.find('span').toggleClass('text-underline');
+    }
+  });
+  $('.strike-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      selectedElement.find('span').toggleClass('text-strike');
+    }
+  });
+  $('.align-left-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      selectedElement.removeClass('text-center text-right').addClass('text-left');
+    }
+  });
+  $('.align-center-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      selectedElement.removeClass('text-left text-right').addClass('text-center');
+    }
+  });
+  $('.align-right-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      selectedElement.removeClass('text-left text-center').addClass('text-right');
+    }
+  });
+  $('.font-size-up-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      let span = selectedElement.find('span');
+      let currentSize = parseInt(span.css('font-size'));
+      span.css('font-size', (currentSize + 2) + 'px');
+    }
+  });
+  $('.font-size-down-btn').click(function(e) {
+    e.preventDefault();
+    if (selectedElement && selectedElement.hasClass('text')) {
+      let span = selectedElement.find('span');
+      let currentSize = parseInt(span.css('font-size'));
+      span.css('font-size', Math.max(8, currentSize - 2) + 'px');
+    }
+  });
 
   function changePositionElement(event)
   {
@@ -1584,6 +1797,11 @@ $('#format').change(function (e) {
 
   var snapshot_path = null;
   $('#save-step').click(function(event) {
+
+    // Deseleccionar cualquier elemento seleccionado
+    $('.elements').removeClass('selected');
+    selectedElement = null;
+    $('.up-layer, .down-layer, .text-style-btn').hide();
 
     if (step != 1) {
 
