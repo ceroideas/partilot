@@ -49,4 +49,7 @@ Route::post('/design/save-format', [App\Http\Controllers\DesignController::class
 
 Route::get('test', [ApiController::class,'test']);
 
+Route::get('/check-delete/{type}/{id}', [ApiController::class, 'checkDelete']);
+Route::delete('/delete/{type}/{id}', [ApiController::class, 'deleteItem']);
+
 Route::post('/design/save-snapshot', [\App\Http\Controllers\DesignController::class, 'saveSnapshot']);

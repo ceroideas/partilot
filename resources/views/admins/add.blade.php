@@ -94,7 +94,7 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<form action="{{url('administrations/add/manager')}}" method="POST" enctype="multipart/form-data">
+                    			<form action="{{url('administrations/add/manager')}}" method="POST" enctype="multipart/form-data" id="add-form">
 
                     				@csrf()
                     				
@@ -302,7 +302,7 @@
 				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
 				                                        <span style="font-weight: bold;">ES</span>
 				                                    </div>
-				                                    <input class="form-control" type="text" id="account-input" placeholder="12 1234 1234 12 123456789" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" id="account-input" placeholder="12 1234 1234 12 1234567890" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
 			                    			<small class="text-muted">Ingrese el número de cuenta bancaria. El prefijo ES se añadirá automáticamente.</small>
@@ -474,7 +474,7 @@
 			} else if (numbers.length <= 12) {
 				return numbers.slice(0, 2) + ' ' + numbers.slice(2, 6) + ' ' + numbers.slice(6, 10) + ' ' + numbers.slice(10);
 			} else {
-				return numbers.slice(0, 2) + ' ' + numbers.slice(2, 6) + ' ' + numbers.slice(6, 10) + ' ' + numbers.slice(10, 12) + ' ' + numbers.slice(12, 21);
+				return numbers.slice(0, 2) + ' ' + numbers.slice(2, 6) + ' ' + numbers.slice(6, 10) + ' ' + numbers.slice(10, 12) + ' ' + numbers.slice(12, 22);
 			}
 		}
 
@@ -488,7 +488,7 @@
 			const numbers = this.value.replace(/[^0-9]/g, '');
 			
 			// Limitar a 21 dígitos (2+4+4+2+9)
-			const limitedNumbers = numbers.slice(0, 21);
+			const limitedNumbers = numbers.slice(0, 22);
 			
 			// Aplicar formato
 			const formatted = formatAccountNumber(limitedNumbers);
@@ -503,7 +503,7 @@
 		});
 
 		// Antes de enviar el formulario, remover espacios y guardar solo números
-		document.querySelector('form').addEventListener('submit', function(e) {
+		document.querySelector('#add-form').addEventListener('submit', function(e) {
 			// Crear un campo hidden con el valor sin espacios (incluso si está vacío)
 			const hiddenInput = document.createElement('input');
 			hiddenInput.type = 'hidden';

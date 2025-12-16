@@ -59,7 +59,7 @@
                                         <div style="clear: both;"></div>
                                         <div class="form-check form-switch mt-3">
                                             <input class="form-check-input" type="checkbox" name="status" value="1" id="seller_status" {{ old('status', $seller->status) ? 'checked' : '' }}>
-                                            <input type="hidden" name="status" value="0">
+                                            {{-- <input type="hidden" name="status" value="0"> --}}
                                             <label class="form-check-label" for="seller_status">Vendedor Activo</label>
                                         </div>
                                     </div>

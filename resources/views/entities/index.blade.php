@@ -253,14 +253,81 @@
   // Eliminar entidad
   $('.delete-btn').on('click', function(e) {
     e.stopPropagation(); // Evitar que se active el clic de la fila
-    const id = $(this).data('id');
-    const name = $(this).data('name');
-    
-    if (confirm('¿Estás seguro de que quieres eliminar la entidad "' + name + '"?')) {
-      window.location.href = '{{url("entities/delete")}}/' + id;
-    }
+    var id = $(this).data('id');
+    var name = $(this).data('name');
+    $('#delete-modal').modal('show');
+    $('#delete-item-name').text(name);
+    $('#confirm-delete').data('id', id).data('type', 'entity');
   });
 
+</script>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="delete-modal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Confirmar eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que quieres eliminar <strong id="delete-item-name"></strong>?</p>
+        <div id="delete-warning" class="alert alert-warning d-none" role="alert">
+          <strong>Advertencia:</strong> <span id="delete-message"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirm-delete">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$('#confirm-delete').on('click', function() {
+  var id = $(this).data('id');
+  var type = $(this).data('type');
+  // Llamar a la función de verificación y eliminación
+  checkAndDelete(type, id);
+});
+
+function checkAndDelete(type, id) {
+  $.ajax({
+    url: '/api/check-delete/' + type + '/' + id,
+    method: 'GET',
+    success: function(response) {
+      if (response.can_delete) {
+        // Proceder a eliminar
+        deleteItem(type, id);
+      } else {
+        // Mostrar mensaje de advertencia
+        $('#delete-message').text(response.message);
+        $('#delete-warning').removeClass('d-none');
+      }
+    },
+    error: function() {
+      alert('Error al verificar eliminación.');
+    }
+  });
+}
+
+function deleteItem(type, id) {
+  $.ajax({
+    url: '/api/delete/' + type + '/' + id,
+    method: 'DELETE',
+    headers: {
+      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    },
+    success: function(response) {
+      $('#delete-modal').modal('hide');
+      location.reload(); // Recargar la página
+    },
+    error: function() {
+      alert('Error al eliminar el elemento.');
+    }
+  });
+}
 </script>
 
 @endsection

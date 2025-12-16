@@ -47,7 +47,7 @@ class AdministratorController extends Controller
             'address' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|max:255',
-            'account' => ['nullable', 'string', 'max:21', 'regex:/^[0-9]{0,21}$/'],
+            'account' => ['nullable', 'string', 'max:22', 'regex:/^[0-9]{0,22}$/'],
             'status' => 'nullable|in:-1,0,1',
         ]);
 
@@ -75,7 +75,7 @@ class AdministratorController extends Controller
             "address" => $request->address,
             "email" => $request->email,
             "phone" => $request->phone,
-            "account" => $accountValue ? ('ES' . $accountValue) : ($administration->account ?? null),
+            "account" => $accountValue ? ('ES' . $accountValue) : null,
             "status" => $request->status === '-1' ? null : ($request->status ?? null),
         ];
 

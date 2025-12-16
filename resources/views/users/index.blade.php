@@ -88,13 +88,7 @@
                                         <td>
                                             <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                             <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                            <form action="{{ route('users.destroy', $user->id) }}" method="POST" style="display: inline;">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este usuario?')">
-                                                    <i class="ri-delete-bin-6-line"></i>
-                                                </button>
-                                            </form>
+                                            <button class="btn btn-sm btn-danger delete-btn" data-id="{{$user->id}}" data-name="{{$user->name}}"><i class="ri-delete-bin-6-line"></i></button>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -233,6 +227,83 @@
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
+  // Eliminar usuario
+  $('.delete-btn').on('click', function() {
+    var id = $(this).data('id');
+    var name = $(this).data('name');
+    $('#delete-modal').modal('show');
+    $('#delete-item-name').text(name);
+    $('#confirm-delete').data('id', id).data('type', 'user');
+  });
+
+</script>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="delete-modal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Confirmar eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que quieres eliminar <strong id="delete-item-name"></strong>?</p>
+        <div id="delete-warning" class="alert alert-warning d-none" role="alert">
+          <strong>Advertencia:</strong> <span id="delete-message"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirm-delete">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$('#confirm-delete').on('click', function() {
+  var id = $(this).data('id');
+  var type = $(this).data('type');
+  // Llamar a la función de verificación y eliminación
+  checkAndDelete(type, id);
+});
+
+function checkAndDelete(type, id) {
+  $.ajax({
+    url: '/api/check-delete/' + type + '/' + id,
+    method: 'GET',
+    success: function(response) {
+      if (response.can_delete) {
+        // Proceder a eliminar
+        deleteItem(type, id);
+      } else {
+        // Mostrar mensaje de advertencia
+        $('#delete-message').text(response.message);
+        $('#delete-warning').removeClass('d-none');
+      }
+    },
+    error: function() {
+      alert('Error al verificar eliminación.');
+    }
+  });
+}
+
+function deleteItem(type, id) {
+  $.ajax({
+    url: '/api/delete/' + type + '/' + id,
+    method: 'DELETE',
+    headers: {
+      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    },
+    success: function(response) {
+      $('#delete-modal').modal('hide');
+      location.reload(); // Recargar la página
+    },
+    error: function() {
+      alert('Error al eliminar el elemento.');
+    }
+  });
+}
 </script>
 
 @endsection

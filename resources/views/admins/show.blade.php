@@ -400,7 +400,7 @@
 			                    										if (strlen($numbers) > 10) {
 			                    											$formatted .= ' ' . substr($numbers, 10, 2);
 			                    											if (strlen($numbers) > 12) {
-			                    												$formatted .= ' ' . substr($numbers, 12, 9);
+			                    												$formatted .= ' ' . substr($numbers, 12, 10);
 			                    											}
 			                    										}
 			                    									}

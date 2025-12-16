@@ -444,6 +444,8 @@
                                         </label>
                                         <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
                                         <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer eliminación"><i class="ri-arrow-go-back-line"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
@@ -566,6 +568,8 @@
                                         </label>
                                         <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
                                         <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer eliminación"><i class="ri-arrow-go-back-line"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
@@ -641,6 +645,8 @@
                                         </label>
                                         <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
                                         <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer eliminación"><i class="ri-arrow-go-back-line"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
@@ -1320,6 +1326,11 @@ $('#format').change(function (e) {
         window.open('{{url('design/add/select')}}','_self');
       }else{
         step -=1;
+        
+        // Clear undo data when changing steps
+        lastDeletedElement = null;
+        lastDeletedPosition = null;
+        $('.undo-btn').hide();
 
         $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
         $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
@@ -1385,6 +1396,11 @@ $('#format').change(function (e) {
 
       }else{
           step +=1;
+          
+          // Clear undo data when changing steps
+          lastDeletedElement = null;
+          lastDeletedPosition = null;
+          $('.undo-btn').hide();
 
           $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
           $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
@@ -1450,14 +1466,78 @@ $('#format').change(function (e) {
               selectedElement.css('z-index', zindex);
             }
           });
+          $('.delete-element-btn').unbind('click');
+          $('.delete-element-btn').click(function(e) {
+            e.preventDefault();
+            if (selectedElement) {
+              // Store for undo
+              lastDeletedElement = selectedElement[0].outerHTML;
+              lastDeletedPosition = {
+                left: selectedElement.css('left'),
+                top: selectedElement.css('top'),
+                width: selectedElement.css('width'),
+                height: selectedElement.css('height'),
+                zIndex: selectedElement.css('z-index')
+              };
+              
+              selectedElement.remove();
+              selectedElement = null;
+              $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').hide();
+              $('#save-step').removeClass('d-none');
+              $('#step').addClass('d-none');
+              
+              // Show undo button
+              $('.undo-btn').show();
+            }
+          });
+          $('.undo-btn').click(function(e) {
+            e.preventDefault();
+            if (lastDeletedElement) {
+              // Restore the element
+              $('#containment-wrapper'+step).append(lastDeletedElement);
+              let restoredElement = $('#containment-wrapper'+step + ' .elements').last();
+              
+              // Restore position and styles
+              restoredElement.css({
+                'left': lastDeletedPosition.left,
+                'top': lastDeletedPosition.top,
+                'width': lastDeletedPosition.width,
+                'height': lastDeletedPosition.height,
+                'z-index': lastDeletedPosition.zIndex,
+                'position': 'absolute'
+              });
+              
+              // Re-bind events
+              addEventsElement();
+              if (restoredElement.hasClass('text')) {
+                $('.elements.text .edit-btn').unbind('click', editelements);
+                $('.elements.text .edit-btn').click(editelements);
+              } else if (restoredElement.hasClass('images')) {
+                $('.elements.images .edit-btn').unbind('click', changeImage);
+                $('.elements.images .edit-btn').click(changeImage);
+              }
+              
+              // Make draggable
+              $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+              
+              // Clear undo data and hide button
+              lastDeletedElement = null;
+              lastDeletedPosition = null;
+              $('.undo-btn').hide();
+              
+              // Update save state
+              $('#save-step').removeClass('d-none');
+              $('#step').addClass('d-none');
+            }
+          });
 
           // Deseleccionar al hacer clic fuera
           $('body').unbind('click.deselect');
           $('body').bind('click.deselect', function(e) {
-            if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn').length) {
+            if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn').length) {
               $('.elements').removeClass('selected');
               selectedElement = null;
-              $('.up-layer, .down-layer, .text-style-btn').hide();
+              $('.up-layer, .down-layer, .text-style-btn, .delete-element-btn').hide();
             }
           });
       }
@@ -1506,6 +1586,8 @@ $('#format').change(function (e) {
 
   var editor;
   var actualElement;
+  var lastDeletedElement = null;
+  var lastDeletedPosition = null;
 
   function editelements(event) {
     var contenidoHTML = $(this).closest('.elements.text').html();
@@ -1521,8 +1603,18 @@ $('#format').change(function (e) {
 
     // Inicializar CKEditor 4 sobre el textarea
     editor = CKEDITOR.replace('editor', {
-        // Puedes agregar aquí tu configuración personalizada
-        // Por ejemplo: toolbar: 'Basic',
+        // Configuración para evitar párrafos vacíos
+        autoParagraph: false,
+        fillEmptyBlocks: false,
+        enterMode: CKEDITOR.ENTER_BR,
+        shiftEnterMode: CKEDITOR.ENTER_P,
+        // Toolbar básico
+        toolbar: [
+            { name: 'basicstyles', items: [ 'Bold', 'Italic', 'Underline', 'Strike' ] },
+            { name: 'paragraph', items: [ 'JustifyLeft', 'JustifyCenter', 'JustifyRight' ] },
+            { name: 'colors', items: [ 'TextColor', 'BGColor' ] },
+            { name: 'styles', items: [ 'FontSize' ] }
+        ]
     });
 
     $('#ckeditor-modal').modal('show');
@@ -1570,6 +1662,8 @@ $('#format').change(function (e) {
     /* Act on the event */
     if (editor && CKEDITOR.instances['editor']) {
         var data = CKEDITOR.instances['editor'].getData();
+        // Limpiar párrafos vacíos
+        data = data.replace(/<p>&nbsp;<\/p>/gi, '').replace(/<p><\/p>/gi, '');
         $(actualElement).find('span').html(data);
         CKEDITOR.instances['editor'].destroy(true);
     }
@@ -1717,7 +1811,7 @@ $('#format').change(function (e) {
       $('.elements').removeClass('selected');
       $(this).addClass('selected');
       selectedElement = $(this);
-      $('.up-layer, .down-layer').show();
+      $('.up-layer, .down-layer, .delete-element-btn').show();
       if ($(this).hasClass('text')) {
         $('.text-style-btn').show();
       } else {

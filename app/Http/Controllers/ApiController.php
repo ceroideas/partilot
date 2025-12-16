@@ -748,4 +748,133 @@ class ApiController extends Controller
 
         return $prizeInfo;
     }
+
+    public function checkDelete($type, $id)
+    {
+        $canDelete = true;
+        $message = '';
+
+        switch ($type) {
+            case 'set':
+                $set = \App\Models\Set::find($id);
+                if ($set) {
+                    if ($set->participations()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'El set no se puede borrar porque tiene participaciones asociadas.';
+                    } elseif ($set->designFormats()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'El set no se puede borrar porque tiene diseños asociados.';
+                    }
+                }
+                break;
+            case 'reserve':
+                $reserve = \App\Models\Reserve::find($id);
+                if ($reserve) {
+                    if ($reserve->sets()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'La reserva no se puede borrar porque tiene sets asociados.';
+                    }
+                }
+                break;
+            case 'lottery':
+                $lottery = \App\Models\Lottery::find($id);
+                if ($lottery) {
+                    if ($lottery->reserves()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'El sorteo no se puede borrar porque tiene reservas asociadas.';
+                    } elseif ($lottery->participations()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'El sorteo no se puede borrar porque tiene participaciones asociadas.';
+                    } elseif ($lottery->result()) {
+                        $canDelete = false;
+                        $message = 'El sorteo no se puede borrar porque tiene resultados asociados.';
+                    } elseif ($lottery->administrationScrutinies()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'El sorteo no se puede borrar porque tiene escrutinios asociados.';
+                    }
+                }
+                break;
+            case 'entity':
+                $entity = \App\Models\Entity::find($id);
+                if ($entity) {
+                    if ($entity->reserves()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'La entidad no se puede borrar porque tiene reservas asociadas.';
+                    } elseif ($entity->scrutinyResults()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'La entidad no se puede borrar porque tiene resultados de escrutinio asociados.';
+                    } elseif ($entity->sellers()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'La entidad no se puede borrar porque tiene vendedores asociados.';
+                    }
+                }
+                break;
+            case 'administration':
+                $administration = \App\Models\Administration::find($id);
+                if ($administration) {
+                    if ($administration->entities()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'La administración no se puede borrar porque tiene entidades asociadas.';
+                    } elseif ($administration->manager()) {
+                        $canDelete = false;
+                        $message = 'La administración no se puede borrar porque tiene un manager asociado.';
+                    } elseif ($administration->lotteryScrutinies()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'La administración no se puede borrar porque tiene escrutinios asociados.';
+                    }
+                }
+                break;
+            case 'user':
+                // Para usuarios, quizás no hay restricciones, o verificar si es super_admin
+                $user = \App\Models\User::find($id);
+                if ($user && $user->role === 'super_admin') {
+                    $canDelete = false;
+                    $message = 'El usuario super administrador no se puede borrar.';
+                }
+                break;
+            case 'lottery_type':
+                $lotteryType = \App\Models\LotteryType::find($id);
+                if ($lotteryType) {
+                    if ($lotteryType->lotteries()->count() > 0) {
+                        $canDelete = false;
+                        $message = 'El tipo de lotería no se puede borrar porque tiene sorteos asociados.';
+                    }
+                }
+                break;
+            default:
+                $canDelete = false;
+                $message = 'Tipo no reconocido.';
+        }
+
+        return response()->json(['can_delete' => $canDelete, 'message' => $message]);
+    }
+
+    public function deleteItem($type, $id)
+    {
+        switch ($type) {
+            case 'set':
+                \App\Models\Set::find($id)->delete();
+                break;
+            case 'reserve':
+                \App\Models\Reserve::find($id)->delete();
+                break;
+            case 'lottery':
+                \App\Models\Lottery::find($id)->delete();
+                break;
+            case 'entity':
+                \App\Models\Entity::find($id)->delete();
+                break;
+            case 'administration':
+                \App\Models\Administration::find($id)->delete();
+                break;
+            case 'user':
+                \App\Models\User::find($id)->delete();
+                break;
+            case 'lottery_type':
+                \App\Models\LotteryType::find($id)->delete();
+                break;
+        }
+
+        return response()->json(['success' => true]);
+    }
 }
