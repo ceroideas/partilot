@@ -81,10 +81,6 @@
         top: 2px;
     }
     .text-style-btn {
-        display: none;
-    }
-    .elements.text.selected ~ .text-style-btn,
-    .text-style-btn.show {
         display: inline-block;
     }
     .text-bold { font-weight: bold; }
@@ -446,20 +442,20 @@
                                         <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
                                             <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-sm btn-dark up-layer" style="display:none; padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
-                                        <button class="btn btn-sm btn-dark down-layer" style="display:none; padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
-                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none; padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
-                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none; padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
-                                        <button class="btn btn-sm btn-success redo-btn" style="display:none; padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" style="display:none;" title="Tachado"><i class="ri-strikethrough"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" style="display:none;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" style="display:none;" title="Centrar"><i class="ri-align-center"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" style="display:none;" title="Alinear derecha"><i class="ri-align-right"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" style="display:none;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
-                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" style="display:none;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
+                                        <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
 
                                     <br>
@@ -571,20 +567,20 @@
                                         <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
                                             <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
-                                        <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
-                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
-                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
-                                        <button class="btn btn-sm btn-success redo-btn" style="display:none;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" style="display:none;" title="Tachado"><i class="ri-strikethrough"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" style="display:none;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" style="display:none;" title="Centrar"><i class="ri-align-center"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" style="display:none;" title="Alinear derecha"><i class="ri-align-right"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" style="display:none;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
-                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" style="display:none;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
+                                        <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
 
                                     <br>
@@ -649,20 +645,20 @@
                                         <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
                                             <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
-                                        <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
-                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
-                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
-                                        <button class="btn btn-sm btn-success redo-btn" style="display:none;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" style="display:none;" title="Tachado"><i class="ri-strikethrough"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" style="display:none;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" style="display:none;" title="Centrar"><i class="ri-align-center"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" style="display:none;" title="Alinear derecha"><i class="ri-align-right"></i></button>
-                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" style="display:none;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
-                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" style="display:none;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
+                                        <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
 
                                     <br>
@@ -1338,6 +1334,16 @@ $('#format').change(function (e) {
         historyStates = [];
         currentHistoryIndex = -1;
         updateUndoRedoButtons();
+        
+        // Limpiar observers anteriores
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+          resizeObserver = null;
+        }
+        if (containerObserver) {
+          containerObserver.disconnect();
+          containerObserver = null;
+        }
 
         $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
         $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
@@ -1346,7 +1352,8 @@ $('#format').change(function (e) {
             $('#containment-wrapper'+step).html(localStorage.getItem('step'+step));
         }
 
-        $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });    
+        setupDraggable();
+        setupResizeObserver();    
 
         $('.elements.text .edit-btn').click(editelements);
         $('.elements.context').dblclick(deleteElements);
@@ -1356,10 +1363,8 @@ $('#format').change(function (e) {
         // Guardar estado inicial del paso
         setTimeout(() => {
           saveHistoryState();
-          // Mostrar undo si hay elementos
-          if ($('.elements').length > 0) {
-            $('.undo-btn').show();
-          }
+          // Actualizar estado de botones undo/redo
+          updateUndoRedoButtons();
         }, 100);
 
         if ($('#containment-wrapper'+step).length) {
@@ -1379,6 +1384,8 @@ $('#format').change(function (e) {
 
         configMargins();
         addEventsElement();
+        setupDraggable();
+        setupResizeObserver();
 
       }
   });
@@ -1417,6 +1424,16 @@ $('#format').change(function (e) {
           historyStates = [];
           currentHistoryIndex = -1;
           updateUndoRedoButtons();
+          
+          // Limpiar observers anteriores
+          if (resizeObserver) {
+            resizeObserver.disconnect();
+            resizeObserver = null;
+          }
+          if (containerObserver) {
+            containerObserver.disconnect();
+            containerObserver = null;
+          }
 
           $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
           $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
@@ -1437,7 +1454,8 @@ $('#format').change(function (e) {
             });
           }
 
-          $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+          setupDraggable();
+        setupResizeObserver();
           $('.elements.text .edit-btn').click(editelements);
           $('.elements.context').dblclick(deleteElements);
           $('.elements.images .edit-btn').click(changeImage);
@@ -1446,10 +1464,7 @@ $('#format').change(function (e) {
           // Guardar estado inicial del paso
           setTimeout(() => {
             saveHistoryState();
-            // Mostrar undo si hay elementos
-            if ($('.elements').length > 0) {
-              $('.undo-btn').show();
-            }
+            updateUndoRedoButtons(); // Actualizar estado de botones
           }, 100); // Pequeño delay para asegurar que todo esté cargado
 
           if ($('#containment-wrapper'+step).length) {
@@ -1497,12 +1512,12 @@ $('#format').change(function (e) {
             if (selectedElement) {
               selectedElement.remove();
               selectedElement = null;
-              $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').hide();
+              $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').prop('disabled', true);
               $('#save-step').removeClass('d-none');
               $('#step').addClass('d-none');
               
               saveHistoryState(); // Guardar estado después de eliminar
-              $('.undo-btn').show(); // Asegurar que se muestre el botón
+              updateUndoRedoButtons(); // Actualizar estado de botones
             }
           });
           $('.undo-btn').click(function(e) {
@@ -1521,7 +1536,7 @@ $('#format').change(function (e) {
             if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn').length) {
               $('.elements').removeClass('selected');
               selectedElement = null;
-              $('.up-layer, .down-layer, .text-style-btn, .delete-element-btn').hide();
+              $('.up-layer, .down-layer, .text-style-btn, .delete-element-btn').prop('disabled', true);
             }
           });
       }
@@ -1656,22 +1671,10 @@ $('#format').change(function (e) {
   function updateUndoRedoButtons() {
     $('.undo-btn').prop('disabled', !canUndo());
     $('.redo-btn').prop('disabled', !canRedo());
-    
-    if (canUndo()) {
-      $('.undo-btn').show();
-    } else {
-      $('.undo-btn').hide();
-    }
-    
-    if (canRedo()) {
-      $('.redo-btn').show();
-    } else {
-      $('.redo-btn').hide();
-    }
   }
   
-  function rebindEventsAfterRestore() {
-    // Re-vincular todos los eventos después de restaurar el HTML
+  // Función auxiliar para configurar draggable con guardado de estado
+  function setupDraggable() {
     $( ".elements" ).draggable({ 
       handle: 'span', 
       containment: "#containment-wrapper"+step, 
@@ -1679,15 +1682,95 @@ $('#format').change(function (e) {
       start: function(){
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
-        // saveHistoryState(); // No guardar aquí, solo al final
-        $('.undo-btn').show(); // Forzar mostrar botón inmediatamente
-        $('.redo-btn').hide(); // Ocultar redo mientras se modifica
+        updateUndoRedoButtons(); // Actualizar estado de botones
       },
       stop: function() {
         console.log('Draggable stop - saving state');
         saveHistoryState(); // Guardar estado después de mover
       }
     });
+  }
+
+  // Variable para almacenar el observer
+  var resizeObserver = null;
+  var containerObserver = null;
+
+  // Función para detectar redimensionamiento de elementos
+  function setupResizeObserver() {
+    // Limpiar observers anteriores si existen
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
+    if (containerObserver) {
+      containerObserver.disconnect();
+    }
+
+    const container = document.getElementById('containment-wrapper' + step);
+    if (!container) return;
+
+    // Observer para detectar cambios en el atributo style (redimensionamiento)
+    resizeObserver = new MutationObserver(function(mutations) {
+      let shouldSave = false;
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          // Solo guardar si el cambio es en width o height (redimensionamiento)
+          const oldValue = mutation.oldValue || '';
+          const newValue = mutation.target.getAttribute('style') || '';
+          // Verificar si cambió width o height
+          const widthChanged = (oldValue.match(/width:\s*[^;]+/) || [''])[0] !== (newValue.match(/width:\s*[^;]+/) || [''])[0];
+          const heightChanged = (oldValue.match(/height:\s*[^;]+/) || [''])[0] !== (newValue.match(/height:\s*[^;]+/) || [''])[0];
+          if (widthChanged || heightChanged) {
+            shouldSave = true;
+          }
+        }
+      });
+
+      if (shouldSave) {
+        // Debounce para evitar guardar demasiadas veces
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+          console.log('Element resized - saving state');
+          saveHistoryState();
+        }, 300); // Esperar 300ms después del último cambio
+      }
+    });
+
+    // Observer para detectar cuando se agregan nuevos elementos
+    containerObserver = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1 && node.classList && node.classList.contains('elements')) {
+            // Observar el nuevo elemento
+            resizeObserver.observe(node, {
+              attributes: true,
+              attributeFilter: ['style'],
+              attributeOldValue: true
+            });
+          }
+        });
+      });
+    });
+
+    // Observar el contenedor para detectar nuevos elementos
+    containerObserver.observe(container, {
+      childList: true,
+      subtree: true
+    });
+
+    // Observar todos los elementos existentes con clase .elements
+    $(container).find('.elements').each(function() {
+      resizeObserver.observe(this, {
+        attributes: true,
+        attributeFilter: ['style'],
+        attributeOldValue: true // Necesario para comparar valores antiguos
+      });
+    });
+  }
+
+  function rebindEventsAfterRestore() {
+    // Re-vincular todos los eventos después de restaurar el HTML
+    setupDraggable();
+    setupResizeObserver();
     
   // Hacer todos los elementos redimensionables
   // $('.elements').resizable({
@@ -1755,7 +1838,7 @@ $('#format').change(function (e) {
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
         saveHistoryState(); // Guardar estado después de eliminar
-        $('.undo-btn').show(); // Asegurar que se muestre el botón
+        updateUndoRedoButtons(); // Actualizar estado de botones
     }
 
   }
@@ -1784,7 +1867,7 @@ $('#format').change(function (e) {
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
         saveHistoryState(); // Guardar estado después de eliminar
-        $('.undo-btn').show(); // Asegurar que se muestre el botón
+        updateUndoRedoButtons(); // Actualizar estado de botones
     }
   });
 
@@ -1802,7 +1885,7 @@ $('#format').change(function (e) {
     $('#save-step').removeClass('d-none');
     
     saveHistoryState(); // Guardar estado después de editar texto
-    $('.undo-btn').show(); // Asegurar que se muestre el botón
+    updateUndoRedoButtons(); // Actualizar estado de botones
   });
 
   const input = document.getElementById('imageInput');
@@ -1888,24 +1971,29 @@ $('#format').change(function (e) {
       $('.elements.text .edit-btn').click(editelements);
       addEventsElement();
 
-      $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+      setupDraggable();
+      setupResizeObserver();
       
       saveHistoryState(); // Guardar estado después de agregar
-      $('.undo-btn').show(); // Asegurar que se muestre el botón
+      updateUndoRedoButtons(); // Actualizar estado de botones
   });
   $('.add-image').click(function (e) {
       e.preventDefault();
 
       $('#containment-wrapper'+step).append(`<div class="elements images" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div>`);
 
-      $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+      setupDraggable();
+      setupResizeObserver();
 
       $('.elements.images').unbind('dblclick',changeImage);
       $('.elements.images .edit-btn').click(changeImage);
       addEventsElement();
       
+      setupDraggable();
+      setupResizeObserver();
+      
       saveHistoryState(); // Guardar estado después de agregar
-      $('.undo-btn').show(); // Asegurar que se muestre el botón
+      updateUndoRedoButtons(); // Actualizar estado de botones
   });
 
   $('.add-qr').click(function (e) {
@@ -1913,7 +2001,8 @@ $('#format').change(function (e) {
 
       $('#containment-wrapper'+step).append(`<div class="elements qr" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('basicqr.jpg')}}" alt=""></span></div>`);
 
-      $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+      setupDraggable();
+      setupResizeObserver();
 
       $('.elements.qr').unbind('dblclick',setQRtext);
       {{-- $('.elements.qr').dblclick(setQRtext); --}}
@@ -1929,7 +2018,8 @@ $('#format').change(function (e) {
       $('.elements.context').dblclick(deleteElements);
       addEventsElement();
 
-      $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+      setupDraggable();
+      setupResizeObserver();
   });
 
   $('.add-bottom').click(function (e) {
@@ -1941,7 +2031,8 @@ $('#format').change(function (e) {
       $('.elements.context').dblclick(deleteElements);
       addEventsElement();
 
-      $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+      setupDraggable();
+      setupResizeObserver();
   });
 
   $('.color input').change(function (e) {
@@ -1962,16 +2053,14 @@ $('#format').change(function (e) {
       $('.elements').removeClass('selected');
       $(this).addClass('selected');
       selectedElement = $(this);
-      $('.up-layer, .down-layer, .delete-element-btn').show();
+      $('.up-layer, .down-layer, .delete-element-btn').prop('disabled', false);
       if ($(this).hasClass('text')) {
-        $('.text-style-btn').show();
+        $('.text-style-btn').prop('disabled', false);
       } else {
-        $('.text-style-btn').hide();
+        $('.text-style-btn').prop('disabled', true);
       }
-      // Mostrar undo si hay elementos modificables
-      if (historyStates.length > 0) {
-        $('.undo-btn').show();
-      }
+      // Habilitar undo si hay elementos modificables
+      updateUndoRedoButtons();
     });
   }
 
@@ -2050,7 +2139,7 @@ $('#format').change(function (e) {
     // Deseleccionar cualquier elemento seleccionado
     $('.elements').removeClass('selected');
     selectedElement = null;
-    $('.up-layer, .down-layer, .text-style-btn').hide();
+    $('.up-layer, .down-layer, .text-style-btn').prop('disabled', true);
 
     if (step != 1) {
 
