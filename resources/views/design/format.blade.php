@@ -94,6 +94,10 @@
     .text-left { text-align: left; }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
+
+    .format-btn-group button, .format-btn-group label {
+      max-width: 55px;
+    }
 </style>
 
 <!-- Start Content-->
@@ -426,26 +430,27 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group">
-                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="2" type="button"><i class="ri-edit-line"></i></button>
-                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="2" type="button"><i class="ri-image-line"></i></button>
+                                    <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
+                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="2" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button"><i class="ri-palette-line"></i></button>
-                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button"><i class="ri-ruler-line"></i></button>
-                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
+                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
+                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
                                             <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
-                                        <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
-                                        <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
-                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
-                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer eliminación"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-dark up-layer" style="display:none; padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" style="display:none; padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" style="display:none; padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none; padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-success redo-btn" style="display:none; padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
@@ -548,28 +553,29 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group">
-                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="3" type="button"><i class="ri-edit-line"></i></button>
-                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="3" type="button"><i class="ri-image-line"></i></button>
+                                    <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
+                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button"><i class="ri-palette-line"></i></button>
-                                        <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="3" type="button"><i class="ri-layout-top-line"></i></button>
-                                        <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="3" type="button"><i class="ri-layout-bottom-line"></i></button>
-                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button"><i class="ri-ruler-line"></i></button>
-                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
+                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                        <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-top-line"></i></button>
+                                        <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-bottom-line"></i></button>
+                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
+                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
                                             <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                         <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
                                         <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
                                         <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
-                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer eliminación"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-success redo-btn" style="display:none;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
@@ -625,28 +631,29 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group">
-                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="4" type="button"><i class="ri-edit-line"></i></button>
-                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="4" type="button"><i class="ri-image-line"></i></button>
+                                    <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
+                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="4" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button"><i class="ri-palette-line"></i></button>
-                                        <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="4" type="button"><i class="ri-layout-top-line"></i></button>
-                                        <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="4" type="button"><i class="ri-layout-bottom-line"></i></button>
-                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button"><i class="ri-ruler-line"></i></button>
-                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
+                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                        <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-top-line"></i></button>
+                                        <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-bottom-line"></i></button>
+                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
+                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
                                             <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label>
                                         <button class="btn btn-sm btn-dark up-layer" style="display:none;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
                                         <button class="btn btn-sm btn-dark down-layer" style="display:none;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
                                         <button class="btn btn-sm btn-danger delete-element-btn" style="display:none;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
-                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer eliminación"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-warning undo-btn" style="display:none;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-success redo-btn" style="display:none;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn bold-btn" style="display:none;" title="Negrita"><i class="ri-bold"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn italic-btn" style="display:none;" title="Cursiva"><i class="ri-italic"></i></button>
                                         <button class="btn btn-sm btn-dark text-style-btn underline-btn" style="display:none;" title="Subrayado"><i class="ri-underline"></i></button>
@@ -1302,7 +1309,7 @@ $('#format').change(function (e) {
                 </div>`;
         // Actualizar el tamaño del format-box en tiempo real para personalizado
         const {w, h} = getCustomDimensions();
-        console.log(w,h)
+        console.log(w,h);
         {{-- $('.format-box').css({width: w+'mm', height: h+'mm'}); --}}
     }
     $('.preview-design').html(html);
@@ -1327,10 +1334,10 @@ $('#format').change(function (e) {
       }else{
         step -=1;
         
-        // Clear undo data when changing steps
-        lastDeletedElement = null;
-        lastDeletedPosition = null;
-        $('.undo-btn').hide();
+        // Limpiar historial al cambiar de paso
+        historyStates = [];
+        currentHistoryIndex = -1;
+        updateUndoRedoButtons();
 
         $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
         $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
@@ -1345,6 +1352,15 @@ $('#format').change(function (e) {
         $('.elements.context').dblclick(deleteElements);
         $('.elements.images .edit-btn').click(changeImage);
         {{-- $('.elements.qr').dblclick(setQRtext); --}}
+        
+        // Guardar estado inicial del paso
+        setTimeout(() => {
+          saveHistoryState();
+          // Mostrar undo si hay elementos
+          if ($('.elements').length > 0) {
+            $('.undo-btn').show();
+          }
+        }, 100);
 
         if ($('#containment-wrapper'+step).length) {
             if(localStorage.getItem('bg-step'+step)){
@@ -1397,10 +1413,10 @@ $('#format').change(function (e) {
       }else{
           step +=1;
           
-          // Clear undo data when changing steps
-          lastDeletedElement = null;
-          lastDeletedPosition = null;
-          $('.undo-btn').hide();
+          // Limpiar historial al cambiar de paso
+          historyStates = [];
+          currentHistoryIndex = -1;
+          updateUndoRedoButtons();
 
           $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
           $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
@@ -1426,6 +1442,15 @@ $('#format').change(function (e) {
           $('.elements.context').dblclick(deleteElements);
           $('.elements.images .edit-btn').click(changeImage);
           {{-- $('.elements.qr').dblclick(setQRtext); --}}
+          
+          // Guardar estado inicial del paso
+          setTimeout(() => {
+            saveHistoryState();
+            // Mostrar undo si hay elementos
+            if ($('.elements').length > 0) {
+              $('.undo-btn').show();
+            }
+          }, 100); // Pequeño delay para asegurar que todo esté cargado
 
           if ($('#containment-wrapper'+step).length) {
               if(localStorage.getItem('bg-step'+step)){
@@ -1470,65 +1495,24 @@ $('#format').change(function (e) {
           $('.delete-element-btn').click(function(e) {
             e.preventDefault();
             if (selectedElement) {
-              // Store for undo
-              lastDeletedElement = selectedElement[0].outerHTML;
-              lastDeletedPosition = {
-                left: selectedElement.css('left'),
-                top: selectedElement.css('top'),
-                width: selectedElement.css('width'),
-                height: selectedElement.css('height'),
-                zIndex: selectedElement.css('z-index')
-              };
-              
               selectedElement.remove();
               selectedElement = null;
               $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').hide();
               $('#save-step').removeClass('d-none');
               $('#step').addClass('d-none');
               
-              // Show undo button
-              $('.undo-btn').show();
+              saveHistoryState(); // Guardar estado después de eliminar
+              $('.undo-btn').show(); // Asegurar que se muestre el botón
             }
           });
           $('.undo-btn').click(function(e) {
             e.preventDefault();
-            if (lastDeletedElement) {
-              // Restore the element
-              $('#containment-wrapper'+step).append(lastDeletedElement);
-              let restoredElement = $('#containment-wrapper'+step + ' .elements').last();
-              
-              // Restore position and styles
-              restoredElement.css({
-                'left': lastDeletedPosition.left,
-                'top': lastDeletedPosition.top,
-                'width': lastDeletedPosition.width,
-                'height': lastDeletedPosition.height,
-                'z-index': lastDeletedPosition.zIndex,
-                'position': 'absolute'
-              });
-              
-              // Re-bind events
-              addEventsElement();
-              if (restoredElement.hasClass('text')) {
-                $('.elements.text .edit-btn').unbind('click', editelements);
-                $('.elements.text .edit-btn').click(editelements);
-              } else if (restoredElement.hasClass('images')) {
-                $('.elements.images .edit-btn').unbind('click', changeImage);
-                $('.elements.images .edit-btn').click(changeImage);
-              }
-              
-              // Make draggable
-              $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
-              
-              // Clear undo data and hide button
-              lastDeletedElement = null;
-              lastDeletedPosition = null;
-              $('.undo-btn').hide();
-              
-              // Update save state
-              $('#save-step').removeClass('d-none');
-              $('#step').addClass('d-none');
-            }
+            undo();
+          });
+          
+          $('.redo-btn').click(function(e) {
+            e.preventDefault();
+            redo();
           });
 
           // Deseleccionar al hacer clic fuera
@@ -1575,7 +1559,7 @@ $('#format').change(function (e) {
                 width: w+'mm',
                 height: h+'mm'
             });
-            $('.format-box-btn').css('width', w+'mm');
+            $('.format-box-btn').css('width', '250mm');
         }
         let matrix = $('#matrix-box').val() ?? 40;
         $('#containment-wrapper4').css('padding-right', matrix+'mm');
@@ -1586,8 +1570,148 @@ $('#format').change(function (e) {
 
   var editor;
   var actualElement;
-  var lastDeletedElement = null;
-  var lastDeletedPosition = null;
+  
+  // Sistema de Undo/Redo limitado
+  var historyStates = [];
+  var currentHistoryIndex = -1;
+  var maxHistoryStates = 10;
+  var isRestoringState = false; // Flag para evitar guardar durante restauración
+  var resizeTimeout; // Para debounce del ResizeObserver
+
+
+  // Funciones del sistema de Undo/Redo
+  function saveHistoryState() {
+    if (isRestoringState) return; // Evitar guardar durante restauración
+    
+    console.log('saveHistoryState called, step:', step);
+    
+    const canvasHtml = $('#containment-wrapper' + step).html();
+    const canvasState = {
+      html: canvasHtml,
+      step: step,
+      timestamp: Date.now()
+    };
+    
+    // Remover estados futuros si estamos en medio del historial
+    if (currentHistoryIndex < historyStates.length - 1) {
+      historyStates = historyStates.slice(0, currentHistoryIndex + 1);
+    }
+    
+    // Agregar nuevo estado
+    historyStates.push(canvasState);
+    currentHistoryIndex++;
+    
+    // Mantener máximo de estados
+    if (historyStates.length > maxHistoryStates) {
+      historyStates.shift();
+      currentHistoryIndex--;
+    }
+    
+    updateUndoRedoButtons();
+  }
+  
+  function restoreHistoryState(targetIndex) {
+    if (targetIndex < 0 || targetIndex >= historyStates.length) return;
+    
+    isRestoringState = true;
+    
+    const targetState = historyStates[targetIndex];
+    
+    // Solo restaurar si es el mismo step
+    if (targetState.step === step) {
+      $('#containment-wrapper' + step).html(targetState.html);
+      
+      // Re-vincular eventos después de restaurar
+      rebindEventsAfterRestore();
+      
+      currentHistoryIndex = targetIndex;
+      updateUndoRedoButtons();
+    }
+    
+    isRestoringState = false;
+  }
+  
+  function undo() {
+    console.log('Undo called, canUndo:', canUndo());
+    if (canUndo()) {
+      console.log('Restoring to index:', currentHistoryIndex - 1);
+      restoreHistoryState(currentHistoryIndex - 1);
+    }
+  }
+  
+  function redo() {
+    if (canRedo()) {
+      restoreHistoryState(currentHistoryIndex + 1);
+    }
+  }
+  
+  function canUndo() {
+    return currentHistoryIndex > 0 && historyStates.length > 1;
+  }
+  
+  function canRedo() {
+    return currentHistoryIndex < historyStates.length - 1;
+  }
+  
+  function updateUndoRedoButtons() {
+    $('.undo-btn').prop('disabled', !canUndo());
+    $('.redo-btn').prop('disabled', !canRedo());
+    
+    if (canUndo()) {
+      $('.undo-btn').show();
+    } else {
+      $('.undo-btn').hide();
+    }
+    
+    if (canRedo()) {
+      $('.redo-btn').show();
+    } else {
+      $('.redo-btn').hide();
+    }
+  }
+  
+  function rebindEventsAfterRestore() {
+    // Re-vincular todos los eventos después de restaurar el HTML
+    $( ".elements" ).draggable({ 
+      handle: 'span', 
+      containment: "#containment-wrapper"+step, 
+      scroll: false, 
+      start: function(){
+        $('#step').addClass('d-none');
+        $('#save-step').removeClass('d-none');
+        // saveHistoryState(); // No guardar aquí, solo al final
+        $('.undo-btn').show(); // Forzar mostrar botón inmediatamente
+        $('.redo-btn').hide(); // Ocultar redo mientras se modifica
+      },
+      stop: function() {
+        console.log('Draggable stop - saving state');
+        saveHistoryState(); // Guardar estado después de mover
+      }
+    });
+    
+  // Hacer todos los elementos redimensionables
+  // $('.elements').resizable({
+  //   containment: "#containment-wrapper"+step,
+  //   minWidth: 50,
+  //   minHeight: 30,
+  //   stop: function() {
+  //     console.log('Resizable stop - saving state');
+  //     saveHistoryState();
+  //     $('.undo-btn').show();
+  //   }
+  // });
+  
+  $('.elements.text .edit-btn').unbind('click', editelements);
+  $('.elements.text .edit-btn').click(editelements);
+  
+  $('.elements.context').unbind('dblclick', deleteElements);
+  $('.elements.context').dblclick(deleteElements);
+  
+  $('.elements.images .edit-btn').unbind('click', changeImage);
+  $('.elements.images .edit-btn').click(changeImage);
+  
+  addEventsElement();
+}
 
   function editelements(event) {
     var contenidoHTML = $(this).closest('.elements.text').html();
@@ -1598,14 +1722,16 @@ $('#format').change(function (e) {
         CKEDITOR.instances['editor'].destroy(true);
     }
 
-    // Setear el contenido en el textarea
-    $('#editor').html(contenidoHTML);
+    // Limpiar el contenido del editor
+    $('#editor').val('');
 
-    // Inicializar CKEditor 4 sobre el textarea
-    editor = CKEDITOR.replace('editor', {
-        // Configuración para evitar párrafos vacíos
-        autoParagraph: false,
-        fillEmptyBlocks: false,
+    // Agregar el contenido al editor
+    $('#editor').val($(actualElement).find('span').html());
+
+    addEventsElement();
+
+    // Inicializar CKEditor
+    CKEDITOR.replace('editor', {
         enterMode: CKEDITOR.ENTER_BR,
         shiftEnterMode: CKEDITOR.ENTER_P,
         // Toolbar básico
@@ -1628,6 +1754,8 @@ $('#format').change(function (e) {
         element.remove();
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
+        saveHistoryState(); // Guardar estado después de eliminar
+        $('.undo-btn').show(); // Asegurar que se muestre el botón
     }
 
   }
@@ -1655,6 +1783,8 @@ $('#format').change(function (e) {
         actualElement.remove();
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
+        saveHistoryState(); // Guardar estado después de eliminar
+        $('.undo-btn').show(); // Asegurar que se muestre el botón
     }
   });
 
@@ -1670,6 +1800,9 @@ $('#format').change(function (e) {
     $('#ckeditor-modal').modal('hide');
     $('#step').addClass('d-none');
     $('#save-step').removeClass('d-none');
+    
+    saveHistoryState(); // Guardar estado después de editar texto
+    $('.undo-btn').show(); // Asegurar que se muestre el botón
   });
 
   const input = document.getElementById('imageInput');
@@ -1739,11 +1872,26 @@ $('#format').change(function (e) {
             <span>Escribe aquí...</span>
         </div>`);
 
+      // Hacer el elemento redimensionable con jQuery UI
+      // const newElement = $('#containment-wrapper'+step + ' .elements').last();
+      // newElement.resizable({
+      //   containment: "#containment-wrapper"+step,
+      //   minWidth: 50,
+      //   minHeight: 30,
+      //   stop: function() {
+      //     saveHistoryState();
+      //     $('.undo-btn').show();
+      //   }
+      // });
+
       $('.elements.text .edit-btn').unbind('click', editelements);
       $('.elements.text .edit-btn').click(editelements);
       addEventsElement();
 
       $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+      
+      saveHistoryState(); // Guardar estado después de agregar
+      $('.undo-btn').show(); // Asegurar que se muestre el botón
   });
   $('.add-image').click(function (e) {
       e.preventDefault();
@@ -1755,6 +1903,9 @@ $('#format').change(function (e) {
       $('.elements.images').unbind('dblclick',changeImage);
       $('.elements.images .edit-btn').click(changeImage);
       addEventsElement();
+      
+      saveHistoryState(); // Guardar estado después de agregar
+      $('.undo-btn').show(); // Asegurar que se muestre el botón
   });
 
   $('.add-qr').click(function (e) {
@@ -1816,6 +1967,10 @@ $('#format').change(function (e) {
         $('.text-style-btn').show();
       } else {
         $('.text-style-btn').hide();
+      }
+      // Mostrar undo si hay elementos modificables
+      if (historyStates.length > 0) {
+        $('.undo-btn').show();
       }
     });
   }
@@ -2132,8 +2287,8 @@ $('#format').change(function (e) {
     const horizontal_space = parseFloat($('#page-rigth').val());
     const vertical_space = parseFloat($('#page-bottom').val());
 
-    const design_lottery_id = '{{session('design_lottery_id')}}';
-    const design_entity_id = '{{session('design_entity_id')}}';
+    const design_lottery_id = '{{ session('design_lottery_id') }}';
+    const design_entity_id = '{{ session('design_entity_id') }}';
 
     // Quitar 'resize: both;' antes de guardar
     $('#step-2 .format-box .elements').each(function() {
@@ -2179,7 +2334,7 @@ $('#format').change(function (e) {
     const pages_per_document = parseInt($('#participation_page').val());
 
     return {
-      set_id: {{ $set->id }},
+      set_id: {{ $set->id ?? 'null' }},
       format,
       page,
       rows,
