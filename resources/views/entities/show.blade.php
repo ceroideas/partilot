@@ -629,15 +629,35 @@
 							                                		if ($status === null || $status == -1) {
 							                                			$statusText = 'Pendiente';
 							                                			$statusClass = 'bg-secondary';
+							                                			$newStatus = 1; // Cambiar a Activo
+							                                			$newStatusText = 'Activar';
+							                                			$newStatusIcon = 'ri-check-line';
+							                                			$newStatusBtnClass = 'btn-success';
 							                                		} elseif ($status == 1) {
 							                                			$statusText = 'Activo';
 							                                			$statusClass = 'bg-success';
+							                                			$newStatus = 0; // Cambiar a Inactivo
+							                                			$newStatusText = 'Desactivar';
+							                                			$newStatusIcon = 'ri-close-line';
+							                                			$newStatusBtnClass = 'btn-danger';
 							                                		} else {
 							                                			$statusText = 'Inactivo';
 							                                			$statusClass = 'bg-danger';
+							                                			$newStatus = 1; // Cambiar a Activo
+							                                			$newStatusText = 'Activar';
+							                                			$newStatusIcon = 'ri-check-line';
+							                                			$newStatusBtnClass = 'btn-success';
 							                                		}
 							                                	@endphp
 							                                	<label class="badge {{ $statusClass }}">{{ $statusText }}</label>
+							                                	@if(!$manager->is_primary)
+							                                		<button class="btn btn-sm {{ $newStatusBtnClass }} toggle-manager-status ms-2" 
+							                                		        data-manager-id="{{ $manager->id }}" 
+							                                		        data-new-status="{{ $newStatus }}"
+							                                		        title="{{ $newStatusText }}">
+							                                			<i class="{{ $newStatusIcon }}"></i>
+							                                		</button>
+							                                	@endif
 							                                </td>
 							                                <td>
 							                                	@if(!$manager->is_primary)
@@ -1209,6 +1229,35 @@ $('.return-list').click(function (e) {
 
 	$('#manager-buttons').removeClass('d-none');
 	$('#all-managers').removeClass('d-none');
+});
+
+// Cambiar status del manager
+$(document).on('click', '.toggle-manager-status', function (e) {
+	e.preventDefault();
+	var managerId = $(this).data('manager-id');
+	var newStatus = $(this).data('new-status');
+	var button = $(this);
+	
+	$.ajax({
+		url: '{{ url("entities/toggle-manager-status") }}',
+		type: 'POST',
+		data: {
+			manager_id: managerId,
+			status: newStatus,
+			_token: '{{ csrf_token() }}'
+		},
+		success: function(response) {
+			if (response.success) {
+				// Recargar la página para actualizar el estado
+				location.reload();
+			} else {
+				alert('Error al cambiar el status del gestor');
+			}
+		},
+		error: function(xhr) {
+			alert('Error al cambiar el status del gestor');
+		}
+	});
 });
 
 </script>

@@ -1797,24 +1797,23 @@ $('#format').change(function (e) {
 }
 
   function editelements(event) {
-    var contenidoHTML = $(this).closest('.elements.text').html();
     actualElement = $(this).closest('.elements.text');
+    
+    // Obtener el contenido del span (sin el botón de editar)
+    var contenidoHTML = $(actualElement).find('span').html() || '';
 
     // Destruir instancia previa si existe
     if (editor && CKEDITOR.instances['editor']) {
         CKEDITOR.instances['editor'].destroy(true);
     }
 
-    // Limpiar el contenido del editor
-    $('#editor').val('');
-
-    // Agregar el contenido al editor
-    $('#editor').val($(actualElement).find('span').html());
+    // Limpiar el contenido del div
+    $('#editor').html('');
 
     addEventsElement();
 
     // Inicializar CKEditor
-    CKEDITOR.replace('editor', {
+    editor = CKEDITOR.replace('editor', {
         enterMode: CKEDITOR.ENTER_BR,
         shiftEnterMode: CKEDITOR.ENTER_P,
         // Toolbar básico
@@ -1823,7 +1822,13 @@ $('#format').change(function (e) {
             { name: 'paragraph', items: [ 'JustifyLeft', 'JustifyCenter', 'JustifyRight' ] },
             { name: 'colors', items: [ 'TextColor', 'BGColor' ] },
             { name: 'styles', items: [ 'FontSize' ] }
-        ]
+        ],
+        on: {
+            instanceReady: function() {
+                // Establecer el contenido cuando CKEditor esté listo
+                this.setData(contenidoHTML);
+            }
+        }
     });
 
     $('#ckeditor-modal').modal('show');

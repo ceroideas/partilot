@@ -648,4 +648,45 @@ class EntityController extends Controller
         return redirect()->route('entities.show', $entity->id)
             ->with('success', 'Permisos del gestor actualizados correctamente.');
     }
+
+    /**
+     * Cambiar el status de un manager
+     */
+    public function toggle_manager_status(Request $request)
+    {
+        $request->validate([
+            'manager_id' => 'required|integer|exists:managers,id',
+            'status' => 'required|integer|in:0,1',
+        ]);
+
+        $manager = Manager::findOrFail($request->manager_id);
+        
+        // Verificar que el manager pertenece a una entidad accesible por el usuario
+        if ($manager->entity_id) {
+            $entity = Entity::forUser(auth()->user())->find($manager->entity_id);
+            if (!$entity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tiene permisos para modificar este gestor'
+                ], 403);
+            }
+        } elseif ($manager->administration_id) {
+            $administration = Administration::forUser(auth()->user())->find($manager->administration_id);
+            if (!$administration) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tiene permisos para modificar este gestor'
+                ], 403);
+            }
+        }
+
+        $manager->update([
+            'status' => $request->status,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status del gestor actualizado correctamente'
+        ]);
+    }
 } 

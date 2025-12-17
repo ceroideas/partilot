@@ -121,6 +121,7 @@ Route::group(['prefix' => 'entities'], function() {
     Route::put('/update/manager/{id}', [EntityController::class, 'update_manager'])->name('entities.update-manager');
     Route::get('/edit/manager-permissions/{entity_id}/{manager_id}', [EntityController::class, 'edit_manager_permissions'])->name('entities.edit-manager-permissions');
     Route::put('/update/manager-permissions/{entity_id}/{manager_id}', [EntityController::class, 'update_manager_permissions'])->name('entities.update-manager-permissions');
+    Route::post('/toggle-manager-status', [EntityController::class, 'toggle_manager_status'])->name('entities.toggle-manager-status');
     
 });
 

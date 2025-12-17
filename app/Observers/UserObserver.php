@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\User;
 use App\Models\Seller;
+use App\Models\Manager;
 use Illuminate\Support\Facades\Log;
 
 class UserObserver
@@ -54,6 +55,9 @@ class UserObserver
      */
     public function updated(User $user): void
     {
+        // Verificar si el status cambió
+        $statusChanged = $user->wasChanged('status');
+        
         // Sincronizar cambios del usuario a sus vendedores vinculados
         $linkedSellers = Seller::where('user_id', $user->id)->get();
 
@@ -71,6 +75,27 @@ class UserObserver
                 Log::info("Datos del vendedor {$seller->id} sincronizados con usuario {$user->id}");
             } catch (\Exception $e) {
                 Log::error("Error al sincronizar vendedor {$seller->id} con usuario {$user->id}: " . $e->getMessage());
+            }
+        }
+
+        // Si el status cambió, sincronizar con los managers vinculados
+        if ($statusChanged) {
+            $linkedManagers = Manager::where('user_id', $user->id)->get();
+
+            // Convertir el status boolean del User a integer para Manager
+            // true (1) -> 1 (activo), false (0) -> 0 (inactivo)
+            $managerStatus = $user->status ? 1 : 0;
+
+            foreach ($linkedManagers as $manager) {
+                try {
+                    $manager->update([
+                        'status' => $managerStatus,
+                    ]);
+
+                    Log::info("Status del manager {$manager->id} sincronizado con usuario {$user->id} (status: {$managerStatus})");
+                } catch (\Exception $e) {
+                    Log::error("Error al sincronizar status del manager {$manager->id} con usuario {$user->id}: " . $e->getMessage());
+                }
             }
         }
     }
