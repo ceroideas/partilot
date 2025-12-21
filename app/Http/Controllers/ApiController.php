@@ -499,6 +499,17 @@ class ApiController extends Controller
 
     public function showParticipationTicket(Request $request)
     {
+        // Redirigir a la nueva URL externa manteniendo el parámetro ref
+        if ($request->has('ref')) {
+            $ref = $request->query('ref');
+            $redirectUrl = 'https://web.elbuholotero.es/loteria-empresas-parti.php?ref=' . urlencode($ref);
+            return redirect($redirectUrl);
+        }
+        
+        // Si no hay ref, redirigir sin parámetro
+        return redirect('https://web.elbuholotero.es/loteria-empresas-parti.php');
+        
+        /* Código anterior comentado - redirección implementada
         $ticket = null;
         $error = null;
         $prizeInfo = null;
