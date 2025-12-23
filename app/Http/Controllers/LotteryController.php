@@ -477,13 +477,22 @@ class LotteryController extends Controller
             // Filtrar por el número de sorteo específico
             $filteredData = null;
             if (is_array($data)) {
+                // Extraer el número de sorteo del name (formato: "102/25" -> "102")
+                $nameParts = explode('/', $lottery->name);
+                $lotteryNumSorteo = isset($nameParts[0]) ? ltrim($nameParts[0], '0') : '';
+                
+                \Log::info("Buscando sorteo - Lottery name: {$lottery->name}, Num sorteo extraído: {$lotteryNumSorteo}");
+                \Log::info("Total sorteos en respuesta: " . count($data));
+                
                 foreach ($data as $sorteo) {
-                    // Comparar el num_sorteo del JSON con el name del sorteo (sin el '0' inicial)
-                    $jsonNumSorteo = $sorteo['num_sorteo'] ?? '';
-                    $lotteryName = ltrim($lottery->name, '0'); // Remover '0' inicial si existe
+                    // Comparar el num_sorteo del JSON con el número extraído del name
+                    $jsonNumSorteo = isset($sorteo['num_sorteo']) ? ltrim($sorteo['num_sorteo'], '0') : '';
                     
-                    if ($jsonNumSorteo == $lotteryName) {
+                    \Log::info("Comparando - JSON num_sorteo: '{$jsonNumSorteo}' vs Lottery num_sorteo: '{$lotteryNumSorteo}'");
+                    
+                    if ($jsonNumSorteo == $lotteryNumSorteo) {
                         $filteredData = $sorteo;
+                        \Log::info("¡Sorteo encontrado! num_sorteo: {$jsonNumSorteo}");
                         break;
                     }
                 }
