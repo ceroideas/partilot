@@ -179,9 +179,7 @@ Route::group(['prefix' => 'groups'], function() {
     Route::delete('/destroy/{id}', [\App\Http\Controllers\GroupController::class, 'destroy'])->name('groups.destroy');
 });
 
-Route::get('users',function() {
-    return view('users.index');
-});
+Route::get('users', [UserController::class, 'index'])->name('users.index');
 
 Route::group(['prefix' => 'lottery'], function() {
     //
@@ -376,6 +374,7 @@ Route::resource('devolutions', DevolutionsController::class);
 
 // Rutas de Usuarios
 Route::get('users-data', [UserController::class, 'data'])->name('users.data');
+Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 Route::resource('users', UserController::class);
 
 // Rutas de Notificaciones

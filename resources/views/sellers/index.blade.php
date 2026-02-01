@@ -44,17 +44,26 @@
                     @endif
 
                     <div class="{{ count($sellers) > 0 ? '' : 'd-none' }}">
-                        <h4 class="header-title">
-
-                            <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Nombre">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Apellidos">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Email">
-                                <input type="text" class="form-control" placeholder="Entidad">
-                            </div>
-
-                            <a href="{{ route('sellers.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
-
+                        <h4 class="header-title d-flex flex-wrap align-items-center gap-2">
+                            <select class="form-control form-control-sm" style="max-width: 140px;" id="filter-provincia">
+                                <option value="">Provincia</option>
+                                @php $provincias = $sellers->pluck('entities')->flatten()->pluck('province')->unique()->filter()->sort()->values(); @endphp
+                                @foreach($provincias as $p)
+                                    <option value="{{ $p }}">{{ $p }}</option>
+                                @endforeach
+                            </select>
+                            <select class="form-control form-control-sm" style="max-width: 140px;" id="filter-localidad">
+                                <option value="">Localidad</option>
+                            </select>
+                            <select class="form-control form-control-sm" style="max-width: 140px;" id="filter-estatus">
+                                <option value="">Estatus</option>
+                                <option value="Inactivo">Inactivo</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Bloqueado">Bloqueado</option>
+                            </select>
+                            <input type="text" class="form-control form-control-sm" style="max-width: 180px;" id="filter-busqueda" placeholder="Búsqueda">
+                            <a href="{{ route('sellers.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark ms-auto"><i class="ri-add-line me-1"></i> Añadir</a>
                         </h4>
 
 
@@ -65,61 +74,53 @@
                         <table id="example2" class="table table-striped nowrap w-100">
                             <thead class="filters">
                                 <tr>
-                                    <th>Order ID</th>
+                                    <th>ID</th>
                                     <th>Nombre</th>
-                                    <th>Apellidos</th>
-                                    <th>F. Nacimiento</th>
-                                    <th>NIF/CIF</th>
                                     <th>Email</th>
-                                    <th>Teléfono</th>
+                                    <th>T. Vendedor</th>
+                                    <th>P. Asig.</th>
+                                    <th>P. Ven.</th>
+                                    <th>P. Dev.</th>
+                                    <th>Deuda</th>
                                     <th>Entidad</th>
-                                    <th>Grupo</th>
-                                    <th>Estado</th>
+                                    <th>Provincia</th>
+                                    <th>Status</th>
                                     <th class="no-filter">Acciones</th>
                                 </tr>
                             </thead>
-                        
                             <tbody>
                                 @foreach($sellers as $seller)
-                                <tr class="row-clickable" data-href="{{ route('sellers.show', $seller->id) }}" style="cursor: pointer;">
-                                    <td><a href="{{ route('sellers.show', $seller->id) }}">#VN{{ str_pad($seller->id, 4, '0', STR_PAD_LEFT) }}</a></td>
-                                    <td>{{ $seller->name ?? 'N/A' }}</td>
-                                    <td>{{ ($seller->last_name ?? '') . ' ' . ($seller->last_name2 ?? '') }}</td>
-                                    <td>{{ $seller->birthday ? \Carbon\Carbon::parse($seller->birthday)->format('d/m/Y') : 'N/A' }}</td>
-                                    <td>{{ $seller->nif_cif ?? 'N/A' }}</td>
-                                    <td>{{ $seller->email ?? 'N/A' }}</td>
-                                    <td>{{ $seller->phone ?? 'N/A' }}</td>
+                                @php
+                                    $entidad = $seller->getPrimaryEntity();
+                                    $deuda = (float) ($seller->deuda_pendiente ?? 0);
+                                @endphp
+                                <tr class="row-clickable" data-href="{{ route('sellers.show', $seller->id) }}" data-provincia="{{ $entidad?->province ?? '' }}" data-status="{{ $seller->getRawOriginal('status') ?? 0 }}" style="cursor: pointer;">
+                                    <td><a href="{{ route('sellers.show', $seller->id) }}" class="text-dark text-decoration-none">#VE{{ str_pad($seller->id, 4, '0', STR_PAD_LEFT) }}</a></td>
+                                    <td>{{ $seller->full_name }}</td>
+                                    <td>{{ $seller->display_email ?: '—' }}</td>
                                     <td>
-                                        @if($seller->entities->count() > 1)
-                                            @foreach($seller->entities as $entity)
-                                                <span class="badge bg-primary me-1">{{ $entity->name }}</span>
-                                            @endforeach
+                                        @if($seller->seller_type === 'partilot')
+                                            <span class="badge bg-warning text-dark">Partilot</span>
                                         @else
-                                            {{ $seller->getPrimaryEntity()?->name ?? 'N/A' }}
+                                            <span class="badge bg-secondary">Externo</span>
                                         @endif
                                     </td>
+                                    <td>{{ $seller->participaciones_asignadas ?? 0 }}</td>
+                                    <td>{{ $seller->participaciones_vendidas ?? 0 }}</td>
+                                    <td>{{ $seller->participaciones_devueltas ?? 0 }}</td>
+                                    <td class="{{ $deuda > 0 ? 'text-danger fw-semibold' : '' }}">{{ number_format($deuda, 2, ',', '.') }}€</td>
+                                    <td>{{ $entidad?->name ?? '—' }}</td>
+                                    <td>{{ $entidad?->province ?? '—' }}</td>
                                     <td>
-                                        @if($seller->groups->count() > 0)
-                                            @foreach($seller->groups as $group)
-                                                <span class="badge bg-primary me-1">
-                                                    {{ $group->name }}
-                                                </span>
-                                            @endforeach
-                                        @else
-                                            <span class="badge bg-secondary">Sin grupo</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ $seller->status_class }}">
-                                            {{ $seller->status_text }}
-                                        </span>
+                                        <span class="badge bg-{{ $seller->status_class }}">{{ $seller->status_text }}</span>
                                     </td>
                                     <td class="no-click" style="cursor: default;">
-                                        <a href="{{ route('sellers.edit', $seller->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        <a href="{{ route('sellers.show', $seller->id) }}" class="btn btn-sm btn-light" title="Ver ficha"><i class="ri-external-link-line"></i></a>
+                                        <a href="{{ route('sellers.edit', $seller->id) }}" class="btn btn-sm btn-light" title="Editar"><i class="ri-pencil-line"></i></a>
                                         <form action="{{ route('sellers.destroy', $seller->id) }}" method="POST" style="display: inline;">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este vendedor?')">
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Eliminar" onclick="return confirm('¿Estás seguro de que quieres eliminar este vendedor?')">
                                                 <i class="ri-delete-bin-6-line"></i>
                                             </button>
                                         </form>
@@ -268,26 +269,25 @@
     $('.filters .inline-fields:first').trigger('keyup');
   },100);
   
-  // Hacer las filas clickeables (excepto la última columna de acciones)
-  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
-    // No activar si se hace clic en la última columna o en sus elementos
-    if ($(e.target).closest('td.no-click').length || $(e.target).closest('td.no-click').length) {
-      return;
-    }
-    
-    // No activar si se hace clic directamente en un enlace o botón
-    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) {
-      return;
-    }
-    
-    // Redirigir a la URL de la fila
-    var href = $(this).data('href');
-    if (href) {
-      window.location.href = href;
-    }
+  // Filtros superiores: aplicar a DataTable
+  var table = $('#example2').DataTable();
+  $('#filter-provincia').on('change', function() {
+    table.column(9).search(this.value).draw();
   });
-  
-  // Agregar efecto hover visual
+  $('#filter-estatus').on('change', function() {
+    table.column(10).search(this.value).draw();
+  });
+  $('#filter-busqueda').on('keyup', function() {
+    table.search(this.value).draw();
+  });
+
+  // Filas clickeables (excepto columna de acciones)
+  $(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+    if ($(e.target).closest('td.no-click').length) return;
+    if ($(e.target).is('a') || $(e.target).is('button') || $(e.target).closest('a').length || $(e.target).closest('button').length) return;
+    var href = $(this).data('href');
+    if (href) window.location.href = href;
+  });
   $(document).on('mouseenter', '#example2 tbody tr.row-clickable', function() {
     $(this).css('background-color', '#f8f9fa');
   }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {

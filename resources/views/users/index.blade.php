@@ -72,8 +72,8 @@
                             <tbody>
                                 @if(isset($users))
                                     @foreach($users as $user)
-                                    <tr>
-                                        <td><a href="{{ route('users.show', $user->id) }}">#US{{ str_pad($user->id, 4, '0', STR_PAD_LEFT) }}</a></td>
+                                    <tr class="row-clickable" data-href="{{ route('users.show', $user->id) }}" style="cursor: pointer;">
+                                        <td><a href="{{ route('users.show', $user->id) }}" class="text-dark text-decoration-none">#US{{ str_pad($user->id, 4, '0', STR_PAD_LEFT) }}</a></td>
                                         <td>{{ $user->name ?? 'N/A' }} {{ $user->last_name ?? '' }} {{ $user->last_name2 ?? '' }}</td>
                                         <td>{{ $user->email ?? 'N/A' }}</td>
                                         <td>{{ $user->phone ?? 'N/A' }}</td>
@@ -304,6 +304,13 @@ function deleteItem(type, id) {
     }
   });
 }
+
+// Filas clickables: ir a ficha al hacer clic en la fila (no en botones/links de acciones)
+$(document).on('click', '#example2 tbody tr.row-clickable', function(e) {
+  if ($(e.target).closest('button, .btn, a[href*="edit"]').length) return;
+  var href = $(this).data('href');
+  if (href) window.location.href = href;
+});
 </script>
 
 @endsection

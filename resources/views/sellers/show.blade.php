@@ -1105,9 +1105,11 @@ function initDatatable()
 
   // Funcionalidad para asignación de participaciones
   $(document).ready(function() {
-    // Variables globales para almacenar datos
+    // Variables en scope superior para evitar TDZ y uso en todos los handlers
     let reservaSeleccionada = null;
     let setSeleccionado = null;
+    let participacionesAsignadas = [];
+    let participacionesDisponibles = [];
     
     // Inicializar DataTables para las tablas de reservas y sets
     let tablaReservas = null;
@@ -1364,10 +1366,6 @@ function initDatatable()
     $(document).on('click', '#btn-volver-sets', function() {
       mostrarPaso('paso-sets');
     });
-
-           // Variables para manejar las participaciones asignadas
-      let participacionesAsignadas = [];
-      let participacionesDisponibles = [];
 
       // Función para cargar participaciones asignadas existentes
       function cargarParticipacionesExistentes() {

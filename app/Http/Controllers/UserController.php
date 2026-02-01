@@ -38,7 +38,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'last_name2' => 'nullable|string|max:255',
-            'nif_cif' => 'required|string|max:20|unique:users',
+            'nif_cif' => ['required', 'string', 'max:20', new \App\Rules\SpanishDocument, 'unique:users'],
             'birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email|unique:users',
             'phone' => 'required|string|max:20',
@@ -90,10 +90,26 @@ class UserController extends Controller
 
     /**
      * Display the specified resource.
+     * Acepta ?tab=cartera|historial para abrir directamente en esa pestaña.
      */
-    public function show(User $user)
+    public function show(Request $request, User $user)
     {
-        return view('users.show', compact('user'));
+        $tab = $request->query('tab');
+        return view('users.show', compact('user', 'tab'));
+    }
+
+    /**
+     * Cambiar estado (Activo/Bloqueado) del usuario vía AJAX.
+     */
+    public function toggleStatus(Request $request, User $user)
+    {
+        $user->update(['status' => !$user->status]);
+        return response()->json([
+            'success' => true,
+            'status' => (bool) $user->fresh()->status,
+            'status_text' => $user->status ? 'Activo' : 'Bloqueado',
+            'status_class' => $user->status ? 'success' : 'danger',
+        ]);
     }
 
     /**
@@ -113,7 +129,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'last_name2' => 'nullable|string|max:255',
-            'nif_cif' => 'required|string|max:20|unique:users,nif_cif,' . $user->id,
+            'nif_cif' => ['required', 'string', 'max:20', new \App\Rules\SpanishDocument, 'unique:users,nif_cif,' . $user->id],
             'birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email|unique:users,email,' . $user->id,
             'phone' => 'required|string|max:20',

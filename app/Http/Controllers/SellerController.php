@@ -21,14 +21,76 @@ class SellerController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * Carga conteos de participaciones (asignadas, vendidas, devueltas) y deuda.
+     * La deuda = pendiente por liquidar: (participaciones asignadas+vendidas × precio) − lo ya pagado por sorteo (misma lógica que Liquidación de Vendedor).
      */
     public function index()
     {
-        $sellers = Seller::with(['entities', 'groups'])
+        $sellers = Seller::with(['entities' => fn ($q) => $q->select('entities.id', 'entities.name', 'entities.province')])
             ->forUser(auth()->user())
+            ->withCount([
+                'participations as participaciones_asignadas' => fn ($q) => $q->where('status', 'asignada'),
+                'participations as participaciones_vendidas' => fn ($q) => $q->where('status', 'vendida'),
+                'participations as participaciones_devueltas' => fn ($q) => $q->where('status', 'devuelta'),
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
+
+        $sellerIds = $sellers->pluck('id')->toArray();
+        $deudas = $this->getPendingLiquidationBySellers($sellerIds);
+
+        foreach ($sellers as $seller) {
+            $seller->setAttribute('deuda_pendiente', $deudas[$seller->id] ?? 0);
+        }
+
         return view('sellers.index', compact('sellers'));
+    }
+
+    /**
+     * Calcula el pendiente por liquidar por vendedor (igual lógica que getSettlementSummary, agregado por todos los sorteos).
+     * Para cada sorteo: total a liquidar = suma(played_amount) de participaciones asignada+vendida; pendiente = total − suma(paid_amount) de liquidaciones.
+     *
+     * @param int[] $sellerIds
+     * @return array<int, float> seller_id => deuda
+     */
+    private function getPendingLiquidationBySellers(array $sellerIds): array
+    {
+        if (empty($sellerIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($sellerIds), '?'));
+        $sql = "
+            SELECT seller_id, SUM(pending) as deuda
+            FROM (
+                SELECT t.seller_id, (t.total_to_liquidate - COALESCE(ss.total_paid, 0)) as pending
+                FROM (
+                    SELECT p.seller_id, r.lottery_id, SUM(s.played_amount) as total_to_liquidate
+                    FROM participations p
+                    INNER JOIN sets s ON p.set_id = s.id
+                    INNER JOIN reserves r ON s.reserve_id = r.id
+                    WHERE p.status IN ('asignada', 'vendida')
+                    AND p.seller_id IN ({$placeholders})
+                    GROUP BY p.seller_id, r.lottery_id
+                ) t
+                LEFT JOIN (
+                    SELECT seller_id, lottery_id, SUM(paid_amount) as total_paid
+                    FROM seller_settlements
+                    WHERE seller_id IN ({$placeholders})
+                    GROUP BY seller_id, lottery_id
+                ) ss ON ss.seller_id = t.seller_id AND ss.lottery_id = t.lottery_id
+            ) x
+            GROUP BY seller_id
+        ";
+
+        $params = array_merge($sellerIds, $sellerIds);
+        $rows = DB::select($sql, $params);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int) $row->seller_id] = (float) $row->deuda;
+        }
+        return $result;
     }
 
     /**
@@ -84,7 +146,7 @@ class SellerController extends Controller
             'name' => 'nullable|string|max:255', // No requerido, puede estar vacío
             'last_name' => 'nullable|string|max:255',
             'last_name2' => 'nullable|string|max:255',
-            'nif_cif' => ['nullable', 'string', 'max:255', 'unique:users,nif_cif'],
+            'nif_cif' => ['nullable', 'string', 'max:255', new \App\Rules\SpanishDocument, 'unique:users,nif_cif'],
             'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'phone' => 'nullable|string|max:255',
             'comment' => 'nullable|string'
@@ -117,7 +179,7 @@ class SellerController extends Controller
             return redirect()->route('sellers.index')->with('success', $message);
 
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()]);
+            return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -130,7 +192,7 @@ class SellerController extends Controller
             'name' => 'nullable|string|max:255', // No requerido
             'last_name' => 'nullable|string|max:255', // No requerido
             'last_name2' => 'nullable|string|max:255',
-            'nif_cif' => ['nullable', 'string', 'max:255', 'unique:users,nif_cif'],
+            'nif_cif' => ['nullable', 'string', 'max:255', new \App\Rules\SpanishDocument, 'unique:users,nif_cif'],
             'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email',
             'phone' => 'nullable|string|max:255',
@@ -159,7 +221,7 @@ class SellerController extends Controller
             return redirect()->route('sellers.index')->with('success', $message);
 
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()]);
+            return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -257,12 +319,12 @@ class SellerController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'last_name2' => 'nullable|string|max:255',
-            'nif_cif' => ['nullable', 'string', 'max:255', 'unique:users,nif_cif,' . ($seller->user_id ?? 0)],
+            'nif_cif' => ['nullable', 'string', 'max:255', new \App\Rules\SpanishDocument, 'unique:users,nif_cif,' . ($seller->user_id ?? 0)],
             'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'email' => 'required|email|unique:users,email,' . ($seller->user_id ?? 0),
             'phone' => 'nullable|string|max:255',
             'group_id' => 'nullable|exists:groups,id',
-            'status' => 'nullable|boolean',
+            'status' => 'nullable|integer|in:0,1,2,3',
         ]);
 
         try {
@@ -281,12 +343,13 @@ class SellerController extends Controller
                 'status' => $request->input('status', 0),
             ]);
 
-            // Actualizar la relación con grupos (many-to-many)
-            if ($request->has('group_id') && !empty($request->group_id)) {
-                $seller->groups()->sync([$request->group_id]);
-            } else {
-                // Si no se selecciona grupo, eliminar todas las relaciones
-                $seller->groups()->detach();
+            // Actualizar la relación con grupos solo si group_id viene en la petición (evitar desvincular en ediciones parciales)
+            if ($request->has('group_id')) {
+                if (!empty($request->group_id)) {
+                    $seller->groups()->sync([$request->group_id]);
+                } else {
+                    $seller->groups()->detach();
+                }
             }
 
             // Actualizar el usuario si existe

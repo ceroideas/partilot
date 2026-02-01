@@ -240,6 +240,9 @@
 
                     			<div id="register-manager-selected" class="d-none">
 
+                    				<form action="{{ route('sellers.store-new-user') }}" method="POST" id="register-form">
+                    					@csrf
+                    					<input type="hidden" name="entity_id" value="{{ session('selected_entity')->id }}">
                     				<div style="min-height: 340px;">
                     					
                     				<div class="row">
@@ -359,15 +362,12 @@
      									</div>
 
 	                    				<div class="col-4 text-end">
-	                    					 	                    					<form action="{{ route('sellers.store-new-user') }}" method="POST" id="register-form">
- 	                    						@csrf
- 	                    						<input type="hidden" name="entity_id" value="{{ session('selected_entity')->id }}">
- 	                    						<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
- 	                    							<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
- 	                    					</form>
+	                    						<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
+	                    							<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
 	                    				</div>
 
 	                    			</div>
+	                    				</form>
                     				
                     			</div>
 

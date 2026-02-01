@@ -27,8 +27,13 @@ class Seller extends Model
         'group_priority'
     ];
 
+    /** Estados: 0 = Inactivo, 1 = Activo, 2 = Pendiente, 3 = Bloqueado */
+    const STATUS_INACTIVE = 0;
+    const STATUS_ACTIVE = 1;
+    const STATUS_PENDING = 2;
+    const STATUS_BLOCKED = 3;
+
     protected $casts = [
-        'status' => 'boolean',
         'birthday' => 'date',
     ];
 
@@ -56,6 +61,22 @@ class Seller extends Model
     {
         return $this->belongsToMany(Group::class, 'group_seller')
             ->withTimestamps();
+    }
+
+    /**
+     * Participaciones asignadas a este vendedor
+     */
+    public function participations()
+    {
+        return $this->hasMany(\App\Models\Participation::class);
+    }
+
+    /**
+     * Liquidaciones del vendedor (para cálculo de deuda)
+     */
+    public function settlements()
+    {
+        return $this->hasMany(\App\Models\SellerSettlement::class, 'seller_id');
     }
 
     /**
@@ -90,18 +111,24 @@ class Seller extends Model
 
     public function getStatusTextAttribute()
     {
-        // if ($this->seller_type === 'externo') {
-            return $this->attributes['status'] ? 'Activo' : 'Inactivo';
-        // }
-        // return $this->user && $this->user->status ? 'Activo' : 'Inactivo';
+        $status = (int) ($this->attributes['status'] ?? 0);
+        return match ($status) {
+            self::STATUS_ACTIVE => 'Activo',
+            self::STATUS_PENDING => 'Pendiente',
+            self::STATUS_BLOCKED => 'Bloqueado',
+            default => 'Inactivo',
+        };
     }
 
     public function getStatusClassAttribute()
     {
-        // if ($this->seller_type === 'externo') {
-            return $this->attributes['status'] ? 'success' : 'danger';
-        // }
-        // return $this->user && $this->user->status ? 'success' : 'danger';
+        $status = (int) ($this->attributes['status'] ?? 0);
+        return match ($status) {
+            self::STATUS_ACTIVE => 'success',
+            self::STATUS_PENDING => 'warning',
+            self::STATUS_BLOCKED => 'danger',
+            default => 'secondary', // Inactivo = gris oscuro
+        };
     }
 
     /**

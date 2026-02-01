@@ -87,7 +87,7 @@ class EntityController extends Controller
             'city' => 'required|string|max:255',
             'postal_code' => 'required|string|max:10',
             'address' => 'required|string|max:500',
-            'nif_cif' => 'required|string|max:20',
+            'nif_cif' => ['required', 'string', 'max:20', new \App\Rules\SpanishDocument],
             'phone' => 'required|string|max:20',
             'email' => 'required|email|max:255',
             'comments' => 'nullable|string|max:1000',

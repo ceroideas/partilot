@@ -31,8 +31,9 @@ class AdministratorController extends Controller
     {
         $administration = Administration::forUser(auth()->user())->findOrFail($id);
         
-        // Limpiar espacios del número de cuenta si existe
-        $accountValue = ($request->account && trim($request->account) !== '') ? str_replace(' ', '', trim($request->account)) : null;
+        // Saneamiento IBAN: quitar espacios, prefijo ES duplicado y dejar solo dígitos
+        $accountValue = $this->sanitizeIbanAccount($request->account);
+        $request->merge(['account' => $accountValue ?? '']);
         
         // Validar formato básico primero
         $request->validate([
@@ -94,8 +95,8 @@ class AdministratorController extends Controller
 
     public function store_information(CreateAdmin $request)
     {
-        // Limpiar espacios del número de cuenta si existe
-        $accountValue = ($request->account && trim($request->account) !== '') ? str_replace(' ', '', trim($request->account)) : null;
+        // Saneamiento IBAN: quitar espacios, prefijo ES duplicado y dejar solo dígitos
+        $accountValue = $this->sanitizeIbanAccount($request->account);
         
         $data = [
             "web" => isset($request->web) ? $request->validated()['web'] : '',
@@ -255,5 +256,19 @@ class AdministratorController extends Controller
         $request->session()->forget(['administration', 'manager']);
 
         return redirect('administrations')->with('success', 'Administración creada exitosamente.');
+    }
+
+    /**
+     * Sanea el valor de cuenta/IBAN: quita espacios, prefijo ES duplicado y deja solo dígitos.
+     */
+    private function sanitizeIbanAccount($value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+        $raw = preg_replace('/\s+/', '', trim($value));
+        $raw = preg_replace('/^ES/i', '', $raw); // quitar prefijo ES si el usuario lo pegó
+        $digits = preg_replace('/\D/', '', $raw);
+        return $digits !== '' ? $digits : null;
     }
 }

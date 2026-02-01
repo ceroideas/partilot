@@ -47,7 +47,7 @@ class SellerService
                     'phone' => $user->phone,
                     'comment' => $data['comment'] ?? null,
                     'image' => $user->image,
-                    'status' => $user->status,
+                    'status' => $user->status ? Seller::STATUS_ACTIVE : Seller::STATUS_INACTIVE,
                     'seller_type' => 'partilot'
                 ]);
                 
@@ -72,7 +72,7 @@ class SellerService
                     'phone' => $data['phone'] ?? null,
                     'comment' => $data['comment'] ?? null,
                     'image' => null,
-                    'status' => false, // Inactivo por defecto hasta que acepte el rol
+                    'status' => Seller::STATUS_PENDING, // Pendiente hasta aceptación de términos
                     'seller_type' => 'partilot'
                 ]);
                 
@@ -120,7 +120,7 @@ class SellerService
                 'phone' => $data['phone'] ?? null,
                 'comment' => $data['comment'] ?? null,
                 'image' => $data['image'] ?? null,
-                'status' => $data['status'] ?? false, // Inactivo por defecto
+                'status' => $data['status'] ?? Seller::STATUS_ACTIVE, // Externos nacen activos
                 'seller_type' => 'externo'
             ]);
             

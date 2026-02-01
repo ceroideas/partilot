@@ -30,6 +30,10 @@
             			<h4 class="header-title">
             				Datos Usuario
             			</h4>
+            			<div class="d-flex align-items-center gap-2">
+            				<span class="badge bg-{{ $user->status ? 'success' : 'danger' }} fs-6" id="user-status-badge">{{ $user->status ? 'Activo' : 'Bloqueado' }}</span>
+            				<button type="button" class="btn btn-sm btn-outline-secondary" id="user-toggle-status" title="Cambiar estado">Cambiar estado</button>
+            			</div>
             		</div>
 
                     <br>
@@ -39,46 +43,23 @@
                     	<div class="col-md-3" style="position: relative;">
                     		<div class="form-card bs mb-3">
 
-                    			<div class="form-wizard-element active">
+                    			<div class="form-wizard-element active" data-tab="datos_usuario">
                     				
-                    				<span>
-                    					1
-                    				</span>
-
+                    				<span>1</span>
                     				<img src="{{url('icons_/usuarios.svg')}}" alt="">
-
-                    				<label>
-                    					Datos Usuario
-                    				</label>
-
+                    				<label>Datos Usuario</label>
                     			</div>
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					2
-                    				</span>
-
+                    			<div class="form-wizard-element" data-tab="cartera">
+                    				<span>2</span>
                     				<img src="{{url('assets/form-groups/wallet.svg')}}" alt="">
-
-                    				<label>
-                    					Cartera
-                    				</label>
-
+                    				<label>Cartera</label>
                     			</div>
 
-                    			<div class="form-wizard-element">
-                    				
-                    				<span>
-                    					3
-                    				</span>
-
+                    			<div class="form-wizard-element" data-tab="historial">
+                    				<span>3</span>
                     				<img src="{{url('assets/form-groups/history.svg')}}" alt="">
-
-                    				<label>
-                    					Historial
-                    				</label>
-
+                    				<label>Historial</label>
                     			</div>
                     			
                     		</div>
@@ -286,21 +267,51 @@
 @section('scripts')
 
 <script>
+(function() {
+    var userId = {{ $user->id }};
+    var csrf = '{{ csrf_token() }}';
 
-// Navegación interna
-document.querySelectorAll('.form-wizard-element').forEach(item => {
-    item.addEventListener('click', function() {
-        // Remover active de todos
-        document.querySelectorAll('.form-wizard-element').forEach(nav => nav.classList.remove('active'));
-        // Agregar active al clickeado
-        this.classList.add('active');
-        
-        // Aquí puedes agregar lógica para cambiar el contenido
-        const text = this.querySelector('label').textContent.trim();
-        console.log('Navegando a:', text);
+    // Activar pestaña desde ?tab= (cartera, historial, datos_usuario)
+    var tabParam = '{{ $tab ?? "" }}';
+    if (tabParam) {
+        document.querySelectorAll('.form-wizard-element').forEach(function(el) {
+            el.classList.toggle('active', el.getAttribute('data-tab') === tabParam);
+        });
+    }
+
+    // Navegación interna por wizard
+    document.querySelectorAll('.form-wizard-element').forEach(function(item) {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.form-wizard-element').forEach(function(nav) { nav.classList.remove('active'); });
+            this.classList.add('active');
+        });
     });
-});
 
+    // Toggle estado usuario (AJAX)
+    document.getElementById('user-toggle-status') && document.getElementById('user-toggle-status').addEventListener('click', function() {
+        var btn = this;
+        btn.disabled = true;
+        fetch('{{ route("users.toggle-status", $user->id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                var badge = document.getElementById('user-status-badge');
+                badge.textContent = data.status_text;
+                badge.className = 'badge bg-' + data.status_class + ' fs-6';
+            }
+        })
+        .catch(function() { alert('Error al cambiar el estado'); })
+        .finally(function() { btn.disabled = false; });
+    });
+})();
 </script>
 
 @endsection
