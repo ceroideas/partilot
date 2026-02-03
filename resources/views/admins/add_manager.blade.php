@@ -211,7 +211,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="nif_cif" value="{{ old('nif_cif', session('manager.nif_cif', '')) }}" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="nif_cif" id="admin-manager-nif-cif" value="{{ old('nif_cif', session('manager.nif_cif', '')) }}" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -321,6 +321,13 @@
 	// Limpiar datos de formulario de administración al enviar el formulario de manager
 	document.querySelector('form').addEventListener('submit', function() {
 	    localStorage.removeItem('administration_form_data');
+	});
+
+	// Inicializar validación de documento español
+	document.addEventListener('DOMContentLoaded', function() {
+	    initSpanishDocumentValidation('admin-manager-nif-cif', {
+	        showMessage: true
+	    });
 	});
 </script>
 

@@ -262,7 +262,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" name="nif_cif" value="{{ old('nif_cif', $entity->nif_cif) }}" type="text" placeholder="NIF/CIF" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="nif_cif" id="entity-edit-nif-cif" value="{{ old('nif_cif', $entity->nif_cif) }}" type="text" placeholder="NIF/CIF" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>

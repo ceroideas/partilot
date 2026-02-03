@@ -301,7 +301,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" name="nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" name="nif_cif" id="seller-nif-cif" value="{{ old('nif_cif') }}" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -483,6 +483,13 @@ $('#back-button').click(function (e) {
 	// Limpiar campos
 	$('.invite-email').val('');
 	$('#invite-button').prop('disabled', true);
+});
+
+// Inicializar validación de documento español
+document.addEventListener('DOMContentLoaded', function() {
+    initSpanishDocumentValidation('seller-nif-cif', {
+        showMessage: true
+    });
 });
 
 </script>

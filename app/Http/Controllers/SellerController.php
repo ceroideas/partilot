@@ -324,7 +324,7 @@ class SellerController extends Controller
             'email' => 'required|email|unique:users,email,' . ($seller->user_id ?? 0),
             'phone' => 'nullable|string|max:255',
             'group_id' => 'nullable|exists:groups,id',
-            'status' => 'nullable|integer|in:0,1,2,3',
+            'status' => 'required|integer|in:0,1,3', // 0=Inactivo, 1=Activo, 3=Bloqueado (2=Pendiente solo en creación)
         ]);
 
         try {
@@ -1087,6 +1087,69 @@ class SellerController extends Controller
         return response()->json([
             'success' => true,
             'stats' => $stats
+        ]);
+    }
+
+    /**
+     * Confirmar aceptación de solicitud de vendedor
+     */
+    public function confirmAccept($token)
+    {
+        $seller = Seller::where('confirmation_token', $token)
+            ->where('status', Seller::STATUS_PENDING)
+            ->first();
+
+        if (!$seller) {
+            return view('sellers.confirmation-error', [
+                'message' => 'El enlace de confirmación no es válido o ya ha sido utilizado.',
+                'type' => 'error'
+            ]);
+        }
+
+        // Actualizar status a ACTIVO
+        $seller->update([
+            'status' => Seller::STATUS_ACTIVE,
+            'confirmation_token' => null,
+            'confirmation_sent_at' => null
+        ]);
+
+        \Illuminate\Support\Facades\Log::info("Vendedor {$seller->id} ({$seller->email}) ha aceptado la solicitud de vendedor");
+
+        return view('sellers.confirmation-success', [
+            'message' => '¡Solicitud aceptada correctamente!',
+            'seller' => $seller,
+            'type' => 'accept'
+        ]);
+    }
+
+    /**
+     * Confirmar rechazo de solicitud de vendedor
+     */
+    public function confirmReject($token)
+    {
+        $seller = Seller::where('confirmation_token', $token)
+            ->where('status', Seller::STATUS_PENDING)
+            ->first();
+
+        if (!$seller) {
+            return view('sellers.confirmation-error', [
+                'message' => 'El enlace de confirmación no es válido o ya ha sido utilizado.',
+                'type' => 'error'
+            ]);
+        }
+
+        $email = $seller->email;
+        $sellerId = $seller->id;
+
+        // Eliminar el vendedor
+        $seller->delete();
+
+        \Illuminate\Support\Facades\Log::info("Vendedor {$sellerId} ({$email}) ha rechazado la solicitud de vendedor - Eliminado");
+
+        return view('sellers.confirmation-success', [
+            'message' => 'Solicitud rechazada. El vendedor ha sido eliminado del sistema.',
+            'seller' => null,
+            'type' => 'reject'
         ]);
     }
 } 

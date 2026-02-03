@@ -1344,6 +1344,12 @@
         <!-- Firebase Notifications -->
         <script src="{{url('js/firebase-notifications.js')}}"></script>
 
+        <!-- Image Persistence -->
+        <script src="{{url('js/image-persistence.js')}}"></script>
+
+        <!-- Spanish Document Validator -->
+        <script src="{{url('js/spanish-document-validator.js')}}"></script>
+
         @yield('scripts')
 
         <script>

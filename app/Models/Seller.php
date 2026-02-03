@@ -24,7 +24,9 @@ class Seller extends Model
         'seller_type',
         'group_name',
         'group_color',
-        'group_priority'
+        'group_priority',
+        'confirmation_token',
+        'confirmation_sent_at'
     ];
 
     /** Estados: 0 = Inactivo, 1 = Activo, 2 = Pendiente, 3 = Bloqueado */
@@ -35,6 +37,7 @@ class Seller extends Model
 
     protected $casts = [
         'birthday' => 'date',
+        'confirmation_sent_at' => 'datetime',
     ];
 
     /**

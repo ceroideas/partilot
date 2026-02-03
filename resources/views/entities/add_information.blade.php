@@ -288,7 +288,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="nif_cif" placeholder="B26262626" value="{{ old('nif_cif') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="nif_cif" id="entity-nif-cif" placeholder="B26262626" value="{{ old('nif_cif') }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('nif_cif')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -395,11 +395,34 @@
 	        const lector = new FileReader();
 	        lector.onload = function(e) {
 	        	$('.photo-preview').css('background-image', 'url('+e.target.result+')');
+	        	// Guardar en localStorage para persistencia
+	        	localStorage.setItem('image_entity_create', e.target.result);
 	        }
 	        lector.readAsDataURL(archivo);
 	    } else {
-	        preview.src = ''; // Limpiar preview si se cancela la selección
+	        $('.photo-preview').css('background-image', 'none');
+	        localStorage.removeItem('image_entity_create');
 	    }
+	});
+
+	// Restaurar imagen si hay error de validación
+	document.addEventListener('DOMContentLoaded', function() {
+	    const savedImage = localStorage.getItem('image_entity_create');
+	    if (savedImage) {
+	        $('.photo-preview').css('background-image', 'url('+savedImage+')');
+	    }
+
+	    // Inicializar validación de documento español
+	    initSpanishDocumentValidation('entity-nif-cif', {
+	        showMessage: true
+	    });
+	});
+
+	// Limpiar localStorage al enviar exitosamente
+	$('form[action*="store-information"]').on('submit', function() {
+	    setTimeout(() => {
+	        localStorage.removeItem('image_entity_create');
+	    }, 1000);
 	});
 
 </script>

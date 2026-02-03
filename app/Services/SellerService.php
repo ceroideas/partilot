@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Seller;
+use App\Mail\SellerConfirmationMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class SellerService
 {
@@ -34,8 +37,11 @@ class SellerService
             // No existe seller con este email, buscar usuario
             $user = User::where('email', $data['email'])->first();
             
+            // Generar token de confirmación
+            $confirmationToken = Str::random(64);
+            
             if ($user) {
-                // Usuario existe - crear vendedor vinculado
+                // Usuario existe - crear vendedor pendiente de confirmación
                 $seller = Seller::create([
                     'user_id' => $user->id,
                     'email' => $user->email,
@@ -47,8 +53,10 @@ class SellerService
                     'phone' => $user->phone,
                     'comment' => $data['comment'] ?? null,
                     'image' => $user->image,
-                    'status' => $user->status ? Seller::STATUS_ACTIVE : Seller::STATUS_INACTIVE,
-                    'seller_type' => 'partilot'
+                    'status' => Seller::STATUS_PENDING, // Siempre pendiente hasta confirmación
+                    'seller_type' => 'partilot',
+                    'confirmation_token' => $confirmationToken,
+                    'confirmation_sent_at' => now()
                 ]);
                 
                 // Vincular con la entidad (tabla pivote)
@@ -58,9 +66,9 @@ class SellerService
                     $user->update(['role' => User::ROLE_SELLER]);
                 }
                 
-                Log::info("Vendedor PARTILOT creado y vinculado al usuario {$user->id} y entidad {$entityId}");
+                Log::info("Vendedor PARTILOT creado pendiente de confirmación, usuario {$user->id} y entidad {$entityId}");
             } else {
-                // Usuario no existe - crear vendedor pendiente de vinculación
+                // Usuario no existe - crear vendedor pendiente de vinculación y confirmación
                 $seller = Seller::create([
                     'user_id' => 0, // Pendiente de vinculación (0 para PARTILOT)
                     'email' => $data['email'],
@@ -72,14 +80,25 @@ class SellerService
                     'phone' => $data['phone'] ?? null,
                     'comment' => $data['comment'] ?? null,
                     'image' => null,
-                    'status' => Seller::STATUS_PENDING, // Pendiente hasta aceptación de términos
-                    'seller_type' => 'partilot'
+                    'status' => Seller::STATUS_PENDING, // Pendiente hasta aceptación
+                    'seller_type' => 'partilot',
+                    'confirmation_token' => $confirmationToken,
+                    'confirmation_sent_at' => now()
                 ]);
                 
                 // Vincular con la entidad (tabla pivote)
                 $seller->entities()->attach($entityId);
                 
-                Log::info("Vendedor PARTILOT creado pendiente de vinculación con email: {$data['email']} y entidad {$entityId}");
+                Log::info("Vendedor PARTILOT creado pendiente de vinculación y confirmación con email: {$data['email']} y entidad {$entityId}");
+            }
+            
+            // Enviar correo de confirmación
+            try {
+                Mail::to($seller->email)->send(new SellerConfirmationMail($seller));
+                Log::info("Correo de confirmación enviado a {$seller->email}");
+            } catch (\Exception $e) {
+                Log::error("Error al enviar correo de confirmación: " . $e->getMessage());
+                // No lanzar excepción, el vendedor ya está creado
             }
             
             return $seller;
@@ -108,7 +127,10 @@ class SellerService
                 return $existingSeller;
             }
             
-            // No existe, crear nuevo vendedor externo
+            // Generar token de confirmación
+            $confirmationToken = Str::random(64);
+            
+            // No existe, crear nuevo vendedor externo pendiente de confirmación
             $seller = Seller::create([
                 'user_id' => 0, // Sin usuario
                 'email' => $data['email'],
@@ -120,14 +142,25 @@ class SellerService
                 'phone' => $data['phone'] ?? null,
                 'comment' => $data['comment'] ?? null,
                 'image' => $data['image'] ?? null,
-                'status' => $data['status'] ?? Seller::STATUS_ACTIVE, // Externos nacen activos
-                'seller_type' => 'externo'
+                'status' => Seller::STATUS_PENDING, // Siempre pendiente hasta confirmación
+                'seller_type' => 'externo',
+                'confirmation_token' => $confirmationToken,
+                'confirmation_sent_at' => now()
             ]);
             
             // Vincular con la entidad (tabla pivote)
             $seller->entities()->attach($entityId);
             
-            Log::info("Vendedor EXTERNO creado y vinculado a la entidad {$entityId}");
+            Log::info("Vendedor EXTERNO creado pendiente de confirmación y vinculado a la entidad {$entityId}");
+            
+            // Enviar correo de confirmación
+            try {
+                Mail::to($seller->email)->send(new SellerConfirmationMail($seller));
+                Log::info("Correo de confirmación enviado a {$seller->email}");
+            } catch (\Exception $e) {
+                Log::error("Error al enviar correo de confirmación: " . $e->getMessage());
+                // No lanzar excepción, el vendedor ya está creado
+            }
             
             return $seller;
         });

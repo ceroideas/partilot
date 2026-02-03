@@ -50,18 +50,19 @@
                                 <!-- Bloque de Estado Vendedor -->
                                 <div class="form-card show-content mb-3 bs">
                                     <h4 class="mb-0 mt-1">Estado Vendedor</h4>
-                                    <small><i>Activa o bloquea al vendedor</i></small>
+                                    <small><i>Selecciona el estado del vendedor</i></small>
                                     <div class="form-group mt-2">
-                                        <label class="">Estado Actual</label>
+                                        <label class="form-label">Estado Actual</label>
                                         <label class="badge badge-lg bg-{{ $seller->status_class }} float-end">
                                             {{ $seller->status_text }}
                                         </label>
                                         <div style="clear: both;"></div>
-                                        <div class="form-check form-switch mt-3">
-                                            <input type="hidden" name="status" value="0">
-                                            <input class="form-check-input" type="checkbox" name="status" value="1" id="seller_status" {{ old('status', $seller->getRawOriginal('status')) == 1 ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="seller_status">Vendedor Activo</label>
-                                        </div>
+                                        <select name="status" class="form-select mt-3" id="seller_status" required>
+                                            <option value="0" {{ old('status', $seller->getRawOriginal('status')) == 0 ? 'selected' : '' }}>Inactivo</option>
+                                            <option value="1" {{ old('status', $seller->getRawOriginal('status')) == 1 ? 'selected' : '' }}>Activo</option>
+                                            <option value="3" {{ old('status', $seller->getRawOriginal('status')) == 3 ? 'selected' : '' }}>Bloqueado</option>
+                                        </select>
+                                        <small class="text-muted">El estado "Pendiente" solo se usa durante la creación del vendedor.</small>
                                     </div>
                                 </div>
                                 <a href="{{ route('sellers.show', $seller->id) }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
@@ -144,7 +145,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" type="text" name="nif_cif" value="{{ old('nif_cif', $seller->nif_cif) }}" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" type="text" name="nif_cif" id="seller-edit-nif-cif" value="{{ old('nif_cif', $seller->nif_cif) }}" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -219,4 +220,15 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+// Inicializar validación de documento español
+document.addEventListener('DOMContentLoaded', function() {
+    initSpanishDocumentValidation('seller-edit-nif-cif', {
+        showMessage: true
+    });
+});
+</script>
 @endsection 

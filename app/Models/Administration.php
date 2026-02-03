@@ -14,6 +14,7 @@ class Administration extends Model
         "web",
         "name",
         "receiving",
+        "admin_number",
         "society",
         "nif_cif",
         "province",

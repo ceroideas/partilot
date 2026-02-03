@@ -27,6 +27,7 @@ class CreateAdmin extends FormRequest
             // "image"=>"required|string|max:255",
             "name"=>"required|string|max:255",
             "receiving"=>["required", "string", "regex:/^[0-9]{5}$/"],
+            "admin_number"=>"nullable|string|max:255",
             "society"=>"required|string|max:255",
             "nif_cif"=>"required|string|max:255",
             "province"=>"required|string|max:255",

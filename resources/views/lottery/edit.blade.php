@@ -300,9 +300,28 @@
             const lector = new FileReader();
             lector.onload = function(e) {
                 $('.photo-preview').css('background-image', 'url(' + e.target.result + ')');
+                // Guardar en localStorage para persistencia
+                localStorage.setItem('image_lottery_edit_{{ $lottery->id }}', e.target.result);
             }
             lector.readAsDataURL(archivo);
+        } else {
+            localStorage.removeItem('image_lottery_edit_{{ $lottery->id }}');
         }
+    });
+
+    // Restaurar imagen si hay error de validación
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedImage = localStorage.getItem('image_lottery_edit_{{ $lottery->id }}');
+        if (savedImage) {
+            $('.photo-preview').css('background-image', 'url('+savedImage+')');
+        }
+    });
+
+    // Limpiar localStorage al enviar exitosamente
+    $('form[action*="lotteries"]').on('submit', function() {
+        setTimeout(() => {
+            localStorage.removeItem('image_lottery_edit_{{ $lottery->id }}');
+        }, 1000);
     });
 
     // Función para generar el nombre del sorteo automáticamente

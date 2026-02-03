@@ -243,7 +243,21 @@
 				                                </div>
 			                    			</div>
                     					</div>
-                    					<div class="col-5">
+                    					<div class="col-3">
+                    						<div class="form-group mt-2 mb-3">
+                    							<label class="label-control">Nº Administración</label>
+
+				                    			<div class="input-group input-group-merge group-form">
+
+				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+				                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
+				                                    </div>
+
+				                                    <input value="{{ old('admin_number', $administration->admin_number) }}" class="form-control" type="text" name="admin_number" placeholder="Nº Administración" style="border-radius: 0 30px 30px 0;">
+				                                </div>
+			                    			</div>
+                    					</div>
+                    					<div class="col-2">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Nombre Autónomo / Sociedad</label>
 
@@ -268,7 +282,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="{{ old('nif_cif', $administration->nif_cif) }}" class="form-control" type="text" name="nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input value="{{ old('nif_cif', $administration->nif_cif) }}" class="form-control" type="text" name="nif_cif" id="admin-edit-nif-cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -470,13 +484,32 @@ document.getElementById('imagenInput').addEventListener('change', function(event
         	$('.photo-preview').css('background-image', 'url('+e.target.result+')');
         	// Ocultar el icono cuando se carga una imagen
         	$('.photo-preview i').hide();
+        	// Guardar en localStorage para persistencia
+        	localStorage.setItem('image_admin_edit_{{ $administration->id }}', e.target.result);
         }
         lector.readAsDataURL(archivo);
     } else {
         $('.photo-preview').css('background-image', 'none'); // Limpiar preview si se cancela la selección
         // Mostrar el icono si no hay imagen
         $('.photo-preview i').show();
+        localStorage.removeItem('image_admin_edit_{{ $administration->id }}');
     }
+});
+
+// Restaurar imagen si hay error de validación
+document.addEventListener('DOMContentLoaded', function() {
+    const savedImage = localStorage.getItem('image_admin_edit_{{ $administration->id }}');
+    if (savedImage) {
+        $('.photo-preview').css('background-image', 'url('+savedImage+')');
+        $('.photo-preview i').hide();
+    }
+});
+
+// Limpiar localStorage al enviar exitosamente
+$('#form-edit').on('submit', function() {
+    setTimeout(() => {
+        localStorage.removeItem('image_admin_edit_{{ $administration->id }}');
+    }, 1000);
 });
 
 // Máscara para Nº Receptor (solo números, máximo 5)
@@ -549,6 +582,13 @@ if (accountInput) {
 		this.appendChild(hiddenInput);
 	});
 }
+
+// Inicializar validación de documento español
+document.addEventListener('DOMContentLoaded', function() {
+    initSpanishDocumentValidation('admin-edit-nif-cif', {
+        showMessage: true
+    });
+});
 
 </script>
 

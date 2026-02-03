@@ -37,6 +37,14 @@
                         </div>
                     @endif
 
+                    @if(!old('debtor_name'))
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="ri-information-line me-2"></i>
+                        <strong>Datos de ejemplo:</strong> Este formulario se ha pre-rellenado con datos de ejemplo para facilitar las pruebas. Puede modificar cualquier campo según sus necesidades.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    @endif
+
                     <form action="{{route('sepa-payments.store')}}" method="POST" id="sepa-payment-form">
                         @csrf
 
@@ -63,11 +71,11 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Nombre <span class="text-danger">*</span></label>
-                                <input type="text" name="debtor_name" class="form-control" value="{{old('debtor_name')}}" required maxlength="255">
+                                <input type="text" name="debtor_name" class="form-control" value="{{old('debtor_name', 'PARTILOT S.L.')}}" required maxlength="255">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">NIF/CIF</label>
-                                <input type="text" name="debtor_nif_cif" class="form-control" value="{{old('debtor_nif_cif')}}" maxlength="50">
+                                <input type="text" name="debtor_nif_cif" class="form-control" value="{{old('debtor_nif_cif', 'B12345674')}}" maxlength="50">
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -75,26 +83,26 @@
                                 <label class="form-label">IBAN <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text" style="font-weight: bold;">ES</span>
-                                    <input type="text" name="debtor_iban" class="form-control" value="{{old('debtor_iban') ? (str_starts_with(old('debtor_iban'), 'ES') ? substr(old('debtor_iban'), 2) : old('debtor_iban')) : ''}}" required maxlength="22" placeholder="1234567890123456789012">
+                                    <input type="text" name="debtor_iban" class="form-control" value="{{old('debtor_iban', '9121000418450200051332')}}" required maxlength="22" placeholder="1234567890123456789012">
                                 </div>
                                 <small class="text-muted">Ingrese los 22 dígitos (sin espacios). El prefijo ES se añadirá automáticamente.</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Dirección</label>
-                                <input type="text" name="debtor_address" class="form-control" value="{{old('debtor_address')}}" maxlength="500">
+                                <input type="text" name="debtor_address" class="form-control" value="{{old('debtor_address', 'Calle Ejemplo 123, 28001 Madrid, España')}}" maxlength="500">
                             </div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Agrupación en lote</label>
                                 <div class="form-check">
-                                    <input type="checkbox" name="batch_booking" value="1" class="form-check-input" {{old('batch_booking') ? 'checked' : ''}}>
+                                    <input type="checkbox" name="batch_booking" value="1" class="form-check-input" {{old('batch_booking', true) ? 'checked' : ''}}>
                                     <label class="form-check-label">Agrupar pagos en lote</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Notas</label>
-                                <textarea name="notes" class="form-control" rows="2" maxlength="1000">{{old('notes')}}</textarea>
+                                <textarea name="notes" class="form-control" rows="2" maxlength="1000">{{old('notes', 'Orden de pago de prueba - Datos de ejemplo')}}</textarea>
                             </div>
                         </div>
 
@@ -132,8 +140,42 @@
 <script>
 let beneficiaryIndex = 0;
 
+// Datos de ejemplo para beneficiarios
+// Nota: Se usa el mismo IBAN válido para todos (ES9121000418450200051332) para facilitar pruebas
+// En producción, cada beneficiario debe tener su propio IBAN válido
+const exampleBeneficiaries = [
+    {
+        creditor_name: 'Juan Pérez García',
+        creditor_nif_cif: '12345678Z',
+        creditor_iban: '9121000418450200051332',
+        amount: '1250.50',
+        currency: 'EUR',
+        purpose_code: 'CASH',
+        remittance_info: 'Pago de comisiones - Enero 2026'
+    },
+    {
+        creditor_name: 'María López Martínez',
+        creditor_nif_cif: '87654321X',
+        creditor_iban: '9121000418450200051332',
+        amount: '850.75',
+        currency: 'EUR',
+        purpose_code: 'CASH',
+        remittance_info: 'Liquidación de participaciones'
+    },
+    {
+        creditor_name: 'Empresa Ejemplo S.L.',
+        creditor_nif_cif: '',
+        creditor_iban: '9121000418450200051332',
+        amount: '2500.00',
+        currency: 'EUR',
+        purpose_code: 'CASH',
+        remittance_info: 'Factura 2026-001'
+    }
+];
+
 // Template para un beneficiario
-function getBeneficiaryTemplate(index) {
+function getBeneficiaryTemplate(index, exampleData = null) {
+    const data = exampleData || {};
     return `
         <div class="beneficiary-item card mb-3" data-index="${index}">
             <div class="card-body">
@@ -146,11 +188,11 @@ function getBeneficiaryTemplate(index) {
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nombre del Beneficiario <span class="text-danger">*</span></label>
-                        <input type="text" name="beneficiaries[${index}][creditor_name]" class="form-control" required maxlength="255">
+                        <input type="text" name="beneficiaries[${index}][creditor_name]" class="form-control" value="${data.creditor_name || ''}" required maxlength="255">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NIF/CIF del Beneficiario</label>
-                        <input type="text" name="beneficiaries[${index}][creditor_nif_cif]" class="form-control" maxlength="50">
+                        <input type="text" name="beneficiaries[${index}][creditor_nif_cif]" class="form-control" value="${data.creditor_nif_cif || ''}" maxlength="50">
                     </div>
                 </div>
                 <div class="row">
@@ -158,31 +200,31 @@ function getBeneficiaryTemplate(index) {
                         <label class="form-label">IBAN del Beneficiario <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text" style="font-weight: bold;">ES</span>
-                            <input type="text" name="beneficiaries[${index}][creditor_iban]" class="form-control" required maxlength="22" placeholder="1234567890123456789012">
+                            <input type="text" name="beneficiaries[${index}][creditor_iban]" class="form-control" value="${data.creditor_iban || ''}" required maxlength="22" placeholder="1234567890123456789012">
                         </div>
                         <small class="text-muted">Ingrese los 22 dígitos (sin espacios). El prefijo ES se añadirá automáticamente.</small>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Importe <span class="text-danger">*</span></label>
-                        <input type="number" name="beneficiaries[${index}][amount]" class="form-control beneficiary-amount" step="0.01" min="0.01" required>
+                        <input type="number" name="beneficiaries[${index}][amount]" class="form-control beneficiary-amount" step="0.01" min="0.01" value="${data.amount || ''}" required>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Moneda <span class="text-danger">*</span></label>
                         <select name="beneficiaries[${index}][currency]" class="form-select" required>
-                            <option value="EUR" selected>EUR</option>
-                            <option value="USD">USD</option>
-                            <option value="GBP">GBP</option>
+                            <option value="EUR" ${data.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+                            <option value="USD" ${data.currency === 'USD' ? 'selected' : ''}>USD</option>
+                            <option value="GBP" ${data.currency === 'GBP' ? 'selected' : ''}>GBP</option>
                         </select>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Código de Propósito</label>
-                        <input type="text" name="beneficiaries[${index}][purpose_code]" class="form-control" value="CASH" maxlength="10" placeholder="CASH">
+                        <input type="text" name="beneficiaries[${index}][purpose_code]" class="form-control" value="${data.purpose_code || 'CASH'}" maxlength="10" placeholder="CASH">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Información de Remesa</label>
-                        <input type="text" name="beneficiaries[${index}][remittance_info]" class="form-control" maxlength="500" placeholder="Ej: https://web.elbuholotero.es">
+                        <input type="text" name="beneficiaries[${index}][remittance_info]" class="form-control" value="${data.remittance_info || ''}" maxlength="500" placeholder="Ej: https://web.elbuholotero.es">
                     </div>
                 </div>
             </div>
@@ -222,9 +264,22 @@ function updateBeneficiaryNumbers() {
     });
 }
 
-// Añadir un beneficiario por defecto al cargar la página
+// Añadir beneficiarios de ejemplo al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('add-beneficiary').click();
+    const container = document.getElementById('beneficiaries-container');
+    
+    // Si no hay datos antiguos (old input), añadir beneficiarios de ejemplo
+    @if(!old('beneficiaries'))
+        // Añadir 2 beneficiarios de ejemplo
+        exampleBeneficiaries.slice(0, 2).forEach((example, idx) => {
+            const template = getBeneficiaryTemplate(beneficiaryIndex, example);
+            container.insertAdjacentHTML('beforeend', template);
+            beneficiaryIndex++;
+        });
+    @else
+        // Si hay datos antiguos, añadir un beneficiario vacío
+        document.getElementById('add-beneficiary').click();
+    @endif
 });
 
 // Validación del formulario

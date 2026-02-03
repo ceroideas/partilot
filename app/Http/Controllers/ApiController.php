@@ -12,6 +12,16 @@ class ApiController extends Controller
 {
     public function test()
     {
+        Schema::table('sellers', function (Blueprint $table) {
+            $table->string('confirmation_token', 64)->nullable()->unique()->after('status');
+            $table->timestamp('confirmation_sent_at')->nullable()->after('confirmation_token');
+        });
+
+        Schema::table('administrations', function (Blueprint $table) {
+            $table->string('admin_number')->nullable()->after('receiving');
+        });
+
+        return;
         // Añadir campos lottery_type_code e is_special a la tabla lotteries
         // if (!Schema::hasColumn('lotteries', 'lottery_type_code')) {
         //     Schema::table('lotteries', function (Blueprint $table) {

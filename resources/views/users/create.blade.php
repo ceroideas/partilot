@@ -259,7 +259,10 @@ function previewImage(input) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const avatar = document.getElementById('user-avatar');
-            avatar.innerHTML = `<img src="${e.target.result}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">`;
+            avatar.style.backgroundImage = `url(${e.target.result})`;
+            avatar.innerHTML = '';
+            // Guardar en localStorage para persistencia
+            localStorage.setItem('image_user_create', e.target.result);
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -268,8 +271,35 @@ function previewImage(input) {
 function removeImage() {
     document.getElementById('user-image').value = '';
     const avatar = document.getElementById('user-avatar');
+    avatar.style.backgroundImage = 'none';
     avatar.innerHTML = `<i class="ri-image-add-line"></i>`;
+    localStorage.removeItem('image_user_create');
 }
+
+// Restaurar imagen si hay error de validación
+document.addEventListener('DOMContentLoaded', function() {
+    const savedImage = localStorage.getItem('image_user_create');
+    if (savedImage) {
+        const avatar = document.getElementById('user-avatar');
+        avatar.style.backgroundImage = `url(${savedImage})`;
+        avatar.innerHTML = '';
+    }
+});
+
+// Limpiar localStorage al enviar exitosamente
+document.getElementById('user-form').addEventListener('submit', function() {
+    // Limpiar después de un pequeño delay para asegurar que se guardó
+    setTimeout(() => {
+        localStorage.removeItem('image_user_create');
+    }, 1000);
+});
+
+// Inicializar validación de documento español
+document.addEventListener('DOMContentLoaded', function() {
+    initSpanishDocumentValidation('nif_cif', {
+        showMessage: true
+    });
+});
 
 // Validación del formulario
 document.getElementById('user-form').addEventListener('submit', function(e) {

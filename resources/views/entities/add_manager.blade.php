@@ -394,7 +394,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" name="manager_nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" name="manager_nif_cif" id="entity-manager-nif-cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     						</div>
@@ -646,6 +646,13 @@ $('#accept-invite-btn').click(function (e) {
 		// No hay coincidencia - enviar formulario de entidad pendiente
 		$('#create-pending-entity-form').submit();
 	}
+});
+
+// Inicializar validación de documento español
+document.addEventListener('DOMContentLoaded', function() {
+    initSpanishDocumentValidation('entity-manager-nif-cif', {
+        showMessage: true
+    });
 });
 	
 </script>

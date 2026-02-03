@@ -239,7 +239,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="nif_cif" value="{{ $administration->manager->user->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="nif_cif" id="admin-edit-manager-nif-cif" value="{{ $administration->manager->user->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -339,7 +339,12 @@
 @section('scripts')
 
 <script>
-
+// Inicializar validación de documento español
+document.addEventListener('DOMContentLoaded', function() {
+    initSpanishDocumentValidation('admin-edit-manager-nif-cif', {
+        showMessage: true
+    });
+});
 </script>
 
 @endsection

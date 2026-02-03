@@ -64,6 +64,10 @@ Route::get('firebase-messaging-sw.js', function () {
     ]);
 })->name('firebase-service-worker');
 
+// Rutas públicas de confirmación de vendedores (sin autenticación)
+Route::get('/sellers/confirm/accept/{token}', [SellerController::class, 'confirmAccept'])->name('sellers.confirm-accept');
+Route::get('/sellers/confirm/reject/{token}', [SellerController::class, 'confirmReject'])->name('sellers.confirm-reject');
+
 // Rutas protegidas por autenticación
 Route::middleware(['auth'])->group(function () {
     
