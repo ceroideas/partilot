@@ -331,7 +331,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="email" name="email" value="{{ old('email') }}" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input class="form-control" type="email" id="seller-email" name="email" value="{{ old('email') }}" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -488,6 +488,12 @@ $('#back-button').click(function (e) {
 // Inicializar validación de documento español
 document.addEventListener('DOMContentLoaded', function() {
     initSpanishDocumentValidation('seller-nif-cif', {
+        showMessage: true
+    });
+    
+    // Inicializar validación de email
+    initEmailValidation('seller-email', {
+        context: 'seller',
         showMessage: true
     });
     

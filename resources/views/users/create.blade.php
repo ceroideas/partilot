@@ -299,6 +299,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initSpanishDocumentValidation('nif_cif', {
         showMessage: true
     });
+    
+    // Inicializar validación de email
+    initEmailValidation('email', {
+        context: 'user',
+        showMessage: true
+    });
 });
 
 // Validación del formulario

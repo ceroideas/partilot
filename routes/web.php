@@ -88,6 +88,7 @@ Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin']
     Route::get('/edit/{id}', [AdministratorController::class, 'edit'])->name('administrations.edit');
     Route::put('/update/{id}', [AdministratorController::class, 'update'])->name('administrations.update');
     Route::post('/{administration}/toggle-status', [AdministratorController::class, 'toggleStatus'])->name('administrations.toggle-status');
+    Route::post('/check-email', [AdministratorController::class, 'checkEmail'])->name('administrations.check-email');
     Route::get('/edit/manager/{id}', function($id) { 
         $administration = Administration::with('manager')
             ->forUser(auth()->user())
@@ -120,6 +121,7 @@ Route::group(['prefix' => 'entities'], function() {
     Route::get('/edit/{id}', [EntityController::class, 'edit']);
     Route::put('/update/{id}', [EntityController::class, 'update'])->name('entities.update');
     Route::post('/{entity}/toggle-status', [EntityController::class, 'toggleStatus'])->name('entities.toggle-status');
+    Route::post('/check-email', [EntityController::class, 'checkEmail'])->name('entities.check-email');
     Route::delete('/destroy/{id}', [EntityController::class, 'destroy']);
     Route::get('/delete/{id}', [EntityController::class, 'destroy']);
     
@@ -157,6 +159,7 @@ Route::group(['prefix' => 'sellers', 'middleware' => 'role:super_admin,administr
     Route::delete('/destroy/{id}', [SellerController::class, 'destroy'])->name('sellers.destroy');
     Route::get('/delete/{id}', [SellerController::class, 'destroy'])->name('sellers.delete');
     Route::post('/check-user-email', [SellerController::class, 'check_user_email'])->name('sellers.check-user-email');
+    Route::post('/check-email', [SellerController::class, 'checkEmail'])->name('sellers.check-email');
     Route::post('/get-sets-by-reserve', [SellerController::class, 'getSetsByReserve'])->name('sellers.get-sets-by-reserve');
     Route::post('/validate-participations', [SellerController::class, 'validateParticipations'])->name('sellers.validate-participations');
     Route::post('/save-assignments', [SellerController::class, 'saveAssignments'])->name('sellers.save-assignments');
@@ -382,6 +385,7 @@ Route::resource('devolutions', DevolutionsController::class);
 // Rutas de Usuarios
 Route::get('users-data', [UserController::class, 'data'])->name('users.data');
 Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+Route::post('users/check-email', [UserController::class, 'checkEmail'])->name('users.check-email');
 Route::resource('users', UserController::class);
 
 // Rutas de Notificaciones

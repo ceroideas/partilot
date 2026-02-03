@@ -167,7 +167,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" type="email" name="email" value="{{ old('email', $seller->email) }}" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
+                                                        <input class="form-control" type="email" id="seller-edit-email" name="email" value="{{ old('email', $seller->email) }}" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -227,6 +227,13 @@
 // Inicializar validación de documento español
 document.addEventListener('DOMContentLoaded', function() {
     initSpanishDocumentValidation('seller-edit-nif-cif', {
+        showMessage: true
+    });
+    
+    // Inicializar validación de email
+    initEmailValidation('seller-edit-email', {
+        context: 'seller',
+        excludeId: {{ $seller->id }},
         showMessage: true
     });
 });

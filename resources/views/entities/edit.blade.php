@@ -292,7 +292,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" name="email" value="{{ old('email', $entity->email) }}" type="email" placeholder="Email" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" name="email" id="entity-edit-email" value="{{ old('email', $entity->email) }}" type="email" placeholder="Email" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -353,6 +353,13 @@
 <script>
 // Actualizar el badge de estado cuando se cambie el select
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar validación de email
+    initEmailValidation('entity-edit-email', {
+        context: 'entity',
+        excludeId: {{ $entity->id }},
+        showMessage: true
+    });
+    
     const select = document.getElementById('entity_status');
     
     if (select) {

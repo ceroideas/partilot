@@ -1349,6 +1349,9 @@
 
         <!-- Spanish Document Validator -->
         <script src="{{url('js/spanish-document-validator.js')}}"></script>
+        
+        <!-- Email Validator -->
+        <script src="{{url('js/email-validator.js')}}"></script>
 
         @yield('scripts')
 

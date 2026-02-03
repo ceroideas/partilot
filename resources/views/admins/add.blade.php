@@ -279,7 +279,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="email" required name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="email" id="admin-email" required name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -492,6 +492,12 @@
 	// Inicializar validación de documento español
 	document.addEventListener('DOMContentLoaded', function() {
 	    initSpanishDocumentValidation('admin-nif-cif', {
+	        showMessage: true
+	    });
+	    
+	    // Inicializar validación de email
+	    initEmailValidation('admin-email', {
+	        context: 'administration',
 	        showMessage: true
 	    });
 	});

@@ -731,4 +731,29 @@ class EntityController extends Controller
             'status_class' => $statusClass,
         ]);
     }
+
+    /**
+     * Verificar si el email ya está en uso en entidades (para validación AJAX)
+     */
+    public function checkEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'exclude_id' => 'nullable|integer'
+        ]);
+
+        $query = Entity::where('email', $request->email);
+        
+        // Excluir el ID actual si se está editando
+        if ($request->exclude_id) {
+            $query->where('id', '!=', $request->exclude_id);
+        }
+
+        $exists = $query->exists();
+
+        return response()->json([
+            'exists' => $exists,
+            'message' => $exists ? 'Este email ya está en uso por otra entidad' : null
+        ]);
+    }
 } 

@@ -324,7 +324,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" value="{{ old('email') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="email" id="entity-email" name="email" placeholder="ejemplo@cuentaemail.com" value="{{ old('email') }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('email')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -414,6 +414,12 @@
 
 	    // Inicializar validación de documento español
 	    initSpanishDocumentValidation('entity-nif-cif', {
+	        showMessage: true
+	    });
+	    
+	    // Inicializar validación de email
+	    initEmailValidation('entity-email', {
+	        context: 'entity',
 	        showMessage: true
 	    });
 	});

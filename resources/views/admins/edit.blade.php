@@ -357,7 +357,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="{{ old('email', $administration->email) }}" class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input value="{{ old('email', $administration->email) }}" class="form-control" type="email" id="admin-edit-email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -586,6 +586,13 @@ if (accountInput) {
 // Inicializar validación de documento español
 document.addEventListener('DOMContentLoaded', function() {
     initSpanishDocumentValidation('admin-edit-nif-cif', {
+        showMessage: true
+    });
+    
+    // Inicializar validación de email
+    initEmailValidation('admin-edit-email', {
+        context: 'administration',
+        excludeId: {{ $administration->id }},
         showMessage: true
     });
 });
