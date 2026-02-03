@@ -26,15 +26,9 @@
             <div class="card">
                 <div class="card-body">
 
-            		<div class="d-flex justify-content-between align-items-center">
-            			<h4 class="header-title">
-            				Datos Usuario
-            			</h4>
-            			<div class="d-flex align-items-center gap-2">
-            				<span class="badge bg-{{ $user->status ? 'success' : 'danger' }} fs-6" id="user-status-badge">{{ $user->status ? 'Activo' : 'Bloqueado' }}</span>
-            				<button type="button" class="btn btn-sm btn-outline-secondary" id="user-toggle-status" title="Cambiar estado">Cambiar estado</button>
-            			</div>
-            		</div>
+            		<h4 class="header-title">
+            			Datos Usuario
+            		</h4>
 
                     <br>
 
@@ -237,6 +231,23 @@
 
 							                                    <input readonly="" value="************" class="form-control" type="text" placeholder="Contraseña" style="border-radius: 0 30px 30px 0;">
 							                                </div>
+						                    			</div>
+			                    					</div>
+
+			                    					<div class="col-3">
+			                    						<div class="form-group mt-2 mb-3">
+			                    							<label class="label-control">Estado</label>
+
+							                    			<div class="input-group input-group-merge group-form">
+
+							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+							                                        <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
+							                                    </div>
+
+							                                    <input readonly="" value="{{ $user->status ? 'Activo' : 'Bloqueado' }}" class="form-control" type="text" id="user-status-input" style="border-radius: 0 30px 0 0;">
+							                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="user-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
+							                                </div>
+							                                <span class="badge bg-{{ $user->status ? 'success' : 'danger' }} mt-2" id="user-status-badge" style="display: none;">{{ $user->status ? 'Activo' : 'Bloqueado' }}</span>
 						                    			</div>
 			                    					</div>
 

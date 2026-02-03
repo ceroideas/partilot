@@ -689,4 +689,46 @@ class EntityController extends Controller
             'message' => 'Status del gestor actualizado correctamente'
         ]);
     }
+
+    /**
+     * Cambiar estado (Activo/Inactivo/Pendiente) de la entidad vía AJAX.
+     */
+    public function toggleStatus(Request $request, Entity $entity)
+    {
+        // Verificar permisos
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity->id);
+        
+        // Determinar el nuevo estado según el estado actual
+        $currentStatus = $entity->status;
+        
+        // Lógica de toggle: null/-1 (Pendiente) -> 1 (Activo), 1 (Activo) -> 0 (Inactivo), 0 (Inactivo) -> 1 (Activo)
+        $newStatus = match($currentStatus) {
+            null, -1 => 1,  // Pendiente -> Activo
+            1 => 0,         // Activo -> Inactivo
+            0 => 1,         // Inactivo -> Activo
+            default => 1
+        };
+        
+        $entity->update(['status' => $newStatus]);
+        
+        // Obtener texto y clase del nuevo estado
+        $statusValue = $entity->fresh()->status;
+        if ($statusValue === null || $statusValue === -1) {
+            $statusText = 'Pendiente';
+            $statusClass = 'secondary';
+        } elseif ($statusValue == 1) {
+            $statusText = 'Activo';
+            $statusClass = 'success';
+        } else {
+            $statusText = 'Inactivo';
+            $statusClass = 'danger';
+        }
+        
+        return response()->json([
+            'success' => true,
+            'status' => $newStatus,
+            'status_text' => $statusText,
+            'status_class' => $statusClass,
+        ]);
+    }
 } 

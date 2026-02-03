@@ -456,17 +456,6 @@
                                             </div>
 
                                             <div class="row">
-                                                {{-- <div class="col-md-6">
-                                                    <div class="form-group mt-2 mb-3">
-                                                        <label class="label-control">Order ID</label>
-                                                        <div class="input-group input-group-merge group-form">
-                                                            <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                                <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-                                                            </div>
-                                                            <input class="form-control" type="text" value="#VN{{ str_pad($seller->id, 4, '0', STR_PAD_LEFT) }}" style="border-radius: 0 30px 30px 0;" readonly>
-                                                        </div>
-                                                    </div>
-                                                </div>
                                                 <div class="col-md-6">
                                                     <div class="form-group mt-2 mb-3">
                                                         <label class="label-control">Estado</label>
@@ -474,10 +463,12 @@
                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                 <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
                                                             </div>
-                                                            <input class="form-control" type="text" value="{{ $seller->status_text }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                            <input class="form-control" type="text" value="{{ $seller->status_text }}" id="seller-status-input" style="border-radius: 0 30px 0 0;" readonly>
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="seller-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
                                                         </div>
+                                                        <span class="badge {{ $seller->status_class }} mt-2" id="seller-status-badge" style="display: none;">{{ $seller->status_text }}</span>
                                                     </div>
-                                                </div> --}}
+                                                </div>
                                             </div>
 
                                             {{-- @if($seller->comment)
@@ -2393,6 +2384,36 @@ function initDatatable()
       $('#sidebar-entity-name').text('{{ $currentEntity->name ?? "Entidad" }}');
       $('#sidebar-entity-province').text('{{ $currentEntity->province ?? "Provincia" }}');
   @endif
+
+  // Toggle estado vendedor (AJAX)
+  document.getElementById('seller-toggle-status') && document.getElementById('seller-toggle-status').addEventListener('click', function() {
+      var btn = this;
+      var sellerId = {{ $seller->id }};
+      btn.disabled = true;
+      fetch('{{ route("sellers.toggle-status", $seller->id) }}', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': '{{ csrf_token() }}',
+              'Accept': 'application/json'
+          },
+          body: JSON.stringify({})
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+          if (data.success) {
+              var input = document.getElementById('seller-status-input');
+              var badge = document.getElementById('seller-status-badge');
+              input.value = data.status_text;
+              badge.textContent = data.status_text;
+              badge.className = 'badge ' + data.status_class + ' mt-2';
+          } else {
+              alert(data.message || 'Error al cambiar el estado');
+          }
+      })
+      .catch(function() { alert('Error al cambiar el estado'); })
+      .finally(function() { btn.disabled = false; });
+  });
 
 </script>
 

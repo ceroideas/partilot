@@ -87,6 +87,7 @@ Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin']
     })->name('administrations.show');
     Route::get('/edit/{id}', [AdministratorController::class, 'edit'])->name('administrations.edit');
     Route::put('/update/{id}', [AdministratorController::class, 'update'])->name('administrations.update');
+    Route::post('/{administration}/toggle-status', [AdministratorController::class, 'toggleStatus'])->name('administrations.toggle-status');
     Route::get('/edit/manager/{id}', function($id) { 
         $administration = Administration::with('manager')
             ->forUser(auth()->user())
@@ -118,6 +119,7 @@ Route::group(['prefix' => 'entities'], function() {
     Route::get('/view/{id}', [EntityController::class, 'show'])->name('entities.show');
     Route::get('/edit/{id}', [EntityController::class, 'edit']);
     Route::put('/update/{id}', [EntityController::class, 'update'])->name('entities.update');
+    Route::post('/{entity}/toggle-status', [EntityController::class, 'toggleStatus'])->name('entities.toggle-status');
     Route::delete('/destroy/{id}', [EntityController::class, 'destroy']);
     Route::get('/delete/{id}', [EntityController::class, 'destroy']);
     
@@ -151,6 +153,7 @@ Route::group(['prefix' => 'sellers', 'middleware' => 'role:super_admin,administr
     Route::get('/view/{id}', [SellerController::class, 'show'])->name('sellers.show');
     Route::get('/edit/{id}', [SellerController::class, 'edit'])->name('sellers.edit');
     Route::put('/update/{id}', [SellerController::class, 'update'])->name('sellers.update');
+    Route::post('/{seller}/toggle-status', [SellerController::class, 'toggleStatus'])->name('sellers.toggle-status');
     Route::delete('/destroy/{id}', [SellerController::class, 'destroy'])->name('sellers.destroy');
     Route::get('/delete/{id}', [SellerController::class, 'destroy'])->name('sellers.delete');
     Route::post('/check-user-email', [SellerController::class, 'check_user_email'])->name('sellers.check-user-email');

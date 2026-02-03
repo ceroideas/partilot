@@ -140,7 +140,7 @@ class SellerController extends Controller
      */
     public function store_existing_user(Request $request)
     {
-        $request->validate([
+        $validator = \Validator::make($request->all(), [
             'email' => 'required|email',
             'entity_id' => 'required|exists:entities,id',
             'name' => 'nullable|string|max:255', // No requerido, puede estar vacío
@@ -151,6 +151,21 @@ class SellerController extends Controller
             'phone' => 'nullable|string|max:255',
             'comment' => 'nullable|string'
         ]);
+
+        if ($validator->fails()) {
+            // Asegurar que la entidad esté en sesión
+            if ($request->entity_id) {
+                $entity = Entity::with('administration')
+                    ->forUser(auth()->user())
+                    ->find($request->entity_id);
+                if ($entity) {
+                    session(['selected_entity' => $entity]);
+                }
+            }
+            return redirect()->route('sellers.add-information')
+                ->withErrors($validator)
+                ->withInput();
+        }
 
         if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
             abort(403, 'No tienes permisos para gestionar vendedores de esta entidad.');
@@ -179,7 +194,18 @@ class SellerController extends Controller
             return redirect()->route('sellers.index')->with('success', $message);
 
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()])->withInput();
+            // Asegurar que la entidad esté en sesión
+            if ($request->entity_id) {
+                $entity = Entity::with('administration')
+                    ->forUser(auth()->user())
+                    ->find($request->entity_id);
+                if ($entity) {
+                    session(['selected_entity' => $entity]);
+                }
+            }
+            return redirect()->route('sellers.add-information')
+                ->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
@@ -188,7 +214,7 @@ class SellerController extends Controller
      */
     public function store_new_user(Request $request)
     {
-        $request->validate([
+        $validator = \Validator::make($request->all(), [
             'name' => 'nullable|string|max:255', // No requerido
             'last_name' => 'nullable|string|max:255', // No requerido
             'last_name2' => 'nullable|string|max:255',
@@ -198,6 +224,21 @@ class SellerController extends Controller
             'phone' => 'nullable|string|max:255',
             'entity_id' => 'required|exists:entities,id'
         ]);
+
+        if ($validator->fails()) {
+            // Asegurar que la entidad esté en sesión
+            if ($request->entity_id) {
+                $entity = Entity::with('administration')
+                    ->forUser(auth()->user())
+                    ->find($request->entity_id);
+                if ($entity) {
+                    session(['selected_entity' => $entity]);
+                }
+            }
+            return redirect()->route('sellers.add-information')
+                ->withErrors($validator)
+                ->withInput();
+        }
 
         if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
             abort(403, 'No tienes permisos para gestionar vendedores de esta entidad.');
@@ -221,7 +262,18 @@ class SellerController extends Controller
             return redirect()->route('sellers.index')->with('success', $message);
 
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()])->withInput();
+            // Asegurar que la entidad esté en sesión
+            if ($request->entity_id) {
+                $entity = Entity::with('administration')
+                    ->forUser(auth()->user())
+                    ->find($request->entity_id);
+                if ($entity) {
+                    session(['selected_entity' => $entity]);
+                }
+            }
+            return redirect()->route('sellers.add-information')
+                ->withErrors(['error' => 'Error al crear el vendedor: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
@@ -1150,6 +1202,43 @@ class SellerController extends Controller
             'message' => 'Solicitud rechazada. El vendedor ha sido eliminado del sistema.',
             'seller' => null,
             'type' => 'reject'
+        ]);
+    }
+
+    /**
+     * Cambiar estado (Activo/Inactivo/Bloqueado) del vendedor vía AJAX.
+     */
+    public function toggleStatus(Request $request, Seller $seller)
+    {
+        // Verificar permisos
+        $seller = Seller::forUser(auth()->user())->findOrFail($seller->id);
+        
+        // Determinar el nuevo estado según el estado actual
+        $currentStatus = $seller->getRawOriginal('status');
+        
+        // Lógica de toggle: 0 (Inactivo) -> 1 (Activo), 1 (Activo) -> 3 (Bloqueado), 3 (Bloqueado) -> 0 (Inactivo)
+        // No permitir cambiar si está en PENDING (2)
+        if ($currentStatus == Seller::STATUS_PENDING) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede cambiar el estado de un vendedor pendiente'
+            ], 400);
+        }
+        
+        $newStatus = match($currentStatus) {
+            0 => 1,  // Inactivo -> Activo
+            1 => 3,  // Activo -> Bloqueado
+            3 => 0,  // Bloqueado -> Inactivo
+            default => 1
+        };
+        
+        $seller->update(['status' => $newStatus]);
+        
+        return response()->json([
+            'success' => true,
+            'status' => $newStatus,
+            'status_text' => $seller->fresh()->status_text,
+            'status_class' => $seller->fresh()->status_class,
         ]);
     }
 } 

@@ -257,7 +257,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" name="name" placeholder="Nombre" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input class="form-control" type="text" name="name" value="{{ old('name') }}" placeholder="Nombre" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -271,7 +271,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" name="last_name" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input class="form-control" type="text" name="last_name" value="{{ old('last_name') }}" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -286,7 +286,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="text" name="last_name2" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="text" name="last_name2" value="{{ old('last_name2') }}" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -316,7 +316,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="date" name="birthday" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="date" name="birthday" value="{{ old('birthday') }}" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -331,7 +331,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="email" name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input class="form-control" type="email" name="email" value="{{ old('email') }}" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -346,7 +346,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input class="form-control" type="phone" name="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+				                                    <input class="form-control" type="phone" name="phone" value="{{ old('phone') }}" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -490,6 +490,18 @@ document.addEventListener('DOMContentLoaded', function() {
     initSpanishDocumentValidation('seller-nif-cif', {
         showMessage: true
     });
+    
+    // Si hay errores de validación y hay datos old() que indiquen que se intentó crear un vendedor externo
+    @if($errors->any() && old('entity_id'))
+        // Verificar si hay datos del formulario de registro (vendedor externo)
+        // Si hay name, last_name, email, etc. significa que se intentó crear un vendedor externo
+        @if(old('name') || old('last_name') || old('email') || old('nif_cif') || old('birthday') || old('phone'))
+            // Mostrar el formulario de vendedor externo
+            $('#all-options').addClass('d-none');
+            $('#back-to-buttons').removeClass('d-none');
+            $('#register-manager-selected').removeClass('d-none');
+        @endif
+    @endif
 });
 
 </script>

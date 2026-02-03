@@ -273,4 +273,46 @@ class AdministratorController extends Controller
         $digits = preg_replace('/\D/', '', $raw);
         return $digits !== '' ? $digits : null;
     }
+
+    /**
+     * Cambiar estado (Activo/Inactivo/Pendiente) de la administración vía AJAX.
+     */
+    public function toggleStatus(Request $request, Administration $administration)
+    {
+        // Verificar permisos
+        $administration = Administration::forUser(auth()->user())->findOrFail($administration->id);
+        
+        // Determinar el nuevo estado según el estado actual
+        $currentStatus = $administration->status;
+        
+        // Lógica de toggle: null/-1 (Pendiente) -> 1 (Activo), 1 (Activo) -> 0 (Inactivo), 0 (Inactivo) -> 1 (Activo)
+        $newStatus = match($currentStatus) {
+            null, -1 => 1,  // Pendiente -> Activo
+            1 => 0,         // Activo -> Inactivo
+            0 => 1,         // Inactivo -> Activo
+            default => 1
+        };
+        
+        $administration->update(['status' => $newStatus]);
+        
+        // Obtener texto y clase del nuevo estado
+        $statusValue = $administration->fresh()->status;
+        if ($statusValue === null || $statusValue === -1) {
+            $statusText = 'Pendiente';
+            $statusClass = 'secondary';
+        } elseif ($statusValue == 1) {
+            $statusText = 'Activo';
+            $statusClass = 'success';
+        } else {
+            $statusText = 'Inactivo';
+            $statusClass = 'danger';
+        }
+        
+        return response()->json([
+            'success' => true,
+            'status' => $newStatus,
+            'status_text' => $statusText,
+            'status_class' => $statusClass,
+        ]);
+    }
 }

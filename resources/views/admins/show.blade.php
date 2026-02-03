@@ -122,7 +122,7 @@
                     			</div>
                     		</div>
 
-                    		<div class="form-card show-content bs">
+                    		<div class="form-card bs">
                     			<h4 class="mb-0 mt-1">
                     				Estado Administración
                     			</h4>
@@ -143,9 +143,14 @@
 	                    					$statusClass = 'bg-danger';
 	                    				}
 	                    			@endphp
-	                    			<label class="badge badge-lg {{ $statusClass }} float-end">
-	                    				{{ $statusText }}
-	                    			</label>
+	                    			<div class="input-group input-group-merge group-form">
+	                    				<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+	                    					<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
+	                    				</div>
+	                    				<input class="form-control" type="text" value="{{ $statusText }}" id="admin-status-input" style="border-radius: 0 30px 0 0; border-bottom: 1px solid #dee2e6;" readonly>
+	                    				<button type="button" class="btn btn-sm btn-outline-secondary" id="admin-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
+	                    			</div>
+	                    			<span class="badge badge-lg {{ $statusClass }} mt-2" id="admin-status-badge" style="display: none;">{{ $statusText }}</span>
 	                    			<div style="clear: both;"></div>
                     			</div>
                     		</div>
@@ -914,6 +919,36 @@
 
 		$('#'+value).removeClass('d-none');
 	});
+
+// Toggle estado administración (AJAX)
+document.getElementById('admin-toggle-status') && document.getElementById('admin-toggle-status').addEventListener('click', function() {
+	var btn = this;
+	var adminId = {{ $administration->id }};
+	btn.disabled = true;
+	fetch('{{ route("administrations.toggle-status", $administration->id) }}', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'X-CSRF-TOKEN': '{{ csrf_token() }}',
+			'Accept': 'application/json'
+		},
+		body: JSON.stringify({})
+	})
+	.then(function(r) { return r.json(); })
+	.then(function(data) {
+		if (data.success) {
+			var input = document.getElementById('admin-status-input');
+			var badge = document.getElementById('admin-status-badge');
+			input.value = data.status_text;
+			badge.textContent = data.status_text;
+			badge.className = 'badge badge-lg bg-' + data.status_class + ' mt-2';
+		} else {
+			alert('Error al cambiar el estado');
+		}
+	})
+	.catch(function() { alert('Error al cambiar el estado'); })
+	.finally(function() { btn.disabled = false; });
+});
 
 </script>
 

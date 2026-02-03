@@ -73,7 +73,7 @@ Este documento analiza qué puntos del informe técnico:
 | Punto del Informe | Estado Actual | Acción Recomendada |
 |-------------------|---------------|-------------------|
 | **🟡 Filas Clickables (`row-clickable`)** | La tabla de usuarios no tiene filas clickables que lleven a la ficha; se usa botón "Ver". | **🔧 APLICAR:**<br>• Hacer las filas de la tabla clickables (p. ej. `data-id`)<br>• El click debe llevar a `users.show` (manteniendo el botón Ver si se desea) |
-| **🟡 AJAX Status Toggle** | No hay ruta ni método para cambiar estado (Activo/Bloqueado) desde la ficha sin recargar. | **🔧 APLICAR:**<br>• Nueva ruta (p. ej. `POST users/{user}/toggle-status`)<br>• Método en `UserController` que cambie `status` y devuelva JSON<br>• En `users/show` llamar por AJAX y actualizar badge/UI |
+| **✅ AJAX Status Toggle** | Implementado en usuarios, vendedores, entidades y administraciones. Control movido al formulario. | **✅ HECHO** |
 | **🟡 Apertura por Pestaña (Cartera/Historial)** | `UserController::show` no recibe parámetro de pestaña. La vista tiene wizard "Datos / Cartera / Historial" pero solo existe el pane `datos_usuario`. | **🔧 APLICAR (parcial):**<br>• Soporte de `?tab=cartera` y `?tab=historial` en `show`<br>• Pasar `$tab` a la vista y activar el elemento del sidebar correspondiente<br>• Crear los panes "Cartera" e "Historial" cuando se definan contenidos |
 
 ---
@@ -184,10 +184,16 @@ Este documento analiza qué puntos del informe técnico:
 - Filas clickables en índice (`data-href`, script para navegar al hacer clic)
 - Ruta y método `toggleStatus` para cambiar estado por AJAX
 - `show` acepta `?tab=` y pasa `$tab` a la vista
-- Badge y botón "Cambiar estado" en ficha con actualización por AJAX
+- Control de estado movido al formulario (no en header) con actualización por AJAX
 
 ✅ **Ruta users:**
 - GET `users` pasa a usar `UserController::index` para enviar `$users` a la vista
+
+✅ **Toggle Status (Todos los módulos):**
+- Implementado `toggleStatus` en `SellerController`, `EntityController`, `AdministratorController`
+- Rutas añadidas: `sellers/{seller}/toggle-status`, `entities/{entity}/toggle-status`, `administrations/{administration}/toggle-status`
+- Control de estado movido al formulario (no en header) en todas las vistas `show`
+- Actualización por AJAX sin recargar página en: usuarios, vendedores, entidades y administraciones
 
 ---
 
