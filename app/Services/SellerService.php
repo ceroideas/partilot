@@ -127,10 +127,7 @@ class SellerService
                 return $existingSeller;
             }
             
-            // Generar token de confirmación
-            $confirmationToken = Str::random(64);
-            
-            // No existe, crear nuevo vendedor externo pendiente de confirmación
+            // No existe, crear nuevo vendedor externo activo (los EXTERNOS no necesitan confirmación)
             $seller = Seller::create([
                 'user_id' => 0, // Sin usuario
                 'email' => $data['email'],
@@ -142,25 +139,16 @@ class SellerService
                 'phone' => $data['phone'] ?? null,
                 'comment' => $data['comment'] ?? null,
                 'image' => $data['image'] ?? null,
-                'status' => Seller::STATUS_PENDING, // Siempre pendiente hasta confirmación
+                'status' => Seller::STATUS_ACTIVE, // Activo directamente; solo SIPART necesitan confirmación
                 'seller_type' => 'externo',
-                'confirmation_token' => $confirmationToken,
-                'confirmation_sent_at' => now()
+                'confirmation_token' => null,
+                'confirmation_sent_at' => null
             ]);
             
             // Vincular con la entidad (tabla pivote)
             $seller->entities()->attach($entityId);
             
-            Log::info("Vendedor EXTERNO creado pendiente de confirmación y vinculado a la entidad {$entityId}");
-            
-            // Enviar correo de confirmación
-            try {
-                Mail::to($seller->email)->send(new SellerConfirmationMail($seller));
-                Log::info("Correo de confirmación enviado a {$seller->email}");
-            } catch (\Exception $e) {
-                Log::error("Error al enviar correo de confirmación: " . $e->getMessage());
-                // No lanzar excepción, el vendedor ya está creado
-            }
+            Log::info("Vendedor EXTERNO creado (activo) y vinculado a la entidad {$entityId}");
             
             return $seller;
         });
