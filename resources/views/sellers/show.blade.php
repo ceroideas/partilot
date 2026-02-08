@@ -129,6 +129,18 @@
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 15px;
     }
+
+    /* Filas seleccionables por clic (reservas, sets) */
+    #tabla-reservas tbody tr,
+    #tabla-sets tbody tr,
+    #tabla-reservas-participaciones tbody tr {
+        cursor: pointer;
+    }
+    #tabla-reservas tbody tr:hover,
+    #tabla-sets tbody tr:hover,
+    #tabla-reservas-participaciones tbody tr:hover {
+        background-color: rgba(231, 131, 7, 0.1) !important;
+    }
 </style>
 
 
@@ -1305,15 +1317,21 @@ function initDatatable()
       mostrarPaso('paso-reservas');
     });
     
-    // Seleccionar reserva
+    // Seleccionar reserva (clic en radio o en la fila)
     $(document).on('change', '.seleccionar-reserva', function() {
       console.log('Radio button seleccionado (change)');
       const reservaId = $(this).data('reserva-id');
       reservaSeleccionada = { id: reservaId };
       console.log('Reserva seleccionada ID:', reservaId);
-      // Habilitar el botón siguiente
       $('#btn-siguiente-reservas').prop('disabled', false);
       console.log('Botón habilitado');
+    });
+
+    $(document).on('click', '#tabla-reservas tbody tr', function(e) {
+      const $radio = $(this).find('.seleccionar-reserva');
+      if ($radio.length && !$(e.target).is('a, button') && !$(e.target).closest('.form-check').length) {
+        $radio.prop('checked', true).trigger('change');
+      }
     });
     
     // Botón siguiente para ir a sets
@@ -1325,7 +1343,14 @@ function initDatatable()
       }
     });
     
-    // Seleccionar set
+    // Seleccionar set (clic en radio o en la fila)
+    $(document).on('click', '#tabla-sets tbody tr', function(e) {
+      const $radio = $(this).find('.seleccionar-set');
+      if ($radio.length && !$(e.target).is('a, button') && !$(e.target).closest('.form-check').length) {
+        $radio.prop('checked', true).trigger('change');
+      }
+    });
+
     $(document).on('change', '.seleccionar-set', function() {
       console.log('Set seleccionado (change)');
       const setId = $(this).data('set-id');
@@ -2012,6 +2037,13 @@ function initDatatable()
        const reservaId = $(this).data('reserva-id');
        reservaSeleccionadaParticipaciones = { id: reservaId };
        $('#btn-siguiente-reservas-participaciones').prop('disabled', false);
+     });
+
+     $(document).on('click', '#tabla-reservas-participaciones tbody tr', function(e) {
+       const $radio = $(this).find('.seleccionar-reserva-participaciones');
+       if ($radio.length && !$(e.target).is('a, button') && !$(e.target).closest('.form-check').length) {
+         $radio.prop('checked', true).trigger('change');
+       }
      });
 
      $(document).on('click', '#btn-siguiente-reservas-participaciones', function() {

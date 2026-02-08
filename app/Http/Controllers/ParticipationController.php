@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Entity;
 use App\Models\Participation;
+use App\Models\Seller;
+use App\Models\SellerSettlement;
+use App\Models\SellerSettlementPayment;
 
 class ParticipationController extends Controller
 {
@@ -282,5 +286,287 @@ class ParticipationController extends Controller
             'book' => $book,
             'participations' => $formattedParticipations
         ]);
+    }
+
+    /**
+     * API: Marcar participaciones como vendidas (modo manual)
+     * Solo para vendedores autenticados. Las participaciones deben estar asignadas al vendedor.
+     */
+    public function apiSellManual(Request $request)
+    {
+        $request->validate([
+            'set_id' => 'required|integer|exists:sets,id',
+            'desde' => 'required|integer|min:1',
+            'hasta' => 'required|integer|min:1',
+            'payment_method' => 'nullable|string|in:efectivo,bizum,transferencia,omitir,otro',
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        if ($request->desde > $request->hasta) {
+            return response()->json(['success' => false, 'message' => 'El rango desde no puede ser mayor que hasta.'], 422);
+        }
+
+        try {
+            $participations = Participation::where('set_id', $request->set_id)
+                ->whereBetween('participation_number', [$request->desde, $request->hasta])
+                ->where('seller_id', $seller->id)
+                ->where('status', 'asignada')
+                ->get();
+
+            if ($participations->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay participaciones asignadas a ti en ese rango o ya están vendidas.'
+                ], 422);
+            }
+
+            // Verificar que todas las participaciones del rango estén asignadas al vendedor
+            $totalEnRango = $request->hasta - $request->desde + 1;
+            if ($participations->count() < $totalEnRango) {
+                $noAsignadas = $totalEnRango - $participations->count();
+                return response()->json([
+                    'success' => false,
+                    'message' => "Hay {$noAsignadas} participaciones en el rango que no están asignadas a ti o están anuladas."
+                ], 422);
+            }
+
+            $set = $participations->first()->set()->with('reserve')->first();
+            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            $saleAmount = $participations->count() * $pricePerParticipation;
+
+            DB::beginTransaction();
+            foreach ($participations as $participation) {
+                $participation->markAsSold($seller->id, $pricePerParticipation);
+            }
+            if ($this->shouldCreateSettlement($request->payment_method)) {
+                $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $request->payment_method, $user->id);
+            }
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Se marcaron {$participations->count()} participaciones como vendidas.",
+                'count' => $participations->count()
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar la venta: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Solo crear seller_settlement cuando hay método de pago (efectivo, bizum, transferencia).
+     * Si es omitir o null, no se registra.
+     */
+    private function shouldCreateSettlement($paymentMethod): bool
+    {
+        return in_array($paymentMethod, ['efectivo', 'bizum', 'transferencia'], true);
+    }
+
+    /**
+     * Crear registro en seller_settlements por venta desde la app.
+     * Misma lógica que el backoffice: total_amount, paid_amount, pending_amount, total_participations.
+     */
+    private function createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $paymentMethod, $userId)
+    {
+        $lotteryId = $set->reserve->lottery_id ?? null;
+        if (!$lotteryId) {
+            return;
+        }
+
+        $paymentMethod = in_array($paymentMethod, ['efectivo', 'bizum', 'transferencia'], true) ? $paymentMethod : 'otro';
+        $pricePerParticipation = (float) ($set->played_amount ?? 0);
+        $now = now();
+
+        // Obtener TODAS las participaciones (asignada+vendida) del vendedor para este sorteo
+        $allParticipations = Participation::where('seller_id', $seller->id)
+            ->whereHas('set.reserve', fn ($q) => $q->where('lottery_id', $lotteryId))
+            ->whereIn('status', ['asignada', 'vendida'])
+            ->with('set')
+            ->get();
+
+        $totalParticipations = $allParticipations->count();
+        $totalAmount = $allParticipations->sum(fn ($p) => (float) ($p->set->played_amount ?? 0));
+
+        // Obtener lo ya pagado en liquidaciones previas
+        $previousPaid = SellerSettlement::where('seller_id', $seller->id)
+            ->where('lottery_id', $lotteryId)
+            ->sum('paid_amount');
+
+        $totalPaidWithNew = $previousPaid + $saleAmount;
+        $pendingAmount = $totalAmount - $totalPaidWithNew;
+        $calculatedParticipations = $pricePerParticipation > 0 ? round($saleAmount / $pricePerParticipation, 2) : 0;
+
+        $settlement = SellerSettlement::create([
+            'seller_id' => $seller->id,
+            'lottery_id' => $lotteryId,
+            'user_id' => $userId,
+            'total_amount' => $totalAmount,
+            'paid_amount' => $saleAmount,
+            'pending_amount' => $pendingAmount,
+            'total_participations' => $totalParticipations,
+            'calculated_participations' => $calculatedParticipations,
+            'settlement_date' => $now->format('Y-m-d'),
+            'settlement_time' => $now->format('H:i:s'),
+            'notes' => 'Venta registrada desde app'
+        ]);
+
+        SellerSettlementPayment::create([
+            'seller_settlement_id' => $settlement->id,
+            'amount' => $saleAmount,
+            'payment_method' => $paymentMethod,
+            'notes' => 'Venta - ' . ucfirst($paymentMethod),
+            'payment_date' => $now
+        ]);
+    }
+
+    /**
+     * API: Marcar participación como vendida por escaneo QR
+     * La referencia proviene del código QR de la participación física.
+     */
+    public function apiSellByQr(Request $request)
+    {
+        $request->validate([
+            'referencia' => 'required|string',
+            'desde' => 'nullable|integer|min:1',
+            'hasta' => 'nullable|integer|min:1',
+            'payment_method' => 'nullable|string|in:efectivo,bizum,transferencia,omitir,otro',
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        // Buscar set y participación por referencia (contenido del QR)
+        $set = \App\Models\Set::whereNotNull('tickets')->get()->first(function ($s) use ($request) {
+            if (!is_array($s->tickets)) {
+                return false;
+            }
+            foreach ($s->tickets as $ticket) {
+                if (isset($ticket['r']) && $ticket['r'] == $request->referencia) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!$set) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Referencia no encontrada. Verifica que el código QR sea correcto.'
+            ], 404);
+        }
+
+        // Si se proporciona rango desde/hasta, marcar el rango
+        if ($request->filled('desde') && $request->filled('hasta')) {
+            if ($request->desde > $request->hasta) {
+                return response()->json(['success' => false, 'message' => 'El rango desde no puede ser mayor que hasta.'], 422);
+            }
+
+            $participations = Participation::where('set_id', $set->id)
+                ->whereBetween('participation_number', [$request->desde, $request->hasta])
+                ->where('seller_id', $seller->id)
+                ->where('status', 'asignada')
+                ->get();
+
+            if ($participations->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay participaciones asignadas a ti en ese rango.'
+                ], 422);
+            }
+
+            try {
+                $set = $participations->first()->set()->with('reserve')->first();
+                $pricePerParticipation = (float) ($set->played_amount ?? 0);
+                $saleAmount = $participations->count() * $pricePerParticipation;
+
+                DB::beginTransaction();
+                foreach ($participations as $participation) {
+                    $participation->markAsSold($seller->id, $pricePerParticipation);
+                }
+                if ($this->shouldCreateSettlement($request->payment_method)) {
+                    $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $request->payment_method, $user->id);
+                }
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => "Se marcaron {$participations->count()} participaciones como vendidas.",
+                    'count' => $participations->count()
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+            }
+        }
+
+        // Marcar solo la participación escaneada
+        $participationNumber = null;
+        foreach ($set->tickets as $ticket) {
+            if (isset($ticket['r']) && $ticket['r'] == $request->referencia) {
+                $participationNumber = $ticket['n'];
+                break;
+            }
+        }
+
+        if (!$participationNumber) {
+            return response()->json(['success' => false, 'message' => 'Referencia no encontrada en el set.'], 404);
+        }
+
+        $participation = Participation::where('set_id', $set->id)
+            ->where('participation_number', $participationNumber)
+            ->where('seller_id', $seller->id)
+            ->where('status', 'asignada')
+            ->first();
+
+        if (!$participation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta participación no está asignada a ti o ya está vendida.'
+            ], 422);
+        }
+
+        try {
+            $set = $participation->set()->with('reserve')->first();
+            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            $saleAmount = $pricePerParticipation;
+
+            DB::beginTransaction();
+            $participation->markAsSold($seller->id, $pricePerParticipation);
+            if ($this->shouldCreateSettlement($request->payment_method)) {
+                $this->createSellerSettlementFromSale($seller, collect([$participation]), $set, $saleAmount, $request->payment_method, $user->id);
+            }
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Participación marcada como vendida.',
+                'participation' => [
+                    'id' => $participation->id,
+                    'participation_code' => $participation->participation_code,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
 }

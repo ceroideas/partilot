@@ -367,6 +367,120 @@ class SellerController extends Controller
     }
 
     /**
+     * API: Obtener reservas y sets del vendedor autenticado (para app móvil)
+     * Solo para usuarios con rol vendedor. Devuelve reservas de entidades del vendedor con sets que tienen participaciones.
+     */
+    public function apiGetMyReserves(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'Acceso denegado.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        $entityIds = $seller->entities()->pluck('entities.id')->toArray();
+        if (empty($entityIds)) {
+            return response()->json([
+                'success' => true,
+                'reserves' => []
+            ]);
+        }
+
+        $reserves = Reserve::whereIn('entity_id', $entityIds)
+            ->where('status', 1)
+            ->with(['lottery.lotteryType'])
+            ->whereHas('sets', function ($q) {
+                $q->where('status', 1)
+                  ->whereExists(function ($sub) {
+                      $sub->select(DB::raw(1))
+                          ->from('participations')
+                          ->whereRaw('participations.set_id = sets.id');
+                  });
+            })
+            ->with(['sets' => function ($q) {
+                $q->where('status', 1)
+                  ->whereExists(function ($sub) {
+                      $sub->select(DB::raw(1))
+                          ->from('participations')
+                          ->whereRaw('participations.set_id = sets.id');
+                  })
+                  ->select('sets.id', 'sets.reserve_id', 'sets.set_name', 'sets.total_participations', 'sets.played_amount');
+            }])
+            ->orderBy('reservation_date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'reserves' => $reserves
+        ]);
+    }
+
+    /**
+     * API: Validar rango de participaciones para venta (vendedor autenticado)
+     * Comprueba que las participaciones desde-hasta estén asignadas al vendedor y disponibles para marcar como vendidas.
+     */
+    public function apiValidateSale(Request $request)
+    {
+        $request->validate([
+            'set_id' => 'required|integer|exists:sets,id',
+            'desde' => 'required|integer|min:1',
+            'hasta' => 'required|integer|min:1',
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'Acceso denegado.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        if ($request->desde > $request->hasta) {
+            return response()->json([
+                'success' => false,
+                'valid' => false,
+                'message' => 'El rango desde no puede ser mayor que hasta.'
+            ]);
+        }
+
+        $participations = Participation::where('set_id', $request->set_id)
+            ->whereBetween('participation_number', [$request->desde, $request->hasta])
+            ->where('seller_id', $seller->id)
+            ->where('status', 'asignada')
+            ->get();
+
+        $totalEnRango = $request->hasta - $request->desde + 1;
+
+        if ($participations->count() < $totalEnRango) {
+            return response()->json([
+                'success' => true,
+                'valid' => false,
+                'message' => "Hay " . ($totalEnRango - $participations->count()) . " participaciones en el rango que no están asignadas a ti.",
+                'count' => $participations->count(),
+                'expected' => $totalEnRango
+            ]);
+        }
+
+        $set = Set::find($request->set_id);
+        $importeTotal = $participations->count() * ($set->played_amount ?? 0);
+
+        return response()->json([
+            'success' => true,
+            'valid' => true,
+            'message' => "Rango válido. {$participations->count()} participaciones listas para marcar como vendidas.",
+            'count' => $participations->count(),
+            'importe_total' => round($importeTotal, 2),
+            'participations' => $participations->map(fn ($p) => ['id' => $p->id, 'participation_code' => $p->participation_code])
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit($id)
@@ -675,6 +789,14 @@ class SellerController extends Controller
             }
 
             $seller = Seller::forUser(auth()->user())->findOrFail($request->seller_id);
+
+            if ($seller->status !== Seller::STATUS_ACTIVE) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El vendedor no está activo.'
+                ]);
+            }
+
             $assignedCount = 0;
 
             foreach ($participations as $participationData) {
