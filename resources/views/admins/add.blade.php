@@ -124,7 +124,7 @@
 	                    					<label style="border-radius: 30px; width: 150px; background-color: #333;" class="btn btn-md btn-dark mt-2"><small>Subir Imágen</small>
 	                    						<input type="file" id="imagenInput" name="image" style="display: none;" accept="image/*">
 	                    					</label>
-	                    					<label style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2"><small>Eliminar Imágen</small></label>
+	                    					<button type="button" id="btnEliminarImagen" style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2"><small>Eliminar Imágen</small></button>
 
 	                    				</div>
 	                    				
@@ -316,7 +316,30 @@
 				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
 				                                        <span style="font-weight: bold;">ES</span>
 				                                    </div>
-				                                    <input class="form-control" type="text" id="account-input" placeholder="12 1234 1234 12 1234567890" style="border-radius: 0 30px 30px 0;">
+				                                    @php
+				                                        $accountDisplay = '';
+				                                        if (old('account')) {
+				                                            $nums = preg_replace('/\D/', '', old('account'));
+				                                            if (strlen($nums) >= 2) {
+				                                                $accountDisplay = substr($nums, 0, 2);
+				                                                if (strlen($nums) > 2) {
+				                                                    $accountDisplay .= ' ' . substr($nums, 2, 4);
+				                                                    if (strlen($nums) > 6) {
+				                                                        $accountDisplay .= ' ' . substr($nums, 6, 4);
+				                                                        if (strlen($nums) > 10) {
+				                                                            $accountDisplay .= ' ' . substr($nums, 10, 2);
+				                                                            if (strlen($nums) > 12) {
+				                                                                $accountDisplay .= ' ' . substr($nums, 12, 10);
+				                                                            }
+				                                                        }
+				                                                    }
+				                                                }
+				                                            } else {
+				                                                $accountDisplay = $nums;
+				                                            }
+				                                        }
+				                                    @endphp
+				                                    <input class="form-control" type="text" id="account-input" placeholder="12 1234 1234 12 1234567890" value="{{ $accountDisplay }}" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
 			                    			<small class="text-muted">Ingrese el número de cuenta bancaria. El prefijo ES se añadirá automáticamente.</small>
@@ -351,6 +374,13 @@
 @section('scripts')
 
 <script>
+	// Si hay old() (error de validación), no sobrescribir con localStorage
+	window.hasOldInput = {{ (is_array(old()) && count(old()) > 0) ? 'true' : 'false' }};
+
+	// Al crear una administración nueva: borrar imagen de permanencia de otra creación (solo si no venimos del paso gestor "Atrás")
+	if (!document.referrer || document.referrer.indexOf('add/manager') === -1) {
+		localStorage.removeItem('image_admin_create');
+	}
 
 	document.getElementById('imagenInput').addEventListener('change', function(event) {
 	    const archivo = event.target.files[0];
@@ -371,6 +401,15 @@
 	        $('.photo-preview i').show();
 	        localStorage.removeItem('image_admin_create');
 	    }
+	});
+
+	// Botón Eliminar Imagen: quitar valor del input y limpiar preview
+	document.getElementById('btnEliminarImagen').addEventListener('click', function() {
+	    const input = document.getElementById('imagenInput');
+	    if (input) input.value = '';
+	    $('.photo-preview').css('background-image', 'none');
+	    $('.photo-preview i').show();
+	    localStorage.removeItem('image_admin_create');
 	});
 
 	// Restaurar imagen si hay error de validación
@@ -395,6 +434,7 @@
 	        web: document.querySelector('input[name="web"]')?.value || '',
 	        name: document.querySelector('input[name="name"]')?.value || '',
 	        receiving: document.querySelector('input[name="receiving"]')?.value || '',
+	        admin_number: document.querySelector('input[name="admin_number"]')?.value || '',
 	        society: document.querySelector('input[name="society"]')?.value || '',
 	        nif_cif: document.querySelector('input[name="nif_cif"]')?.value || '',
 	        province: document.querySelector('input[name="province"]')?.value || '',
@@ -403,24 +443,22 @@
 	        address: document.querySelector('input[name="address"]')?.value || '',
 	        email: document.querySelector('input[name="email"]')?.value || '',
 	        phone: document.querySelector('input[name="phone"]')?.value || '',
-	        account: Array.from(document.querySelectorAll('input[name="account[]"]')).map(input => input.value)
+	        account: (document.getElementById('account-input') && document.getElementById('account-input').value) ? document.getElementById('account-input').value.trim() : ''
 	    };
 	    localStorage.setItem('administration_form_data', JSON.stringify(formData));
 	}
 
-	// Cargar datos guardados
+	// Cargar datos guardados (no sobrescribir si hay old() por error de validación)
 	function loadFormData() {
 	    const savedData = localStorage.getItem('administration_form_data');
-	    if (savedData) {
+	    if (savedData && !window.hasOldInput) {
 	        const formData = JSON.parse(savedData);
 	        Object.keys(formData).forEach(key => {
 	            if (key === 'account') {
-	                const accountInputs = document.querySelectorAll('input[name="account[]"]');
-	                accountInputs.forEach((input, index) => {
-	                    if (formData.account[index]) {
-	                        input.value = formData.account[index];
-	                    }
-	                });
+	                const accountInput = document.getElementById('account-input');
+	                if (accountInput && formData.account) {
+	                    accountInput.value = formData.account;
+	                }
 	            } else {
 	                const input = document.querySelector(`input[name="${key}"]`);
 	                if (input && formData[key]) {

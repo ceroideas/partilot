@@ -43,7 +43,7 @@
                     		<div class="form-card bs mb-3">
 
                                 <h4 class="mb-0 mt-1">
-                                    Datos legales de la entidad
+                                    Datos del Sorteo
                                 </h4>
                                 <small><i>Todos los campos son obligatorios</i></small>
 
@@ -190,7 +190,7 @@
                                                     <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                 </div>
 
-                                                <select class="form-control" name="lottery_type_code" style="border-radius: 0 30px 30px 0;" required>
+                                                <select class="form-control" name="lottery_type_code" style="border-radius: 0 30px 30px 0;">
                                                     <option value="">Seleccionar código</option>
                                                     <option value="J" {{ old('lottery_type_code') == 'J' ? 'selected' : '' }}>J - Jueves</option>
                                                     <option value="X" {{ old('lottery_type_code') == 'X' ? 'selected' : '' }}>X - Sábado</option>
@@ -234,7 +234,7 @@
                                                     <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" type="date" name="draw_date" placeholder="15/01/2025" style="border-radius: 0 30px 30px 0;" value="{{ old('draw_date') }}" required>
+                                                <input class="form-control" type="date" id="draw_date" name="draw_date" placeholder="15/01/2025" style="border-radius: 0 30px 30px 0;" value="{{ old('draw_date') }}" required>
                                             </div>
                                             @error('draw_date')
                                                 <small class="text-danger">{{ $message }}</small>
@@ -252,7 +252,7 @@
                                                     <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" type="date" name="deadline_date" placeholder="15/01/2025" style="border-radius: 0 30px 30px 0;" value="{{ old('deadline_date') }}">
+                                                <input class="form-control" type="date" id="deadline_date" name="deadline_date" placeholder="15/01/2025" style="border-radius: 0 30px 30px 0;" value="{{ old('deadline_date') }}" max="">
                                             </div>
                                             @error('deadline_date')
                                                 <small class="text-danger">{{ $message }}</small>
@@ -388,6 +388,33 @@
 
 	// Generar al cargar la página si hay valores
 	generarNombreSorteo();
+
+	// Fecha límite no puede ser posterior a la fecha del sorteo
+	const drawDateInput = document.getElementById('draw_date');
+	const deadlineDateInput = document.getElementById('deadline_date');
+	if (drawDateInput && deadlineDateInput) {
+	    function syncDeadlineMax() {
+	        if (drawDateInput.value) {
+	            deadlineDateInput.setAttribute('max', drawDateInput.value);
+	            if (deadlineDateInput.value && deadlineDateInput.value > drawDateInput.value) {
+	                deadlineDateInput.value = drawDateInput.value;
+	            }
+	        } else {
+	            deadlineDateInput.removeAttribute('max');
+	        }
+	    }
+	    drawDateInput.addEventListener('change', syncDeadlineMax);
+	    drawDateInput.addEventListener('input', syncDeadlineMax);
+	    syncDeadlineMax();
+	    document.querySelector('form[action*="lotteries"]').addEventListener('submit', function(e) {
+	        if (drawDateInput.value && deadlineDateInput.value && deadlineDateInput.value > drawDateInput.value) {
+	            e.preventDefault();
+	            deadlineDateInput.focus();
+	            alert('La fecha límite debe ser igual o anterior a la fecha del sorteo.');
+	            return false;
+	        }
+	    });
+	}
 
 </script>
 

@@ -131,7 +131,7 @@
                                                     <th>Provincia</th>
                                                     <th>Localidad</th>
                                                     <th>Estado</th>
-                                                    <th>Seleccionar</th>
+                                                    <th class="d-none">Seleccionar</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -142,7 +142,7 @@
                                                     <td>{{$entity->province ?? 'Sin provincia'}}</td>
                                                     <td>{{$entity->city ?? 'Sin localidad'}}</td>
                                                     <td><label class="badge bg-success">Activo</label></td>
-                                                    <td>
+                                                    <td class="d-none">
                                                         <div class="form-check">
                                                             <input class="form-check-input entity-checkbox" type="checkbox" name="entity_ids[]" value="{{$entity->id}}" id="entity_{{$entity->id}}">
                                                             <label class="form-check-label" for="entity_{{$entity->id}}">

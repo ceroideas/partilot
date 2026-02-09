@@ -203,7 +203,7 @@
 
 	                                    <div class="col-2">
 	                                        <div class="form-group mt-2 mb-3">
-	                                            <label class="label-control">Importe TOTAL</label>
+	                                            <label class="label-control">Importe por número</label>
 
 	                                            <div class="input-group input-group-merge group-form">
 
@@ -213,6 +213,7 @@
 
 	                                                <input class="form-control" readonly type="number" step="0.01" value="{{$reserve->reservation_amount}}" style="border-radius: 0 30px 30px 0;">
 	                                            </div>
+	                                            <small class="text-muted"><i>Total reserva: {{ number_format($reserve->total_amount ?? ($reserve->reservation_amount * count($reserve->reservation_numbers ?? [])), 2) }} €</i></small>
 	                                        </div>
 	                                    </div>
 	                                </div>
@@ -310,8 +311,9 @@
 	                                                    <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
 	                                                </div>
 
-	                                                <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly required max="{{ $availableAmount ?? 0 }}" value="{{ old('total_amount') }}">
-	                                            </div>
+<input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" placeholder="6.00€" style="border-radius: 0 30px 30px 0;" readonly required max="{{ $availableAmount ?? 0 }}" value="{{ old('total_amount') }}">
+                                            </div>
+	                                            <small class="text-muted"><i>Máximo disponible para esta reserva: {{ number_format($availableAmount ?? 0, 2) }} €</i></small>
 	                                        </div>
 	                                    </div>
 

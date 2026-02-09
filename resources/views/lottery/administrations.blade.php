@@ -54,12 +54,12 @@
                                     <th>Provincia</th>
                                     <th>Localidad</th>
                                     <th>Status</th>
-                                    <th>Seleccionar</th>
+                                    <th class="d-none">Seleccionar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($administrations as $administration)
-                                    <tr class="administration-row" style="cursor: pointer;">
+                                    <tr class="administration-row selectable-row" style="cursor: pointer;">
                                         <td>#{{ str_pad($administration->id, 6, '0', STR_PAD_LEFT) }}</td>
                                         <td>{{ $administration->name }}</td>
                                         <td>{{ $administration->receiving }}</td>
@@ -72,7 +72,7 @@
                                             <label class="badge bg-danger">Inactivo</label>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td class="d-none">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" name="administration_id" 
                                                        id="admin_{{ $administration->id }}" value="{{ $administration->id }}" required>

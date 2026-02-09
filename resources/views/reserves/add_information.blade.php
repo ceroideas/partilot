@@ -278,6 +278,7 @@
 
                                                         <input class="form-control @error('reservation_amount') is-invalid @enderror" id="reservation_amount" type="number" step="0.01" name="reservation_amount" value="{{old('reservation_amount')}}" placeholder="0.00" style="border-radius: 30px;" required>
                                                     </div>
+                                                    <small class="text-muted"><i>Por cada número seleccionado</i></small>
                                                     @error('reservation_amount')
                                                         <div class="text-danger small">{{$message}}</div>
                                                     @enderror
@@ -389,8 +390,11 @@ $(document).on('input', '.reservation-number', function() {
     calculateTotal();
 });
 
-// Calcular total cuando cambie el importe a reservar
+// Importe: escribir libremente; recálculo (décimos e importe correcto) solo al salir del campo (blur)
 $('#reservation_amount').on('input', function() {
+    calculateTotal();
+});
+$('#reservation_amount').on('blur', function() {
     calculateTicketsFromAmount();
     calculateTotal();
 });
@@ -401,14 +405,16 @@ $('#reservation_tickets').on('input', function() {
     calculateTotal();
 });
 
-// Función para calcular décimos basado en el importe
+// Función para calcular décimos basado en el importe (siempre redondear al alza y ajustar importe al múltiplo)
 function calculateTicketsFromAmount() {
     const reservationAmount = parseFloat($('#reservation_amount').val()) || 0;
     const ticketPrice = {{session('selected_lottery')->ticket_price ?? 0}};
     
-    if (ticketPrice > 0) {
-        const tickets = Math.floor(reservationAmount / ticketPrice); // Sin decimales
+    if (ticketPrice > 0 && reservationAmount > 0) {
+        const tickets = Math.ceil(reservationAmount / ticketPrice); // Siempre al alza: no fracciones de décimo
+        const amountRounded = tickets * ticketPrice; // Importe = múltiplo del precio
         $('#reservation_tickets').val(tickets);
+        $('#reservation_amount').val(amountRounded.toFixed(2));
     }
 }
 

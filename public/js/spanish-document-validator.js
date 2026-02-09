@@ -87,30 +87,32 @@
     }
 
     /**
-     * Validar documento español (DNI, NIE o CIF)
+     * Validar documento español. Orden: 1º NIF, 2º NIE (y TIE, mismo formato), 3º CIF.
+     * Opción forEntity: true para mensajes de entidades (NIF, NIE, TIE o CIF).
      */
-    window.validateSpanishDocument = function(document) {
+    window.validateSpanishDocument = function(document, options = {}) {
         if (!document || document.trim() === '') {
-            return { valid: true, message: '' }; // Vacío es válido si es opcional
+            return { valid: true, message: '' };
         }
 
-        const doc = document.toUpperCase().trim();
+        const doc = document.toUpperCase().trim().replace(/\s/g, '');
+        const forEntity = options && options.forEntity === true;
 
         if (validateNif(doc)) {
             return { valid: true, message: 'NIF válido' };
         }
-
         if (validateNie(doc)) {
-            return { valid: true, message: 'NIE válido' };
+            return { valid: true, message: forEntity ? 'NIE/TIE válido' : 'NIE válido' };
         }
-
         if (validateCif(doc)) {
             return { valid: true, message: 'CIF válido' };
         }
 
         return { 
             valid: false, 
-            message: 'El documento no es un NIF, NIE o CIF válido' 
+            message: forEntity 
+                ? 'El documento debe ser un NIF, NIE, TIE o CIF válido' 
+                : 'El documento no es un NIF, NIE o CIF válido' 
         };
     };
 
@@ -125,7 +127,8 @@
             showMessage = true,
             messageContainerId = null,
             onValid = null,
-            onInvalid = null
+            onInvalid = null,
+            forEntity = false
         } = options;
 
         let messageContainer = null;
@@ -156,7 +159,7 @@
                 return;
             }
 
-            const result = validateSpanishDocument(value);
+            const result = validateSpanishDocument(value, { forEntity: forEntity });
 
             if (result.valid) {
                 input.classList.remove('is-invalid');

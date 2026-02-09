@@ -159,6 +159,7 @@
                                                 <div class="input-group input-group-merge group-form">
                                                     <input class="form-control" type="number" step="0.01" value="{{$reserve->reservation_amount}}" readonly style="border-radius: 30px;">
                                                 </div>
+                                                <small class="text-muted"><i>Por cada número seleccionado</i></small>
                                             </div>
                                         </div>
                                         <div class="col-3">

@@ -122,7 +122,7 @@
                     								<th>Localidad</th>
                     								<th>Administración</th>
                     								<th>Estado</th>
-                    								<th>Seleccionar</th>
+                    								<th class="d-none">Seleccionar</th>
                     							</tr>
                     						</thead>
                     						<tbody>
@@ -134,7 +134,7 @@
                     								<td>{{$entity->city ?? 'Sin localidad'}}</td>
                     								<td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
                     								<td><label class="badge bg-success">Activo</label></td>
-                    								<td>
+                    								<td class="d-none">
                     									<div class="form-check">
                     										<input class="form-check-input" type="radio" name="entity_id" value="{{$entity->id}}" id="entity_{{$entity->id}}" required>
                     										<label class="form-check-label" for="entity_{{$entity->id}}">

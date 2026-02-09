@@ -318,7 +318,7 @@
                                                             <th>Localidad</th>
                                                             <th>Administración</th>
                                                             <th>Estado</th>
-                                                            <th>Seleccionar</th>
+                                                            <th class="d-none">Seleccionar</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -436,7 +436,7 @@
                                                             <th>Email</th>
                                                             <th>Teléfono</th>
                                                             <th>Estado</th>
-                                                            <th>Seleccionar</th>
+                                                            <th class="d-none">Seleccionar</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -479,7 +479,7 @@
                                                             <th>Nombre Sorteo</th>
                                                             <th>Fecha Sorteo</th>
                                                             <th>Descripción</th>
-                                                            <th>Seleccionar</th>
+                                                            <th class="d-none">Seleccionar</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -1261,6 +1261,12 @@ $(document).ready(function() {
                     "orderable": false
                 }
             ],
+            "columnDefs": [
+                { "targets": -1, "className": "d-none" }
+            ],
+            "createdRow": function(row) {
+                $(row).addClass('selectable-row').css('cursor', 'pointer');
+            },
             "initComplete": function(settings, json) {
                 actualizarIndicadoresPasos(pasoActualGlobal);
             },
@@ -1316,6 +1322,12 @@ $(document).ready(function() {
                     "orderable": false
                 }
             ],
+            "columnDefs": [
+                { "targets": -1, "className": "d-none" }
+            ],
+            "createdRow": function(row) {
+                $(row).addClass('selectable-row').css('cursor', 'pointer');
+            },
             "initComplete": function(settings, json) {
                 actualizarIndicadoresPasos(pasoActualGlobal);
             },
@@ -1393,6 +1405,12 @@ $(document).ready(function() {
                     "orderable": false
                 }
             ],
+            "columnDefs": [
+                { "targets": -1, "className": "d-none" }
+            ],
+            "createdRow": function(row) {
+                $(row).addClass('selectable-row').css('cursor', 'pointer');
+            },
             "initComplete": function(settings, json) {
                 actualizarIndicadoresPasos(pasoActualGlobal);
             },
@@ -1456,6 +1474,23 @@ $(document).ready(function() {
         };
         console.log('Sorteo seleccionado:', sorteoSeleccionado);
         $('#btn-siguiente-sorteo').prop('disabled', false);
+    });
+
+    // Clic en fila para seleccionar (tablas con selectable-row)
+    $(document).on('click', '#tabla-entidades tbody tr.selectable-row', function(e) {
+        if (!$(e.target).closest('.form-check').length) {
+            $(this).find('.seleccionar-entidad').prop('checked', true).trigger('change');
+        }
+    });
+    $(document).on('click', '#tabla-vendedores tbody tr.selectable-row', function(e) {
+        if (!$(e.target).closest('.form-check').length) {
+            $(this).find('.seleccionar-vendedor').prop('checked', true).trigger('change');
+        }
+    });
+    $(document).on('click', '#tabla-sorteos tbody tr.selectable-row', function(e) {
+        if (!$(e.target).closest('.form-check').length) {
+            $(this).find('.seleccionar-sorteo').prop('checked', true).trigger('change');
+        }
     });
 
     // Navegación entre pasos

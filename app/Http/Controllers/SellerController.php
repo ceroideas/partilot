@@ -420,6 +420,265 @@ class SellerController extends Controller
     }
 
     /**
+     * API: Obtener entidades del vendedor autenticado
+     */
+    public function apiGetMyEntities(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        $entities = $seller->entities()->select('entities.id', 'entities.name', 'entities.image')->get();
+
+        return response()->json([
+            'success' => true,
+            'entities' => $entities
+        ]);
+    }
+
+    /**
+     * API: Obtener tacos asignados del vendedor autenticado por entidad
+     */
+    public function apiGetMyTacos(Request $request)
+    {
+        $request->validate([
+            'entity_id' => 'required|integer|exists:entities,id'
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        // Verificar que el vendedor pertenece a esta entidad
+        if (!$seller->entities()->where('entities.id', $request->entity_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+
+        // Obtener todos los sets de esta entidad que tienen participaciones asignadas al vendedor
+        $sets = Set::whereHas('reserve', fn ($q) => $q->where('entity_id', $request->entity_id))
+            ->whereHas('participations', fn ($q) => $q->where('seller_id', $seller->id))
+            ->with(['reserve.lottery', 'designFormats'])
+            ->get();
+
+        $tacos = [];
+        $totalParticipations = 0;
+        $totalAmount = 0;
+        $salesRegistered = 0;
+        $salesAmount = 0;
+        $returnedParticipations = 0;
+        $returnedAmount = 0;
+        $availableParticipations = 0;
+        $availableAmount = 0;
+        $paymentBreakdown = ['efectivo' => 0, 'bizum' => 0, 'transferencia' => 0, 'sin_registrar' => 0];
+
+        foreach ($sets as $set) {
+            $participations = Participation::where('set_id', $set->id)
+                ->where('seller_id', $seller->id)
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->get();
+
+            if ($participations->isEmpty()) continue;
+
+            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            $designFormat = $set->designFormats->first();
+            $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
+            $participationsPerBook = $output['participations_per_book'] ?? 50;
+
+            // Agrupar por taco
+            $tacosByBook = [];
+            foreach ($participations as $participation) {
+                $bookNumber = (int) ceil($participation->participation_number / $participationsPerBook);
+                
+                if (!isset($tacosByBook[$bookNumber])) {
+                    $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
+                    $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
+                    
+                    $tacosByBook[$bookNumber] = [
+                        'set_id' => $set->id,
+                        'set_name' => $set->set_name,
+                        'set_number' => $set->set_number ?? $set->id,
+                        'book_number' => $bookNumber,
+                        'lottery_id' => $set->reserve->lottery_id,
+                        'lottery_name' => $set->reserve->lottery->name ?? '',
+                        'lottery_date' => $set->reserve->lottery->draw_date ?? null,
+                        'start_participation' => $startParticipation,
+                        'end_participation' => $endParticipation,
+                        'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
+                        'total_participations' => 0,
+                        'sales_registered' => 0,
+                        'returned_participations' => 0,
+                        'available_participations' => 0,
+                        'sales_amount' => 0,
+                        'returned_amount' => 0,
+                        'available_amount' => 0,
+                    ];
+                }
+
+                $tacosByBook[$bookNumber]['total_participations']++;
+                $totalParticipations++;
+                $totalAmount += $pricePerParticipation;
+
+                if ($participation->status === 'vendida') {
+                    $tacosByBook[$bookNumber]['sales_registered']++;
+                    $tacosByBook[$bookNumber]['sales_amount'] += $pricePerParticipation;
+                    $salesRegistered++;
+                    $salesAmount += $pricePerParticipation;
+
+                    // Obtener método de pago desde seller_settlements
+                    // Buscar el settlement más reciente para esta participación vendida
+                    $paymentMethod = null;
+                    if ($participation->sale_date) {
+                        $settlement = SellerSettlement::where('seller_id', $seller->id)
+                            ->where('lottery_id', $set->reserve->lottery_id)
+                            ->whereDate('settlement_date', '<=', $participation->sale_date)
+                            ->whereHas('payments')
+                            ->with('payments')
+                            ->orderBy('settlement_date', 'desc')
+                            ->orderBy('settlement_time', 'desc')
+                            ->first();
+
+                        if ($settlement && $settlement->payments->isNotEmpty()) {
+                            $paymentMethod = $settlement->payments->first()->payment_method;
+                        }
+                    }
+
+                    if (in_array($paymentMethod, ['efectivo', 'bizum', 'transferencia'])) {
+                        $paymentBreakdown[$paymentMethod] += $pricePerParticipation;
+                    } else {
+                        $paymentBreakdown['sin_registrar'] += $pricePerParticipation;
+                    }
+                } elseif ($participation->status === 'devuelta') {
+                    $tacosByBook[$bookNumber]['returned_participations']++;
+                    $tacosByBook[$bookNumber]['returned_amount'] += $pricePerParticipation;
+                    $returnedParticipations++;
+                    $returnedAmount += $pricePerParticipation;
+                } else {
+                    $tacosByBook[$bookNumber]['available_participations']++;
+                    $tacosByBook[$bookNumber]['available_amount'] += $pricePerParticipation;
+                    $availableParticipations++;
+                    $availableAmount += $pricePerParticipation;
+                }
+            }
+
+            $tacos = array_merge($tacos, array_values($tacosByBook));
+        }
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_participations' => $totalParticipations,
+                'total_amount' => round($totalAmount, 2),
+                'sales_registered' => $salesRegistered,
+                'sales_amount' => round($salesAmount, 2),
+                'returned_participations' => $returnedParticipations,
+                'returned_amount' => round($returnedAmount, 2),
+                'available_participations' => $availableParticipations,
+                'available_amount' => round($availableAmount, 2),
+                'payment_breakdown' => [
+                    'efectivo' => round($paymentBreakdown['efectivo'], 2),
+                    'bizum' => round($paymentBreakdown['bizum'], 2),
+                    'transferencia' => round($paymentBreakdown['transferencia'], 2),
+                    'sin_registrar' => round($paymentBreakdown['sin_registrar'], 2),
+                ]
+            ],
+            'tacos' => $tacos
+        ]);
+    }
+
+    /**
+     * API: Obtener participaciones de un taco específico
+     */
+    public function apiGetTacoParticipations(Request $request, $setId, $bookNumber)
+    {
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        $set = Set::with(['reserve.lottery', 'designFormats'])->findOrFail($setId);
+        $designFormat = $set->designFormats->first();
+        $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
+        $participationsPerBook = $output['participations_per_book'] ?? 50;
+        $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
+        $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
+
+        $participations = Participation::where('set_id', $setId)
+            ->where('seller_id', $seller->id)
+            ->whereBetween('participation_number', [$startParticipation, $endParticipation])
+            ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+            ->orderBy('participation_number')
+            ->get();
+
+        // Obtener métodos de pago desde seller_settlements
+        $lotteryId = $set->reserve->lottery_id ?? null;
+        $settlements = SellerSettlement::where('seller_id', $seller->id)
+            ->where('lottery_id', $lotteryId)
+            ->whereHas('payments')
+            ->with('payments')
+            ->orderBy('settlement_date', 'desc')
+            ->orderBy('settlement_time', 'desc')
+            ->get();
+
+        $formattedParticipations = $participations->map(function ($p) use ($set, $settlements, $lotteryId) {
+            $paymentMethod = null;
+            if ($p->status === 'vendida' && $p->sale_date) {
+                // Buscar el settlement más reciente antes o en la fecha de venta
+                $saleDate = $p->sale_date->format('Y-m-d');
+                $settlement = $settlements->first(function ($s) use ($saleDate) {
+                    return $s->settlement_date->format('Y-m-d') <= $saleDate;
+                });
+                
+                if ($settlement && $settlement->payments->isNotEmpty()) {
+                    $payment = $settlement->payments->first();
+                    $paymentMethod = $payment ? $payment->payment_method : null;
+                }
+            }
+
+            return [
+                'id' => $p->id,
+                'participation_code' => $p->participation_code,
+                'participation_number' => $p->participation_number,
+                'status' => $p->status,
+                'payment_method' => $paymentMethod,
+                'sale_date' => $p->sale_date ? $p->sale_date->format('d/m/Y') : null,
+                'sale_time' => $p->sale_time ? $p->sale_time->format('H:i') : null,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'taco_info' => [
+                'set_id' => $set->id,
+                'set_name' => $set->set_name,
+                'set_number' => $set->set_number ?? $set->id,
+                'book_number' => $bookNumber,
+                'lottery_name' => $set->reserve->lottery->name ?? '',
+                'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
+                'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
+                'price_per_participation' => (float) ($set->played_amount ?? 0),
+            ],
+            'participations' => $formattedParticipations
+        ]);
+    }
+
+    /**
      * API: Validar rango de participaciones para venta (vendedor autenticado)
      * Comprueba que las participaciones desde-hasta estén asignadas al vendedor y disponibles para marcar como vendidas.
      */

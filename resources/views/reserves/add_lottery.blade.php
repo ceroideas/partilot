@@ -133,7 +133,7 @@
                                                 <th>Tipo de Sorteo</th>
                                                 <th>Fecha Sorteo</th>
                                                 <th>Precio Décimo</th>
-                                                <th>Seleccionar</th>
+                                                <th class="d-none">Seleccionar</th>
                                             </tr>
                                         </thead>
                                     
@@ -146,12 +146,10 @@
                                                 <td>{{$lottery->lotteryType->name ?? 'Sin tipo'}}</td>
                                                 <td>{{$lottery->draw_date ? \Carbon\Carbon::parse($lottery->draw_date)->format('d/m/Y') : 'No definida'}}</td>
                                                 <td><b>{{number_format($lottery->ticket_price, 2)}}€</b></td>
-                                                <td>
+                                                <td class="d-none">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="radio" name="lottery_id" value="{{$lottery->id}}" id="lottery_{{$lottery->id}}" required>
-                                                        <label class="form-check-label" for="lottery_{{$lottery->id}}">
-                                                            Seleccionar
-                                                        </label>
+                                                        <label class="form-check-label" for="lottery_{{$lottery->id}}">Seleccionar</label>
                                                     </div>
                                                 </td>
                                             </tr>

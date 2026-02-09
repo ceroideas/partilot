@@ -532,7 +532,7 @@
                                                                   <th>Importe <br> (Número)</th>
                                                                   <th>Décimos <br> (Número)</th>
                                                                   <th>Importe <br> TOTAL</th>
-                                                                  <th>Seleccionar</th>
+                                                                  <th class="d-none">Seleccionar</th>
                                                               </tr>
                                                           </thead>
                                                           <tbody>
@@ -578,7 +578,7 @@
                                                                   <th>Importe TOTAL</th>
                                                                   <th>Participaciones <br> Físicas</th>
                                                                   <th>Participaciones <br> Disponibles</th>
-                                                                  <th>Seleccionar</th>
+                                                                  <th class="d-none">Seleccionar</th>
                                                               </tr>
                                                           </thead>
                                                           <tbody>
@@ -779,7 +779,7 @@
                                                                 <th>Importe <br> (Número)</th>
                                                                 <th>Décimos <br> (Número)</th>
                                                                 <th>Importe <br> TOTAL</th>
-                                                                <th>Seleccionar</th>
+                                                                <th class="d-none">Seleccionar</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -1142,9 +1142,13 @@ function initDatatable()
           {
             "targets": -1, // Última columna (Seleccionar)
             "orderable": false,
-            "searchable": false
+            "searchable": false,
+            "className": "d-none"
           }
-        ]
+        ],
+        "createdRow": function(row) {
+          $(row).addClass('selectable-row');
+        }
       });
     }
     
@@ -1172,9 +1176,13 @@ function initDatatable()
           {
             "targets": -1, // Última columna (Seleccionar)
             "orderable": false,
-            "searchable": false
+            "searchable": false,
+            "className": "d-none"
           }
-        ]
+        ],
+        "createdRow": function(row) {
+          $(row).addClass('selectable-row');
+        }
       });
     }
     
@@ -1801,9 +1809,13 @@ function initDatatable()
            {
              "targets": -1, // Última columna (Seleccionar)
              "orderable": false,
-             "searchable": false
+             "searchable": false,
+             "className": "d-none"
            }
-         ]
+         ],
+         "createdRow": function(row) {
+           $(row).addClass('selectable-row');
+         }
        });
      }
 

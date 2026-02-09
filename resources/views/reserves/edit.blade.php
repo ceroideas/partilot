@@ -160,6 +160,7 @@
                                                     <div class="input-group input-group-merge group-form">
                                                         <input class="form-control" id="reservation_amount" type="number" step="0.01" name="reservation_amount" value="{{$reserve->reservation_amount}}" style="border-radius: 30px;">
                                                     </div>
+                                                    <small class="text-muted"><i>Por cada número seleccionado</i></small>
                                                 </div>
                                             </div>
                                             <div class="col-3">
@@ -247,8 +248,11 @@
         document.getElementById('total_amount').value = total.toFixed(2);
     }
     
-    // Event listeners para calcular total y cálculos bidireccionales
+    // Importe: escribir libremente; recálculo (décimos e importe correcto) solo al salir del campo (blur)
     document.getElementById('reservation_amount').addEventListener('input', function() {
+        calculateTotal();
+    });
+    document.getElementById('reservation_amount').addEventListener('blur', function() {
         calculateTicketsFromAmount();
         calculateTotal();
     });
@@ -272,14 +276,16 @@
         }
     });
     
-    // Función para calcular décimos basado en el importe
+    // Función para calcular décimos basado en el importe (siempre redondear al alza y ajustar importe al múltiplo)
     function calculateTicketsFromAmount() {
         const reservationAmount = parseFloat(document.getElementById('reservation_amount').value) || 0;
         const ticketPrice = {{$reserve->lottery->ticket_price ?? 0}};
         
-        if (ticketPrice > 0) {
-            const tickets = Math.floor(reservationAmount / ticketPrice); // Sin decimales
+        if (ticketPrice > 0 && reservationAmount > 0) {
+            const tickets = Math.ceil(reservationAmount / ticketPrice); // Siempre al alza: no fracciones de décimo
+            const amountRounded = tickets * ticketPrice; // Importe = múltiplo del precio
             document.getElementById('reservation_tickets').value = tickets;
+            document.getElementById('reservation_amount').value = amountRounded.toFixed(2);
         }
     }
     

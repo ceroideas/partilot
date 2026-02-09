@@ -187,6 +187,16 @@ class ReserveController extends Controller
 
         $entity = Entity::forUser(auth()->user())->findOrFail($entityId);
         $lottery = Lottery::with('lotteryType')->findOrFail($lotteryId);
+        // Importe debe ser múltiplo del precio del décimo; siempre redondear al alza
+        $ticketPrice = (float) $lottery->ticket_price;
+        if ($ticketPrice > 0) {
+            $ticketsFromAmount = (int) ceil($validated['reservation_amount'] / $ticketPrice);
+            if ($ticketsFromAmount < 1) {
+                $ticketsFromAmount = 1;
+            }
+            $validated['reservation_amount'] = round($ticketsFromAmount * $ticketPrice, 2);
+            $validated['reservation_tickets'] = $ticketsFromAmount;
+        }
         // Mantener datos actualizados en sesión para la interfaz
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_lottery', $lottery);
@@ -195,9 +205,9 @@ class ReserveController extends Controller
         if (!$validation['success']) {
             return redirect()->back()->withErrors($validation['messages'])->withInput();
         }
-        // Calcular total
+        // Total de la reserva = importe por número × cantidad de números
         $totalTickets = count($validated['reservation_numbers']);
-        $totalAmount = $totalTickets * $lottery->ticket_price;
+        $totalAmount = round($totalTickets * (float) $validated['reservation_amount'], 2);
 
         // Crear reserva
         $reserveData = array_merge($validated, [
@@ -261,11 +271,24 @@ class ReserveController extends Controller
             'reservation_amount' => 'required|numeric|min:0',
             'reservation_tickets' => 'required|integer|min:1'
         ]);
+        // Importe debe ser múltiplo del precio del décimo; siempre redondear al alza
+        $ticketPrice = (float) $reserve->lottery->ticket_price;
+        if ($ticketPrice > 0) {
+            $ticketsFromAmount = (int) ceil($validated['reservation_amount'] / $ticketPrice);
+            if ($ticketsFromAmount < 1) {
+                $ticketsFromAmount = 1;
+            }
+            $validated['reservation_amount'] = round($ticketsFromAmount * $ticketPrice, 2);
+            $validated['reservation_tickets'] = $ticketsFromAmount;
+        }
         // Validar décimos disponibles (excluyendo la reserva actual)
         $validation = $this->validateReservationTickets($validated['reservation_numbers'], $reserve->lottery_id, $validated['reservation_tickets'], $reserve->id);
         if (!$validation['success']) {
             return redirect()->back()->withErrors($validation['messages'])->withInput();
         }
+        // Recalcular total de la reserva = importe por número × cantidad de números
+        $validated['total_tickets'] = count($validated['reservation_numbers']);
+        $validated['total_amount'] = round($validated['total_tickets'] * (float) $validated['reservation_amount'], 2);
         $reserve->update($validated);
 
         return redirect()->route('reserves.show',$reserve->id)

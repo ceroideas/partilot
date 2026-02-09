@@ -93,7 +93,7 @@
 				                                <th>Localidad</th>
 				                                <th>Administración</th>
 				                                <th>Estado</th>
-				                                <th>Seleccionar</th>
+				                                <th class="d-none">Seleccionar</th>
 				                            </tr>
 				                        </thead>
 				                    
@@ -106,7 +106,7 @@
 				                                <td>{{ $entity->city }}</td>
 				                                <td>{{ $entity->administration->name ?? 'N/A' }}</td>
 				                                <td><label class="badge bg-success">Activo</label></td>
-				                                <td>
+				                                <td class="d-none">
                                                     <label>
 				                                        <input type="radio" name="entity_id" value="{{ $entity->id }}" class="form-check-input"> Seleccionar
                                                     </label>

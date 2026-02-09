@@ -154,7 +154,7 @@
                                                     <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                 </div>
 
-                                                <select class="form-control" name="lottery_type_code" style="border-radius: 0 30px 30px 0;" required>
+                                                <select class="form-control" name="lottery_type_code" style="border-radius: 0 30px 30px 0;">
                                                     <option value="">Seleccionar código</option>
                                                     <option value="J" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'J' ? 'selected' : '' }}>J - Jueves</option>
                                                     <option value="X" {{ old('lottery_type_code', $lottery->lottery_type_code) == 'X' ? 'selected' : '' }}>X - Sábado</option>
@@ -195,7 +195,7 @@
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                     <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
-                                                <input class="form-control" type="date" name="draw_date" value="{{ old('draw_date', $lottery->draw_date->format('Y-m-d')) }}" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" type="date" id="draw_date" name="draw_date" value="{{ old('draw_date', $lottery->draw_date->format('Y-m-d')) }}" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -207,7 +207,7 @@
                                                 <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                     <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
-                                                <input class="form-control" type="date" name="deadline_date" value="{{ old('deadline_date', $lottery->deadline_date->format('Y-m-d')) }}" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" type="date" id="deadline_date" name="deadline_date" value="{{ old('deadline_date', $lottery->deadline_date->format('Y-m-d')) }}" style="border-radius: 0 30px 30px 0;" max="">
                                             </div>
                                         </div>
                                     </div>
@@ -347,6 +347,33 @@
 
     // Generar al cargar la página
     generarNombreSorteo();
+
+    // Fecha límite no puede ser posterior a la fecha del sorteo
+    const drawDateInput = document.getElementById('draw_date');
+    const deadlineDateInput = document.getElementById('deadline_date');
+    if (drawDateInput && deadlineDateInput) {
+        function syncDeadlineMax() {
+            if (drawDateInput.value) {
+                deadlineDateInput.setAttribute('max', drawDateInput.value);
+                if (deadlineDateInput.value && deadlineDateInput.value > drawDateInput.value) {
+                    deadlineDateInput.value = drawDateInput.value;
+                }
+            } else {
+                deadlineDateInput.removeAttribute('max');
+            }
+        }
+        drawDateInput.addEventListener('change', syncDeadlineMax);
+        drawDateInput.addEventListener('input', syncDeadlineMax);
+        syncDeadlineMax();
+        document.querySelector('form[action*="lotteries"]').addEventListener('submit', function(e) {
+            if (drawDateInput.value && deadlineDateInput.value && deadlineDateInput.value > drawDateInput.value) {
+                e.preventDefault();
+                deadlineDateInput.focus();
+                alert('La fecha límite debe ser igual o anterior a la fecha del sorteo.');
+                return false;
+            }
+        });
+    }
 
 </script>
 @endsection

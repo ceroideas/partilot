@@ -199,11 +199,9 @@
                     						<small>Subir Imágen</small>
                     						<input type="file" id="imagenInput" name="image" style="display: none;" accept="image/*">
                     					</label>
-                    					@if($administration->image)
-                    						<a href="#" style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2">
+                    					<button type="button" id="btnEliminarImagen" style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2">
                     							<small>Eliminar Imágen</small>
-                    						</a>
-                    					@endif
+                    						</button>
 
                     				</div>
                     				
@@ -395,9 +393,14 @@
                     					<div class="form-group mt-2">
 			                    			<div class="input-group input-group-merge group-form">
 			                    				@php
-			                    					$accountValue = $administration->account ?? '';
+			                    					// Priorizar old('account') cuando hay error de validación
+			                    					if (old('account') !== null && old('account') !== '') {
+			                    						$accountValue = preg_replace('/\D/', '', old('account'));
+			                    					} else {
+			                    						$accountValue = $administration->account ?? '';
+			                    					}
 			                    					// Si empieza con ES, quitarlo para mostrar solo los dígitos
-			                    					if (str_starts_with($accountValue, 'ES')) {
+			                    					if ($accountValue && str_starts_with($accountValue, 'ES')) {
 			                    						$accountValue = substr($accountValue, 2);
 			                    					} else {
 			                    						// Si es formato antiguo (con espacios), intentar convertir
@@ -494,6 +497,15 @@ document.getElementById('imagenInput').addEventListener('change', function(event
         $('.photo-preview i').show();
         localStorage.removeItem('image_admin_edit_{{ $administration->id }}');
     }
+});
+
+// Botón Eliminar Imagen: quitar valor del input y limpiar preview
+document.getElementById('btnEliminarImagen').addEventListener('click', function() {
+    const input = document.getElementById('imagenInput');
+    if (input) input.value = '';
+    $('.photo-preview').css('background-image', 'none');
+    $('.photo-preview i').show();
+    localStorage.removeItem('image_admin_edit_{{ $administration->id }}');
 });
 
 // Restaurar imagen si hay error de validación

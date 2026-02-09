@@ -414,6 +414,7 @@
 
 	    // Inicializar validación de documento español
 	    initSpanishDocumentValidation('entity-nif-cif', {
+	        forEntity: true,
 	        showMessage: true
 	    });
 	    

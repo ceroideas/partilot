@@ -36,7 +36,7 @@ class CreateAdmin extends FormRequest
             "address"=>"required|string|max:255",
             "email"=>"required|string|max:255",
             "phone"=>"required|string|max:255",
-            "account"=>"nullable|string|max:21|regex:/^[0-9]{0,21}$/",
+            "account"=>"nullable|string|max:22|regex:/^[0-9]{0,22}$/",
         ];
     }
 }

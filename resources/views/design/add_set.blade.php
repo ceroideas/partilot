@@ -121,7 +121,7 @@
                     								<th>Importe TOTAL</th>
                     								<th>Participaciones Físicas</th>
                     								<th>Participaciones Disponibles</th>
-                    								<th>Seleccionar</th>
+                    								<th class="d-none">Seleccionar</th>
                     							</tr>
                     						</thead>
                     						<tbody>
@@ -134,7 +134,7 @@
                     								<td>{{number_format($set->total_amount, 2)}}€</td>
                     								<td>{{$set->physical_participations}}</td>
                     								<td>{{$set->total_participations}}</td>
-                    								<td>
+                    								<td class="d-none">
                     									<div class="form-check">
                     										<input class="form-check-input" type="radio" name="set_id" value="{{$set->id}}" id="set_{{$set->id}}" required>
                     										<label class="form-check-label" for="set_{{$set->id}}">

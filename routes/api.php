@@ -176,6 +176,11 @@ Route::middleware('auth.api')->group(function () {
         // Reservas y sets del vendedor autenticado (para app móvil)
         Route::get('/me/reserves', [SellerController::class, 'apiGetMyReserves']);
         Route::post('/me/validate-sale', [SellerController::class, 'apiValidateSale']);
+        
+        // Participaciones asignadas del vendedor autenticado
+        Route::get('/me/entities', [SellerController::class, 'apiGetMyEntities']);
+        Route::get('/me/tacos', [SellerController::class, 'apiGetMyTacos']);
+        Route::get('/me/tacos/{setId}/{bookNumber}/participations', [SellerController::class, 'apiGetTacoParticipations']);
 
         // Listar vendedores
         Route::get('/', [SellerController::class, 'apiIndex']);

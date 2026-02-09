@@ -109,7 +109,7 @@
 					                                <th>Provincia</th>
 					                                <th>Localidad</th>
 					                                <th>Status</th>
-					                                <th>Seleccionar</th>
+					                                <th class="d-none">Seleccionar</th>
 					                            </tr>
 					                        </thead>
 				                    
@@ -123,7 +123,7 @@
 				                                <td>{{$administration->province}}</td>
 				                                <td>{{$administration->city}}</td>
 				                                <td><label class="badge bg-success">Activo</label></td>
-				                                <td>
+				                                <td class="d-none">
 				                                    <div class="form-check">
 				                                        <input class="form-check-input" type="radio" name="administration_id" value="{{$administration->id}}" id="admin_{{$administration->id}}" required>
 				                                        <label class="form-check-label" for="admin_{{$administration->id}}">

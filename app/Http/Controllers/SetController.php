@@ -57,11 +57,24 @@ class SetController extends Controller
             ->where('status', 1) // confirmed
             ->with(['lottery'])
             ->get()
-             ->sortByDesc(function ($reserve) {
-                return $reserve->lottery->draw_date ?? now(); // fallback si null
-            });;
+            ->sortByDesc(function ($reserve) {
+                return $reserve->lottery->draw_date ?? now();
+            });
 
-        return view('sets.add_reserve', compact('reserves'));
+        // Total y disponible por reserva: total = números × importe por número; disponible = total − suma sets
+        $reserveTotalsAndAvailable = [];
+        foreach ($reserves as $reserve) {
+            $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
+            $total = max(
+                (float) $reserve->total_amount,
+                $numNumbers > 0 ? round($numNumbers * (float) $reserve->reservation_amount, 2) : (float) $reserve->total_amount
+            );
+            $used = (float) Set::where('reserve_id', $reserve->id)->sum('total_amount');
+            $available = max(0, $total - $used);
+            $reserveTotalsAndAvailable[$reserve->id] = ['total' => $total, 'available' => $available];
+        }
+
+        return view('sets.add_reserve', compact('reserves', 'reserveTotalsAndAvailable'));
     }
 
     /**
@@ -109,7 +122,20 @@ class SetController extends Controller
             ->orderBy('lottery.draw_date','desc')
             ->get();
 
-        return view('sets.add_reserve', compact('reserves'));
+        // Total y disponible por reserva
+        $reserveTotalsAndAvailable = [];
+        foreach ($reserves as $reserve) {
+            $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
+            $total = max(
+                (float) $reserve->total_amount,
+                $numNumbers > 0 ? round($numNumbers * (float) $reserve->reservation_amount, 2) : (float) $reserve->total_amount
+            );
+            $used = (float) Set::where('reserve_id', $reserve->id)->sum('total_amount');
+            $available = max(0, $total - $used);
+            $reserveTotalsAndAvailable[$reserve->id] = ['total' => $total, 'available' => $available];
+        }
+
+        return view('sets.add_reserve', compact('reserves', 'reserveTotalsAndAvailable'));
     }
 
     /**
@@ -217,25 +243,17 @@ class SetController extends Controller
             'selected_reserve' => $reserve,
         ]);
 
-        // Calcular importe disponible para la reserva
-        // Obtener todos los sets de la reserva
-        $sets = Set::where('reserve_id', $reserve->id)->get();
-        $usedAmount = 0;
-        
-        foreach ($sets as $set) {
-            // Calcular participaciones no anuladas del set
-            $nonCancelledParticipations = \App\Models\Participation::where('set_id', $set->id)
-                ->where('status', '!=', 'anulada')
-                ->count();
-            
-            // Calcular monto usado basado en participaciones no anuladas
-            $participationPrice = $set->played_amount ?? 0;
-            $setUsedAmount = $nonCancelledParticipations * $participationPrice;
-            $usedAmount += $setUsedAmount;
+        // Total reserva = importe por número × cantidad de números (por si total_amount se guardó con lógica antigua)
+        $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
+        $reserveTotalAmount = max(
+            (float) $reserve->total_amount,
+            $numNumbers > 0 ? round($numNumbers * (float) $reserve->reservation_amount, 2) : (float) $reserve->total_amount
+        );
+        $usedAmount = (float) Set::where('reserve_id', $reserve->id)->sum('total_amount');
+        $availableAmount = $reserveTotalAmount - $usedAmount;
+        if ($availableAmount < 0) {
+            $availableAmount = 0;
         }
-        
-        $availableAmount = $reserve->reservation_amount - $usedAmount;
-        if ($availableAmount < 0) $availableAmount = 0;
 
         // Cargar las relaciones necesarias si no están cargadas
         if (!$reserve->relationLoaded('lottery')) {
@@ -290,27 +308,19 @@ class SetController extends Controller
         ]);
 
 
-        // Calcular importe disponible
-        $sets = Set::where('reserve_id', $reserve->id)->get();
-        $usedAmount = 0;
-        
-        foreach ($sets as $set) {
-            // Calcular participaciones no anuladas del set
-            $nonCancelledParticipations = \App\Models\Participation::where('set_id', $set->id)
-                ->where('status', '!=', 'anulada')
-                ->count();
-            
-            // Calcular monto usado basado en participaciones no anuladas
-            $participationPrice = $set->played_amount ?? 0;
-            $setUsedAmount = $nonCancelledParticipations * $participationPrice;
-            $usedAmount += $setUsedAmount;
+        // Total reserva = importe por número × cantidad de números
+        $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
+        $reserveTotalAmount = max(
+            (float) $reserve->total_amount,
+            $numNumbers > 0 ? round($numNumbers * (float) $reserve->reservation_amount, 2) : (float) $reserve->total_amount
+        );
+        $usedAmount = (float) Set::where('reserve_id', $reserve->id)->sum('total_amount');
+        $availableAmount = $reserveTotalAmount - $usedAmount;
+        if ($availableAmount < 0) {
+            $availableAmount = 0;
         }
-        
-        $availableAmount = $reserve->reservation_amount - $usedAmount;
-        if ($availableAmount < 0) $availableAmount = 0;
         if ($validated['total_amount'] > $availableAmount) {
-            // Volver a la vista con el valor correcto de $availableAmount
-            return back()->withInput()->withErrors(['reservation_amount' => 'El importe total supera el disponible para esta reserva (máx: ' . number_format($availableAmount,2) . ' €)'])
+            return back()->withInput()->withErrors(['total_amount' => 'El importe del set supera el disponible para esta reserva (total reserva: ' . number_format($reserveTotalAmount, 2) . ' €, ya usado: ' . number_format($usedAmount, 2) . ' €, máximo para este set: ' . number_format($availableAmount, 2) . ' €)'])
                 ->with(['availableAmount' => $availableAmount, 'entity' => $entity, 'reserve' => $reserve]);
         }
         $createdAt = now();
@@ -356,28 +366,18 @@ class SetController extends Controller
 
         $entities = Entity::forUser(auth()->user())->get();
         $reserves = Reserve::forUser(auth()->user())->get();
-        // Calcular importe disponible para la reserva, excluyendo participaciones anuladas
-        $sets = Set::where('reserve_id', $set->reserve_id)->get();
-        $usedAmount = 0;
-        
-        foreach ($sets as $setItem) {
-            if ($setItem->id == $set->id) {
-                // Para el set actual, usar el total_amount original
-                $usedAmount += $setItem->total_amount;
-            } else {
-                // Para otros sets, calcular basado en participaciones no anuladas
-                $nonCancelledParticipations = \App\Models\Participation::where('set_id', $setItem->id)
-                    ->where('status', '!=', 'anulada')
-                    ->count();
-                
-                $participationPrice = $setItem->played_amount ?? 0;
-                $setUsedAmount = $nonCancelledParticipations * $participationPrice;
-                $usedAmount += $setUsedAmount;
-            }
+        // Total reserva = importe por número × cantidad de números
+        $reserve = $set->reserve;
+        $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
+        $reserveTotalAmount = max(
+            (float) $reserve->total_amount,
+            $numNumbers > 0 ? round($numNumbers * (float) $reserve->reservation_amount, 2) : (float) $reserve->total_amount
+        );
+        $usedByOthers = (float) Set::where('reserve_id', $set->reserve_id)->where('id', '!=', $set->id)->sum('total_amount');
+        $availableAmount = $reserveTotalAmount - $usedByOthers;
+        if ($availableAmount < 0) {
+            $availableAmount = 0;
         }
-        
-        $availableAmount = $set->reserve->reservation_amount - $usedAmount;
-        if ($availableAmount < 0) $availableAmount = 0;
         return view('sets.edit', compact('set', 'entities', 'reserves', 'availableAmount'));
     }
 
@@ -402,30 +402,20 @@ class SetController extends Controller
             'deadline_date' => ['nullable', 'date', new \App\Rules\DeadlineBeforeLottery($set->reserve_id)]
         ]);
 
-        // Calcular importe disponible para la reserva, excluyendo participaciones anuladas
-        $sets = Set::where('reserve_id', $set->reserve_id)->get();
-        $usedAmount = 0;
-        
-        foreach ($sets as $setItem) {
-            if ($setItem->id == $set->id) {
-                // Para el set actual, usar el nuevo total_amount
-                $usedAmount += $validated['total_amount'];
-            } else {
-                // Para otros sets, calcular basado en participaciones no anuladas
-                $nonCancelledParticipations = \App\Models\Participation::where('set_id', $setItem->id)
-                    ->where('status', '!=', 'anulada')
-                    ->count();
-                
-                $participationPrice = $setItem->played_amount ?? 0;
-                $setUsedAmount = $nonCancelledParticipations * $participationPrice;
-                $usedAmount += $setUsedAmount;
-            }
+        // Total reserva = importe por número × cantidad de números
+        $reserve = $set->reserve;
+        $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
+        $reserveTotalAmount = max(
+            (float) $reserve->total_amount,
+            $numNumbers > 0 ? round($numNumbers * (float) $reserve->reservation_amount, 2) : (float) $reserve->total_amount
+        );
+        $usedByOthers = (float) Set::where('reserve_id', $set->reserve_id)->where('id', '!=', $set->id)->sum('total_amount');
+        $availableAmount = $reserveTotalAmount - $usedByOthers;
+        if ($availableAmount < 0) {
+            $availableAmount = 0;
         }
-        
-        $availableAmount = $set->reserve->reservation_amount - $usedAmount;
-        if ($availableAmount < 0) $availableAmount = 0;
         if ($validated['total_amount'] > $availableAmount) {
-            return back()->withInput()->withErrors(['total_amount' => 'El importe total supera el disponible para esta reserva (máx: ' . number_format($availableAmount,2) . ' €)']);
+            return back()->withInput()->withErrors(['total_amount' => 'El importe del set supera el disponible para esta reserva (máx: ' . number_format($availableAmount, 2) . ' €)']);
         }
 
         // Regenerar tickets manteniendo los existentes

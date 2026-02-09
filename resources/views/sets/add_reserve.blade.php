@@ -134,25 +134,28 @@
 			                                    <th>Números</th>
 			                                    <th>Importe Total</th>
 			                                    <th>Estado</th>
-			                                    <th>Seleccionar</th>
+			                                    <th class="d-none">Seleccionar</th>
 			                                </tr>
 			                            </thead>
 			                        
 			                            <tbody>
 			                                @forelse($reserves as $reserve)
+			                                @php
+			                                    $info = $reserveTotalsAndAvailable[$reserve->id] ?? null;
+			                                    $totalReserva = $info ? $info['total'] : (round((count($reserve->reservation_numbers ?? []) ?: 0) * (float)($reserve->reservation_amount ?? 0), 2));
+			                                    $dispReserva = $info ? $info['available'] : $totalReserva;
+			                                @endphp
 			                                <tr class="selectable-row" style="cursor: pointer;">
 			                                    <td>#RS{{str_pad($reserve->id, 4, '0', STR_PAD_LEFT)}}</td>
 			                                    <td>{{$reserve->lottery ? $reserve->lottery->name : 'Sin sorteo'}}</td>
 			                                    <td>{{$reserve->lottery ? $reserve->lottery->draw_date->format('d-m-Y') : 'Sin fecha'}}</td>
 			                                    <td>{{implode(' - ', $reserve->reservation_numbers ?? [])}}</td>
-			                                    <td><b>{{number_format($reserve->reservation_amount, 2)}} €</b></td>
+			                                    <td><b>{{ number_format($totalReserva, 2) }} € ({{ number_format($dispReserva, 2) }} € disp)</b></td>
 			                                    <td><label class="badge bg-success">{{ucfirst($reserve->status ? 'Activo' : '')}}</label></td>
-			                                    <td>
+			                                    <td class="d-none">
 			                                        <div class="form-check">
 			                                            <input class="form-check-input" type="radio" name="reserve_id" value="{{$reserve->id}}" id="reserve_{{$reserve->id}}" required>
-			                                            <label class="form-check-label" for="reserve_{{$reserve->id}}">
-			                                                Seleccionar
-			                                            </label>
+			                                            <label class="form-check-label" for="reserve_{{$reserve->id}}">Seleccionar</label>
 			                                        </div>
 			                                    </td>
 			                                </tr>

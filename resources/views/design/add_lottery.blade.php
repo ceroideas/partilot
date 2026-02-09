@@ -120,7 +120,7 @@
                     								<th>Nombre Sorteo</th>
                     								<th>Fecha</th>
                     								<th>Estado</th>
-                    								<th>Seleccionar</th>
+                    								<th class="d-none">Seleccionar</th>
                     							</tr>
                     						</thead>
                     						<tbody>
@@ -131,7 +131,7 @@
                     									<td>{{$lottery->name}}</td>
                     									<td>{{$lottery->draw_date->format('d-m-Y') ?? 'Sin fecha'}}</td>
                     									<td><label class="badge bg-success">Activo</label></td>
-                    									<td>
+                    									<td class="d-none">
                     										<div class="form-check">
                     											<input class="form-check-input" type="radio" name="lottery_id" value="{{$lottery->id}}" id="lottery_{{$lottery->id}}" required>
                     											<label class="form-check-label" for="lottery_{{$lottery->id}}">

@@ -52,7 +52,7 @@
                                     <th>Fecha Sorteo</th>
                                     <th>Nombre Sorteo</th>
                                     <th>Números</th>
-                                    <th>Importe (Números)</th>
+                                    <th>Importe por número</th>
                                     <th>Décimos (Números)</th>
                                     <th>Importe Total</th>
                                     <th class="no-filter"></th>
@@ -78,9 +78,16 @@
                                             <span class="text-muted">Sin números</span>
                                         @endif
                                     </td>
-                                    <td><b>{{number_format($reserve->total_amount, 2)}}€</b></td>
-                                    <td>{{$reserve->reservation_tickets ?? 0}}</td>
-                                    <td>{{number_format($reserve->reservation_amount ?? 0, 2)}}€</td>
+                                    @php
+                                        $totalReserva = (float) ($reserve->total_amount ?? 0);
+                                        $numNum = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
+                                        if ($numNum > 0 && $reserve->reservation_amount) {
+                                            $totalReserva = max($totalReserva, round($numNum * (float) $reserve->reservation_amount, 2));
+                                        }
+                                    @endphp
+                                    <td><b>{{ number_format($reserve->reservation_amount ?? 0, 2) }} €</b></td>
+                                    <td>{{ $reserve->reservation_tickets ?? 0 }}</td>
+                                    <td><b>{{ number_format($totalReserva, 2) }} €</b></td>
                                     <td class="no-click" style="cursor: default;">
                                         <a class="btn btn-sm btn-light"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
                                         <a href="{{url('reserves/edit', $reserve->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>

@@ -353,6 +353,8 @@
 <script>
 // Actualizar el badge de estado cuando se cambie el select
 document.addEventListener('DOMContentLoaded', function() {
+    // Validación documento entidad: NIF, NIE, TIE o CIF
+    initSpanishDocumentValidation('entity-edit-nif-cif', { forEntity: true, showMessage: true });
     // Inicializar validación de email
     initEmailValidation('entity-edit-email', {
         context: 'entity',
