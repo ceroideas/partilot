@@ -539,7 +539,6 @@ if (receivingInput) {
 
 // Máscara para número de cuenta (formato: ES 12 1234 1234 12 123456789)
 const accountInput = document.getElementById('account-input');
-console.log(accountInput);
 if (accountInput) {
 	// Función para formatear el número de cuenta
 	function formatAccountNumber(value) {
@@ -569,7 +568,7 @@ if (accountInput) {
 		// Remover todo excepto números
 		const numbers = this.value.replace(/[^0-9]/g, '');
 		
-		// Limitar a 21 dígitos (2+4+4+2+9)
+		// Limitar a 22 dígitos (IBAN español sin ES: 2+4+4+2+10)
 		const limitedNumbers = numbers.slice(0, 22);
 		
 		// Aplicar formato
@@ -584,6 +583,15 @@ if (accountInput) {
 		this.setSelectionRange(newPosition, newPosition);
 	});
 
+	// Validar cuenta bancaria antes de enviar: vacía o exactamente 22 dígitos
+	document.querySelector('#form-edit').addEventListener('submit', function(e) {
+		const digits = accountInput.value.replace(/\s/g, '');
+		if (digits.length > 0 && digits.length !== 22) {
+			e.preventDefault();
+			alert('La cuenta bancaria debe estar vacía o tener exactamente 22 dígitos.');
+			return false;
+		}
+	});
 	// Antes de enviar el formulario, remover espacios y guardar solo números
 	document.querySelector('#form-edit').addEventListener('submit', function(e) {
 		// Crear un campo hidden con el valor sin espacios (incluso si está vacío)

@@ -48,7 +48,16 @@ class AdministratorController extends Controller
             'address' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|max:255',
-            'account' => ['nullable', 'string', 'max:22', 'regex:/^[0-9]{0,22}$/'],
+            'account' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D/', '', (string) $value);
+                    if ($digits !== '' && strlen($digits) !== 22) {
+                        $fail('La cuenta bancaria debe estar vacía o tener exactamente 22 dígitos.');
+                    }
+                },
+            ],
             'status' => 'nullable|in:-1,0,1',
         ]);
 

@@ -36,7 +36,28 @@ class CreateAdmin extends FormRequest
             "address"=>"required|string|max:255",
             "email"=>"required|string|max:255",
             "phone"=>"required|string|max:255",
-            "account"=>"nullable|string|max:22|regex:/^[0-9]{0,22}$/",
+            "account" => [
+                "nullable",
+                "string",
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D/', '', (string) $value);
+                    if ($digits === '') {
+                        return; // Vacío permitido
+                    }
+                    if (strlen($digits) !== 22) {
+                        $fail('La cuenta bancaria debe estar vacía o tener exactamente 22 dígitos.');
+                        return;
+                    }
+                    // Validar IBAN real (checksum MOD-97-10): rechaza números inválidos como 1111111111111111111111
+                    $iban = 'ES' . $digits;
+                    $validator = \Validator::make(['iban' => $iban], [
+                        'iban' => [new \App\Rules\SpanishIban],
+                    ]);
+                    if ($validator->fails()) {
+                        $fail($validator->errors()->first('iban'));
+                    }
+                },
+            ],
         ];
     }
 }

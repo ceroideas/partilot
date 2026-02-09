@@ -84,7 +84,7 @@
 	                                        <img src="{{url('assets/form-groups/admin/0.svg')}}" alt="">
 	                                    </div>
 
-	                                    <input class="form-control" type="text" name="web" placeholder="www.administracion.es" style="border-radius: 0 30px 30px 0;">
+	                                    <input class="form-control" type="text" name="web" placeholder="www.administracion.es" value="{{ old('web') }}" style="border-radius: 0 30px 30px 0;">
 	                                </div>
                     			</div>
                     		</div>
@@ -99,7 +99,7 @@
                     				@csrf()
                     				
                                 <!-- Web (hidden, sincronizado con el campo visible de la izquierda) -->
-                                <input type="hidden" name="web" id="webHidden" value="">
+                                <input type="hidden" name="web" id="webHidden" value="{{ old('web') }}">
                     				
 	                    			<h4 class="mb-0 mt-1">
 	                    				Datos legales de la administración
@@ -147,7 +147,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="name" placeholder="Nombre Administración" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" required name="name" placeholder="Nombre Administración" value="{{ old('name') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -161,7 +161,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="receiving" placeholder="00000" maxlength="5" pattern="[0-9]{5}" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" required name="receiving" placeholder="00000" maxlength="5" pattern="[0-9]{5}" value="{{ old('receiving') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -189,7 +189,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/3.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="society" placeholder="José Andrés / Administración S.L.U." style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" required name="society" placeholder="José Andrés / Administración S.L.U." value="{{ old('society') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -204,7 +204,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="nif_cif" id="admin-nif-cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" required name="nif_cif" id="admin-nif-cif" placeholder="B26262626" value="{{ old('nif_cif') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -219,7 +219,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="province" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" required name="province" placeholder="Provincia" value="{{ old('province') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -234,7 +234,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="city" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" required name="city" placeholder="Localidad" value="{{ old('city') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -249,7 +249,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="number" required name="postal_code" placeholder="C.P." style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="number" required name="postal_code" placeholder="C.P." value="{{ old('postal_code') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -264,7 +264,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="address" placeholder="Dirección" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" required name="address" placeholder="Dirección" value="{{ old('address') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -279,7 +279,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="email" id="admin-email" required name="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="email" id="admin-email" required name="email" placeholder="ejemplo@cuentaemail.com" value="{{ old('email') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -294,7 +294,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="phone" required name="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="phone" required name="phone" placeholder="940 200 200" value="{{ old('phone') }}" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -493,7 +493,7 @@
 	    input.addEventListener('change', saveFormData);
 	});
 
-    // Enviar el campo 'web' (que está fuera del <form>) como hidden dentro del formulario y limpiar storage
+    // Enviar el campo 'web' (que está fuera del <form>) como hidden dentro del formulario (no borrar administration_form_data para poder restaurar al volver atrás)
     document.querySelector('form').addEventListener('submit', function(e) {
         const form = this;
         const webInputOutside = document.querySelector('input[name="web"]');
@@ -504,15 +504,21 @@
             hiddenWeb.value = webInputOutside.value || '';
             form.appendChild(hiddenWeb);
         }
-        localStorage.removeItem('administration_form_data');
+        // No borrar administration_form_data aquí: al volver atrás desde paso 2 se restaura la cuenta y el resto
     });
 
-    // Limpiar datos al navegar al paso 2 (manager)
-    document.querySelector('button[type="submit"]').addEventListener('click', function() {
-        setTimeout(() => {
-            localStorage.removeItem('administration_form_data');
-        }, 100);
-	});
+    // Validar cuenta bancaria antes de enviar: vacía o exactamente 22 dígitos
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const accountInput = document.getElementById('account-input');
+        if (accountInput) {
+            const digits = accountInput.value.replace(/\s/g, '');
+            if (digits.length > 0 && digits.length !== 22) {
+                e.preventDefault();
+                alert('La cuenta bancaria debe estar vacía o tener exactamente 22 dígitos.');
+                return false;
+            }
+        }
+    });
 
 	// Máscara para Nº Receptor (solo números, máximo 5)
 	const receivingInput = document.querySelector('input[name="receiving"]');
@@ -571,7 +577,7 @@
 			// Remover todo excepto números
 			const numbers = this.value.replace(/[^0-9]/g, '');
 			
-			// Limitar a 21 dígitos (2+4+4+2+9)
+			// Limitar a 22 dígitos (IBAN español sin ES: 2+4+4+2+10)
 			const limitedNumbers = numbers.slice(0, 22);
 			
 			// Aplicar formato
