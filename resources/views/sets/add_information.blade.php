@@ -88,10 +88,10 @@
                     			<div class="row">
                 					<div class="col-4">
                 						
-	                    				<div class="photo-preview-3">
-	                    					
-	                    					<i class="ri-account-circle-fill"></i>
-
+	                    				<div class="photo-preview-3 logo-round" @if($entity->image ?? null) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+	                    					@if(!($entity->image ?? null))
+	                    						<i class="ri-account-circle-fill"></i>
+	                    					@endif
 	                    				</div>
 	                    				
 	                    				<div style="clear: both;"></div>
@@ -541,18 +541,19 @@ $(document).ready(function() {
         }
     });
     
-    // Validación de fecha límite
+    // Fecha límite: máximo el día anterior al sorteo (23:59)
     const lotteryDate = @json($reserve->lottery->draw_date ?? null);
     if (lotteryDate) {
-        const maxDate = new Date(lotteryDate).toISOString().split('T')[0];
+        const lotteryDateObj = new Date(lotteryDate);
+        lotteryDateObj.setDate(lotteryDateObj.getDate() - 1);
+        const maxDate = lotteryDateObj.toISOString().split('T')[0];
         $('input[name="deadline_date"]').attr('max', maxDate);
         
         $('input[name="deadline_date"]').on('change', function() {
             const selectedDate = new Date($(this).val());
-            const lotteryDateObj = new Date(lotteryDate);
-            
-            if (selectedDate > lotteryDateObj) {
-                alert('La fecha límite no puede ser posterior a la fecha del sorteo (' + lotteryDateObj.toLocaleDateString() + ')');
+            const maxDateObj = new Date(maxDate);
+            if (selectedDate > maxDateObj) {
+                alert('La fecha límite debe ser como máximo el día anterior al sorteo (23:59).');
                 $(this).val('');
             }
         });

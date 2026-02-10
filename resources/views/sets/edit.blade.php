@@ -357,18 +357,19 @@ $(document).ready(function() {
     calculateTotalParticipationAmount();
     calculateTotalAmount();
     
-    // Validación de fecha límite
+    // Fecha límite: máximo el día anterior al sorteo (23:59)
     const lotteryDate = @json($set->reserve->lottery->draw_date ?? null);
     if (lotteryDate) {
-        const maxDate = new Date(lotteryDate).toISOString().split('T')[0];
+        const lotteryDateObj = new Date(lotteryDate);
+        lotteryDateObj.setDate(lotteryDateObj.getDate() - 1);
+        const maxDate = lotteryDateObj.toISOString().split('T')[0];
         $('input[name="deadline_date"]').attr('max', maxDate);
         
         $('input[name="deadline_date"]').on('change', function() {
             const selectedDate = new Date($(this).val());
-            const lotteryDateObj = new Date(lotteryDate);
-            
-            if (selectedDate > lotteryDateObj) {
-                alert('La fecha límite no puede ser posterior a la fecha del sorteo (' + lotteryDateObj.toLocaleDateString() + ')');
+            const maxDateObj = new Date(maxDate);
+            if (selectedDate > maxDateObj) {
+                alert('La fecha límite debe ser como máximo el día anterior al sorteo (23:59).');
                 $(this).val('');
             }
         });

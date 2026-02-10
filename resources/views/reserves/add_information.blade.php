@@ -85,13 +85,14 @@
 
                             <div class="form-card">
                                 
+                                @php $selEntity = session('selected_entity'); $selEntityImg = $selEntity && (is_object($selEntity) ? $selEntity->image : ($selEntity['image'] ?? null)); @endphp
                                 <div class="row">
                                     <div class="col-4">
                                         
-                                        <div class="photo-preview-3">
-                                            
-                                            <i class="ri-account-circle-fill"></i>
-
+                                        <div class="photo-preview-3 logo-round" @if($selEntityImg) style="background-image: url('{{ asset('uploads/' . $selEntityImg) }}');" @endif>
+                                            @if(!$selEntityImg)
+                                                <i class="ri-account-circle-fill"></i>
+                                            @endif
                                         </div>
                                         
                                         <div style="clear: both;"></div>
@@ -99,9 +100,9 @@
 
                                     <div class="col-8 text-center mt-2">
 
-                                        <h3 class="mt-2 mb-0">{{session('selected_entity')->name ?? 'Entidad'}}</h3>
+                                        <h3 class="mt-2 mb-0">{{ is_object($selEntity) ? ($selEntity->name ?? 'Entidad') : ($selEntity['name'] ?? 'Entidad') }}</h3>
 
-                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{session('selected_entity')->province ?? 'Sin provincia'}}
+                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ is_object($selEntity) ? ($selEntity->province ?? 'Sin provincia') : ($selEntity['province'] ?? 'Sin provincia') }}
                                         
                                     </div>
                                 </div>

@@ -77,6 +77,7 @@ class EntityDocument implements ValidationRule
 
     /**
      * CIF: 1 letra (A–Z excepto I,O) + 7 dígitos + 1 dígito o letra de control.
+     * Para tipo G (asociaciones, clubes) se aceptan dos variantes de cálculo del dígito de control.
      */
     private function validateCif(string $document): bool
     {
@@ -86,23 +87,38 @@ class EntityDocument implements ValidationRule
         $firstChar = substr($document, 0, 1);
         $number = substr($document, 1, 7);
         $control = substr($document, 8, 1);
+        $letters = 'JABCDEFGHI';
 
+        $checkStandard = $this->cifControlDigit($number, [0, 2, 4, 6]);
+        $validStandard = $control === (string) $checkStandard || $control === $letters[$checkStandard];
+
+        if (in_array($firstChar, ['A', 'B', 'E', 'H'], true)) {
+            return $control === (string) $checkStandard;
+        }
+        if ($firstChar === 'G') {
+            // G: número o letra; además se acepta variante con doble solo en posiciones 0,2,4 (algunos CIF G la usan)
+            $checkAlternate = $this->cifControlDigit($number, [0, 2, 4]);
+            $validAlternate = $control === (string) $checkAlternate || $control === $letters[$checkAlternate];
+            return $validStandard || $validAlternate;
+        }
+        return $control === $letters[$checkStandard];
+    }
+
+    /**
+     * Calcula el dígito de control CIF: se duplican los dígitos en las posiciones $doublePositions (0-6).
+     */
+    private function cifControlDigit(string $number, array $doublePositions): int
+    {
         $sum = 0;
         for ($i = 0; $i < 7; $i++) {
             $digit = (int) $number[$i];
-            if ($i % 2 === 0) {
+            if (in_array($i, $doublePositions, true)) {
                 $doubled = $digit * 2;
                 $sum += (int) ($doubled / 10) + ($doubled % 10);
             } else {
                 $sum += $digit;
             }
         }
-        $checkDigit = (10 - ($sum % 10)) % 10;
-
-        if (in_array($firstChar, ['A', 'B', 'E', 'H'], true)) {
-            return $control === (string) $checkDigit;
-        }
-        $letters = 'JABCDEFGHI';
-        return $control === $letters[$checkDigit];
+        return (10 - ($sum % 10)) % 10;
     }
 }

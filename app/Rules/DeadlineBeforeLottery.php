@@ -40,11 +40,11 @@ class DeadlineBeforeLottery implements Rule
             return false; // Si no hay reserva o sorteo, es inválido
         }
 
-        $deadlineDate = Carbon::parse($value);
-        $lotteryDate = Carbon::parse($reserve->lottery->draw_date);
+        $deadlineDate = Carbon::parse($value)->startOfDay();
+        $lotteryDate = Carbon::parse($reserve->lottery->draw_date)->startOfDay();
 
-        // La fecha límite debe ser anterior o igual a la fecha del sorteo
-        return $deadlineDate->lte($lotteryDate);
+        // La fecha límite debe ser estrictamente anterior al día del sorteo (máx. día anterior a las 23:59)
+        return $deadlineDate->lt($lotteryDate);
     }
 
     /**
@@ -59,7 +59,7 @@ class DeadlineBeforeLottery implements Rule
             ? Carbon::parse($reserve->lottery->draw_date)->format('d/m/Y')
             : 'la fecha del sorteo';
             
-        return "La fecha límite no puede ser posterior a {$lotteryDate}.";
+        return "La fecha límite debe ser como máximo el día anterior al sorteo ({$lotteryDate}).";
     }
 }
 

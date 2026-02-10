@@ -45,7 +45,26 @@
     }
 
     /**
-     * Validar CIF (1 letra + 7 dígitos + 1 letra/dígito)
+     * Calcula el dígito de control CIF duplicando los dígitos en las posiciones indicadas (0-6).
+     */
+    function cifControlDigit(number, doublePositions) {
+        let sum = 0;
+        for (let i = 0; i < 7; i++) {
+            const digit = parseInt(number[i], 10);
+            if (doublePositions.indexOf(i) !== -1) {
+                const doubled = digit * 2;
+                sum += Math.floor(doubled / 10) + (doubled % 10);
+            } else {
+                sum += digit;
+            }
+        }
+        return (10 - (sum % 10)) % 10;
+    }
+
+    /**
+     * Validar CIF (1 letra + 7 dígitos + 1 letra/dígito).
+     * Para tipo G (asociaciones, clubes) se aceptan número o letra de control
+     * y la variante con doble solo en posiciones 0,2,4 (ej. G48123987).
      */
     function validateCif(document) {
         const cifRegex = /^[ABCDEFGHJNPQRSUVW][0-9]{7}[0-9A-J]$/i;
@@ -56,34 +75,25 @@
         const firstChar = document.substring(0, 1).toUpperCase();
         const number = document.substring(1, 8);
         const control = document.substring(8, 9).toUpperCase();
-
-        // Calcular suma de posiciones pares e impares
-        let sum = 0;
-        for (let i = 0; i < 7; i++) {
-            const digit = parseInt(number[i]);
-            if (i % 2 === 0) {
-                // Posiciones impares (0, 2, 4, 6)
-                const doubled = digit * 2;
-                sum += Math.floor(doubled / 10) + (doubled % 10);
-            } else {
-                // Posiciones pares (1, 3, 5)
-                sum += digit;
-            }
-        }
-
-        const units = sum % 10;
-        const checkDigit = (10 - units) % 10;
-
-        // Si el primer carácter es A, B, E o H, el dígito de control es numérico
-        if (['A', 'B', 'E', 'H'].includes(firstChar)) {
-            return control === checkDigit.toString();
-        }
-
-        // Para otros casos, el dígito de control es una letra
         const letters = 'JABCDEFGHI';
-        const expectedLetter = letters[checkDigit];
 
-        return control === expectedLetter;
+        const checkStandard = cifControlDigit(number, [0, 2, 4, 6]);
+        const validStandard = control === checkStandard.toString() || control === letters[checkStandard];
+
+        // A, B, E, H: solo dígito numérico
+        if (['A', 'B', 'E', 'H'].includes(firstChar)) {
+            return control === checkStandard.toString();
+        }
+
+        // G (asociaciones, clubes, etc.): número o letra; y variante con doble solo 0,2,4
+        if (firstChar === 'G') {
+            const checkAlternate = cifControlDigit(number, [0, 2, 4]);
+            const validAlternate = control === checkAlternate.toString() || control === letters[checkAlternate];
+            return validStandard || validAlternate;
+        }
+
+        // Resto: letra de control
+        return control === letters[checkStandard];
     }
 
     /**

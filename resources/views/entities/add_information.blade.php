@@ -102,10 +102,11 @@
                     			<div class="row">
                 					<div class="col-4">
                 						
-	                    				<div class="photo-preview-3">
-	                    					
-	                    					<i class="ri-account-circle-fill"></i>
-
+	                    				@php $adminImg = data_get(session('selected_administration'), 'image'); @endphp
+	                    				<div class="photo-preview-3 logo-round" @if($adminImg) style="background-image: url('{{ asset('images/' . $adminImg) }}');" @endif>
+	                    					@if(!$adminImg)
+	                    						<i class="ri-account-circle-fill"></i>
+	                    					@endif
 	                    				</div>
 	                    				
 	                    				<div style="clear: both;"></div>

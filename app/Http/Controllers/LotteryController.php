@@ -49,7 +49,7 @@ class LotteryController extends Controller
             'description' => 'nullable|string',
             'draw_date' => 'required|date|after:today',
             'draw_time' => 'required',
-            'deadline_date' => 'nullable|date|after:today|before_or_equal:draw_date',
+            'deadline_date' => 'nullable|date|after:today|before:draw_date',
             'ticket_price' => 'required|numeric|min:0',
             // 'lottery_type_code' => 'required|string|in:J,X,S,N,B,V',
             'is_special' => 'nullable|boolean',
@@ -59,7 +59,7 @@ class LotteryController extends Controller
             // 'prize_description' => 'required|string',
             // 'prize_value' => 'required|numeric|min:0',
         ], [
-            'deadline_date.before_or_equal' => 'La fecha límite debe ser igual o anterior a la fecha del sorteo.',
+            'deadline_date.before' => 'La fecha límite debe ser como máximo el día anterior al sorteo (23:59).',
         ]);
 
         if ($validator->fails()) {
@@ -117,7 +117,7 @@ class LotteryController extends Controller
             'description' => 'nullable|string',
             'draw_date' => 'required|date',
             'draw_time' => 'required',
-            'deadline_date' => 'nullable|date|before_or_equal:draw_date',
+            'deadline_date' => 'nullable|date|before:draw_date',
             'ticket_price' => 'required|numeric|min:0',
             // 'lottery_type_code' => 'required|string|in:J,X,S,N,B,V',
             'is_special' => 'nullable|boolean',
@@ -128,7 +128,7 @@ class LotteryController extends Controller
             // 'prize_description' => 'required|string',
             // 'prize_value' => 'required|numeric|min:0',
         ], [
-            'deadline_date.before_or_equal' => 'La fecha límite debe ser igual o anterior a la fecha del sorteo.',
+            'deadline_date.before' => 'La fecha límite debe ser como máximo el día anterior al sorteo (23:59).',
         ]);
 
         if ($validator->fails()) {

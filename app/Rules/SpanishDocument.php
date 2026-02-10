@@ -80,7 +80,9 @@ class SpanishDocument implements ValidationRule
     }
 
     /**
-     * Validar CIF (1 letra + 7 dígitos + 1 letra/dígito)
+     * Validar CIF (1 letra + 7 dígitos + 1 letra/dígito).
+     * Para tipo G (asociaciones, clubes, administraciones) se aceptan número o letra de control
+     * y la variante de cálculo con doble solo en posiciones 0,2,4 (ej. G48123987).
      */
     private function validateCif(string $document): bool
     {
@@ -91,33 +93,42 @@ class SpanishDocument implements ValidationRule
         $firstChar = substr($document, 0, 1);
         $number = substr($document, 1, 7);
         $control = substr($document, 8, 1);
+        $letters = 'JABCDEFGHI';
 
-        // Calcular suma de posiciones pares e impares
+        $checkStandard = $this->cifControlDigit($number, [0, 2, 4, 6]);
+        $validStandard = $control === (string) $checkStandard || $control === $letters[$checkStandard];
+
+        // A, B, E, H: solo dígito numérico
+        if (in_array($firstChar, ['A', 'B', 'E', 'H'])) {
+            return $control === (string) $checkStandard;
+        }
+
+        // G (asociaciones, clubes, etc.): número o letra; y variante con doble solo 0,2,4
+        if ($firstChar === 'G') {
+            $checkAlternate = $this->cifControlDigit($number, [0, 2, 4]);
+            $validAlternate = $control === (string) $checkAlternate || $control === $letters[$checkAlternate];
+            return $validStandard || $validAlternate;
+        }
+
+        // Resto: letra de control
+        return $control === $letters[$checkStandard];
+    }
+
+    /**
+     * Calcula el dígito de control CIF duplicando los dígitos en las posiciones indicadas (0-6).
+     */
+    private function cifControlDigit(string $number, array $doublePositions): int
+    {
         $sum = 0;
         for ($i = 0; $i < 7; $i++) {
-            $digit = (int)$number[$i];
-            if ($i % 2 === 0) {
-                // Posiciones impares (0, 2, 4, 6)
+            $digit = (int) $number[$i];
+            if (in_array($i, $doublePositions, true)) {
                 $doubled = $digit * 2;
-                $sum += floor($doubled / 10) + ($doubled % 10);
+                $sum += (int) ($doubled / 10) + ($doubled % 10);
             } else {
-                // Posiciones pares (1, 3, 5)
                 $sum += $digit;
             }
         }
-
-        $units = $sum % 10;
-        $checkDigit = (10 - $units) % 10;
-
-        // Si el primer carácter es A, B, E o H, el dígito de control es numérico
-        if (in_array($firstChar, ['A', 'B', 'E', 'H'])) {
-            return $control === (string)$checkDigit;
-        }
-
-        // Para otros casos, el dígito de control es una letra
-        $letters = 'JABCDEFGHI';
-        $expectedLetter = $letters[$checkDigit];
-
-        return $control === $expectedLetter;
+        return (10 - ($sum % 10)) % 10;
     }
 }

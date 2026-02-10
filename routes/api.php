@@ -436,13 +436,4 @@ Route::middleware('auth.api')->group(function () {
         // Eliminar item (versión para app móvil)
         Route::delete('/delete/{type}/{id}', [ApiController::class, 'deleteItem']);
     });
-    
-    // ========================================================================
-    // DISEÑO Y FORMATOS (Versiones para app móvil con autenticación)
-    // ========================================================================
-    Route::prefix('design')->group(function () {
-        Route::post('/save-format', [App\Http\Controllers\DesignController::class, 'saveFormat']);
-        Route::post('/save-snapshot', [App\Http\Controllers\DesignController::class, 'saveSnapshot']);
-        Route::get('/participation/{id}/pdf', [App\Http\Controllers\DesignController::class, 'exportParticipationPdf']);
-    });
 });

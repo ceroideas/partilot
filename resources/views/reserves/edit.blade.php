@@ -36,8 +36,10 @@
                             <div class="form-card">
                                 <div class="row">
                                     <div class="col-4">
-                                        <div class="photo-preview-3">
-                                            <i class="ri-account-circle-fill"></i>
+                                        <div class="photo-preview-3 logo-round" @if($reserve->entity->image ?? null) style="background-image: url('{{ asset('uploads/' . $reserve->entity->image) }}');" @endif>
+                                            @if(!($reserve->entity->image ?? null))
+                                                <i class="ri-account-circle-fill"></i>
+                                            @endif
                                         </div>
                                         <div style="clear: both;"></div>
                                     </div>

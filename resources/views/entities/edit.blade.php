@@ -148,28 +148,31 @@
 
 	                    			<div class="form-group mt-2 mb-3">
 
-	                    				<div class="row">
-	                    					<div class="col-1">
-	                    						
-			                    				<div class="photo-preview-3">
-			                    					
-			                    					<i class="ri-account-circle-fill"></i>
-
+	                    				<div class="row align-items-center">
+	                    					<div class="col-auto">
+			                    				<div class="photo-preview-3 logo-round entity-image-preview" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+			                    					@if(!$entity->image)
+			                    						<i class="ri-image-add-line"></i>
+			                    					@endif
 			                    				</div>
-			                    				
-			                    				<div style="clear: both;"></div>
 	                    					</div>
-
-	                    					<div class="col-4 text-center mt-3">
-
+	                    					<div class="col-auto">
+	                    						<small><i>Imagen entidad</i></small><br>
+	                    						<b>Logotipo</b><br>
+	                    						<label style="border-radius: 30px; width: 150px; background-color: #333;" class="btn btn-md btn-dark mt-2">
+	                    							<small>Subir imagen</small>
+	                    							<input type="file" id="entity-imagen-input" name="image" style="display: none;" accept="image/*">
+	                    						</label>
+	                    						<button type="button" id="entity-btn-eliminar-imagen" style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2">
+	                    							<small>Eliminar imagen</small>
+	                    						</button>
+	                    						<input type="hidden" name="remove_image" id="entity-remove-image" value="0">
+	                    					</div>
+	                    					<div class="col-auto mt-3 mt-md-0 text-center">
 	                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? '' }}</h4>
-
-	                    						<small>{{ $entity->province ?? '' }}</small> <br>
-	                    						
+	                    						<small>{{ $entity->province ?? '' }}</small>
 	                    					</div>
 	                    				</div>
-	                    				
-	                    				<div style="clear: both;"></div>
 	                    			</div>
 
 	                    			<br>
@@ -351,6 +354,40 @@
 @section('scripts')
 
 <script>
+// Preview y eliminación de imagen de entidad
+document.getElementById('entity-imagen-input').addEventListener('change', function(e) {
+    const archivo = e.target.files[0];
+    const preview = document.querySelector('.entity-image-preview');
+    const removeFlag = document.getElementById('entity-remove-image');
+    if (removeFlag && archivo) removeFlag.value = '0';
+    if (archivo && preview) {
+        const lector = new FileReader();
+        lector.onload = function(ev) {
+            preview.style.backgroundImage = 'url(' + ev.target.result + ')';
+            preview.style.backgroundSize = 'cover';
+            preview.style.backgroundPosition = 'center';
+            const icon = preview.querySelector('i');
+            if (icon) icon.style.display = 'none';
+        };
+        lector.readAsDataURL(archivo);
+    }
+});
+document.getElementById('entity-btn-eliminar-imagen').addEventListener('click', function() {
+    const input = document.getElementById('entity-imagen-input');
+    const preview = document.querySelector('.entity-image-preview');
+    const removeFlag = document.getElementById('entity-remove-image');
+    if (input) input.value = '';
+    if (removeFlag) removeFlag.value = '1';
+    if (preview) {
+        preview.style.backgroundImage = 'none';
+        const icon = preview.querySelector('i');
+        if (icon) {
+            icon.style.display = '';
+            icon.className = 'ri-image-add-line';
+        }
+    }
+});
+
 // Actualizar el badge de estado cuando se cambie el select
 document.addEventListener('DOMContentLoaded', function() {
     // Validación documento entidad: NIF, NIE, TIE o CIF

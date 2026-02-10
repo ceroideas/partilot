@@ -112,13 +112,14 @@
 
                     		<div class="form-card">
                     			
+                    			@php $partEntity = $participation->set && $participation->set->reserve ? $participation->set->reserve->entity : null; @endphp
                     			<div class="row">
                 					<div class="col-4">
                 						
-	                    				<div class="photo-preview-3">
-	                    					
-	                    					<i class="ri-account-circle-fill"></i>
-
+	                    				<div class="photo-preview-3 logo-round" @if($partEntity && $partEntity->image) style="background-image: url('{{ asset('uploads/' . $partEntity->image) }}');" @endif>
+	                    					@if(!$partEntity || !$partEntity->image)
+	                    						<i class="ri-account-circle-fill"></i>
+	                    					@endif
 	                    				</div>
 	                    				
 	                    				<div style="clear: both;"></div>
@@ -126,9 +127,9 @@
 
                 					<div class="col-8 text-center mt-2">
 
-                						<h3 class="mt-2 mb-0">{{ $participation->set && $participation->set->reserve && $participation->set->reserve->entity ? $participation->set->reserve->entity->name : 'Sin entidad' }}</h3>
+                						<h3 class="mt-2 mb-0">{{ $partEntity ? ($partEntity->name ?? 'Sin entidad') : 'Sin entidad' }}</h3>
 
-                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $participation->set && $participation->set->reserve && $participation->set->reserve->entity ? ($participation->set->reserve->entity->province ?? 'Sin provincia') : 'Sin provincia' }}
+                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $partEntity ? ($partEntity->province ?? 'Sin provincia') : 'Sin provincia' }}
                 						
                 					</div>
                 				</div>

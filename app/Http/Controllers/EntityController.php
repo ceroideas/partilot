@@ -468,25 +468,32 @@ class EntityController extends Controller
             'email' => 'nullable|email|max:255',
             'comments' => 'nullable|string|max:1000',
             'status' => 'nullable|in:-1,0,1',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_image' => 'nullable|in:0,1'
         ]);
 
         // Convertir status: -1 = null (pendiente), 1 = activo, 0 = inactivo
         $validated['status'] = $validated['status'] === '-1' ? null : ($validated['status'] ?? null);
 
-        // Manejo de imagen
-        if ($request->hasFile('image')) {
-            // Eliminar imagen anterior si existe
+        // Eliminar imagen si el usuario pulsó "Eliminar imagen"
+        if ($request->input('remove_image') === '1') {
             if ($entity->image && file_exists(public_path('uploads/' . $entity->image))) {
                 unlink(public_path('uploads/' . $entity->image));
             }
-            
+            $validated['image'] = null;
+        }
+        // Sustituir por nueva imagen si se subió un fichero
+        elseif ($request->hasFile('image')) {
+            if ($entity->image && file_exists(public_path('uploads/' . $entity->image))) {
+                unlink(public_path('uploads/' . $entity->image));
+            }
             $file = $request->file('image');
             $filename = $file->hashName();
             $file->move(public_path('uploads'), $filename);
             $validated['image'] = $filename;
         }
 
+        unset($validated['remove_image']);
         $entity->update($validated);
 
         return redirect()->route('entities.show', $entity->id)

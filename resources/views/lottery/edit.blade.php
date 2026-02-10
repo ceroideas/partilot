@@ -348,15 +348,22 @@
     // Generar al cargar la página
     generarNombreSorteo();
 
-    // Fecha límite no puede ser posterior a la fecha del sorteo
+    // Fecha límite: máximo el día anterior al sorteo (23:59)
     const drawDateInput = document.getElementById('draw_date');
     const deadlineDateInput = document.getElementById('deadline_date');
     if (drawDateInput && deadlineDateInput) {
+        function getMaxDeadlineDate() {
+            if (!drawDateInput.value) return null;
+            const d = new Date(drawDateInput.value + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            return d.toISOString().split('T')[0];
+        }
         function syncDeadlineMax() {
-            if (drawDateInput.value) {
-                deadlineDateInput.setAttribute('max', drawDateInput.value);
-                if (deadlineDateInput.value && deadlineDateInput.value > drawDateInput.value) {
-                    deadlineDateInput.value = drawDateInput.value;
+            const maxDate = getMaxDeadlineDate();
+            if (maxDate) {
+                deadlineDateInput.setAttribute('max', maxDate);
+                if (deadlineDateInput.value && deadlineDateInput.value > maxDate) {
+                    deadlineDateInput.value = maxDate;
                 }
             } else {
                 deadlineDateInput.removeAttribute('max');
@@ -366,10 +373,11 @@
         drawDateInput.addEventListener('input', syncDeadlineMax);
         syncDeadlineMax();
         document.querySelector('form[action*="lotteries"]').addEventListener('submit', function(e) {
-            if (drawDateInput.value && deadlineDateInput.value && deadlineDateInput.value > drawDateInput.value) {
+            const maxDate = getMaxDeadlineDate();
+            if (maxDate && deadlineDateInput.value && deadlineDateInput.value > maxDate) {
                 e.preventDefault();
                 deadlineDateInput.focus();
-                alert('La fecha límite debe ser igual o anterior a la fecha del sorteo.');
+                alert('La fecha límite debe ser como máximo el día anterior al sorteo (23:59).');
                 return false;
             }
         });

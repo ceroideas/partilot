@@ -75,7 +75,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">NIF/CIF</label>
-                                <input type="text" name="debtor_nif_cif" class="form-control" value="{{old('debtor_nif_cif', 'B12345674')}}" maxlength="50">
+                                <input type="text" name="debtor_nif_cif" id="debtor_nif_cif" class="form-control" value="{{old('debtor_nif_cif', 'B12345674')}}" maxlength="50">
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -192,7 +192,7 @@ function getBeneficiaryTemplate(index, exampleData = null) {
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NIF/CIF del Beneficiario</label>
-                        <input type="text" name="beneficiaries[${index}][creditor_nif_cif]" class="form-control" value="${data.creditor_nif_cif || ''}" maxlength="50">
+                        <input type="text" name="beneficiaries[${index}][creditor_nif_cif]" id="beneficiary-${index}-nif-cif" class="form-control creditor-nif-cif" value="${data.creditor_nif_cif || ''}" maxlength="50">
                     </div>
                 </div>
                 <div class="row">
@@ -237,6 +237,9 @@ document.getElementById('add-beneficiary').addEventListener('click', function() 
     const container = document.getElementById('beneficiaries-container');
     const template = getBeneficiaryTemplate(beneficiaryIndex);
     container.insertAdjacentHTML('beforeend', template);
+    if (typeof initSpanishDocumentValidation === 'function') {
+        initSpanishDocumentValidation('beneficiary-' + beneficiaryIndex + '-nif-cif', { showMessage: true });
+    }
     beneficiaryIndex++;
 });
 
@@ -274,12 +277,20 @@ document.addEventListener('DOMContentLoaded', function() {
         exampleBeneficiaries.slice(0, 2).forEach((example, idx) => {
             const template = getBeneficiaryTemplate(beneficiaryIndex, example);
             container.insertAdjacentHTML('beforeend', template);
+            if (typeof initSpanishDocumentValidation === 'function') {
+                initSpanishDocumentValidation('beneficiary-' + beneficiaryIndex + '-nif-cif', { showMessage: true });
+            }
             beneficiaryIndex++;
         });
     @else
         // Si hay datos antiguos, añadir un beneficiario vacío
         document.getElementById('add-beneficiary').click();
     @endif
+
+    // Validación NIF/CIF del deudor
+    if (typeof initSpanishDocumentValidation === 'function') {
+        initSpanishDocumentValidation('debtor_nif_cif', { showMessage: true });
+    }
 });
 
 // Validación del formulario
@@ -291,6 +302,33 @@ document.getElementById('sepa-payment-form').addEventListener('submit', function
         return false;
     }
     
+    // Validar NIF/CIF si la función está disponible (deudor y beneficiarios)
+    if (typeof validateSpanishDocument === 'function') {
+        const debtorNif = document.getElementById('debtor_nif_cif');
+        if (debtorNif && debtorNif.value.trim()) {
+            const r = validateSpanishDocument(debtorNif.value.trim());
+            if (!r.valid) {
+                e.preventDefault();
+                debtorNif.focus();
+                alert('NIF/CIF del deudor: ' + r.message);
+                return false;
+            }
+        }
+        const creditorInputs = document.querySelectorAll('.creditor-nif-cif');
+        for (let i = 0; i < creditorInputs.length; i++) {
+            const input = creditorInputs[i];
+            if (input.value.trim()) {
+                const r = validateSpanishDocument(input.value.trim());
+                if (!r.valid) {
+                    e.preventDefault();
+                    input.focus();
+                    alert('NIF/CIF de beneficiario: ' + r.message);
+                    return false;
+                }
+            }
+        }
+    }
+
     // Validar que todos los beneficiarios tengan datos requeridos
     let valid = true;
     beneficiaries.forEach(function(item) {

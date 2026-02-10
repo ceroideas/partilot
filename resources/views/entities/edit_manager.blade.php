@@ -133,14 +133,10 @@
                     				<div class="row">
                     					<div class="col-1">
                     						
-		                    				<div class="photo-preview-2">
-		                    					
-		                    					@if($entity->manager && $entity->manager->user->image)
-		                    						<img src="{{url('manager/'.$entity->manager->user->image)}}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
-		                    					@else
+		                    				<div class="photo-preview-2 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+		                    					@if(!$entity->image)
 		                    						<i class="ri-account-circle-fill"></i>
 		                    					@endif
-
 		                    				</div>
 		                    				
 		                    				<div style="clear: both;"></div>
@@ -149,9 +145,7 @@
                     					<div class="col-4 text-center">
 
                     						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin nombre' }}</h4>
-
                     						<small>{{ $entity->manager->user->name ?? '' }} {{ $entity->manager->user->last_name ?? '' }}</small> <br>
-
                     						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $entity->administration->receiving ?? '' }}
                     						
                     					</div>

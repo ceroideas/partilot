@@ -175,14 +175,10 @@
 			                    				<div class="row">
 			                    					<div class="col-1">
 			                    						
-					                    				<div class="photo-preview-3">
-					                    					
-					                    					@if($entity->image)
-					                    						<img src="{{ url('uploads/' . $entity->image) }}" alt="Imagen de la entidad" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-					                    					@else
+					                    				<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+					                    					@if(!$entity->image)
 					                    						<i class="ri-account-circle-fill"></i>
 					                    					@endif
-
 					                    				</div>
 					                    				
 					                    				<div style="clear: both;"></div>
@@ -377,14 +373,10 @@
 			                    				<div class="row">
 			                    					<div class="col-1">
 			                    						
-					                    				<div class="photo-preview-2">
-					                    					
-					                    					@if($entity->manager && $entity->manager->user->image)
-					                    						<img src="{{ url('manager/' . $entity->manager->user->image) }}" alt="Imagen del gestor" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-					                    					@else
+					                    				<div class="photo-preview-2 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+					                    					@if(!$entity->image)
 					                    						<i class="ri-account-circle-fill"></i>
 					                    					@endif
-
 					                    				</div>
 					                    				
 					                    				<div style="clear: both;"></div>
@@ -697,10 +689,10 @@
 				                    				<div class="row">
 				                    					<div class="col-1">
 				                    						
-						                    				<div class="photo-preview-3">
-						                    					
-						                    					<i class="ri-account-circle-fill"></i>
-
+						                    				<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+						                    					@if(!$entity->image)
+						                    						<i class="ri-account-circle-fill"></i>
+						                    					@endif
 						                    				</div>
 						                    				
 						                    				<div style="clear: both;"></div>
@@ -907,10 +899,10 @@
 				                    				<div class="row">
 				                    					<div class="col-1">
 				                    						
-						                    				<div class="photo-preview-3">
-						                    					
-						                    					<i class="ri-account-circle-fill"></i>
-
+						                    				<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+						                    					@if(!$entity->image)
+						                    						<i class="ri-account-circle-fill"></i>
+						                    					@endif
 						                    				</div>
 						                    				
 						                    				<div style="clear: both;"></div>
@@ -918,17 +910,17 @@
 
 				                    					<div class="col-4 text-center mt-3">
 
-				                    						<h4 class="mt-0 mb-0">FADEMUR</h4>
+				                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin nombre' }}</h4>
 
-				                    						<small>La Rioja</small> <br>
+				                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small> <br>
 				                    						
 				                    					</div>
 
 				                    					<div class="col-4">
 
 				                    						<div class="mt-3">
-				                    							Provincia: La Rioja <br>
-				                    							Dirección: Avd. Club Deportivo 28
+				                    							Provincia: {{ $entity->province ?? 'No especificada' }} <br>
+				                    							Dirección: {{ $entity->address ?? 'No especificada' }}
 				                    						</div>
 				                    						
 				                    					</div>
@@ -936,8 +928,8 @@
 				                    					<div class="col-3">
 
 				                    						<div class="mt-3">
-				                    							Ciudad: Logroño <br>
-				                    							Tel: 941 900 900
+				                    							Ciudad: {{ $entity->city ?? 'No especificada' }} <br>
+				                    							Tel: {{ $entity->phone ?? 'No especificado' }}
 				                    						</div>
 				                    						
 				                    					</div>
@@ -1000,7 +992,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input class="form-control" type="text" name="manager_nif_cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+							                                    <input class="form-control" type="text" name="manager_nif_cif" id="entity-register-manager-nif-cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -1294,6 +1286,11 @@ document.getElementById('entity-toggle-status') && document.getElementById('enti
 	.catch(function() { alert('Error al cambiar el estado'); })
 	.finally(function() { btn.disabled = false; });
 });
+
+// Validación NIF/CIF en formulario Registrar gestor
+if (typeof initSpanishDocumentValidation === 'function') {
+    initSpanishDocumentValidation('entity-register-manager-nif-cif', { showMessage: true });
+}
 
 </script>
 

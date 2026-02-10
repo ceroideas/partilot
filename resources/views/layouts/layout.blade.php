@@ -50,6 +50,19 @@
                 border-bottom: 1px solid silver;
                 outline: none;
               }
+            /* Logos redondos: mismo tamaño, imagen como background cover */
+            .logo-round {
+                border-radius: 50% !important;
+                overflow: hidden;
+                background-size: cover !important;
+                background-position: center !important;
+            }
+            .logo-round-sm {
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                min-height: 48px;
+            }
         </style>
 
         @yield('styles')
