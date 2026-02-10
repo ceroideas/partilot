@@ -162,7 +162,10 @@ Route::middleware('auth.api')->group(function () {
         // Venta manual
         Route::post('/manual', [ParticipationController::class, 'apiSellManual']);
         
-        // Obtener ventas del vendedor
+        // Historial de ventas del vendedor autenticado (para app móvil)
+        Route::get('/me', [ParticipationController::class, 'apiGetMySales']);
+        
+        // Obtener ventas del vendedor (por ID)
         Route::get('/seller/{sellerId}', [ParticipationController::class, 'apiGetSalesBySeller']);
         
         // Estadísticas de ventas

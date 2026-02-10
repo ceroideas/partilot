@@ -569,4 +569,73 @@ class ParticipationController extends Controller
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * API: Historial de ventas del vendedor autenticado (para app móvil).
+     * Devuelve las participaciones vendidas por el vendedor en formato listado para el historial.
+     */
+    public function apiGetMySales(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado.'], 403);
+        }
+
+        $participations = Participation::where('seller_id', $seller->id)
+            ->where('status', 'vendida')
+            ->with(['set.entity', 'set.reserve.lottery'])
+            ->orderBy('sale_date', 'desc')
+            ->orderBy('sale_time', 'desc')
+            ->limit(200)
+            ->get();
+
+        $historial = $participations->map(function ($p) {
+            $set = $p->set;
+            if (!$set) {
+                return null;
+            }
+            $entity = $set->entity ?? null;
+            $reserve = $set->reserve ?? null;
+            $lottery = $reserve ? $reserve->lottery : null;
+            $entidadNombre = $entity ? $entity->name : '—';
+            $fechaSorteo = $lottery && $lottery->draw_date
+                ? $lottery->draw_date->format('d/m/y')
+                : '—';
+            $importeJugado = (float) ($set->played_amount ?? 0);
+            $donativo = (float) ($set->donation_amount ?? 0);
+            $importeTotal = (float) ($p->sale_amount ?? $importeJugado + $donativo);
+            $saleDateTime = $p->sale_date
+                ? $p->sale_date->format('Y-m-d') . 'T' . ($p->sale_time ? (is_object($p->sale_time) ? $p->sale_time->format('H:i:s') : substr((string) $p->sale_time, 0, 8)) : '00:00:00') . '.000000Z'
+                : $p->updated_at->toIso8601String();
+
+            return [
+                'id' => $p->id,
+                'tipo' => 'venta',
+                'fecha' => $saleDateTime,
+                'formaPago' => null,
+                'descripcion' => 'Participación ' . $entidadNombre,
+                'participacion' => [
+                    'entidad' => $entidadNombre,
+                    'numero' => $p->participation_code ?? (string) $p->participation_number,
+                    'fechaSorteo' => $fechaSorteo,
+                    'importeJugado' => $importeJugado,
+                    'donativo' => $donativo > 0 ? $donativo : null,
+                    'importeTotal' => $importeTotal,
+                    'numeroParticipacion' => $p->participation_code ?? $p->participation_number . '/' . str_pad($p->participation_number, 4, '0', STR_PAD_LEFT),
+                    'numeroReferencia' => $p->participation_code ?? str_pad((string) $p->id, 19, '0', STR_PAD_LEFT),
+                    'imagen' => null,
+                ],
+            ];
+        })->filter()->values()->all();
+
+        return response()->json([
+            'success' => true,
+            'historial' => $historial,
+        ]);
+    }
 }
