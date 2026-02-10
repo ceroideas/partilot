@@ -479,7 +479,6 @@
 
 document.getElementById('imagenInput').addEventListener('change', function(event) {
     const archivo = event.target.files[0];
-    const photoPreview = document.querySelector('.photo-preview');
 
     if (archivo) {
         const lector = new FileReader();
@@ -491,12 +490,8 @@ document.getElementById('imagenInput').addEventListener('change', function(event
         	localStorage.setItem('image_admin_edit_{{ $administration->id }}', e.target.result);
         }
         lector.readAsDataURL(archivo);
-    } else {
-        $('.photo-preview').css('background-image', 'none'); // Limpiar preview si se cancela la selección
-        // Mostrar el icono si no hay imagen
-        $('.photo-preview i').show();
-        localStorage.removeItem('image_admin_edit_{{ $administration->id }}');
     }
+    // Si el usuario cancela el diálogo, no hacer nada: mantener la imagen actual (solo se borra con "Eliminar Imagen")
 });
 
 // Botón Eliminar Imagen: quitar valor del input y limpiar preview
