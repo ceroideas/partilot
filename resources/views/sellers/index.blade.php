@@ -91,10 +91,13 @@
                             <tbody>
                                 @foreach($sellers as $seller)
                                 @php
+                                    $entidades = $seller->entities;
+                                    $entidadesNombres = $entidades->pluck('name')->join(', ');
+                                    $entidadesProvincias = $entidades->pluck('province')->unique()->join(', ');
                                     $entidad = $seller->getPrimaryEntity();
                                     $deuda = (float) ($seller->deuda_pendiente ?? 0);
                                 @endphp
-                                <tr class="row-clickable" data-href="{{ route('sellers.show', $seller->id) }}" data-provincia="{{ $entidad?->province ?? '' }}" data-status="{{ $seller->getRawOriginal('status') ?? 0 }}" style="cursor: pointer;">
+                                <tr class="row-clickable" data-href="{{ route('sellers.show', $seller->id) }}" data-provincia="{{ $entidadesProvincias ?: ($entidad?->province ?? '') }}" data-status="{{ $seller->getRawOriginal('status') ?? 0 }}" style="cursor: pointer;">
                                     <td><a href="{{ route('sellers.show', $seller->id) }}" class="text-dark text-decoration-none">#VE{{ str_pad($seller->id, 4, '0', STR_PAD_LEFT) }}</a></td>
                                     <td>{{ $seller->full_name }}</td>
                                     <td>{{ $seller->display_email ?: '—' }}</td>
@@ -109,8 +112,8 @@
                                     <td>{{ $seller->participaciones_vendidas ?? 0 }}</td>
                                     <td>{{ $seller->participaciones_devueltas ?? 0 }}</td>
                                     <td class="{{ $deuda > 0 ? 'text-danger fw-semibold' : '' }}">{{ number_format($deuda, 2, ',', '.') }}€</td>
-                                    <td>{{ $entidad?->name ?? '—' }}</td>
-                                    <td>{{ $entidad?->province ?? '—' }}</td>
+                                    <td title="{{ $entidadesNombres }}">{{ $entidadesNombres ?: '—' }}</td>
+                                    <td title="{{ $entidadesProvincias }}">{{ $entidadesProvincias ?: ($entidad?->province ?? '—') }}</td>
                                     <td>
                                         <span class="badge bg-{{ $seller->status_class }}">{{ $seller->status_text }}</span>
                                     </td>

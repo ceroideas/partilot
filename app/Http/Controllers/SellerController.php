@@ -420,6 +420,84 @@ class SellerController extends Controller
     }
 
     /**
+     * API: Obtener sorteos del vendedor autenticado por entidad (con reservas, sets y diseño)
+     */
+    public function apiGetMyLotteries(Request $request)
+    {
+        $request->validate([
+            'entity_id' => 'required|integer|exists:entities,id'
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        // Verificar que el vendedor pertenece a esta entidad
+        if (!$seller->entities()->where('entities.id', $request->entity_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+
+        // Obtener reservas de esta entidad con sets activos y diseño
+        $reserves = \App\Models\Reserve::where('entity_id', $request->entity_id)
+            ->where('status', 1) // Reserva confirmada
+            ->whereHas('sets', function ($setQ) {
+                $setQ->where('status', 1) // Set activo
+                     ->whereHas('designFormats'); // Que tenga diseño
+            })
+            ->with(['lottery.lotteryType', 'sets' => function ($q) {
+                $q->where('status', 1)
+                  ->with('designFormats');
+            }])
+            ->orderBy('reservation_date', 'desc')
+            ->get();
+        
+        // Agrupar por sorteo y formatear
+        $lotteries = $reserves->groupBy('lottery_id')
+            ->map(function ($reservesGroup) {
+                $reserve = $reservesGroup->first();
+                $lottery = $reserve->lottery;
+                
+                if (!$lottery) {
+                    return null;
+                }
+                
+                // Filtrar sets que tienen diseño
+                $sets = $reserve->sets->filter(function ($set) {
+                    return $set->designFormats && $set->designFormats->isNotEmpty();
+                });
+                
+                if ($sets->isEmpty()) {
+                    return null;
+                }
+                
+                return [
+                    'id' => $lottery->id,
+                    'name' => $lottery->name,
+                    'draw_date' => $lottery->draw_date ? $lottery->draw_date->format('Y-m-d') : null,
+                    'draw_date_formatted' => $lottery->draw_date ? $lottery->draw_date->format('d/m/Y') : null,
+                    'lottery_number' => $lottery->lottery_number ?? '',
+                    'lottery_type' => $lottery->lotteryType->name ?? null,
+                    'reserve_id' => $reserve->id,
+                    'has_design' => true,
+                    'sets_count' => $sets->count(),
+                ];
+            })
+            ->filter()
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'lotteries' => $lotteries
+        ]);
+    }
+
+    /**
      * API: Obtener entidades del vendedor autenticado
      */
     public function apiGetMyEntities(Request $request)

@@ -45,6 +45,31 @@
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
     }
+    .elements.text {
+        position: relative;
+    }
+    .elements.text:hover .edit-btn,
+    .elements.images:hover .edit-btn {
+        display: block;
+    }
+    .edit-btn {
+        display: none;
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        z-index: 10;
+        font-size: 12px;
+    }
+    .edit-btn:hover {
+        background: #0056b3;
+    }
     .elements.selected {
         border: 2px solid #007bff !important;
         outline: 2px solid rgba(0, 123, 255, 0.35);
@@ -57,6 +82,38 @@
         width: 100%;
         height: 100%;
         display: block;
+    }
+    .format-box-btn .btn i {
+        font-size: 14px;
+        position: relative;
+        top: 2px;
+    }
+    .text-style-btn {
+        display: inline-block;
+    }
+    .text-bold { font-weight: bold; }
+    .text-italic { font-style: italic; }
+    .text-underline { text-decoration: underline; }
+    .text-strike { text-decoration: line-through; }
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    .format-btn-group button, .format-btn-group label {
+      max-width: 55px;
+    }
+    
+    /* Centrar el formato */
+    .format-box {
+        margin: auto !important;
+        display: block;
+    }
+    
+    .design-zoom-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
     }
     
     /* Mejorar visualización de imágenes de fondo */
@@ -202,8 +259,14 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <h4 class="mb-0 mt-1">Configurar márgenes</h4>
-                                                <br>
+                                                <h4 class="mb-0 mt-1 d-flex align-items-center">
+                                                    Configurar márgenes
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="btn-desplegar-margenes" data-bs-toggle="collapse" data-bs-target="#marginsCollapse" aria-expanded="false" aria-controls="marginsCollapse">
+                                                        Desplegar
+                                                    </button>
+                                                </h4>
+
+                                                <div class="collapse mt-2" id="marginsCollapse">
                                                 <div class="row">
                                                     <div class="col-md-12">
                                                         <div class="row mb-3">
@@ -256,6 +319,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                                </div>
                                             </div>
                                             <div class="col-3">
                                                 <div class="preview-design">
@@ -280,19 +344,39 @@
                                     <h4 class="mb-0 mt-1">Diseñar Participación</h4>
                                     <small><i>Edita el diseño de la participación</i></small>
                                     <br>
-                                    <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
+                                    <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
                                         <br>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-dark add-text" data-id="2" type="button">Texto</button>
-                                            <button class="btn btn-sm btn-dark add-image" data-id="2" type="button">Imagen</button>
-                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo participación</button>
-                                            <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
-                                            <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
-                                                Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
+                                        <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="2"><i class="ri-zoom-out-line"></i></button>
+                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="2"><i class="ri-zoom-in-line"></i></button>
+                                            <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
+                                            <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
+                                            <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
+                                            <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                            <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
+                                            <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
+                                                <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                             </label>
+                                            <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                            <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
+                                            <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                            <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                            <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                            <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                         </div>
                                         <br>
                                         {!! $format->participation_html ?? '' !!}
+                                    </div>
+                                    </div>
                                         {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
                                             </div>
@@ -303,21 +387,41 @@
                                     <h4 class="mb-0 mt-1">Diseñar Portada</h4>
                                     <small><i>Edita el diseño de la portada</i></small>
                                     <br>
-                                    <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-3" style="transform-origin: top center;">
+                                    <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
                                         <br>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-dark add-text" data-id="3" type="button">Texto</button>
-                                            <button class="btn btn-sm btn-dark add-image" data-id="3" type="button">Imagen</button>
-                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo participación</button>
-                                            <button class="btn btn-sm btn-dark add-top" data-id="3" type="button">Arriba</button>
-                                            <button class="btn btn-sm btn-dark add-bottom" data-id="3" type="button">Abajo</button>
-                                            <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
-                                            <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
-                                                Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
+                                        <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="3"><i class="ri-zoom-out-line"></i></button>
+                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="3"><i class="ri-zoom-in-line"></i></button>
+                                            <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
+                                            <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
+                                            <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
+                                            <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                            <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-top-line"></i></button>
+                                            <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-bottom-line"></i></button>
+                                            <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
+                                            <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
+                                                <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                             </label>
+                                            <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                            <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
+                                            <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                            <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                            <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                            <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                         </div>
                                         <br>
                                         {!! $format->cover_html ?? '' !!}
+                                    </div>
+                                    </div>
                                         {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
                                             </div>
@@ -328,21 +432,41 @@
                                     <h4 class="mb-0 mt-1">Diseñar Trasera</h4>
                                     <small><i>Edita el diseño de la trasera</i></small>
                                     <br>
-                                    <div class="format-box-btn" style="width: 200mm; height: 54px; margin: auto;">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-4" style="transform-origin: top center;">
+                                    <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
                                         <br>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-dark add-text" data-id="4" type="button">Texto</button>
-                                            <button class="btn btn-sm btn-dark add-image" data-id="4" type="button">Imagen</button>
-                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo participación</button>
-                                            <button class="btn btn-sm btn-dark add-top" data-id="4" type="button">Arriba</button>
-                                            <button class="btn btn-sm btn-dark add-bottom" data-id="4" type="button">Abajo</button>
-                                            <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
-                                            <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
-                                                Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
+                                        <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="4"><i class="ri-zoom-out-line"></i></button>
+                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="4"><i class="ri-zoom-in-line"></i></button>
+                                            <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
+                                            <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
+                                            <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
+                                            <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                            <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-top-line"></i></button>
+                                            <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-bottom-line"></i></button>
+                                            <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
+                                            <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
+                                                <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                             </label>
+                                            <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                            <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
+                                            <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                            <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                            <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                            <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                            <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                         </div>
                                         <br>
                                         {!! $format->back_html ?? '' !!}
+                                    </div>
+                                    </div>
                                         {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
                                             </div>
@@ -579,30 +703,74 @@
 <script>
 // --- Funciones de edición visual (copiadas de la vista original) ---
 function editelements(event) {
-    var contenidoHTML = $(this).html();
-    actualElement = $(this);
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    actualElement = $(this).closest('.elements.text');
+    
+    // Obtener el contenido del span (sin el botón de editar)
+    var contenidoHTML = $(actualElement).find('span').html() || '';
+
+    // Destruir instancia previa si existe
     if (editor && CKEDITOR.instances['editor']) {
         CKEDITOR.instances['editor'].destroy(true);
     }
-    $('#editor').html(contenidoHTML);
-    editor = CKEDITOR.replace('editor', {});
+
+    // Limpiar el contenido del div
+    $('#editor').html('');
+
+    addEventsElement();
+
+    // Inicializar CKEditor
+    editor = CKEDITOR.replace('editor', {
+        enterMode: CKEDITOR.ENTER_BR,
+        shiftEnterMode: CKEDITOR.ENTER_P,
+        // Toolbar básico
+        toolbar: [
+            { name: 'basicstyles', items: [ 'Bold', 'Italic', 'Underline', 'Strike' ] },
+            { name: 'paragraph', items: [ 'JustifyLeft', 'JustifyCenter', 'JustifyRight' ] },
+            { name: 'colors', items: [ 'TextColor', 'BGColor' ] },
+            { name: 'styles', items: [ 'FontSize' ] }
+        ],
+        on: {
+            instanceReady: function() {
+                // Establecer el contenido cuando CKEditor esté listo
+                this.setData(contenidoHTML);
+            }
+        }
+    });
+
     $('#ckeditor-modal').modal('show');
+    return false;
 }
 function deleteElements(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     let element = $(this);
     if (element.hasClass('element-critical')) {
         alert('Este elemento es obligatorio y no se puede eliminar.');
-        return;
+        return false;
     }
     if (confirm('¿Desea eliminar el elemento seleccionado?')) {
         element.remove();
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
+        saveHistoryState();
+        updateUndoRedoButtons();
     }
+    return false;
 }
 function changeImage(event) {
-    actualElement = $(this);
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    actualElement = $(this).closest('.elements.images');
     $('#imagen-modal').modal('show');
+    return false;
 }
 function setQRtext(event) {
     actualElement = $(this);
@@ -746,6 +914,113 @@ $('#format').change(function (e) {
 var step = 1;
 var editor;
 var actualElement;
+var selectedElement = null;
+
+// Sistema de Undo/Redo limitado
+var historyStates = [];
+var currentHistoryIndex = -1;
+var maxHistoryStates = 10;
+var isRestoringState = false;
+var resizeTimeout;
+
+// Zoom del diseño (pasos 2, 3, 4)
+var designZoom = 1;
+var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5];
+function applyDesignZoom() {
+  var s = designZoom;
+  $('.design-zoom-container').css('transform', 'scale(' + s + ')');
+  $('.design-zoom-label').text(Math.round(s * 100) + '%');
+  try { localStorage.setItem('designZoom', s); } catch (e) {}
+}
+try { designZoom = parseFloat(localStorage.getItem('designZoom')) || 1; } catch (e) {}
+designZoom = designZoomSteps.indexOf(designZoom) >= 0 ? designZoom : 1;
+applyDesignZoom();
+
+// Funciones del sistema de Undo/Redo
+function saveHistoryState() {
+  if (isRestoringState) return;
+  const canvasHtml = $('#containment-wrapper' + step).html();
+  const canvasState = {
+    html: canvasHtml,
+    step: step,
+    timestamp: Date.now()
+  };
+  if (currentHistoryIndex < historyStates.length - 1) {
+    historyStates = historyStates.slice(0, currentHistoryIndex + 1);
+  }
+  historyStates.push(canvasState);
+  currentHistoryIndex++;
+  if (historyStates.length > maxHistoryStates) {
+    historyStates.shift();
+    currentHistoryIndex--;
+  }
+  updateUndoRedoButtons();
+}
+
+function restoreHistoryState(targetIndex) {
+  if (targetIndex < 0 || targetIndex >= historyStates.length) return;
+  isRestoringState = true;
+  const targetState = historyStates[targetIndex];
+  if (targetState.step === step) {
+    $('#containment-wrapper' + step).html(targetState.html);
+    reapplyElementEvents();
+    currentHistoryIndex = targetIndex;
+    updateUndoRedoButtons();
+  }
+  isRestoringState = false;
+}
+
+function undo() {
+  if (canUndo()) {
+    restoreHistoryState(currentHistoryIndex - 1);
+  }
+}
+
+function redo() {
+  if (canRedo()) {
+    restoreHistoryState(currentHistoryIndex + 1);
+  }
+}
+
+function canUndo() {
+  return currentHistoryIndex > 0 && historyStates.length > 1;
+}
+
+function canRedo() {
+  return currentHistoryIndex < historyStates.length - 1;
+}
+
+function updateUndoRedoButtons() {
+  $('.undo-btn').prop('disabled', !canUndo());
+  $('.redo-btn').prop('disabled', !canRedo());
+}
+
+function uploadImage(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  showDesignLoading('Subiendo imagen...');
+  fetch('{{url('api/upload-image')}}', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.url) {
+      $(actualElement).find('img').attr('src', data.url);
+      $('#imagen-modal').modal('hide');
+      const input = document.getElementById('imageInput');
+      if (input) input.value = null;
+      $('#step').addClass('d-none');
+      $('#save-step').removeClass('d-none');
+      saveHistoryState();
+      updateUndoRedoButtons();
+      // Re-vincular eventos después de cambiar imagen
+      reapplyElementEvents();
+    }
+  })
+  .catch(error => console.error('Error al subir la imagen:', error))
+  .finally(() => hideDesignLoading());
+}
 
 function showStep(newStep) {
     $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
@@ -759,11 +1034,41 @@ function showStep(newStep) {
         $('#step').removeClass('d-none');
         $('#save-step').addClass('d-none');
     }
+    // Aplicar zoom al cambiar de paso
+    if (typeof applyDesignZoom === 'function') {
+        applyDesignZoom();
+    }
 }
 
 function addEventsElement() {
     $('.elements').unbind('contextmenu',changePositionElement);
     $('.elements').contextmenu(changePositionElement);
+    $('.elements').unbind('click.select');
+    $('.elements').bind('click.select', function(e) {
+      e.stopPropagation();
+      $('.elements').removeClass('selected');
+      $(this).addClass('selected');
+      selectedElement = $(this);
+      actualElement = $(this); // Mantener compatibilidad
+      $('.up-layer, .down-layer, .delete-element-btn').prop('disabled', false);
+      if ($(this).hasClass('text')) {
+        $('.text-style-btn').prop('disabled', false);
+      } else {
+        $('.text-style-btn').prop('disabled', true);
+      }
+      updateUndoRedoButtons();
+    });
+    
+    // Deseleccionar al hacer clic fuera
+    $('body').unbind('click.deselect');
+    $('body').bind('click.deselect', function(e) {
+      if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn').length) {
+        $('.elements').removeClass('selected');
+        selectedElement = null;
+        actualElement = null;
+        $('.up-layer, .down-layer, .text-style-btn, .delete-element-btn').prop('disabled', true);
+      }
+    });
 }
 
 function changePositionElement(event) {
@@ -1165,6 +1470,19 @@ $('#edit-format-form').on('submit', function(e) {
 
 $(document).ready(function() {
     showStep(step);
+    
+    // Vincular eventos inicialmente cuando se carga el contenido HTML
+    setTimeout(function() {
+        reapplyElementEvents();
+        // Guardar estado inicial del paso
+        if ($('#containment-wrapper'+step).length) {
+            setTimeout(() => {
+                saveHistoryState();
+                updateUndoRedoButtons();
+            }, 100);
+        }
+    }, 500);
+    
     // --- Botones navegación ---
     $('.next-step').attr('type', 'button');
     $('.prev-step').attr('type', 'button');
@@ -1175,7 +1493,15 @@ $(document).ready(function() {
         if (step < 5) {
             step++;
             showStep(step);
-            reapplyElementEvents();
+            setTimeout(function() {
+                reapplyElementEvents();
+                if ($('#containment-wrapper'+step).length) {
+                    setTimeout(() => {
+                        saveHistoryState();
+                        updateUndoRedoButtons();
+                    }, 100);
+                }
+            }, 100);
         }else{
             $('#edit-format-form').submit();
         }
@@ -1185,7 +1511,15 @@ $(document).ready(function() {
         if (step > 1) {
             step--;
             showStep(step);
-            reapplyElementEvents();
+            setTimeout(function() {
+                reapplyElementEvents();
+                if ($('#containment-wrapper'+step).length) {
+                    setTimeout(() => {
+                        saveHistoryState();
+                        updateUndoRedoButtons();
+                    }, 100);
+                }
+            }, 100);
         }else{
             window.open('{{url('design')}}','_self');
         }
@@ -1195,28 +1529,72 @@ $(document).ready(function() {
         const newStep = parseInt(id.replace('bc-step-', ''));
         step = newStep;
         showStep(step);
-        reapplyElementEvents();
+        setTimeout(function() {
+            reapplyElementEvents();
+            if ($('#containment-wrapper'+step).length) {
+                setTimeout(() => {
+                    saveHistoryState();
+                    updateUndoRedoButtons();
+                }, 100);
+            }
+        }, 100);
     });
+    
+    // Botón Desplegar/Ocultar márgenes
+    $('#marginsCollapse').on('show.bs.collapse', function() {
+        $('#btn-desplegar-margenes').text('Ocultar');
+    }).on('hide.bs.collapse', function() {
+        $('#btn-desplegar-margenes').text('Desplegar');
+    });
+    
+    // Controles de zoom
+    $(document).on('click', '.design-zoom-in', function() {
+      var i = designZoomSteps.indexOf(designZoom);
+      if (i < 0) { for (i = 0; i < designZoomSteps.length && designZoomSteps[i] < designZoom; i++); i = Math.min(i, designZoomSteps.length - 1); }
+      if (i < designZoomSteps.length - 1) { designZoom = designZoomSteps[i + 1]; applyDesignZoom(); }
+    });
+    $(document).on('click', '.design-zoom-out', function() {
+      var i = designZoomSteps.indexOf(designZoom);
+      if (i < 0) { for (i = designZoomSteps.length - 1; i >= 0 && designZoomSteps[i] > designZoom; i--); i = Math.max(i, 0); }
+      if (i > 0) { designZoom = designZoomSteps[i - 1]; applyDesignZoom(); }
+    });
+    
     // --- Botones de agregar elementos ---
     $('.add-text').off('click').on('click', function (e) {
         e.preventDefault();
-        $('#containment-wrapper'+step).append(`<div class="elements text" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 0"><span>Escribe aquí...</span></div>`);
+        e.stopPropagation();
+        $('#containment-wrapper'+step).append(`<div class="elements text" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 0"><button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button><span>Escribe aquí...</span></div>`);
         reapplyElementEvents();
+        saveHistoryState();
+        updateUndoRedoButtons();
+        return false;
     });
     $('.add-image').off('click').on('click', function (e) {
         e.preventDefault();
-        $('#containment-wrapper'+step).append(`<div class="elements images" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span></div>`);
+        e.stopPropagation();
+        $('#containment-wrapper'+step).append(`<div class="elements images" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div>`);
         reapplyElementEvents();
+        saveHistoryState();
+        updateUndoRedoButtons();
+        return false;
     });
     $('.add-top').off('click').on('click', function (e) {
         e.preventDefault();
         $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; top: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf"><span style="padding: 20px; display: block;"></span></div>`);
+        $('.elements.context').unbind('dblclick', deleteElements);
+        $('.elements.context').dblclick(deleteElements);
         reapplyElementEvents();
+        saveHistoryState();
+        updateUndoRedoButtons();
     });
     $('.add-bottom').off('click').on('click', function (e) {
         e.preventDefault();
         $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; bottom: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf"><span style="padding: 20px; display: block;"></span></div>`);
+        $('.elements.context').unbind('dblclick', deleteElements);
+        $('.elements.context').dblclick(deleteElements);
         reapplyElementEvents();
+        saveHistoryState();
+        updateUndoRedoButtons();
     });
     // --- Botón de fondo ---
     $(document).on('click', '#open-bg-modal', function() {
@@ -1245,7 +1623,126 @@ $(document).ready(function() {
         $('.guide'+step).css('border-color',$(this).val());
     });
     reapplyElementEvents();
-    // --- Subir/bajar z-index ---
+    
+    // Las funciones de undo/redo están definidas fuera de este bloque
+    
+    // Botones Undo/Redo
+    $('.undo-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      undo();
+    });
+    
+    $('.redo-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      redo();
+    });
+    
+    // Botones de capas (up-layer, down-layer)
+    $('.up-layer').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement) {
+        if (selectedElement.hasClass('element-critical')) return;
+        let zindex = parseInt(selectedElement.css('z-index')) || 0;
+        if (zindex >= 9999) return;
+        selectedElement.css('z-index', zindex + 1);
+      }
+    });
+    
+    $('.down-layer').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement) {
+        let zindex = parseInt(selectedElement.css('z-index')) || 0;
+        if (zindex > 0) selectedElement.css('z-index', zindex - 1);
+      }
+    });
+    
+    // Botón eliminar elemento
+    $('.delete-element-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement) {
+        if (selectedElement.hasClass('element-critical')) {
+          alert('Este elemento es obligatorio y no se puede eliminar.');
+          return;
+        }
+        selectedElement.remove();
+        selectedElement = null;
+        $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').prop('disabled', true);
+        $('#save-step').removeClass('d-none');
+        $('#step').addClass('d-none');
+        saveHistoryState();
+        updateUndoRedoButtons();
+      }
+    });
+    
+    // Botones de estilo de texto
+    $('.bold-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        selectedElement.find('span').toggleClass('text-bold');
+      }
+    });
+    
+    $('.italic-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        selectedElement.find('span').toggleClass('text-italic');
+      }
+    });
+    
+    $('.underline-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        selectedElement.find('span').toggleClass('text-underline');
+      }
+    });
+    
+    $('.strike-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        selectedElement.find('span').toggleClass('text-strike');
+      }
+    });
+    
+    $('.align-left-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        selectedElement.removeClass('text-center text-right').addClass('text-left');
+      }
+    });
+    
+    $('.align-center-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        selectedElement.removeClass('text-left text-right').addClass('text-center');
+      }
+    });
+    
+    $('.align-right-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        selectedElement.removeClass('text-left text-center').addClass('text-right');
+      }
+    });
+    
+    $('.font-size-up-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        let span = selectedElement.find('span');
+        let currentSize = parseInt(span.css('font-size')) || 14;
+        span.css('font-size', (currentSize + 2) + 'px');
+      }
+    });
+    
+    $('.font-size-down-btn').off('click').on('click', function(e) {
+      e.preventDefault();
+      if (selectedElement && selectedElement.hasClass('text')) {
+        let span = selectedElement.find('span');
+        let currentSize = parseInt(span.css('font-size')) || 14;
+        span.css('font-size', Math.max(8, currentSize - 2) + 'px');
+      }
+    });
+    
+    // --- Subir/bajar z-index (mantener compatibilidad con actualElement) ---
     $('.up-z').off('click').on('click', function (e) {
         e.preventDefault();
         let zindex = $(actualElement).css('z-index') || 1;
@@ -1275,29 +1772,38 @@ $(document).ready(function() {
     $(document).off('keydown.designDelete').on('keydown.designDelete', function(e) {
         if (e.key !== 'Delete' && e.key !== 'Backspace') return;
         if ($(e.target).closest('input, textarea, select, [contenteditable="true"]').length) return;
-        if (!actualElement || !actualElement.length) return;
-        if (actualElement.hasClass('element-critical')) {
+        if (!selectedElement || !selectedElement.length) return;
+        if (selectedElement.hasClass('element-critical')) {
             e.preventDefault();
             alert('Este elemento es obligatorio y no se puede eliminar.');
             return;
         }
         e.preventDefault();
         if (confirm('¿Desea eliminar el elemento seleccionado?')) {
-            actualElement.remove();
+            selectedElement.remove();
+            selectedElement = null;
             actualElement = null;
+            $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').prop('disabled', true);
             $('#step').addClass('d-none');
             $('#save-step').removeClass('d-none');
+            saveHistoryState();
+            updateUndoRedoButtons();
         }
     });
     $('.accept-text').off('click').on('click', function(event) {
         if (editor && CKEDITOR.instances['editor']) {
             var data = CKEDITOR.instances['editor'].getData();
+            data = data.replace(/<p>&nbsp;<\/p>/gi, '').replace(/<p><\/p>/gi, '');
             $(actualElement).find('span').html(data);
             CKEDITOR.instances['editor'].destroy(true);
         }
         $('#ckeditor-modal').modal('hide');
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
+        saveHistoryState();
+        updateUndoRedoButtons();
+        // Re-vincular eventos después de editar
+        reapplyElementEvents();
     });
     const input = document.getElementById('imageInput');
     $('.accept-image').off('click').on('click', function (e) {
@@ -1311,6 +1817,7 @@ $(document).ready(function() {
             }
         }
     });
+    
     $('.accept-qr').off('click').on('click', function (e) {
         e.preventDefault();
         const formData = new FormData();
@@ -1333,36 +1840,99 @@ $(document).ready(function() {
         .catch(error => console.error('Error al subir la imagen:', error))
         .finally(() => hideDesignLoading());
     });
-    function uploadImage(file) {
-        const formData = new FormData();
-        formData.append('image', file);
-        showDesignLoading('Subiendo imagen...');
-        fetch('{{url('api/upload-image')}}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.url) {
-                $(actualElement).find('img').attr('src', data.url);
-                $('#imagen-modal').modal('hide');
-                input.value = null;
-                $('#step').addClass('d-none');
-                $('#save-step').removeClass('d-none');
-            }
-        })
-        .catch(error => console.error('Error al subir la imagen:', error))
-        .finally(() => hideDesignLoading());
-    }
 });
 
 function reapplyElementEvents() {
-    $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+    // Asegurar que los botones edit-btn existan en los elementos
+    $('.elements.text').each(function() {
+      if ($(this).find('.edit-btn').length === 0) {
+        $(this).prepend('<button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>');
+      }
+    });
+    
+    $('.elements.images').each(function() {
+      if ($(this).find('.edit-btn').length === 0) {
+        $(this).append('<button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button>');
+      }
+    });
+    
+    // Compensación de arrastre con zoom
+    var dragClickOffsetX, dragClickOffsetY;
+    $( ".elements" ).draggable({ 
+      handle: 'span', 
+      containment: "#containment-wrapper"+step, 
+      scroll: false, 
+      start: function(event, ui){
+        $('#step').addClass('d-none');
+        $('#save-step').removeClass('d-none');
+        if (typeof designZoom !== 'undefined' && designZoom !== 1) {
+          var el = ui.helper[0];
+          var r = el.getBoundingClientRect();
+          dragClickOffsetX = (event.clientX - r.left) / designZoom;
+          dragClickOffsetY = (event.clientY - r.top) / designZoom;
+        }
+        saveHistoryState();
+        updateUndoRedoButtons();
+      },
+      drag: function(event, ui) {
+        if (typeof designZoom !== 'undefined' && designZoom !== 1) {
+          var containment = document.getElementById('containment-wrapper' + step);
+          if (containment) {
+            var cr = containment.getBoundingClientRect();
+            var mouseLogicalX = (event.clientX - cr.left) / designZoom;
+            var mouseLogicalY = (event.clientY - cr.top) / designZoom;
+            ui.position.left = mouseLogicalX - dragClickOffsetX;
+            ui.position.top = mouseLogicalY - dragClickOffsetY;
+          }
+        }
+      },
+      stop: function() {
+        saveHistoryState();
+        updateUndoRedoButtons();
+      }
+    });
     $('.elements.participation, .elements.reference, .elements.qr, .elements.number, .elements.mini').addClass('element-critical');
-    $('.elements.text').unbind('dblclick',editelements).dblclick(editelements);
-    $('.elements.context').unbind('dblclick',deleteElements).dblclick(deleteElements);
-    $('.elements.images').unbind('dblclick',changeImage).dblclick(changeImage);
-    $('.elements.qr').unbind('dblclick',setQRtext).dblclick(setQRtext);
+    
+    // Vincular eventos de los botones edit-btn (con prevención de propagación)
+    $('.elements.text .edit-btn').off('click', editelements).on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        editelements.call(this, e);
+        return false;
+    });
+    $('.elements.images .edit-btn').off('click', changeImage).on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        changeImage.call(this, e);
+        return false;
+    });
+    
+    // Vincular eventos de doble clic
+    $('.elements.text').off('dblclick', editelements).on('dblclick', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        editelements.call(this, e);
+        return false;
+    });
+    $('.elements.context').off('dblclick', deleteElements).on('dblclick', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        deleteElements.call(this, e);
+        return false;
+    });
+    $('.elements.images').off('dblclick', changeImage).on('dblclick', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        changeImage.call(this, e);
+        return false;
+    });
+    $('.elements.qr').off('dblclick', setQRtext).on('dblclick', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setQRtext.call(this, e);
+        return false;
+    });
+    
     addEventsElement();
     configMargins();
 }

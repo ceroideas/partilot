@@ -571,6 +571,138 @@ class ParticipationController extends Controller
     }
 
     /**
+     * API: Digitalizar participación escaneando QR (solo obtener información, no vender)
+     * La referencia proviene del código QR de la participación física.
+     */
+    public function apiDigitalize(Request $request)
+    {
+        $request->validate([
+            'referencia' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        // Buscar set y participación por referencia (contenido del QR)
+        $set = \App\Models\Set::whereNotNull('tickets')->get()->first(function ($s) use ($request) {
+            if (!is_array($s->tickets)) {
+                return false;
+            }
+            foreach ($s->tickets as $ticket) {
+                if (isset($ticket['r']) && $ticket['r'] == $request->referencia) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!$set) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Referencia no encontrada. Verifica que el código QR sea correcto.'
+            ], 404);
+        }
+
+        // Obtener número de participación desde el ticket
+        $participationNumber = null;
+        foreach ($set->tickets as $ticket) {
+            if (isset($ticket['r']) && $ticket['r'] == $request->referencia) {
+                $participationNumber = $ticket['n'];
+                break;
+            }
+        }
+
+        if (!$participationNumber) {
+            return response()->json(['success' => false, 'message' => 'Referencia no encontrada en el set.'], 404);
+        }
+
+        // Buscar la participación asignada al vendedor
+        $participation = Participation::where('set_id', $set->id)
+            ->where('participation_number', $participationNumber)
+            ->where('seller_id', $seller->id)
+            ->where('status', 'asignada')
+            ->with(['set.reserve.lottery.lotteryType', 'set.entity', 'set.designFormats'])
+            ->first();
+
+        if (!$participation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta participación no está asignada a ti o ya está vendida.'
+            ], 422);
+        }
+
+        // Obtener información de la participación
+        $set = $participation->set;
+        $reserve = $set->reserve ?? null;
+        $lottery = $reserve ? $reserve->lottery : null;
+        $entity = $set->entity ?? null;
+        $designFormat = $set->designFormats->first();
+
+        // Obtener snapshot_path del design format
+        $snapshotPath = null;
+        if ($designFormat && $designFormat->snapshot_path) {
+            $snapshotPath = asset('storage/' . $designFormat->snapshot_path);
+        }
+
+        // Obtener número reservado de la lotería
+        $numeroReservado = '—';
+        if ($reserve && $reserve->reservation_numbers) {
+            $reservationNumbers = is_array($reserve->reservation_numbers) 
+                ? $reserve->reservation_numbers 
+                : json_decode($reserve->reservation_numbers, true);
+            if (is_array($reservationNumbers) && count($reservationNumbers) > 0) {
+                if (count($reservationNumbers) === 1) {
+                    $numeroReservado = (string) $reservationNumbers[0];
+                } else {
+                    $index = $participation->participation_number - 1;
+                    if (isset($reservationNumbers[$index])) {
+                        $numeroReservado = (string) $reservationNumbers[$index];
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Participación digitalizada correctamente.',
+            'participation' => [
+                'id' => $participation->id,
+                'participation_code' => $participation->participation_code,
+                'numero' => $participation->participation_number,
+                'referencia' => $request->referencia,
+                'entity_name' => $entity ? $entity->name : '—',
+                'entidad' => $entity ? $entity->name : '—',
+                'draw_date' => $lottery && $lottery->draw_date ? $lottery->draw_date->format('Y-m-d') : null,
+                'fechaSorteo' => $lottery && $lottery->draw_date ? $lottery->draw_date->format('d/m/y') : '—',
+                'played_amount' => (float) ($set->played_amount ?? 0),
+                'importeJugado' => (float) ($set->played_amount ?? 0),
+                'donation_amount' => (float) ($set->donation_amount ?? 0),
+                'donativo' => (float) ($set->donation_amount ?? 0),
+                'amount' => (float) (($set->played_amount ?? 0) + ($set->donation_amount ?? 0)),
+                'importeTotal' => (float) (($set->played_amount ?? 0) + ($set->donation_amount ?? 0)),
+                'numeroReservado' => $numeroReservado,
+                'image' => $snapshotPath,
+                'snapshot_path' => $snapshotPath,
+                'set' => [
+                    'id' => $set->id,
+                    'reserve' => $reserve ? [
+                        'entity' => $entity ? [
+                            'name' => $entity->name
+                        ] : null
+                    ] : null
+                ]
+            ]
+        ]);
+    }
+
+    /**
      * API: Historial de ventas del vendedor autenticado (para app móvil).
      * Devuelve las participaciones vendidas por el vendedor en formato listado para el historial.
      */
@@ -588,13 +720,13 @@ class ParticipationController extends Controller
 
         $participations = Participation::where('seller_id', $seller->id)
             ->where('status', 'vendida')
-            ->with(['set.entity', 'set.reserve.lottery'])
+            ->with(['set.entity', 'set.reserve.lottery', 'set.designFormats'])
             ->orderBy('sale_date', 'desc')
             ->orderBy('sale_time', 'desc')
             ->limit(200)
             ->get();
 
-        $historial = $participations->map(function ($p) {
+        $historial = $participations->map(function ($p) use ($seller) {
             $set = $p->set;
             if (!$set) {
                 return null;
@@ -613,22 +745,77 @@ class ParticipationController extends Controller
                 ? $p->sale_date->format('Y-m-d') . 'T' . ($p->sale_time ? (is_object($p->sale_time) ? $p->sale_time->format('H:i:s') : substr((string) $p->sale_time, 0, 8)) : '00:00:00') . '.000000Z'
                 : $p->updated_at->toIso8601String();
 
+            // Obtener snapshot_path del design format
+            $snapshotPath = null;
+            $designFormat = $set->designFormats->first();
+            if ($designFormat && $designFormat->snapshot_path) {
+                $snapshotPath = asset('storage/' . $designFormat->snapshot_path);
+            }
+
+            // Obtener número reservado de la lotería
+            $numeroReservado = '—';
+            if ($reserve && $reserve->reservation_numbers) {
+                $reservationNumbers = is_array($reserve->reservation_numbers) 
+                    ? $reserve->reservation_numbers 
+                    : json_decode($reserve->reservation_numbers, true);
+                if (is_array($reservationNumbers)) {
+                    // Si solo hay un número reservado, todas las participaciones del set tienen ese número
+                    if (count($reservationNumbers) === 1) {
+                        $numeroReservado = (string) $reservationNumbers[0];
+                    } else {
+                        // Si hay múltiples números, usar el índice correspondiente
+                        $index = $p->participation_number - 1;
+                        if (isset($reservationNumbers[$index])) {
+                            $numeroReservado = (string) $reservationNumbers[$index];
+                        }
+                    }
+                }
+            }
+
+            // Obtener número de referencia desde set.tickets
+            $numeroReferencia = null;
+            if ($set->tickets) {
+                $tickets = is_array($set->tickets) ? $set->tickets : json_decode($set->tickets, true);
+                if (is_array($tickets)) {
+                    foreach ($tickets as $ticket) {
+                        if (isset($ticket['n']) && $ticket['n'] == $p->participation_number) {
+                            $numeroReferencia = $ticket['r'] ?? null;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Obtener método de pago desde settlement (si existe)
+            $formaPago = 'efectivo'; // Por defecto
+            $lotteryId = $lottery ? $lottery->id : null;
+            if ($lotteryId) {
+                $settlement = \App\Models\SellerSettlement::where('seller_id', $seller->id)
+                    ->where('lottery_id', $lotteryId)
+                    ->whereDate('settlement_date', $p->sale_date ?? now())
+                    ->with('payments')
+                    ->first();
+                if ($settlement && $settlement->payments->isNotEmpty()) {
+                    $formaPago = $settlement->payments->first()->payment_method ?? 'efectivo';
+                }
+            }
+
             return [
                 'id' => $p->id,
                 'tipo' => 'venta',
                 'fecha' => $saleDateTime,
-                'formaPago' => null,
+                'formaPago' => $formaPago,
                 'descripcion' => 'Participación ' . $entidadNombre,
                 'participacion' => [
                     'entidad' => $entidadNombre,
-                    'numero' => $p->participation_code ?? (string) $p->participation_number,
+                    'numero' => $numeroReservado,
                     'fechaSorteo' => $fechaSorteo,
                     'importeJugado' => $importeJugado,
                     'donativo' => $donativo > 0 ? $donativo : null,
                     'importeTotal' => $importeTotal,
                     'numeroParticipacion' => $p->participation_code ?? $p->participation_number . '/' . str_pad($p->participation_number, 4, '0', STR_PAD_LEFT),
-                    'numeroReferencia' => $p->participation_code ?? str_pad((string) $p->id, 19, '0', STR_PAD_LEFT),
-                    'imagen' => null,
+                    'numeroReferencia' => $numeroReferencia ?? str_pad((string) $p->id, 19, '0', STR_PAD_LEFT),
+                    'snapshotPath' => $snapshotPath,
                 ],
             ];
         })->filter()->values()->all();

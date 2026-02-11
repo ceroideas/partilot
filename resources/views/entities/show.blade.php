@@ -164,7 +164,7 @@
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos legales de la entidad
 
-			                    				<a href="{{url('entities/edit/1')}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
+			                    				<a href="{{url('entities/edit',$entity->id)}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    				Editar</a>
 			                    			</h4>
