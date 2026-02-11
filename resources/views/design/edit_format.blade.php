@@ -45,6 +45,14 @@
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
     }
+    .elements.selected {
+        border: 2px solid #007bff !important;
+        outline: 2px solid rgba(0, 123, 255, 0.35);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+    }
+    .elements.element-critical {
+        z-index: 10000 !important;
+    }
     .qr span {
         width: 100%;
         height: 100%;
@@ -189,8 +197,8 @@
                                                     <div class="col-12">
                                                         <div class="alert alert-info" id="ticket-info" style="margin-top: 10px;">
                                                             <b>Medidas de la hoja:</b> <span id="sheet-size">-</span><br>
-                                                            <b>Medidas de cada ticket:</b> <span id="ticket-size">-</span><br>
-                                                            <b>Cantidad de tickets por hoja:</b> <span id="ticket-count">-</span>
+                                                            <b>Medidas de cada participación:</b> <span id="ticket-size">-</span><br>
+                                                            <b>Cantidad de participaciones por hoja:</b> <span id="ticket-count">-</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -277,7 +285,7 @@
                                         <div class="btn-group">
                                             <button class="btn btn-sm btn-dark add-text" data-id="2" type="button">Texto</button>
                                             <button class="btn btn-sm btn-dark add-image" data-id="2" type="button">Imagen</button>
-                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
+                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo participación</button>
                                             <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
                                             <label class="btn btn-sm btn-dark color-guide" style="position: relative;" data-id="2" type="button">
                                                 Color Guias<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
@@ -300,7 +308,7 @@
                                         <div class="btn-group">
                                             <button class="btn btn-sm btn-dark add-text" data-id="3" type="button">Texto</button>
                                             <button class="btn btn-sm btn-dark add-image" data-id="3" type="button">Imagen</button>
-                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
+                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo participación</button>
                                             <button class="btn btn-sm btn-dark add-top" data-id="3" type="button">Arriba</button>
                                             <button class="btn btn-sm btn-dark add-bottom" data-id="3" type="button">Abajo</button>
                                             <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
@@ -325,7 +333,7 @@
                                         <div class="btn-group">
                                             <button class="btn btn-sm btn-dark add-text" data-id="4" type="button">Texto</button>
                                             <button class="btn btn-sm btn-dark add-image" data-id="4" type="button">Imagen</button>
-                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo ticket</button>
+                                            <button class="btn btn-sm btn-dark" id="open-bg-modal" type="button">Fondo participación</button>
                                             <button class="btn btn-sm btn-dark add-top" data-id="4" type="button">Arriba</button>
                                             <button class="btn btn-sm btn-dark add-bottom" data-id="4" type="button">Abajo</button>
                                             <button class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button">Guias</button>
@@ -511,6 +519,12 @@
     </div>
   </div>
 </div>
+<!-- Overlay de carga -->
+<div id="design-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+  <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;"><span class="visually-hidden">Cargando...</span></div>
+  <p class="text-white mt-2 mb-0" id="design-loading-text">Procesando...</p>
+</div>
+
 <div class="modal fade" id="position-modal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
@@ -534,7 +548,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="backgroundModalLabel">Seleccionar fondo del ticket</h5>
+        <h5 class="modal-title" id="backgroundModalLabel">Seleccionar fondo de la participación</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -576,6 +590,10 @@ function editelements(event) {
 }
 function deleteElements(event) {
     let element = $(this);
+    if (element.hasClass('element-critical')) {
+        alert('Este elemento es obligatorio y no se puede eliminar.');
+        return;
+    }
     if (confirm('¿Desea eliminar el elemento seleccionado?')) {
         element.remove();
         $('#step').addClass('d-none');
@@ -1088,14 +1106,20 @@ function collectDesignData() {
   };
 }
 
+function showDesignLoading(msg) {
+  $('#design-loading-text').text(msg || 'Procesando...');
+  $('#design-loading-overlay').css('display', 'flex').show();
+}
+function hideDesignLoading() {
+  $('#design-loading-overlay').hide();
+}
+
 // --- Enviar datos al backend al guardar ---
 $('#edit-format-form').on('submit', function(e) {
-  // Prevenir submit normal
   e.preventDefault();
   const data = collectDesignData();
-  // Puedes hacer un POST AJAX o poner los datos en un input hidden
-  // Aquí ejemplo con AJAX:
 
+  showDesignLoading('Guardando diseño...');
   fetch($(this).attr('action'), {
     method: 'PUT',
     headers: {
@@ -1108,13 +1132,12 @@ $('#edit-format-form').on('submit', function(e) {
   .then(result => {
     if(result.success) {
       alert('Diseño guardado correctamente.');
-      {{-- window.open('{{url('design?table=1')}}','_self'); --}}
-      // Puedes redirigir o mostrar un mensaje aquí
     } else {
       alert('Error al guardar el diseño.');
     }
   })
-  .catch(() => alert('Error al guardar el diseño.'));
+  .catch(() => alert('Error al guardar el diseño.'))
+  .finally(() => hideDesignLoading());
 
 
   {{-- $.ajax({
@@ -1238,8 +1261,30 @@ $(document).ready(function() {
     // --- Eventos y funciones de guardado visual (copiados de format.blade.php) ---
     $('.deleteElements').off('click').on('click', function (e) {
         e.preventDefault();
+        if (actualElement && actualElement.hasClass('element-critical')) {
+            alert('Este elemento es obligatorio y no se puede eliminar.');
+            return;
+        }
         if (confirm('¿Desea eliminar el elemento seleccionado?')) {
             if (actualElement) actualElement.remove();
+            $('#step').addClass('d-none');
+            $('#save-step').removeClass('d-none');
+        }
+    });
+    // Suprimir / Backspace: eliminar elemento seleccionado (salvo en inputs)
+    $(document).off('keydown.designDelete').on('keydown.designDelete', function(e) {
+        if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+        if ($(e.target).closest('input, textarea, select, [contenteditable="true"]').length) return;
+        if (!actualElement || !actualElement.length) return;
+        if (actualElement.hasClass('element-critical')) {
+            e.preventDefault();
+            alert('Este elemento es obligatorio y no se puede eliminar.');
+            return;
+        }
+        e.preventDefault();
+        if (confirm('¿Desea eliminar el elemento seleccionado?')) {
+            actualElement.remove();
+            actualElement = null;
             $('#step').addClass('d-none');
             $('#save-step').removeClass('d-none');
         }
@@ -1270,6 +1315,7 @@ $(document).ready(function() {
         e.preventDefault();
         const formData = new FormData();
         formData.append('text', $('#qr-text').val());
+        showDesignLoading('Generando código QR...');
         fetch('{{url('api/generarQr')}}', {
             method: 'POST',
             body: formData
@@ -1284,11 +1330,13 @@ $(document).ready(function() {
                 $('#save-step').removeClass('d-none');
             }
         })
-        .catch(error => console.error('Error al subir la imagen:', error));
+        .catch(error => console.error('Error al subir la imagen:', error))
+        .finally(() => hideDesignLoading());
     });
     function uploadImage(file) {
         const formData = new FormData();
         formData.append('image', file);
+        showDesignLoading('Subiendo imagen...');
         fetch('{{url('api/upload-image')}}', {
             method: 'POST',
             body: formData
@@ -1303,12 +1351,14 @@ $(document).ready(function() {
                 $('#save-step').removeClass('d-none');
             }
         })
-        .catch(error => console.error('Error al subir la imagen:', error));
+        .catch(error => console.error('Error al subir la imagen:', error))
+        .finally(() => hideDesignLoading());
     }
 });
 
 function reapplyElementEvents() {
-    $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });    
+    $( ".elements" ).draggable({ handle: 'span', containment: "#containment-wrapper"+step, scroll: false, start: function(){$('#step').addClass('d-none');$('#save-step').removeClass('d-none');} });
+    $('.elements.participation, .elements.reference, .elements.qr, .elements.number, .elements.mini').addClass('element-critical');
     $('.elements.text').unbind('dblclick',editelements).dblclick(editelements);
     $('.elements.context').unbind('dblclick',deleteElements).dblclick(deleteElements);
     $('.elements.images').unbind('dblclick',changeImage).dblclick(changeImage);
@@ -1339,10 +1389,10 @@ $(document).on('click', '#apply-bg', function() {
   const color = $('#background-color').val();
   let img = '';
   if($('#background-image')[0].files && $('#background-image')[0].files[0]) {
-    // Subir imagen al servidor
     const file = $('#background-image')[0].files[0];
     const formData = new FormData();
     formData.append('image', file);
+    showDesignLoading('Subiendo imagen...');
     fetch('{{url('api/upload-image')}}', {
       method: 'POST',
       body: formData
@@ -1355,7 +1405,8 @@ $(document).on('click', '#apply-bg', function() {
         setBgToContainment(color, img);
         $('#background-modal').modal('hide');
       }
-    });
+    })
+    .finally(() => hideDesignLoading());
   } else {
     img = localStorage.getItem('bgimg-step'+step) || '';
     setBgToContainment(color, img);

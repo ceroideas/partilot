@@ -71,8 +71,12 @@
         background: #0056b3;
     }
     .elements.selected {
-        border: 1px solid #007bff !important;
-        box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        border: 2px solid #007bff !important;
+        outline: 2px solid rgba(0, 123, 255, 0.35);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+    }
+    .elements.element-critical {
+        z-index: 10000 !important;
     }
 
     .format-box-btn .btn i {
@@ -280,19 +284,21 @@
                                                 <div class="col-12">
                                                     <div class="alert alert-info" id="ticket-info" style="margin-top: 10px;">
                                                         <b>Medidas de la hoja:</b> <span id="sheet-size">-</span><br>
-                                                        <b>Medidas de cada ticket:</b> <span id="ticket-size">-</span><br>
-                                                        <b>Cantidad de tickets por hoja:</b> <span id="ticket-count">-</span>
+                                                        <b>Medidas de cada participación:</b> <span id="ticket-size">-</span><br>
+                                                        <b>Cantidad de participaciones por hoja:</b> <span id="ticket-count">-</span>
                                                     </div>
                                                 </div>
 
                                             </div>  
 
-                                            <h4 class="mb-0 mt-1">
+                                            <h4 class="mb-0 mt-1 d-flex align-items-center">
                                                 Configurar márgenes
+                                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="btn-desplegar-margenes" data-bs-toggle="collapse" data-bs-target="#marginsCollapse" aria-expanded="false" aria-controls="marginsCollapse">
+                                                    Desplegar
+                                                </button>
                                             </h4>
 
-                                            <br>
-
+                                            <div class="collapse mt-2" id="marginsCollapse">
                                             <div class="row">
                                                 
                                                 <div class="col-md-12">
@@ -387,6 +393,7 @@
                                                 </div>
 
                                             </div>
+                                            </div>
                                             
                                         </div>
                                         <div class="col-3">
@@ -426,18 +433,22 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
+                                <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
                                 <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
                                     <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="2"><i class="ri-zoom-out-line"></i></button>
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="2"><i class="ri-zoom-in-line"></i></button>
+                                        <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
                                         <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
                                         <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="2" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="2" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                        <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
                                         <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
                                         <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
                                             <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
@@ -479,7 +490,7 @@
 
                                               
 
-                                             <div class="elements number text ui-draggable" style="padding: 10px; width: 274px; height: 94px; resize: both; overflow: hidden; position: relative; left: 452px; top: 25.875px;">
+                                             <div class="elements element-critical number text ui-draggable" style="padding: 10px; width: 274px; height: 94px; resize: both; overflow: hidden; position: relative; left: 452px; top: 25.875px;">
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><h1><span style="color:hsl(0,0%,0%);font-size:{{ getNumberFontSize($reservation_numbers) }};" class="ui-draggable-handle"><strong>{{ is_array($reservation_numbers) ? implode(' - ', $reservation_numbers) : $reservation_numbers }}</strong></span></h1></span>
                                             </div>
@@ -500,7 +511,7 @@
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 82px; height: 44px; resize: both; overflow: hidden; position: absolute; top: 144px; left: 42px;">
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0, 0%, 0%);" class="ui-draggable-handle"><strong>25/07/25</strong></span></p></span>
-                                            </div><div class="elements text number mini ui-draggable" style="padding: 10px; width: 74px; height: 43px; resize: both; overflow: hidden; position: absolute; top: 180.797px; left: 51.7969px; z-index: 1001;">
+                                            </div><div class="elements element-critical text number mini ui-draggable" style="padding: 10px; width: 74px; height: 43px; resize: both; overflow: hidden; position: absolute; top: 180.797px; left: 51.7969px; z-index: 1001;">
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-family:Arial, Helvetica, sans-serif;font-size:14px;" class="ui-draggable-handle"><strong>{{ formatMini($reservation_numbers) }}</strong></span></p></span>
                                             </div>
@@ -508,7 +519,7 @@
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><h4 style="text-align:center;"><span style="color:hsl(0, 0%, 0%);font-size:26px;" class="ui-draggable-handle"><strong>{{ number_format($set->played_amount, 2, ',', '.') }}€</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0, 0%, 0%);font-size:18px;" class="ui-draggable-handle"><strong>{{ number_format($set->donation_amount, 2, ',', '.') }}€</strong></span></h4></span>
                                             </div>
-                                                <div class="elements participation text ui-draggable" style="padding: 10px; width: 90px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 300px; left: 94px;">
+                                                <div class="elements element-critical participation text ui-draggable" style="padding: 10px; width: 90px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 300px; left: 94px;">
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div>
@@ -521,19 +532,20 @@
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 200px; height: 120px; resize: both; overflow: hidden; position: absolute; top: 220px; left: 332px;">
                                             <span class="ui-draggable-handle"><p style="text-align:center;"><span style="color:hsl(0,0%,0%);font-size:26px;" class="ui-draggable-handle"><strong>{{ number_format($set->played_amount, 2, ',', '.') }}€</strong></span><br><span style="color:hsl(0,0%,0%);font-size:14px;" class="ui-draggable-handle"><strong>Donativo:</strong></span><br><span style="color:hsl(0,0%,0%);font-size:18px;" class="ui-draggable-handle"><strong>{{ number_format($set->donation_amount, 2, ',', '.') }}€</strong></span></p></span>
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
-                                            </div><div class="elements participation text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
+                                            </div><div class="elements element-critical participation text ui-draggable" style="padding: 10px; width: 80px; height: 42px; resize: both; overflow: hidden; position: absolute; top: 218px; left: 662px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:10px;" class="ui-draggable-handle"><strong>Nº 1/0001</strong></span></p></span>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 92px; height: 36px; resize: both; overflow: hidden; position: absolute; top: 247.797px; left: 490.781px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>DEPOSITARIO</strong></span></p></span>
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
-                                            </div><div class="elements reference text ui-draggable" style="padding: 10px; width: 227px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 278.688px; left: 459.703px;">
+                                            </div><div class="elements element-critical reference text ui-draggable" style="padding: 10px; width: 227px; height: 40px; resize: both; overflow: hidden; position: absolute; top: 278.688px; left: 459.703px;">
                                                 <span class="ui-draggable-handle"><p><span style="color:hsl(0,0%,0%);font-size:12px;" class="ui-draggable-handle"><strong>Nº Ref: 00000000000000000000</strong></span></p></span>
                                             </div>
-                                        <div class="elements qr ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 253.562px; left: 666.588px; width: 60px; height: 60px;"><span class="ui-draggable-handle"></span></div>
+                                        <div class="elements element-critical qr ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 253.562px; left: 666.588px; width: 60px; height: 60px;"><span class="ui-draggable-handle"></span></div>
                                         
                                         </div>
 
                                     </div>
+                                </div>
                                 </div>
 
                                 {{-- </div> --}}
@@ -549,18 +561,22 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
+                                <div class="design-zoom-container" id="design-zoom-wrapper-3" style="transform-origin: top center;">
                                 <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
                                     <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="3"><i class="ri-zoom-out-line"></i></button>
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="3"><i class="ri-zoom-in-line"></i></button>
+                                        <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
                                         <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
                                         <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                        <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
                                         <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-top-line"></i></button>
                                         <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-bottom-line"></i></button>
                                         <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
@@ -613,6 +629,7 @@
 
                                     </div>
                                 </div>
+                                </div>
 
                                 {{-- </div> --}}
                             </div>
@@ -627,18 +644,22 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
+                                <div class="design-zoom-container" id="design-zoom-wrapper-4" style="transform-origin: top center;">
                                 <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
                                     <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="4"><i class="ri-zoom-out-line"></i></button>
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="4"><i class="ri-zoom-in-line"></i></button>
+                                        <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
                                         <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
                                         <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
                                         {{-- <button class="btn btn-sm btn-dark add-qr" data-id="4" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="4" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
-                                        <button title="Fondo del ticket" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                        <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
                                         <button title="Agregar barra superior" class="btn btn-sm btn-dark add-top" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-top-line"></i></button>
                                         <button title="Agregar barra inferior" class="btn btn-sm btn-dark add-bottom" data-id="4" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-layout-bottom-line"></i></button>
                                         <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
@@ -685,6 +706,7 @@
                                         </div>
 
                                     </div>
+                                </div>
                                 </div>
 
                                 {{-- </div> --}}
@@ -944,6 +966,14 @@
   </div>
 </div>
 
+<!-- Overlay de carga (subir imagen, guardar, etc.) -->
+<div id="design-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+  <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+  <p class="text-white mt-2 mb-0" id="design-loading-text">Procesando...</p>
+</div>
+
 <div class="modal fade" id="position-modal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
@@ -969,7 +999,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="backgroundModalLabel">Seleccionar fondo del ticket</h5>
+        <h5 class="modal-title" id="backgroundModalLabel">Seleccionar fondo de la participación</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -1004,7 +1034,45 @@
 <script>
 // ... existing code ...
 // === SCRIPTS PARA EL MODAL DE FONDO ===
+function showDesignLoading(msg) {
+  $('#design-loading-text').text(msg || 'Procesando...');
+  $('#design-loading-overlay').css('display', 'flex').show();
+}
+function hideDesignLoading() {
+  $('#design-loading-overlay').hide();
+}
+
 $(document).ready(function() {
+  // Zoom del diseño (pasos 2, 3, 4)
+  var designZoom = 1;
+  var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5];
+  function applyDesignZoom() {
+    var s = designZoom;
+    $('.design-zoom-container').css('transform', 'scale(' + s + ')');
+    $('.design-zoom-label').text(Math.round(s * 100) + '%');
+    try { localStorage.setItem('designZoom', s); } catch (e) {}
+  }
+  try { designZoom = parseFloat(localStorage.getItem('designZoom')) || 1; } catch (e) {}
+  designZoom = designZoomSteps.indexOf(designZoom) >= 0 ? designZoom : 1;
+  applyDesignZoom();
+  $(document).on('click', '.design-zoom-in', function() {
+    var i = designZoomSteps.indexOf(designZoom);
+    if (i < 0) { for (i = 0; i < designZoomSteps.length && designZoomSteps[i] < designZoom; i++); i = Math.min(i, designZoomSteps.length - 1); }
+    if (i < designZoomSteps.length - 1) { designZoom = designZoomSteps[i + 1]; applyDesignZoom(); }
+  });
+  $(document).on('click', '.design-zoom-out', function() {
+    var i = designZoomSteps.indexOf(designZoom);
+    if (i < 0) { for (i = designZoomSteps.length - 1; i >= 0 && designZoomSteps[i] > designZoom; i--); i = Math.max(i, 0); }
+    if (i > 0) { designZoom = designZoomSteps[i - 1]; applyDesignZoom(); }
+  });
+
+  // Botón Desplegar/Ocultar márgenes
+  $('#marginsCollapse').on('show.bs.collapse', function() {
+    $('#btn-desplegar-margenes').text('Ocultar');
+  }).on('hide.bs.collapse', function() {
+    $('#btn-desplegar-margenes').text('Desplegar');
+  });
+
   // Botón para abrir el modal
   $(document).on('click', '#open-bg-modal', function() {
     // Cargar valores actuales
@@ -1053,6 +1121,7 @@ $(document).ready(function() {
       const file = $('#background-image')[0].files[0];
       const formData = new FormData();
       formData.append('image', file);
+      showDesignLoading('Subiendo imagen...');
       fetch('{{url('api/upload-image')}}', {
         method: 'POST',
         body: formData
@@ -1065,7 +1134,8 @@ $(document).ready(function() {
           setBgToContainment(color, img);
           $('#background-modal').modal('hide');
         }
-      });
+      })
+      .finally(() => hideDesignLoading());
     } else {
       img = localStorage.getItem('bgimg-step'+step) || '';
       setBgToContainment(color, img);
@@ -1397,6 +1467,7 @@ $('#format').change(function (e) {
         e.preventDefault();
           const data = collectDesignData();
           console.log(data);
+          showDesignLoading('Guardando diseño...');
           fetch('{{url('/api/design/save-format')}}', {
             method: 'POST',
             headers: {
@@ -1410,12 +1481,12 @@ $('#format').change(function (e) {
             if(result.success) {
               alert('Diseño guardado correctamente.');
               window.open('{{url('design?table=1')}}','_self');
-              // Puedes redirigir o mostrar un mensaje aquí
             } else {
               alert('Error al guardar el diseño.');
             }
           })
-          .catch(() => alert('Error al guardar el diseño.'));
+          .catch(() => alert('Error al guardar el diseño.'))
+          .finally(() => hideDesignLoading());
 
       }else{
           step +=1;
@@ -1492,24 +1563,28 @@ $('#format').change(function (e) {
           $('.up-layer').click(function(e) {
             e.preventDefault();
             if (selectedElement) {
-              let zindex = selectedElement.css('z-index') || 0;
-              zindex = parseInt(zindex) + 1;
-              selectedElement.css('z-index', zindex);
+              if (selectedElement.hasClass('element-critical')) return;
+              let zindex = parseInt(selectedElement.css('z-index')) || 0;
+              if (zindex >= 9999) return;
+              selectedElement.css('z-index', zindex + 1);
             }
           });
           $('.down-layer').unbind('click');
           $('.down-layer').click(function(e) {
             e.preventDefault();
             if (selectedElement) {
-              let zindex = selectedElement.css('z-index') || 0;
-              zindex = parseInt(zindex) - 1;
-              selectedElement.css('z-index', zindex);
+              let zindex = parseInt(selectedElement.css('z-index')) || 0;
+              if (zindex > 0) selectedElement.css('z-index', zindex - 1);
             }
           });
           $('.delete-element-btn').unbind('click');
           $('.delete-element-btn').click(function(e) {
             e.preventDefault();
             if (selectedElement) {
+              if (selectedElement.hasClass('element-critical')) {
+                alert('Este elemento es obligatorio y no se puede eliminar.');
+                return;
+              }
               selectedElement.remove();
               selectedElement = null;
               $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').prop('disabled', true);
@@ -1520,6 +1595,27 @@ $('#format').change(function (e) {
               updateUndoRedoButtons(); // Actualizar estado de botones
             }
           });
+
+          // Suprimir / Backspace: eliminar elemento seleccionado (salvo en inputs)
+          $(document).off('keydown.designDelete').on('keydown.designDelete', function(e) {
+            if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+            if ($(e.target).closest('input, textarea, select, [contenteditable="true"]').length) return;
+            if (!selectedElement || !selectedElement.length) return;
+            if (selectedElement.hasClass('element-critical')) {
+              e.preventDefault();
+              alert('Este elemento es obligatorio y no se puede eliminar.');
+              return;
+            }
+            e.preventDefault();
+            selectedElement.remove();
+            selectedElement = null;
+            $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').prop('disabled', true);
+            $('#save-step').removeClass('d-none');
+            $('#step').addClass('d-none');
+            saveHistoryState();
+            updateUndoRedoButtons();
+          });
+
           $('.undo-btn').click(function(e) {
             e.preventDefault();
             undo();
@@ -1673,16 +1769,37 @@ $('#format').change(function (e) {
     $('.redo-btn').prop('disabled', !canRedo());
   }
   
+  // Compensación de arrastre con zoom: offset del clic en coordenadas lógicas
+  var dragClickOffsetX, dragClickOffsetY;
+
   // Función auxiliar para configurar draggable con guardado de estado
   function setupDraggable() {
     $( ".elements" ).draggable({ 
       handle: 'span', 
       containment: "#containment-wrapper"+step, 
       scroll: false, 
-      start: function(){
+      start: function(event, ui){
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
-        updateUndoRedoButtons(); // Actualizar estado de botones
+        updateUndoRedoButtons();
+        if (typeof designZoom !== 'undefined' && designZoom !== 1) {
+          var el = ui.helper[0];
+          var r = el.getBoundingClientRect();
+          dragClickOffsetX = (event.clientX - r.left) / designZoom;
+          dragClickOffsetY = (event.clientY - r.top) / designZoom;
+        }
+      },
+      drag: function(event, ui) {
+        if (typeof designZoom !== 'undefined' && designZoom !== 1) {
+          var containment = document.getElementById('containment-wrapper' + step);
+          if (containment) {
+            var cr = containment.getBoundingClientRect();
+            var mouseLogicalX = (event.clientX - cr.left) / designZoom;
+            var mouseLogicalY = (event.clientY - cr.top) / designZoom;
+            ui.position.left = mouseLogicalX - dragClickOffsetX;
+            ui.position.top = mouseLogicalY - dragClickOffsetY;
+          }
+        }
       },
       stop: function() {
         console.log('Draggable stop - saving state');
@@ -1838,6 +1955,10 @@ $('#format').change(function (e) {
 
     let element = $(this);
 
+    if (element.hasClass('element-critical')) {
+      alert('Este elemento es obligatorio y no se puede eliminar.');
+      return;
+    }
     if (confirm('¿Desea eliminar el elemento seleccionado?')) {
         element.remove();
         $('#step').addClass('d-none');
@@ -1866,7 +1987,10 @@ $('#format').change(function (e) {
 
   $('.deleteElements').click(function (e) {
       e.preventDefault();
-
+      if (actualElement && actualElement.hasClass('element-critical')) {
+        alert('Este elemento es obligatorio y no se puede eliminar.');
+        return;
+      }
       if (confirm('¿Desea eliminar el elemento seleccionado?')) {
         actualElement.remove();
         $('#step').addClass('d-none');
@@ -1913,7 +2037,7 @@ $('#format').change(function (e) {
 
     const formData = new FormData();
     formData.append('text', $('#qr-text').val());
-
+    showDesignLoading('Generando código QR...');
     fetch('{{url('api/generarQr')}}', {
         method: 'POST',
         body: formData
@@ -1928,13 +2052,14 @@ $('#format').change(function (e) {
             $('#save-step').removeClass('d-none');
         }
     })
-    .catch(error => console.error('Error al subir la imagen:', error));
+    .catch(error => console.error('Error al subir la imagen:', error))
+    .finally(() => hideDesignLoading());
   });
 
   function uploadImage(file) {
     const formData = new FormData();
     formData.append('image', file);
-
+    showDesignLoading('Subiendo imagen...');
     fetch('{{url('api/upload-image')}}', {
         method: 'POST',
         body: formData
@@ -1949,7 +2074,8 @@ $('#format').change(function (e) {
             $('#save-step').removeClass('d-none');
         }
     })
-    .catch(error => console.error('Error al subir la imagen:', error));
+    .catch(error => console.error('Error al subir la imagen:', error))
+    .finally(() => hideDesignLoading());
   }
 
   $('.add-text').click(function (e) {
@@ -2004,7 +2130,7 @@ $('#format').change(function (e) {
   $('.add-qr').click(function (e) {
       e.preventDefault();
 
-      $('#containment-wrapper'+step).append(`<div class="elements qr" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('basicqr.jpg')}}" alt=""></span></div>`);
+      $('#containment-wrapper'+step).append(`<div class="elements element-critical qr" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('basicqr.jpg')}}" alt=""></span></div>`);
 
       setupDraggable();
       setupResizeObserver();
@@ -2152,6 +2278,7 @@ $('#format').change(function (e) {
         
         if(step == 2 && !guardarSnapshotTriggered) {
             guardarSnapshotTriggered = true;
+            showDesignLoading('Guardando vista previa...');
             html2canvas(document.querySelector('#step-2 .format-box')).then(function(canvas) {
                 let imageData = canvas.toDataURL('image/png');
                 
@@ -2172,7 +2299,6 @@ $('#format').change(function (e) {
                         console.log(snapshot_path);
 
                         guardarSnapshotTriggered = false;
-                        // Ahora sí avanza al submit normal/flujo de guardar! Activa el clic de nuevo.
                         let html = $('#containment-wrapper'+step).html();
 
                         localStorage.setItem('step'+step,html);
@@ -2183,9 +2309,10 @@ $('#format').change(function (e) {
                         console.log(response);
                         guardarSnapshotTriggered = false;
                         alert('Error al guardar snapshot');
-                    }
+                    },
+                    complete: function() { hideDesignLoading(); }
                 });
-            });
+            }).catch(function() { guardarSnapshotTriggered = false; hideDesignLoading(); });
         } else {
             let html = $('#containment-wrapper'+step).html();
 
@@ -2212,17 +2339,19 @@ $('#format').change(function (e) {
     $('.caja-matriz-2').css('width',matrix+'mm')
   }
 
-  $('.up-z').click(function (e) {
+          $('.up-z').click(function (e) {
       e.preventDefault();
-      let zindex = $(actualElement).css('z-index');
-      zindex = parseInt(zindex)+1;
-      $(actualElement).css('z-index',zindex);
+      if (!selectedElement || selectedElement.hasClass('element-critical')) return;
+      let zindex = parseInt(selectedElement.css('z-index')) || 0;
+      if (zindex >= 9999) return;
+      selectedElement.css('z-index', zindex + 1);
   });
   $('.dw-z').click(function (e) {
       e.preventDefault();
-      let zindex = $(actualElement).css('z-index');
-      zindex = parseInt(zindex)-1;
-      $(actualElement).css('z-index',zindex);
+      if (selectedElement) {
+        let zindex = parseInt(selectedElement.css('z-index')) || 0;
+        if (zindex > 0) selectedElement.css('z-index', zindex - 1);
+      }
   });
 
    $('.toggle-guide').click(function (e) {
