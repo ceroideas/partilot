@@ -25,6 +25,8 @@ class Participation extends Model
         'buyer_phone',
         'buyer_email',
         'buyer_nif',
+        'collected_at',
+        'donated_at',
         'return_date',
         'return_time',
         'return_reason',
@@ -43,6 +45,8 @@ class Participation extends Model
         'return_date' => 'date',
         'return_time' => 'datetime:H:i',
         'cancellation_date' => 'date',
+        'collected_at' => 'datetime',
+        'donated_at' => 'datetime',
         'metadata' => 'array'
     ];
 
@@ -80,6 +84,11 @@ class Participation extends Model
     public function activityLogs()
     {
         return $this->hasMany(ParticipationActivityLog::class)->orderBy('created_at', 'desc');
+    }
+
+    public function gift()
+    {
+        return $this->hasOne(ParticipationGift::class);
     }
 
     // Scopes para consultas comunes

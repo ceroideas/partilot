@@ -103,7 +103,7 @@
                 					<div class="col-4">
                 						
 	                    				@php $adminImg = data_get(session('selected_administration'), 'image'); @endphp
-	                    				<div class="photo-preview-3 logo-round" @if($adminImg) style="background-image: url('{{ asset('images/' . $adminImg) }}');" @endif>
+	                    				<div class="photo-preview-3 logo-round" @if($adminImg) style="background-image: url('{{ asset('uploads/' . $adminImg) }}'); background-size: cover;" @endif>
 	                    					@if(!$adminImg)
 	                    						<i class="ri-account-circle-fill"></i>
 	                    					@endif

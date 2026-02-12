@@ -610,17 +610,17 @@ class EntityController extends Controller
 
     /**
      * Show the form for editing manager permissions.
+     * Si es gestor principal (is_primary), se muestra la vista en solo lectura con aviso.
      */
     public function edit_manager_permissions($entity_id, $manager_id)
     {
         $entity = Entity::with('managers.user')
             ->forUser(auth()->user())
             ->findOrFail($entity_id);
-        
+
         $manager = Manager::with('user')
             ->where('id', $manager_id)
             ->where('entity_id', $entity_id)
-            ->where('is_primary', false)
             ->firstOrFail();
 
         return view('entities.edit_manager_permissions', compact('entity', 'manager'));
@@ -628,15 +628,20 @@ class EntityController extends Controller
 
     /**
      * Update manager permissions.
+     * El gestor principal no puede tener permisos restringidos: se ignoran cambios y se mantienen todos en true.
      */
     public function update_manager_permissions(Request $request, $entity_id, $manager_id)
     {
         $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
-        
+
         $manager = Manager::where('id', $manager_id)
             ->where('entity_id', $entity_id)
-            ->where('is_primary', false)
             ->firstOrFail();
+
+        if ($manager->is_primary) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('info', 'El gestor principal tiene todos los permisos y no se pueden restringir. Para quitar como principal, asigne primero otro gestor como principal.');
+        }
 
         $request->validate([
             'permission_sellers' => 'nullable|boolean',
@@ -646,14 +651,45 @@ class EntityController extends Controller
         ]);
 
         $manager->update([
-            'permission_sellers' => $request->has('permission_sellers') ? true : false,
-            'permission_design' => $request->has('permission_design') ? true : false,
-            'permission_statistics' => $request->has('permission_statistics') ? true : false,
-            'permission_payments' => $request->has('permission_payments') ? true : false,
+            'permission_sellers' => $request->has('permission_sellers'),
+            'permission_design' => $request->has('permission_design'),
+            'permission_statistics' => $request->has('permission_statistics'),
+            'permission_payments' => $request->has('permission_payments'),
         ]);
 
         return redirect()->route('entities.show', $entity->id)
             ->with('success', 'Permisos del gestor actualizados correctamente.');
+    }
+
+    /**
+     * Asignar otro gestor como principal. El actual principal deja de serlo.
+     * Requiere que se envíe el ID del nuevo gestor principal (no puede quedar sin principal).
+     */
+    public function set_primary_manager(Request $request)
+    {
+        $request->validate([
+            'entity_id' => 'required|integer|exists:entities,id',
+            'new_primary_manager_id' => 'required|integer|exists:managers,id',
+        ]);
+
+        $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
+        $newPrimary = Manager::where('id', $request->new_primary_manager_id)
+            ->where('entity_id', $entity->id)
+            ->firstOrFail();
+
+        \DB::transaction(function () use ($entity, $newPrimary) {
+            Manager::where('entity_id', $entity->id)->update(['is_primary' => false]);
+            $newPrimary->update([
+                'is_primary' => true,
+                'permission_sellers' => true,
+                'permission_design' => true,
+                'permission_statistics' => true,
+                'permission_payments' => true,
+            ]);
+        });
+
+        return redirect()->route('entities.show', $entity->id)
+            ->with('success', 'Gestor principal actualizado correctamente.');
     }
 
     /**

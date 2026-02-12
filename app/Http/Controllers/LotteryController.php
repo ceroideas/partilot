@@ -1038,4 +1038,18 @@ class LotteryController extends Controller
         
         return $unique;
     }
+
+    /**
+     * API: Obtener todos los sorteos con resultados para la app móvil
+     */
+    public function apiGetAllResults()
+    {
+        $lotteries = Lottery::with(['result', 'lotteryType'])
+            ->whereHas('result')
+            ->orderBy('draw_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json($lotteries);
+    }
 } 

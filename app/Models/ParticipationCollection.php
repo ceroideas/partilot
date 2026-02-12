@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class ParticipationCollection extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'nombre',
+        'apellidos',
+        'nif',
+        'iban',
+        'importe_total',
+        'collected_at',
+    ];
+
+    protected $casts = [
+        'collected_at' => 'datetime',
+        'importe_total' => 'decimal:2',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ParticipationCollectionItem::class, 'collection_id');
+    }
+
+    public function participations()
+    {
+        return $this->belongsToMany(Participation::class, 'participation_collection_items', 'collection_id', 'participation_id');
+    }
+}

@@ -45,8 +45,15 @@
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
     }
+    /* Límites y borde visibles al seleccionar y redimensionar */
+    .elements {
+        box-sizing: border-box !important;
+        min-width: 20px;
+        min-height: 20px;
+    }
     .elements.text {
         position: relative;
+        box-sizing: border-box !important;
     }
     .elements.text:hover .edit-btn,
     .elements.images:hover .edit-btn {
@@ -72,8 +79,9 @@
     }
     .elements.selected {
         border: 2px solid #007bff !important;
-        outline: 2px solid rgba(0, 123, 255, 0.35);
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+        outline: 2px dashed rgba(0, 123, 255, 0.6) !important;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
     .elements.element-critical {
         z-index: 10000 !important;
@@ -114,6 +122,13 @@
         flex-direction: column;
         align-items: center;
         width: 100%;
+    }
+    /* Contenedor con scroll cuando el zoom > 100% */
+    .design-zoom-scroll {
+        overflow: auto;
+        max-height: 70vh;
+        width: 100%;
+        margin: 0 auto;
     }
     
     /* Mejorar visualización de imágenes de fondo */
@@ -377,6 +392,7 @@
                                         {!! $format->participation_html ?? '' !!}
                                     </div>
                                     </div>
+                                    </div>
                                         {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
                                             </div>
@@ -422,6 +438,7 @@
                                         {!! $format->cover_html ?? '' !!}
                                     </div>
                                     </div>
+                                    </div>
                                         {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
                                             <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
                                             </div>
@@ -432,6 +449,7 @@
                                     <h4 class="mb-0 mt-1">Diseñar Trasera</h4>
                                     <small><i>Edita el diseño de la trasera</i></small>
                                     <br>
+                                    <div class="design-zoom-scroll">
                                     <div class="design-zoom-container" id="design-zoom-wrapper-4" style="transform-origin: top center;">
                                     <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
                                         <br>
@@ -465,6 +483,7 @@
                                         </div>
                                         <br>
                                         {!! $format->back_html ?? '' !!}
+                                    </div>
                                     </div>
                                     </div>
                                         {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
@@ -532,7 +551,7 @@
                                             </div>
                                             <label class="col-form-label label-control col-3 text-start">Hasta la participación:</label>
                                             <div class="col-sm-1">
-                                                <input class="form-control" type="number" name="participation_to" value="{{ old('participation_to', $format->output['participation_to'] ?? 600) }}" id="participation_to" style="border-radius: 30px">
+                                                <input class="form-control" type="number" name="participation_to" value="{{ old('participation_to', $format->output['participation_to'] ?? $set->total_participations ?? '') }}" id="participation_to" style="border-radius: 30px">
                                             </div>
                                             <label class="col-form-label label-control col-4 text-start">(ambas incluidas)</label>
                                         </div>

@@ -112,6 +112,19 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
+                    			@if($manager->is_primary)
+	                    			<div class="alert alert-info">
+	                    				<strong>Gestor principal.</strong> Tiene todos los permisos y no se pueden restringir. Para quitar como principal, vaya a la ficha de la entidad y asigne otro gestor como principal.
+	                    			</div>
+	                    			<div class="row">
+	                    				<div class="col-12">
+	                    					<div class="form-check form-switch mt-2 mb-2"><input class="form-check-input bg-dark" type="checkbox" checked disabled><label class="form-check-label"><b>Administrar Vendedores</b></label></div>
+	                    					<div class="form-check form-switch mt-2 mb-2"><input class="form-check-input bg-dark" type="checkbox" checked disabled><label class="form-check-label"><b>Diseñar Participaciones</b></label></div>
+	                    					<div class="form-check form-switch mt-2 mb-2"><input class="form-check-input bg-dark" type="checkbox" checked disabled><label class="form-check-label"><b>Estadísticas Totales</b></label></div>
+	                    					<div class="form-check form-switch mt-2 mb-2"><input class="form-check-input bg-dark" type="checkbox" checked disabled><label class="form-check-label"><b>Pagar Participaciones</b></label></div>
+	                    				</div>
+	                    			</div>
+	                    			@else
                     			<form action="{{ route('entities.update-manager-permissions', ['entity_id' => $entity->id, 'manager_id' => $manager->id]) }}" method="POST">
                     				@csrf
                     				@method('PUT')
@@ -187,6 +200,7 @@
 	                    			</div>
 
 	                    			</form>
+	                    			@endif
 
 	                    		</div>
 	                    	</div>

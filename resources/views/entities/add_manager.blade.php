@@ -46,13 +46,19 @@
                     	<div class="col-md-3" style="position: relative;">
                     		<div class="form-card bs mb-3">
 
+                    			@php
+                    				$admin = session('selected_administration');
+                    				$adminImg = $admin && (is_object($admin) ? ($admin->image ?? null) : ($admin['image'] ?? null));
+                    				$entInfo = session('entity_information');
+                    				$entImg = is_array($entInfo) ? ($entInfo['image'] ?? null) : null;
+                    			@endphp
                     			<div class="form-wizard-element">
                     				
                     				<span>
                     					1
                     				</span>
 
-                    				<img src="{{url('assets/admin.svg')}}" alt="">
+                    				<img src="{{ url('assets/admin.svg') }}" alt="">
 
                     				<label>
                     					Selec. Administración
@@ -66,7 +72,7 @@
                     					2
                     				</span>
 
-                    				<img src="{{url('assets/entidad.svg')}}" alt="">
+                    				<img src="{{ url('assets/entidad.svg') }}" alt="">
 
                     				<label>
                     					Datos Entidad
@@ -94,24 +100,23 @@
                     			
                     			<div class="row">
                 					<div class="col-4">
-                						
-	                    				<div class="photo-preview-3">
-	                    					
-	                    					<i class="ri-account-circle-fill"></i>
-
-	                    				</div>
-	                    				
-	                    				<div style="clear: both;"></div>
+                						@if($adminImg ?? null)
+                							<div class="photo-preview-3 logo-round" style="background-image: url('{{ asset('uploads/' . $adminImg) }}'); background-size: cover;"></div>
+                						@else
+                							<div class="photo-preview-3"><i class="ri-account-circle-fill"></i></div>
+                						@endif
+                						<small class="d-block text-center mt-1">Administración</small>
+                						<div style="clear: both;"></div>
                 					</div>
-
-                					<div class="col-8 text-center mt-2">
-
-                						<h4 class="mt-0 mb-0">{{session('selected_administration')->name ?? 'Administración'}}</h4>
-
-                						<small>{{session('entity_information.name') ?? 'Entidad'}}</small> <br>
-
-                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{session('entity_information.province') ?? 'Provincia'}}
-                						
+                					<div class="col-4">
+                						<div class="photo-preview-3"><i class="ri-community-line"></i></div>
+                						<small class="d-block text-center mt-1">Entidad</small>
+                						<div style="clear: both;"></div>
+                					</div>
+                					<div class="col-4 text-center mt-2">
+                						<h4 class="mt-0 mb-0">{{ session('selected_administration')->name ?? 'Administración' }}</h4>
+                						<small>{{ session('entity_information.name') ?? 'Entidad' }}</small> <br>
+                						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ session('entity_information.province') ?? 'Provincia' }}
                 					</div>
                 				</div>
 
@@ -132,10 +137,10 @@
                     				<div class="row">
                     					<div class="col-1">
                     						
-		                    				<div class="photo-preview-3">
-		                    					
-		                    					<i class="ri-account-circle-fill"></i>
-
+		                    				<div class="photo-preview-3 logo-round" @if($entImg ?? null) style="background-image: url('{{ asset('uploads/' . $entImg) }}'); background-size: cover;" @endif>
+		                    					@if(!($entImg ?? null))
+		                    						<i class="ri-account-circle-fill"></i>
+		                    					@endif
 		                    				</div>
 		                    				
 		                    				<div style="clear: both;"></div>

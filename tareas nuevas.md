@@ -1,0 +1,12 @@
+- Cuando pasas a los datos del gestor cuando estás dando de alta la entidad no sale ni la imagen la administración ni la de la entidad
+- cuando vas a dar de alta el gestor, no puedo asignarle permisos de ningún tipo y no puedo editar el gestor de ninguna manera (creo que está ya con todos los permisos cuando se está creando pero si se intenta quitar algún permiso tiene que salir aviso de que no se puede ya que es el gestor principal . Veo que a los siguientes ya si se puede. Además el principal (que solo puede ser uno), se tiene que poder quitar como principal pero solo si se cambia por otro (no puede quedar el gestor principal desierto). Cuando se está quitando de principal te tiene que preguntar qué otro gestor va a ser el principal si no el proceso se interrumpe y no deja cambiarlo
+- No carga imagen de fondo 
+- Cuando se selecciona un elemento se debe ver los límites y si se hace pequeño o grande debe verse el borde (sobre todo en los textos que no se ve bien. Una imagen si se ve el tamaño pero en los textos no)
+- El zoom hace la participación más grande pero hasta el 150% y se sale del cuadrado que lo contiene. Debería ser que salgan barras de desplazamiento para moverse si es más grande que el cuadrado y no se todo
+- Si le das a editar, Cuando llegas a configurar salida, sale el botón de siguiente, dice que lo guarda pero no deja hacer nada más (no se sale, no muestra el PDF (los PDF) generado/s
+- Le das al icono de imprimir cuando está generado, se queda pensando y sale pantalla de error y no se hace
+- Pero si te vas a participaciones , y seleccionas la entidad, si te sale que está creado el set (eso querrá decir que se ha creado el PDF pero no puedo ni verlo ni descargarlo)
+- En los set de participaciones digitales, entiendo que hay que generar también la imagen de la participación para que aparezcan para se puedan asignar no?
+- 
+- No coge la cantidad total de participaciones (creo que sale por defecto 600)
+- ⁠en la sección de  participaciones y eliges una entidad para que te muestre los sets, no sale la imagen de la entidad

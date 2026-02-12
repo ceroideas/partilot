@@ -47,9 +47,12 @@
                                     <div class="col-3">
                                         
                                         <div class="photo-preview-2">
-                                            
-                                            <i class="ri-account-circle-fill"></i>
-
+                                            @php $ent = session('selected_entity'); @endphp
+                                            @if($ent && $ent->image && file_exists(public_path('uploads/' . $ent->image)))
+                                                <img src="{{ asset('uploads/' . $ent->image) }}" alt="{{ $ent->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                                            @else
+                                                <i class="ri-account-circle-fill"></i>
+                                            @endif
                                         </div>
                                         
                                         <div style="clear: both;"></div>

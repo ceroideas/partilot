@@ -262,6 +262,7 @@ class DesignController extends Controller
         // Optimizar HTML antes de generar PDF
         $publicPath = public_path();
         $html = str_replace(url('/'), $publicPath, $html);
+        $html = $this->ensureLocalPathsForPdf($html, $publicPath);
         $html = $this->adjustWidthsForDomPdf($html);
         
         // Configurar opciones de DomPDF para mejor rendimiento
@@ -274,6 +275,23 @@ class DesignController extends Controller
         ]);
         
         return $pdf->download('diseño.pdf');
+    }
+
+    /**
+     * Convierte URLs relativas de imágenes (uploads/...) a ruta absoluta del sistema de archivos para DomPDF.
+     */
+    private function ensureLocalPathsForPdf(string $html, string $publicPath): string
+    {
+        // url('uploads/...') o url("/uploads/...") -> url(publicPath/uploads/...)
+        $html = preg_replace_callback(
+            '/url\s*\(\s*[\'"]?(?!\/|[a-z]:)(\/?)(uploads\/[^\'")\s]+)/i',
+            function ($m) use ($publicPath) {
+                $path = $publicPath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $m[2]);
+                return 'url(\'' . str_replace('\\', '/', $path) . '\')';
+            },
+            $html
+        );
+        return $html;
     }
 
     // Ajusta el width y height de los elementos con width, height y padding para DomPDF, sin importar el orden en el style
@@ -317,10 +335,9 @@ class DesignController extends Controller
         $cacheKey = 'participation_html_' . $id;
         $participation_html = cache()->remember($cacheKey, 3600, function() use ($design) {
             $html = $design->participation_html;
-            // Reemplazar la URL base por la ruta absoluta del sistema de archivos
             $publicPath = public_path();
             $html = str_replace(url('/'), $publicPath, $html);
-            // Ajustar widths para DomPDF
+            $html = $this->ensureLocalPathsForPdf($html, $publicPath);
             return $this->adjustWidthsForDomPdf($html);
         });
 
@@ -435,10 +452,9 @@ class DesignController extends Controller
             $imageService = new ImageOptimizationService();
             $html = $imageService->optimizeHtmlImages($html);
             
-            // Reemplazar la URL base por la ruta absoluta del sistema de archivos
             $publicPath = public_path();
             $html = str_replace(url('/'), $publicPath, $html);
-            // Ajustar widths para DomPDF
+            $html = $this->ensureLocalPathsForPdf($html, $publicPath);
             return $this->adjustWidthsForDomPdf($html);
         });
 
@@ -474,11 +490,34 @@ class DesignController extends Controller
     }
 
     /**
+     * Convierte rutas relativas de imágenes en HTML a URLs absolutas (para vista/editor).
+     */
+    private function ensureAbsoluteUrlsInHtml(string $html): string
+    {
+        if ($html === '') {
+            return $html;
+        }
+        $base = rtrim(config('app.url'), '/');
+        // url('/uploads/...') o url("uploads/...") o url('uploads/...') -> url(base/uploads/...)
+        $html = preg_replace_callback(
+            '/url\s*\(\s*[\'"]?(?!https?:\/\/)(\/?)(uploads\/[^\'")\s]+)/i',
+            function ($m) use ($base) {
+                return 'url(\'' . $base . '/' . $m[2] . '\')';
+            },
+            $html
+        );
+        return $html;
+    }
+
+    /**
      * Muestra el formulario para editar un formato existente.
      */
     public function editFormat($id)
     {
         $format = DesignFormat::findOrFail($id);
+        $format->participation_html = $this->ensureAbsoluteUrlsInHtml($format->participation_html ?? '');
+        $format->cover_html = $this->ensureAbsoluteUrlsInHtml($format->cover_html ?? '');
+        $format->back_html = $this->ensureAbsoluteUrlsInHtml($format->back_html ?? '');
         $set = $format->set_id ? Set::find($format->set_id) : null;
         $reservation_numbers = $set && $set->reserve ? $set->reserve->reservation_numbers : [];
         return view('design.edit_format', compact('format', 'set', 'reservation_numbers'));
@@ -915,8 +954,12 @@ class DesignController extends Controller
         $img = str_replace(' ', '+', $img);
         $fileName = 'design_snapshots/design_set_' . $set->id . '.png';
         \Storage::disk('public')->put($fileName, base64_decode($img));
-        // $set->snapshot_path = $fileName;
-        // $set->save();
+        // Guardar la ruta en el DesignFormat del set para que listados/API puedan mostrar la imagen
+        $format = DesignFormat::where('set_id', $set->id)->first();
+        if ($format) {
+            $format->snapshot_path = $fileName;
+            $format->save();
+        }
         return ['success' => true, 'path' => $fileName];
     }
 

@@ -792,7 +792,7 @@
                                     <div class="form-group mb-3">
                                         <div class="form-check form-switch mt-3">
                                             <input style="float: left;" class="form-check-input bg-dark" type="radio" name="generate" value="1" role="switch" id="generate1" checked>
-                                            <label style="float: left; margin-left: 50px;" class="form-check-label" for="generate1"><b>Generar todas las participaciones (600)</b></label>
+                                            <label style="float: left; margin-left: 50px;" class="form-check-label" for="generate1"><b>Generar todas las participaciones ({{ $set->total_participations ?? 0 }})</b></label>
                                         </div>
 
                                         <div class="form-check form-switch mt-3">
@@ -815,7 +815,7 @@
                                             Hasta la participación:
                                         </label>
                                         <div class="col-sm-1">
-                                            <input class="form-control" type="number" value="600" id="participation_to" style="border-radius: 30px">
+                                            <input class="form-control" type="number" value="{{ $set->total_participations ?? '' }}" id="participation_to" style="border-radius: 30px">
                                         </div>
 
                                         <label class="col-form-label label-control col-4 text-start">

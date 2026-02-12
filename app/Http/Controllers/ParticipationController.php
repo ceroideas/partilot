@@ -9,6 +9,13 @@ use App\Models\Participation;
 use App\Models\Seller;
 use App\Models\SellerSettlement;
 use App\Models\SellerSettlementPayment;
+use App\Models\ParticipationGift;
+use App\Models\ParticipationCollection;
+use App\Models\ParticipationCollectionItem;
+use App\Models\ParticipationDonation;
+use App\Models\ParticipationDonationItem;
+use App\Models\User;
+use App\Http\Controllers\ApiController;
 
 class ParticipationController extends Controller
 {
@@ -44,7 +51,7 @@ class ParticipationController extends Controller
         
         // Obtener los design_formats de la entidad seleccionada
         $designFormats = \App\Models\DesignFormat::where('entity_id', $entity->id)
-            ->with(['set.reserve.lottery', 'set.reserve.lottery.lotteryType'])
+            ->with(['set.reserve.lottery', 'set.reserve.lottery.lotteryType', 'set.entity:id,name,image'])
             ->get();
         
         // Procesar cada designFormat para calcular los tacos
@@ -70,9 +77,9 @@ class ParticipationController extends Controller
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_entity_id', $entity->id);
 
-        // Obtener los design_formats de la entidad seleccionada
+        // Obtener los design_formats de la entidad seleccionada (con entity e image para mostrar imagen en listado)
         $designFormats = \App\Models\DesignFormat::where('entity_id', $entity->id)
-            ->with(['set.reserve.lottery', 'set.reserve.lottery.lotteryType'])
+            ->with(['set.reserve.lottery', 'set.reserve.lottery.lotteryType', 'set.entity:id,name,image'])
             ->get();
 
         // Procesar cada designFormat para calcular los tacos
@@ -740,7 +747,7 @@ class ParticipationController extends Controller
                 : '—';
             $importeJugado = (float) ($set->played_amount ?? 0);
             $donativo = (float) ($set->donation_amount ?? 0);
-            $importeTotal = (float) ($p->sale_amount ?? $importeJugado + $donativo);
+            $importeTotal = round($importeJugado + $donativo, 2);
             $saleDateTime = $p->sale_date
                 ? $p->sale_date->format('Y-m-d') . 'T' . ($p->sale_time ? (is_object($p->sale_time) ? $p->sale_time->format('H:i:s') : substr((string) $p->sale_time, 0, 8)) : '00:00:00') . '.000000Z'
                 : $p->updated_at->toIso8601String();
@@ -823,6 +830,741 @@ class ParticipationController extends Controller
         return response()->json([
             'success' => true,
             'historial' => $historial,
+        ]);
+    }
+
+    /**
+     * Buscar set y número de participación por referencia (campo 'r' del ticket).
+     */
+    private function findSetAndParticipationNumberByReference(string $referencia): ?array
+    {
+        $set = \App\Models\Set::whereNotNull('tickets')->get()->first(function ($s) use ($referencia) {
+            if (!is_array($s->tickets)) {
+                return false;
+            }
+            foreach ($s->tickets as $ticket) {
+                if (isset($ticket['r']) && $ticket['r'] == $referencia) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        if (!$set) {
+            return null;
+        }
+        $participationNumber = null;
+        foreach ($set->tickets as $ticket) {
+            if (isset($ticket['r']) && $ticket['r'] == $referencia) {
+                $participationNumber = $ticket['n'];
+                break;
+            }
+        }
+        return $participationNumber !== null ? ['set' => $set, 'participation_number' => $participationNumber] : null;
+    }
+
+    /**
+     * Formatear participación para respuesta de cartera/detalle (entidad, fecha, importes, nº referencia).
+     */
+    private function formatParticipationForWallet(Participation $participation, string $referencia): array
+    {
+        $set = $participation->set()->with('reserve.lottery', 'entity', 'designFormats')->first();
+        $reserve = $set->reserve ?? null;
+        $lottery = $reserve ? $reserve->lottery : null;
+        $entity = $set->entity ?? null;
+        $designFormat = $set->designFormats->first();
+        $snapshotPath = null;
+        if ($designFormat && $designFormat->snapshot_path) {
+            $snapshotPath = asset('storage/' . $designFormat->snapshot_path);
+        }
+        $numeroReservado = '—';
+        if ($reserve && $reserve->reservation_numbers) {
+            $nums = is_array($reserve->reservation_numbers) ? $reserve->reservation_numbers : json_decode($reserve->reservation_numbers, true);
+            if (is_array($nums) && count($nums) > 0) {
+                $numeroReservado = count($nums) === 1 ? (string) $nums[0] : (string) ($nums[$participation->participation_number - 1] ?? $nums[0]);
+            }
+        }
+        $numeroReferencia = $referencia;
+        if ($set->tickets) {
+            $tickets = is_array($set->tickets) ? $set->tickets : json_decode($set->tickets, true);
+            if (is_array($tickets)) {
+                foreach ($tickets as $ticket) {
+                    if (isset($ticket['n']) && $ticket['n'] == $participation->participation_number) {
+                        $numeroReferencia = $ticket['r'] ?? $referencia;
+                        break;
+                    }
+                }
+            }
+        }
+        $importeJugado = (float) ($set->played_amount ?? 0);
+        $donativo = (float) ($set->donation_amount ?? 0);
+        $importeTotal = $importeJugado + $donativo;
+        return [
+            'id' => $participation->id,
+            'referencia' => $referencia,
+            'entidad' => $entity ? $entity->name : '—',
+            'numero' => $participation->participation_number,
+            'numeroReservado' => $numeroReservado,
+            'fechaSorteo' => $lottery && $lottery->draw_date ? $lottery->draw_date->format('d/m/y') : '—',
+            'importeJugado' => $importeJugado,
+            'donativo' => $donativo,
+            'importeTotal' => $importeTotal,
+            'numeroParticipacion' => $participation->participation_code ?? ($participation->participation_number . '/0001'),
+            'numeroReferencia' => $numeroReferencia,
+            'snapshot_path' => $snapshotPath,
+        ];
+    }
+
+    /**
+     * API: Listar participaciones en la cartera del usuario (propias + recibidas como regalo).
+     */
+    public function apiGetWalletParticipations(Request $request)
+    {
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'Solo los usuarios pueden ver su cartera.'], 403);
+        }
+        $userId = (string) $user->id;
+        $items = [];
+
+        // Propias (buyer_name = user)
+        $participations = Participation::where('buyer_name', $userId)
+            ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats', 'gift.toUser'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $apiController = app(ApiController::class);
+        foreach ($participations as $p) {
+            $ref = $this->getReferenceFromParticipation($p);
+            $item = $this->formatParticipationForWallet($p, $ref);
+            $item['estado'] = 'activa';
+            $item['gifted_to_email'] = null;
+            if ($p->collected_at) {
+                $item['estado'] = 'cobrada';
+            } elseif ($p->donated_at) {
+                $item['estado'] = 'donada';
+            } elseif ($p->relationLoaded('gift') && $p->gift) {
+                $item['estado'] = 'regalada';
+                $item['gifted_to_email'] = $p->gift->toUser->email ?? null;
+            }
+            $prizeInfo = $apiController->getPrizeInfoForReference($ref);
+            $item['premio'] = $prizeInfo['has_won'] ? $prizeInfo['prize_amount'] : null;
+            $items[] = $item;
+        }
+
+        // Recibidas como regalo (to_user_id = user)
+        $giftsReceived = ParticipationGift::where('to_user_id', $user->id)
+            ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'fromUser'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($giftsReceived as $gift) {
+            $p = $gift->participation;
+            if (!$p) continue;
+            $ref = $this->getReferenceFromParticipation($p);
+            $item = $this->formatParticipationForWallet($p, $ref);
+            if ($p->collected_at) {
+                $item['estado'] = 'cobrada';
+            } elseif ($p->donated_at) {
+                $item['estado'] = 'donada';
+            } else {
+                $item['estado'] = 'recibida';
+            }
+            $item['received_from_email'] = $gift->fromUser->email ?? null;
+            $item['gifted_to_email'] = null;
+            $prizeInfo = $apiController->getPrizeInfoForReference($ref);
+            $item['premio'] = $prizeInfo['has_won'] ? $prizeInfo['prize_amount'] : null;
+            $items[] = $item;
+        }
+
+        usort($items, function ($a, $b) {
+            return ($b['id'] ?? 0) <=> ($a['id'] ?? 0);
+        });
+
+        return response()->json(['success' => true, 'participations' => $items]);
+    }
+
+    /**
+     * API: Participaciones cobrables/donables (tienen premio, no cobradas ni donadas).
+     * Incluye propias del usuario (no regaladas) y las recibidas como regalo.
+     */
+    public function apiGetCobrables(Request $request)
+    {
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'Solo los usuarios pueden acceder.'], 403);
+        }
+        $userId = (string) $user->id;
+        $apiController = app(ApiController::class);
+        $items = [];
+        $addedIds = [];
+
+        // 1) Propias (buyer_name = user), no regaladas, no cobradas, no donadas, con premio
+        $participations = Participation::where('buyer_name', $userId)
+            ->whereNull('collected_at')
+            ->whereNull('donated_at')
+            ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats', 'gift'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        foreach ($participations as $p) {
+            if ($p->relationLoaded('gift') && $p->gift) {
+                continue; // regalada, no cobrable ni donable por el que la regaló
+            }
+            $ref = $this->getReferenceFromParticipation($p);
+            $prizeInfo = $apiController->getPrizeInfoForReference($ref);
+            if (!($prizeInfo['has_won'] && $prizeInfo['prize_amount'] > 0)) {
+                continue; // sin premio
+            }
+            $item = $this->formatParticipationForWallet($p, $ref);
+            $item['premio'] = $prizeInfo['prize_amount'];
+            $items[] = $item;
+            $addedIds[$p->id] = true;
+        }
+
+        // 2) Recibidas como regalo (to_user_id = user), no cobradas, no donadas, con premio
+        $giftsReceived = ParticipationGift::where('to_user_id', $user->id)
+            ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats'])
+            ->get();
+
+        foreach ($giftsReceived as $gift) {
+            $p = $gift->participation;
+            if (!$p || isset($addedIds[$p->id])) {
+                continue;
+            }
+            if ($p->collected_at || $p->donated_at) {
+                continue;
+            }
+            $ref = $this->getReferenceFromParticipation($p);
+            $prizeInfo = $apiController->getPrizeInfoForReference($ref);
+            if (!($prizeInfo['has_won'] && $prizeInfo['prize_amount'] > 0)) {
+                continue;
+            }
+            $item = $this->formatParticipationForWallet($p, $ref);
+            $item['premio'] = $prizeInfo['prize_amount'];
+            $item['recibida_regalo'] = true;
+            $items[] = $item;
+            $addedIds[$p->id] = true;
+        }
+
+        return response()->json(['success' => true, 'participations' => $items]);
+    }
+
+    /**
+     * API: Registrar cobro (marca participaciones como cobradas).
+     * Valida nombre, apellidos, NIF e IBAN (formato español).
+     */
+    public function apiRegistrarCobro(Request $request)
+    {
+        $request->validate([
+            'participation_ids' => 'required|array',
+            'participation_ids.*' => 'integer|exists:participations,id',
+            'nombre' => 'required|string|max:255',
+            'apellidos' => 'required|string|max:255',
+            'nif' => ['required', 'string', 'max:20', new \App\Rules\SpanishDocument],
+            'iban' => ['required', 'string', new \App\Rules\SpanishIban],
+            'importe_total' => 'required|numeric|min:0',
+        ]);
+
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+        $userId = (string) $user->id;
+
+        $allowedIds = $this->getParticipationIdsOwnedOrReceivedByUser($user);
+        $participations = Participation::whereIn('id', $request->participation_ids)
+            ->whereIn('id', $allowedIds)
+            ->whereNull('collected_at')
+            ->get();
+
+        if ($participations->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Ninguna participación válida para cobrar.'], 422);
+        }
+
+        // Usar el importe total enviado desde el frontend
+        $importeTotal = (float) $request->importe_total;
+
+        // Crear registro de cobro
+        $collection = ParticipationCollection::create([
+            'user_id' => $user->id,
+            'nombre' => $request->nombre,
+            'apellidos' => $request->apellidos,
+            'nif' => $request->nif,
+            'iban' => $request->iban,
+            'importe_total' => $importeTotal,
+            'collected_at' => now(),
+        ]);
+
+        // Marcar participaciones como cobradas en la tabla participations
+        $participationIds = $participations->pluck('id')->toArray();
+        Participation::whereIn('id', $participationIds)->update(['collected_at' => now()]);
+
+        // Asociar cada participación al registro de cobro
+        foreach ($participationIds as $pid) {
+            ParticipationCollectionItem::create([
+                'collection_id' => $collection->id,
+                'participation_id' => $pid,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cobro registrado correctamente. La entidad se encargará del pago.',
+            'collected_count' => count($participationIds),
+        ]);
+    }
+
+    /**
+     * API: Registrar donación (marca participaciones como donadas y genera código de recarga si aplica).
+     * Valida participation_ids, importe_donacion, importe_codigo, y datos personales opcionales.
+     */
+    public function apiRegistrarDonacion(Request $request)
+    {
+        $request->validate([
+            'participation_ids' => 'required|array',
+            'participation_ids.*' => 'integer|exists:participations,id',
+            'importe_donacion' => 'required|numeric|min:0',
+            'importe_codigo' => 'required|numeric|min:0',
+            'nombre' => 'nullable|string|max:255',
+            'apellidos' => 'nullable|string|max:255',
+            'nif' => ['nullable', 'string', 'max:20', new \App\Rules\SpanishDocument],
+        ]);
+
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+        $userId = (string) $user->id;
+
+        $allowedIds = $this->getParticipationIdsOwnedOrReceivedByUser($user);
+        $participations = Participation::whereIn('id', $request->participation_ids)
+            ->whereIn('id', $allowedIds)
+            ->whereNull('collected_at')
+            ->whereNull('donated_at')
+            ->get();
+
+        if ($participations->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Ninguna participación válida para donar.'], 422);
+        }
+
+        $importeDonacion = (float) $request->importe_donacion;
+        $importeCodigo = (float) $request->importe_codigo;
+        $importeTotal = $importeDonacion + $importeCodigo;
+
+        // Validar que la suma coincida con el total de las participaciones (Participation usa sale_amount)
+        $totalParticipaciones = $participations->sum(function ($p) {
+            return (float) ($p->sale_amount ?? 0);
+        });
+
+        if (abs($importeTotal - $totalParticipaciones) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La suma de donación y código no coincide con el importe total de las participaciones.'
+            ], 422);
+        }
+
+        // Generar código de recarga si hay importe para código
+        $codigoRecarga = null;
+        if ($importeCodigo > 0) {
+            $codigoRecarga = $this->generarCodigoRecargaUnico();
+        }
+
+        // Determinar si es anónima (sin datos personales)
+        $anonima = empty($request->nombre) || empty($request->apellidos) || empty($request->nif);
+
+        // Crear registro de donación
+        $donation = ParticipationDonation::create([
+            'user_id' => $user->id,
+            'nombre' => $request->nombre,
+            'apellidos' => $request->apellidos,
+            'nif' => $request->nif,
+            'importe_donacion' => $importeDonacion,
+            'importe_codigo' => $importeCodigo,
+            'codigo_recarga' => $codigoRecarga,
+            'anonima' => $anonima,
+            'donated_at' => now(),
+        ]);
+
+        // Marcar participaciones como donadas en la tabla participations
+        $participationIds = $participations->pluck('id')->toArray();
+        Participation::whereIn('id', $participationIds)->update(['donated_at' => now()]);
+
+        // Asociar cada participación al registro de donación
+        foreach ($participationIds as $pid) {
+            ParticipationDonationItem::create([
+                'donation_id' => $donation->id,
+                'participation_id' => $pid,
+            ]);
+        }
+
+        // TODO: Enviar email con el código de recarga si existe
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Donación registrada correctamente.',
+            'donation_id' => $donation->id,
+            'codigo_recarga' => $codigoRecarga,
+            'importe_donacion' => $importeDonacion,
+            'importe_codigo' => $importeCodigo,
+        ]);
+    }
+
+    /**
+     * Generar código de recarga único (10 caracteres alfanuméricos)
+     */
+    private function generarCodigoRecargaUnico(): string
+    {
+        $caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $intentos = 0;
+        do {
+            $codigo = '';
+            for ($i = 0; $i < 10; $i++) {
+                $codigo .= $caracteres[random_int(0, strlen($caracteres) - 1)];
+            }
+            $intentos++;
+        } while (ParticipationDonation::where('codigo_recarga', $codigo)->exists() && $intentos < 100);
+
+        if ($intentos >= 100) {
+            throw new \Exception('No se pudo generar un código único después de 100 intentos.');
+        }
+
+        return $codigo;
+    }
+
+    /**
+     * API: Historial del usuario (digitalizaciones, regalos enviados; cobros pendiente).
+     * Solo clientes. Ordenado por fecha descendente.
+     */
+    public function apiGetUserHistorial(Request $request)
+    {
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'Solo los usuarios pueden ver su historial.'], 403);
+        }
+        $userId = (string) $user->id;
+        $historial = [];
+
+        // 1. Digitalizaciones: participaciones vinculadas a la cartera (buyer_name = user)
+        $participations = Participation::where('buyer_name', $userId)
+            ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        foreach ($participations as $p) {
+            $ref = $this->getReferenceFromParticipation($p);
+            $participacion = $this->formatParticipationForWallet($p, $ref);
+            $historial[] = [
+                'id' => 'd-' . $p->id,
+                'tipo' => 'digitalizacion',
+                'fecha' => $p->updated_at->toIso8601String(),
+                'participacion' => $participacion,
+                'descripcion' => 'Participación ' . ($participacion['entidad'] ?? 'digitalizada'),
+            ];
+        }
+
+        // 2. Regalos enviados (participation_gifts donde from_user_id = user)
+        $gifts = ParticipationGift::where('from_user_id', $user->id)
+            ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'toUser'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($gifts as $gift) {
+            $p = $gift->participation;
+            if (!$p) continue;
+            $ref = $this->getReferenceFromParticipation($p);
+            $participacion = $this->formatParticipationForWallet($p, $ref);
+            $historial[] = [
+                'id' => 'r-' . $gift->id,
+                'tipo' => 'regalo',
+                'fecha' => $gift->created_at->toIso8601String(),
+                'participacion' => $participacion,
+                'emailDestinatario' => $gift->toUser->email ?? null,
+                'destinatario' => $gift->toUser->email ?? null,
+                'descripcion' => 'Participación regalada a ' . ($gift->toUser->email ?? '—'),
+            ];
+        }
+
+        // 3. Cobros: participaciones cobradas por el usuario
+        $collections = ParticipationCollection::where('user_id', $user->id)
+            ->with(['items.participation.set.reserve.lottery', 'items.participation.set.entity', 'items.participation.set.designFormats'])
+            ->orderBy('collected_at', 'desc')
+            ->get();
+
+        foreach ($collections as $collection) {
+            $participaciones = [];
+            foreach ($collection->items as $item) {
+                $p = $item->participation;
+                if (!$p) continue;
+                $ref = $this->getReferenceFromParticipation($p);
+                $participaciones[] = $this->formatParticipationForWallet($p, $ref);
+            }
+            
+            if (!empty($participaciones)) {
+                $historial[] = [
+                    'id' => 'c-' . $collection->id,
+                    'tipo' => 'cobro',
+                    'fecha' => $collection->collected_at->toIso8601String(),
+                    'participaciones' => $participaciones,
+                    'importeTotal' => (float) $collection->importe_total,
+                    'datosPersonales' => [
+                        'nombre' => $collection->nombre,
+                        'apellidos' => $collection->apellidos,
+                        'nif' => $collection->nif,
+                    ],
+                    'iban' => $collection->iban,
+                    'descripcion' => 'Cobro de ' . count($participaciones) . ' participación(es) - €' . number_format($collection->importe_total, 2, ',', '.'),
+                ];
+            }
+        }
+
+        // 4. Donaciones: participaciones donadas por el usuario
+        $donations = ParticipationDonation::where('user_id', $user->id)
+            ->with(['items.participation.set.reserve.lottery', 'items.participation.set.entity', 'items.participation.set.designFormats'])
+            ->orderBy('donated_at', 'desc')
+            ->get();
+
+        foreach ($donations as $donation) {
+            $participaciones = [];
+            foreach ($donation->items as $item) {
+                $p = $item->participation;
+                if (!$p) continue;
+                $ref = $this->getReferenceFromParticipation($p);
+                $participaciones[] = $this->formatParticipationForWallet($p, $ref);
+            }
+            
+            if (!empty($participaciones)) {
+                // Si hay donación, añadir entrada de donación
+                if ($donation->importe_donacion > 0) {
+                    $historial[] = [
+                        'id' => 'don-' . $donation->id,
+                        'tipo' => 'donacion',
+                        'fecha' => $donation->donated_at->toIso8601String(),
+                        'participaciones' => $participaciones,
+                        'importeDonacion' => (float) $donation->importe_donacion,
+                        'importeCodigo' => (float) $donation->importe_codigo,
+                        'datosPersonales' => $donation->anonima ? null : [
+                            'nombre' => $donation->nombre,
+                            'apellidos' => $donation->apellidos,
+                            'nif' => $donation->nif,
+                        ],
+                        'anonima' => $donation->anonima,
+                        'descripcion' => 'Donación de ' . count($participaciones) . ' participación(es) - €' . number_format($donation->importe_donacion, 2, ',', '.'),
+                    ];
+                }
+                
+                // Si hay código generado, añadir entrada de código
+                if ($donation->importe_codigo > 0 && $donation->codigo_recarga) {
+                    $historial[] = [
+                        'id' => 'cod-' . $donation->id,
+                        'tipo' => 'codigo',
+                        'fecha' => $donation->donated_at->toIso8601String(),
+                        'participaciones' => $participaciones,
+                        'codigoRecarga' => $donation->codigo_recarga,
+                        'importeCodigo' => (float) $donation->importe_codigo,
+                        'descripcion' => 'Código de recarga generado: ' . $donation->codigo_recarga . ' - €' . number_format($donation->importe_codigo, 2, ',', '.'),
+                    ];
+                }
+            }
+        }
+
+        usort($historial, function ($a, $b) {
+            return strcmp($b['fecha'], $a['fecha']);
+        });
+
+        return response()->json(['success' => true, 'historial' => $historial]);
+    }
+
+    private function getReferenceFromParticipation(Participation $p): string
+    {
+        if (!$p->set || !is_array($p->set->tickets)) {
+            return '';
+        }
+        foreach ($p->set->tickets as $ticket) {
+            if (isset($ticket['n']) && $ticket['n'] == $p->participation_number) {
+                return $ticket['r'] ?? '';
+            }
+        }
+        return '';
+    }
+
+    /**
+     * IDs de participaciones que el usuario puede cobrar/donar: propias (buyer_name) o recibidas como regalo.
+     */
+    private function getParticipationIdsOwnedOrReceivedByUser(User $user): \Illuminate\Support\Collection
+    {
+        $userId = (string) $user->id;
+        $ownedIds = Participation::where('buyer_name', $userId)->pluck('id');
+        $receivedIds = ParticipationGift::where('to_user_id', $user->id)->pluck('participation_id');
+        return $ownedIds->merge($receivedIds)->unique()->values();
+    }
+
+    /**
+     * API: Consultar participación por referencia (para usuario, antes de vincular).
+     * Devuelve: can_link + datos, o status: already_mine | already_other | not_found.
+     */
+    public function apiCheckByReference(Request $request)
+    {
+        $request->validate(['referencia' => 'required|string']);
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+        $userId = (string) $user->id;
+        $found = $this->findSetAndParticipationNumberByReference($request->referencia);
+        if (!$found) {
+            return response()->json([
+                'success' => false,
+                'status' => 'not_found',
+                'message' => 'No se encuentra la participación. Comprueba la referencia o el código QR.',
+            ], 404);
+        }
+        $participation = Participation::where('set_id', $found['set']->id)
+            ->where('participation_number', $found['participation_number'])
+            ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats'])
+            ->first();
+        if (!$participation) {
+            return response()->json([
+                'success' => false,
+                'status' => 'not_found',
+                'message' => 'No se encuentra la participación.',
+            ], 404);
+        }
+        $currentBuyer = $participation->buyer_name;
+        if ($currentBuyer !== null && $currentBuyer !== '') {
+            if ($currentBuyer === $userId) {
+                return response()->json([
+                    'success' => true,
+                    'status' => 'already_mine',
+                    'message' => 'Ya la posees en tu cartera.',
+                    'participation' => $this->formatParticipationForWallet($participation, $request->referencia),
+                ]);
+            }
+            return response()->json([
+                'success' => false,
+                'status' => 'already_other',
+                'message' => 'La participación no se puede vincular porque ya se encuentra leída por otro usuario.',
+            ], 422);
+        }
+        return response()->json([
+            'success' => true,
+            'status' => 'can_link',
+            'participation' => $this->formatParticipationForWallet($participation, $request->referencia),
+        ]);
+    }
+
+    /**
+     * API: Vincular participación a la cartera del usuario (guardar user id en buyer_name).
+     */
+    public function apiLinkToWallet(Request $request)
+    {
+        $request->validate(['referencia' => 'required|string']);
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+        $userId = (string) $user->id;
+        $found = $this->findSetAndParticipationNumberByReference($request->referencia);
+        if (!$found) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encuentra la participación.',
+            ], 404);
+        }
+        $participation = Participation::where('set_id', $found['set']->id)
+            ->where('participation_number', $found['participation_number'])
+            ->first();
+        if (!$participation) {
+            return response()->json(['success' => false, 'message' => 'No se encuentra la participación.'], 404);
+        }
+        if ($participation->buyer_name !== null && $participation->buyer_name !== '') {
+            if ($participation->buyer_name === $userId) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Ya la tienes en tu cartera.',
+                    'participation' => $this->formatParticipationForWallet($participation->load('set'), $request->referencia),
+                ]);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'La participación no se puede vincular porque ya se encuentra leída por otro usuario.',
+            ], 422);
+        }
+        $participation->buyer_name = $userId;
+        $participation->save();
+        return response()->json([
+            'success' => true,
+            'message' => 'Participación añadida a tu cartera.',
+            'participation' => $this->formatParticipationForWallet($participation->load(['set.reserve.lottery', 'set.entity', 'set.designFormats']), $request->referencia),
+        ]);
+    }
+
+    /**
+     * API: Regalar participación a otro usuario por email.
+     * La participación sigue en la cartera del que regala con estado regalada; el destinatario la ve en la suya.
+     */
+    public function apiGiftToUser(Request $request)
+    {
+        $request->validate([
+            'participation_id' => 'required|integer|exists:participations,id',
+            'email' => 'required|email',
+        ]);
+
+        $user = $request->user();
+        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        $userId = (string) $user->id;
+        $participation = Participation::find($request->participation_id);
+        if (!$participation || $participation->buyer_name !== $userId) {
+            return response()->json(['success' => false, 'message' => 'La participación no está en tu cartera.'], 404);
+        }
+
+        if (ParticipationGift::where('participation_id', $participation->id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Esta participación ya ha sido regalada.'], 422);
+        }
+        if ($participation->collected_at) {
+            return response()->json(['success' => false, 'message' => 'No se puede regalar una participación ya cobrada.'], 422);
+        }
+        if ($participation->donated_at) {
+            return response()->json(['success' => false, 'message' => 'No se puede regalar una participación ya donada.'], 422);
+        }
+
+        $destinatario = User::where('email', $request->email)->first();
+        if (!$destinatario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No existe ningún usuario con ese correo. El destinatario debe estar registrado como usuario.',
+            ], 422);
+        }
+        if (!$destinatario->isClient()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El correo no corresponde a un usuario. Solo se puede regalar a usuarios con perfil de usuario.',
+            ], 422);
+        }
+        if ((string) $destinatario->id === $userId) {
+            return response()->json(['success' => false, 'message' => 'No puedes regalarte la participación a ti mismo.'], 422);
+        }
+
+        ParticipationGift::create([
+            'participation_id' => $participation->id,
+            'from_user_id' => $user->id,
+            'to_user_id' => $destinatario->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Participación enviada con éxito.',
+            'gifted_to_email' => $destinatario->email,
         ]);
     }
 }

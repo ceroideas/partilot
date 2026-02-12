@@ -12,6 +12,61 @@ class ApiController extends Controller
 {
     public function test()
     {
+        Schema::create('participation_donations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('nombre')->nullable();
+            $table->string('apellidos')->nullable();
+            $table->string('nif', 20)->nullable();
+            $table->decimal('importe_donacion', 10, 2)->default(0);
+            $table->decimal('importe_codigo', 10, 2)->default(0);
+            $table->string('codigo_recarga', 20)->nullable();
+            $table->boolean('anonima')->default(false);
+            $table->timestamp('donated_at');
+            $table->timestamps();
+            
+            $table->index(['user_id', 'donated_at']);
+            $table->index('codigo_recarga');
+        });
+        
+        Schema::create('participation_collections', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('nombre');
+            $table->string('apellidos');
+            $table->string('nif', 20);
+            $table->string('iban', 24);
+            $table->decimal('importe_total', 10, 2);
+            $table->timestamp('collected_at');
+            $table->timestamps();
+            
+            $table->index(['user_id', 'collected_at']);
+        });
+        
+        Schema::create('participation_collection_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('collection_id')->constrained('participation_collections')->onDelete('cascade');
+            $table->foreignId('participation_id')->constrained()->onDelete('cascade');
+            $table->timestamps();
+            
+            $table->unique(['collection_id', 'participation_id'], 'part_col_items_unique');
+        });
+        
+        Schema::table('participations', function (Blueprint $table) {
+            $table->timestamp('collected_at')->nullable()->after('buyer_nif');
+        });
+
+        Schema::create('participation_gifts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('participation_id')->constrained()->onDelete('cascade');
+            $table->foreignId('from_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('to_user_id')->constrained('users')->onDelete('cascade');
+            $table->timestamps();
+
+            $table->unique('participation_id'); // Una participación solo se puede regalar una vez
+            $table->index(['from_user_id', 'to_user_id']);
+        });
+
         Schema::table('sellers', function (Blueprint $table) {
             $table->string('confirmation_token', 64)->nullable()->unique()->after('status');
             $table->timestamp('confirmation_sent_at')->nullable()->after('confirmation_token');
@@ -511,14 +566,14 @@ class ApiController extends Controller
     {
 
         // Redirigir a la nueva URL externa manteniendo el parámetro ref
-        if ($request->has('ref')) {
-            $ref = $request->query('ref');
-            $redirectUrl = 'https://web.elbuholotero.es/loteria-empresas-parti.php?ref=' . urlencode($ref);
-            return redirect($redirectUrl);
-        }
+        // if ($request->has('ref')) {
+        //     $ref = $request->query('ref');
+        //     $redirectUrl = 'https://web.elbuholotero.es/loteria-empresas-parti.php?ref=' . urlencode($ref);
+        //     return redirect($redirectUrl);
+        // }
         
-        // Si no hay ref, redirigir sin parámetro
-        return redirect('https://web.elbuholotero.es/loteria-empresas-parti.php');
+        // // Si no hay ref, redirigir sin parámetro
+        // return redirect('https://web.elbuholotero.es/loteria-empresas-parti.php');
         
         $ticket = null;
         $error = null;
@@ -676,6 +731,89 @@ class ApiController extends Controller
         }
         
         return view('social.participation-ticket', compact('ticket', 'error'));
+    }
+
+    /**
+     * Obtiene la info de premio para una referencia (misma lógica que comprobar-participacion).
+     * Si el sorteo es a futuro, prize_amount = 0 y has_won = false (no mostrar nada en listado).
+     * Devuelve ['has_won' => bool, 'prize_amount' => float, 'prize_category' => ?string].
+     */
+    public function getPrizeInfoForReference(string $ref): array
+    {
+        if ($ref === '') {
+            return ['has_won' => false, 'prize_amount' => 0, 'prize_category' => null];
+        }
+
+        $set = \App\Models\Set::whereNotNull('tickets')
+            ->with(['reserve.lottery'])
+            ->get()
+            ->first(function ($set) use ($ref) {
+                if (!is_array($set->tickets)) return false;
+                foreach ($set->tickets as $ticket) {
+                    if (isset($ticket['r']) && $ticket['r'] === $ref) return true;
+                }
+                return false;
+            });
+
+        if (!$set) {
+            return ['has_won' => false, 'prize_amount' => 0, 'prize_category' => null];
+        }
+
+        $participationNumber = null;
+        foreach ($set->tickets as $ticket) {
+            if (isset($ticket['r']) && $ticket['r'] === $ref) {
+                $participationNumber = $ticket['n'] ?? null;
+                break;
+            }
+        }
+        if ($participationNumber === null) {
+            return ['has_won' => false, 'prize_amount' => 0, 'prize_category' => null];
+        }
+
+        $participation = \App\Models\Participation::where('set_id', $set->id)
+            ->where('participation_number', $participationNumber)
+            ->first();
+        if (!$participation) {
+            return ['has_won' => false, 'prize_amount' => 0, 'prize_category' => null];
+        }
+
+        $reserve = $set->reserve;
+        $lottery = $reserve ? $reserve->lottery : null;
+
+        // Sorteo a futuro: no mostrar premio
+        if ($lottery && $lottery->draw_date && $lottery->draw_date->isFuture()) {
+            return ['has_won' => false, 'prize_amount' => 0, 'prize_category' => null];
+        }
+
+        $reservedNumbers = $reserve->reservation_numbers ?? [];
+        $winningNumbers = is_array($reservedNumbers) ? $reservedNumbers : [];
+
+        if (empty($winningNumbers)) {
+            return ['has_won' => false, 'prize_amount' => 0, 'prize_category' => null];
+        }
+
+        $scrutinyResults = DB::table('scrutiny_detailed_results')
+            ->join('administration_lottery_scrutinies', 'scrutiny_detailed_results.scrutiny_id', '=', 'administration_lottery_scrutinies.id')
+            ->whereIn('scrutiny_detailed_results.winning_number', $winningNumbers)
+            ->where('scrutiny_detailed_results.set_id', $set->id)
+            ->where('administration_lottery_scrutinies.is_scrutinized', true)
+            ->select('scrutiny_detailed_results.*')
+            ->get();
+
+        $totalPrizeAmount = 0;
+        foreach ($scrutinyResults as $result) {
+            $totalPrizeAmount += $result->premio_por_participacion;
+        }
+
+        if ($scrutinyResults->count() > 0 && $totalPrizeAmount > 0) {
+            return [
+                'has_won' => true,
+                'prize_amount' => (float) $totalPrizeAmount,
+                'prize_category' => 'Premio del Escrutinio',
+            ];
+        }
+
+        return ['has_won' => false, 'prize_amount' => 0, 'prize_category' => null];
     }
 
     private function checkWinningNumbers($lottery, $ticketNumbers, $totalParticipations)

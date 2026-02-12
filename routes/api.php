@@ -71,13 +71,18 @@ Route::get('/participation-ticket', [ApiController::class, 'showParticipationTic
 // Configuración de Firebase (pública para inicialización)
 Route::get('/notifications/firebase-config', [NotificationController::class, 'getFirebaseConfig']);
 
+// Resultados de lotería (públicos, para pestaña Sorteos en app)
+Route::get('/lottery/results', [LotteryController::class, 'apiGetAllResults']);
+
 // ============================================================================
 // RUTAS DE AUTENTICACIÓN
 // ============================================================================
 
 Route::prefix('auth')->group(function () {
-    // Login
+    // Login vendedor (solo cuentas con rol seller)
     Route::post('/login', [AuthController::class, 'apiLogin']);
+    // Login usuario (solo cuentas con rol client; rechaza seller y gestores)
+    Route::post('/login-usuario', [AuthController::class, 'apiLoginUsuario']);
     
     // Registro (si aplica)
     Route::post('/register', [AuthController::class, 'apiRegister']);
@@ -300,11 +305,23 @@ Route::middleware('auth.api')->group(function () {
         // Obtener movimientos
         Route::get('/movements', [UserController::class, 'apiGetMovements']);
         
-        // Obtener historial
-        Route::get('/history', [UserController::class, 'apiGetHistory']);
+        // Obtener historial (digitalizaciones, regalos; cobros pendiente)
+        Route::get('/historial', [ParticipationController::class, 'apiGetUserHistorial']);
         
         // Obtener participaciones en cartera
         Route::get('/participations', [ParticipationController::class, 'apiGetWalletParticipations']);
+        // Participaciones cobrables (con premio, no regaladas, no cobradas)
+        Route::get('/participations/cobrables', [ParticipationController::class, 'apiGetCobrables']);
+        // Registrar cobro (marca como cobradas)
+        Route::post('/cobro', [ParticipationController::class, 'apiRegistrarCobro']);
+        // Registrar donación (marca como donadas y genera código de recarga)
+        Route::post('/donacion', [ParticipationController::class, 'apiRegistrarDonacion']);
+        // Consultar participación por referencia (antes de vincular)
+        Route::get('/participations/check', [ParticipationController::class, 'apiCheckByReference']);
+        // Vincular participación a la cartera (guardar user id en buyer_name)
+        Route::post('/participations/link', [ParticipationController::class, 'apiLinkToWallet']);
+        // Regalar participación a otro usuario (por email)
+        Route::post('/participations/gift', [ParticipationController::class, 'apiGiftToUser']);
     });
     
     // ========================================================================

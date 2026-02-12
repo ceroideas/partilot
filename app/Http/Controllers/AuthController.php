@@ -171,21 +171,93 @@ class AuthController extends Controller
     }
 
     /**
-     * API: Registro (si aplica)
+     * API: Login para aplicación móvil - perfil Usuario.
+     * Permite tanto usuarios con rol client como vendedores (seller) para que puedan acceder como usuarios normales.
+     * Rechaza otros roles (gestores, administraciones, etc.).
+     */
+    public function apiLoginUsuario(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Las credenciales proporcionadas no coinciden con nuestros registros.'
+            ], 401);
+        }
+
+        // Permitir usuarios con rol client o seller (los vendedores también pueden ser usuarios normales)
+        // Rechazar otros roles (gestores, administraciones, etc.)
+        if (!$user->isClient() && !$user->isSeller()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta cuenta no tiene acceso al perfil de usuario. Solo usuarios y vendedores pueden acceder aquí.'
+            ], 403);
+        }
+
+        $payload = [
+            'user_id' => $user->id,
+            'exp' => now()->addDays(30)->timestamp,
+        ];
+        $token = Crypt::encrypt($payload);
+
+        $response = [
+            'success' => true,
+            'token' => $token,
+            'user' => $user,
+            'message' => 'Login exitoso'
+        ];
+
+        // Si el usuario es vendedor, también incluir información del seller para que pueda cambiar entre roles
+        if ($user->isSeller()) {
+            $seller = Seller::where('user_id', $user->id)->first();
+            if ($seller && (int) $seller->status === Seller::STATUS_ACTIVE) {
+                $response['seller'] = $seller->load('entities');
+            }
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * API: Registro de cliente sencillo (app móvil).
+     * Campos: email, password, fecha_nacimiento, aceptar_condiciones.
      */
     public function apiRegister(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:6',
+            'fecha_nacimiento' => 'required|date|before:today',
+            'aceptar_condiciones' => 'required|accepted',
+        ], [
+            'email.required' => 'El email es obligatorio.',
+            'email.email' => 'El formato del email no es válido.',
+            'email.unique' => 'Ya existe una cuenta con este email.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'fecha_nacimiento.required' => 'La fecha de nacimiento es obligatoria.',
+            'fecha_nacimiento.date' => 'La fecha de nacimiento no es válida.',
+            'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
+            'aceptar_condiciones.required' => 'Debes aceptar las condiciones de uso.',
+            'aceptar_condiciones.accepted' => 'Debes aceptar las condiciones de uso.',
         ]);
 
+        $name = strstr($request->email, '@', true) ?: 'Usuario';
+        $name = substr($name, 0, 255);
+
         $user = User::create([
-            'name' => $request->name,
+            'name' => $name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => User::ROLE_CLIENT, // Por defecto cliente
+            'birthday' => $request->fecha_nacimiento,
+            'role' => User::ROLE_CLIENT,
+            'status' => true,
         ]);
 
         $payload = ['user_id' => $user->id, 'exp' => now()->addDays(30)->timestamp];
@@ -195,7 +267,7 @@ class AuthController extends Controller
             'success' => true,
             'token' => $token,
             'user' => $user,
-            'message' => 'Registro exitoso'
+            'message' => 'Registro exitoso',
         ], 201);
     }
 

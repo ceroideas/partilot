@@ -658,10 +658,30 @@
 							                                </td>
 							                                <td>
 							                                	@if(!$manager->is_primary)
+							                                		<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" onsubmit="return confirm('¿Asignar a este gestor como principal? El actual principal pasará a ser gestor secundario.');">
+							                                			@csrf
+							                                			<input type="hidden" name="entity_id" value="{{ $entity->id }}">
+							                                			<input type="hidden" name="new_primary_manager_id" value="{{ $manager->id }}">
+							                                			<button type="submit" class="btn btn-sm btn-outline-primary" title="Hacer gestor principal"><i class="ri-user-star-line"></i> Principal</button>
+							                                		</form>
 							                                		<a href="{{ route('entities.edit-manager-permissions', ['entity_id' => $entity->id, 'manager_id' => $manager->id]) }}" class="btn btn-sm btn-warning" title="Editar permisos"><i class="ri-settings-3-line"></i></a>
 							                                		<a href="#" class="btn btn-sm btn-danger delete-manager" data-manager-id="{{ $manager->id }}" title="Eliminar"><i class="ri-delete-bin-6-line"></i></a>
 							                                	@else
-							                                		<span class="text-muted">-</span>
+							                                		@if($entity->managers->where('is_primary', false)->count() > 0)
+							                                			<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" onsubmit="return confirm('¿Asignar como gestor principal al seleccionado? El actual principal pasará a ser gestor secundario.');">
+							                                				@csrf
+							                                				<input type="hidden" name="entity_id" value="{{ $entity->id }}">
+							                                				<select name="new_primary_manager_id" class="form-select form-select-sm d-inline-block" style="width: auto;" required>
+							                                					<option value="">-- Nuevo principal --</option>
+							                                					@foreach($entity->managers->where('is_primary', false) as $other)
+							                                						<option value="{{ $other->id }}">{{ $other->user->name ?? '' }} {{ $other->user->last_name ?? '' }}</option>
+							                                					@endforeach
+							                                				</select>
+							                                				<button type="submit" class="btn btn-sm btn-outline-secondary">Cambiar</button>
+							                                			</form>
+							                                		@else
+							                                			<span class="text-muted">-</span>
+							                                		@endif
 							                                	@endif
 							                                </td>
 							                            </tr>
