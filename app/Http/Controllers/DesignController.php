@@ -393,7 +393,8 @@ class DesignController extends Controller
         }*/
 
         // Para PDFs muy grandes (>500 participaciones), usar procesamiento por lotes
-        if ($total > 500) {
+        //if ($total > 500) {
+        if ($total > 5) {
             return $this->generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation, $qrCodes);
         }
         
@@ -614,6 +615,7 @@ class DesignController extends Controller
             ])->setPaper($page, $pdfOrientation);
             
             // Guardar en archivo temporal
+            
             $temp_file = storage_path('app/temp_pdf_' . $chunk_start . '.pdf');
             $pdf->save($temp_file);
             $temp_files[] = $temp_file;
@@ -624,28 +626,35 @@ class DesignController extends Controller
     }
 
     /**
-     * Combinar múltiples archivos PDF en uno solo
+     * Combinar múltiples archivos PDF en uno solo.
+     * Respeta orientación y tamaño de cada página importada (getTemplateSize + AddPage con mismo size).
      */
     private function combinePdfFiles($temp_files, $filename)
     {
-        // Usar FPDI para combinar PDFs
         $pdf = new \setasign\Fpdi\Fpdi();
-        
+
         foreach ($temp_files as $file) {
             $pageCount = $pdf->setSourceFile($file);
             for ($i = 1; $i <= $pageCount; $i++) {
-                $pdf->AddPage();
-                $pdf->useTemplate($pdf->importPage($i));
+                $templateId = $pdf->importPage($i);
+                $size = $pdf->getTemplateSize($templateId);
+                if ($size === false) {
+                    continue;
+                }
+                // Añadir página con la misma orientación y dimensiones que la importada
+                $orientation = isset($size['orientation']) ? $size['orientation'] : 'P';
+                $pdf->AddPage($orientation, $size);
+                $pdf->useTemplate($templateId);
             }
         }
-        
+
         // Limpiar archivos temporales
         foreach ($temp_files as $file) {
             if (file_exists($file)) {
                 unlink($file);
             }
         }
-        
+
         return response($pdf->Output('S'), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"'

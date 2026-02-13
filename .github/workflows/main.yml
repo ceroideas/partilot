@@ -20,7 +20,7 @@ jobs:
           # ${{secrets.CLAVESSH}}
           script: |
             cd /var/www/vhosts/partilot.es/panel.partilot.es/
-            git pull origin main
+            git pull origin main --no-rebase
             composer install
             php artisan cache:clear
             php artisan config:clear
