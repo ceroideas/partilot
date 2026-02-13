@@ -80,7 +80,7 @@
             image-rendering: pixelated;
         }
 
-        .margen-izquierdo,.margen-arriba,.margen-derecho,.margen-abajo,.caja-matriz {
+        .margen-izquierdo,.margen-arriba,.margen-derecho,.margen-abajo,.caja-matriz, button {
             display: none;
         }
         
