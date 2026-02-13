@@ -394,7 +394,7 @@ class DesignController extends Controller
 
         // Para PDFs muy grandes (>500 participaciones), usar procesamiento por lotes
         //if ($total > 500) {
-        if ($total > 5) {
+        if ($total > 500) {
             return $this->generatePdfInChunks($design, $participation_html, $tickets, $from, $to, $rows, $cols, $page, $pdfOrientation, $qrCodes);
         }
         
