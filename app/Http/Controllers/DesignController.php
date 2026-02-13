@@ -400,13 +400,13 @@ class DesignController extends Controller
         // Ordenar tickets en modo guillotina (optimizado)
         $pages = $this->generatePagesOptimized($tickets_to_print, $total_pages, $per_page);
 
-        return view('design.pdf_participation', [
+        /*return view('design.pdf_participation', [
             'pages' => $pages,
             'participation_html' => $participation_html,
             'rows' => $rows,
             'cols' => $cols,
             'qrCodes' => $qrCodes,
-        ]);
+        ]);*/
 
         $pdf = Pdf::loadView('design.pdf_participation', [
             'pages' => $pages,
