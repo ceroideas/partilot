@@ -12,21 +12,30 @@ class ApiController extends Controller
 {
     public function test()
     {
-        Schema::create('participation_donations', function (Blueprint $table) {
+        // Schema::create('participation_donations', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('user_id')->constrained()->onDelete('cascade');
+        //     $table->string('nombre')->nullable();
+        //     $table->string('apellidos')->nullable();
+        //     $table->string('nif', 20)->nullable();
+        //     $table->decimal('importe_donacion', 10, 2)->default(0);
+        //     $table->decimal('importe_codigo', 10, 2)->default(0);
+        //     $table->string('codigo_recarga', 20)->nullable();
+        //     $table->boolean('anonima')->default(false);
+        //     $table->timestamp('donated_at');
+        //     $table->timestamps();
+            
+        //     $table->index(['user_id', 'donated_at']);
+        //     $table->index('codigo_recarga');
+        // });
+
+        Schema::create('participation_donation_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('nombre')->nullable();
-            $table->string('apellidos')->nullable();
-            $table->string('nif', 20)->nullable();
-            $table->decimal('importe_donacion', 10, 2)->default(0);
-            $table->decimal('importe_codigo', 10, 2)->default(0);
-            $table->string('codigo_recarga', 20)->nullable();
-            $table->boolean('anonima')->default(false);
-            $table->timestamp('donated_at');
+            $table->foreignId('donation_id')->constrained('participation_donations')->onDelete('cascade');
+            $table->foreignId('participation_id')->constrained()->onDelete('cascade');
             $table->timestamps();
             
-            $table->index(['user_id', 'donated_at']);
-            $table->index('codigo_recarga');
+            $table->unique(['donation_id', 'participation_id'], 'part_don_items_unique');
         });
         
         Schema::create('participation_collections', function (Blueprint $table) {

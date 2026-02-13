@@ -1194,8 +1194,8 @@ class SellerController extends Controller
                     }
 
                     // Enviar email con las asignaciones agrupadas
-                    // \Mail::to($seller->email)->send(
-                    \Mail::to('jorgesolano92@gmail.com')->send(
+                    \Mail::to($seller->email)->send(
+                    //\Mail::to('jorgesolano92@gmail.com')->send(
                         new \App\Mail\ParticipationAssignmentMail($seller, $assignmentsBySet)
                     );
                 } catch (\Exception $e) {
