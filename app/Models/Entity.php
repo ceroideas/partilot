@@ -37,11 +37,11 @@ class Entity extends Model
     }
 
     /**
-     * Relación con Manager (singular - para compatibilidad)
+     * Relación con Manager (singular - devuelve el gestor principal)
      */
     public function manager()
     {
-        return $this->hasOne(Manager::class,'entity_id','id');
+        return $this->hasOne(Manager::class,'entity_id','id')->where('is_primary', true);
     }
 
     /**

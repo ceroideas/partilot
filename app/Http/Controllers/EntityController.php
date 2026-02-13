@@ -24,9 +24,11 @@ class EntityController extends Controller
 
     /**
      * Show the form for creating a new resource - Paso 1: Seleccionar administración
+     * Al iniciar una nueva entidad se limpia entity_information (y la imagen) para no arrastrar datos anteriores.
      */
     public function create()
     {
+        request()->session()->forget('entity_information');
         $administrations = Administration::forUser(auth()->user())->get();
         return view('entities.add', compact('administrations'));
     }
@@ -91,16 +93,23 @@ class EntityController extends Controller
             'phone' => 'required|string|max:20',
             'email' => 'required|email|max:255',
             'comments' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_image' => 'nullable|in:0,1'
         ]);
 
-        // Manejo de imagen
-        if ($request->hasFile('image')) {
+        // Manejo de imagen: nueva subida o marcar para quitar
+        if ($request->boolean('remove_image')) {
+            $validated['image'] = null;
+        } elseif ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = $file->hashName();
             $file->move(public_path('uploads'), $filename);
             $validated['image'] = $filename;
+        } else {
+            // Mantener imagen previa de la sesión si no se sube ni se elimina
+            $validated['image'] = session('entity_information.image');
         }
+        unset($validated['remove_image']);
 
         $request->session()->put('entity_information', $validated);
 
@@ -108,7 +117,7 @@ class EntityController extends Controller
     }
 
     /**
-     * Show manager form - Paso 3: Datos del gestor
+     * Show manager form - Paso 3: Datos del gestor (Invitar o Registrar)
      */
     public function create_manager()
     {
@@ -120,7 +129,38 @@ class EntityController extends Controller
                 ->with('error', 'Sesión expirada. Por favor, vuelva a empezar.');
         }
 
+        // Inicializar datos del gestor en sesión si no existen (persistencia como en administrations)
+        if (!session()->has('entity_manager')) {
+            session()->put('entity_manager', [
+                'manager_name' => '',
+                'manager_last_name' => '',
+                'manager_last_name2' => '',
+                'manager_nif_cif' => '',
+                'manager_birthday' => '',
+                'manager_email' => '',
+                'manager_phone' => '',
+            ]);
+        }
+
         return view('entities.add_manager');
+    }
+
+    /**
+     * Guardar borrador del formulario de gestor externo en sesión y volver a la elección Invitar/Registrar
+     */
+    public function save_manager_draft(Request $request)
+    {
+        $request->session()->put('entity_manager', [
+            'manager_name' => $request->input('manager_name', ''),
+            'manager_last_name' => $request->input('manager_last_name', ''),
+            'manager_last_name2' => $request->input('manager_last_name2', ''),
+            'manager_nif_cif' => $request->input('manager_nif_cif', ''),
+            'manager_birthday' => $request->input('manager_birthday', ''),
+            'manager_email' => $request->input('manager_email', ''),
+            'manager_phone' => $request->input('manager_phone', ''),
+        ]);
+
+        return redirect()->route('entities.add-manager');
     }
 
     /**
@@ -128,19 +168,29 @@ class EntityController extends Controller
      */
     public function store_manager(Request $request)
     {
+        // Guardar en sesión para persistencia (como en administrations)
+        $request->session()->put('entity_manager', [
+            'manager_name' => $request->input('manager_name', ''),
+            'manager_last_name' => $request->input('manager_last_name', ''),
+            'manager_last_name2' => $request->input('manager_last_name2', ''),
+            'manager_nif_cif' => $request->input('manager_nif_cif', ''),
+            'manager_birthday' => $request->input('manager_birthday', ''),
+            'manager_email' => $request->input('manager_email', ''),
+            'manager_phone' => $request->input('manager_phone', ''),
+        ]);
+
         // Buscar usuario primero para excluirlo de la validación unique si existe
         $user = User::where('email', $request->manager_email)->first();
         $userId = $user ? $user->id : null;
-        
+
         $validated = $request->validate([
             'manager_name' => 'required|string|max:255',
             'manager_last_name' => 'required|string|max:255',
             'manager_last_name2' => 'nullable|string|max:255',
-            'manager_nif_cif' => ['nullable', 'string', 'max:20', 'unique:users,nif_cif' . ($userId ? ',' . $userId : '')],
+            'manager_nif_cif' => ['nullable', 'string', 'max:20', new \App\Rules\EntityDocument, 'unique:users,nif_cif' . ($userId ? ',' . $userId : '')],
             'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
             'manager_email' => 'required|email|max:255',
             'manager_phone' => 'nullable|string|max:20',
-            // 'manager_comment' => 'nullable|string|max:1000',
             'manager_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
         if (!$user) {
@@ -199,7 +249,7 @@ class EntityController extends Controller
         ]);
 
         // Limpiar sesión
-        $request->session()->forget(['selected_administration', 'entity_information']);
+        $request->session()->forget(['selected_administration', 'entity_information', 'entity_manager']);
 
         return redirect()->route('entities.index')
             ->with('success', 'Entidad creada exitosamente.');
@@ -432,7 +482,7 @@ class EntityController extends Controller
      */
     public function show($id)
     {
-        $entity = Entity::with(['administration', 'manager', 'managers.user'])
+        $entity = Entity::with(['administration', 'manager.user', 'managers.user'])
             ->forUser(auth()->user())
             ->findOrFail($id);
         return view('entities.show', compact('entity'));

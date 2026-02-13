@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Entity;
 use App\Models\Participation;
 use App\Models\Seller;
@@ -1268,24 +1269,48 @@ class ParticipationController extends Controller
         }
 
         // 2. Regalos enviados (participation_gifts donde from_user_id = user)
-        $gifts = ParticipationGift::where('from_user_id', $user->id)
+        $giftsSent = ParticipationGift::where('from_user_id', $user->id)
             ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'toUser'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        foreach ($gifts as $gift) {
+        foreach ($giftsSent as $gift) {
             $p = $gift->participation;
             if (!$p) continue;
             $ref = $this->getReferenceFromParticipation($p);
             $participacion = $this->formatParticipationForWallet($p, $ref);
             $historial[] = [
-                'id' => 'r-' . $gift->id,
+                'id' => 'r-env-' . $gift->id,
                 'tipo' => 'regalo',
                 'fecha' => $gift->created_at->toIso8601String(),
                 'participacion' => $participacion,
                 'emailDestinatario' => $gift->toUser->email ?? null,
                 'destinatario' => $gift->toUser->email ?? null,
+                'direccion' => 'enviado',
                 'descripcion' => 'Participación regalada a ' . ($gift->toUser->email ?? '—'),
+            ];
+        }
+
+        // 2b. Regalos recibidos (participation_gifts donde to_user_id = user)
+        $giftsReceived = ParticipationGift::where('to_user_id', $user->id)
+            ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'fromUser'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($giftsReceived as $gift) {
+            $p = $gift->participation;
+            if (!$p) continue;
+            $ref = $this->getReferenceFromParticipation($p);
+            $participacion = $this->formatParticipationForWallet($p, $ref);
+            $historial[] = [
+                'id' => 'r-rec-' . $gift->id,
+                'tipo' => 'regalo',
+                'fecha' => $gift->created_at->toIso8601String(),
+                'participacion' => $participacion,
+                'emailRemitente' => $gift->fromUser->email ?? null,
+                'remitente' => $gift->fromUser->email ?? null,
+                'direccion' => 'recibido',
+                'descripcion' => 'Participación recibida de ' . ($gift->fromUser->email ?? '—'),
             ];
         }
 
@@ -1325,55 +1350,50 @@ class ParticipationController extends Controller
         // 4. Donaciones: participaciones donadas por el usuario
         $donations = ParticipationDonation::where('user_id', $user->id)
             ->with(['items.participation.set.reserve.lottery', 'items.participation.set.entity', 'items.participation.set.designFormats'])
-            ->orderBy('donated_at', 'desc')
+            ->orderByRaw('COALESCE(donated_at, created_at) DESC')
             ->get();
 
         foreach ($donations as $donation) {
             $participaciones = [];
-            foreach ($donation->items as $item) {
-                $p = $item->participation;
-                if (!$p) continue;
-                $ref = $this->getReferenceFromParticipation($p);
-                $participaciones[] = $this->formatParticipationForWallet($p, $ref);
+            if ($donation->items && $donation->items->count() > 0) {
+                foreach ($donation->items as $item) {
+                    if ($item->participation) {
+                        $p = $item->participation;
+                        $ref = $this->getReferenceFromParticipation($p);
+                        $participaciones[] = $this->formatParticipationForWallet($p, $ref);
+                    }
+                }
             }
             
-            if (!empty($participaciones)) {
-                // Si hay donación, añadir entrada de donación
-                if ($donation->importe_donacion > 0) {
-                    $historial[] = [
-                        'id' => 'don-' . $donation->id,
-                        'tipo' => 'donacion',
-                        'fecha' => $donation->donated_at->toIso8601String(),
-                        'participaciones' => $participaciones,
-                        'importeDonacion' => (float) $donation->importe_donacion,
-                        'importeCodigo' => (float) $donation->importe_codigo,
-                        'datosPersonales' => $donation->anonima ? null : [
-                            'nombre' => $donation->nombre,
-                            'apellidos' => $donation->apellidos,
-                            'nif' => $donation->nif,
-                        ],
-                        'anonima' => $donation->anonima,
-                        'descripcion' => 'Donación de ' . count($participaciones) . ' participación(es) - €' . number_format($donation->importe_donacion, 2, ',', '.'),
-                    ];
-                }
-                
-                // Si hay código generado, añadir entrada de código
-                if ($donation->importe_codigo > 0 && $donation->codigo_recarga) {
-                    $historial[] = [
-                        'id' => 'cod-' . $donation->id,
-                        'tipo' => 'codigo',
-                        'fecha' => $donation->donated_at->toIso8601String(),
-                        'participaciones' => $participaciones,
-                        'codigoRecarga' => $donation->codigo_recarga,
-                        'importeCodigo' => (float) $donation->importe_codigo,
-                        'descripcion' => 'Código de recarga generado: ' . $donation->codigo_recarga . ' - €' . number_format($donation->importe_codigo, 2, ',', '.'),
-                    ];
-                }
-            }
+            // Añadir entrada de donación siempre (incluso si no tiene participaciones asociadas)
+            $fechaDonacion = $donation->donated_at ? $donation->donated_at->toIso8601String() : ($donation->created_at ? $donation->created_at->toIso8601String() : now()->toIso8601String());
+            
+            $historial[] = [
+                'id' => 'don-' . $donation->id,
+                'tipo' => 'donacion',
+                'fecha' => $fechaDonacion,
+                'participaciones' => $participaciones,
+                'importeDonacion' => (float) $donation->importe_donacion,
+                'importeCodigo' => (float) $donation->importe_codigo,
+                'codigoRecarga' => $donation->codigo_recarga ?? null,
+                'datosPersonales' => $donation->anonima ? null : [
+                    'nombre' => $donation->nombre,
+                    'apellidos' => $donation->apellidos,
+                    'nif' => $donation->nif,
+                ],
+                'anonima' => $donation->anonima,
+                'descripcion' => 'Donación' . 
+                    (count($participaciones) > 0 ? ' de ' . count($participaciones) . ' participación(es)' : '') .
+                    ($donation->importe_donacion > 0 ? ' - €' . number_format($donation->importe_donacion, 2, ',', '.') : '') .
+                    ($donation->codigo_recarga ? ' - Código: ' . $donation->codigo_recarga : ''),
+            ];
         }
 
+        // Ordenar por fecha descendente
         usort($historial, function ($a, $b) {
-            return strcmp($b['fecha'], $a['fecha']);
+            $fechaA = $a['fecha'] ?? '';
+            $fechaB = $b['fecha'] ?? '';
+            return strcmp($fechaB, $fechaA);
         });
 
         return response()->json(['success' => true, 'historial' => $historial]);

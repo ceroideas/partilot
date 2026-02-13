@@ -98,6 +98,24 @@
     .format-btn-group button, .format-btn-group label {
       max-width: 55px;
     }
+    
+    .design-zoom-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        transition: transform 0.2s ease;
+    }
+    /* Contenedor con scroll cuando el zoom > 100% */
+    .design-zoom-scroll {
+        overflow: auto;
+        max-height: calc(100vh - 300px);
+        width: 100%;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+    }
 </style>
 
 <!-- Start Content-->
@@ -433,12 +451,11 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
-                                <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="2"><i class="ri-zoom-out-line"></i></button>
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="2"><i class="ri-zoom-in-line"></i></button>
                                         <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -468,10 +485,10 @@
                                         <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
                                         <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
-
-                                    <br>
-                                    
-                                    <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                </div>
+                                <div class="design-zoom-scroll">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
+                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
                                         <div class="margen-izquierdo guide2" style="opacity: 1; z-index:1;position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
@@ -544,8 +561,8 @@
                                         
                                         </div>
 
+                                        </div>
                                     </div>
-                                </div>
                                 </div>
 
                                 {{-- </div> --}}
@@ -561,12 +578,11 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="design-zoom-container" id="design-zoom-wrapper-3" style="transform-origin: top center;">
-                                <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="3"><i class="ri-zoom-out-line"></i></button>
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="3"><i class="ri-zoom-in-line"></i></button>
                                         <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -598,10 +614,10 @@
                                         <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
                                         <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
-
-                                    <br>
-                                    
-                                    <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                </div>
+                                <div class="design-zoom-scroll">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-3" style="transform-origin: top center;">
+                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
                                         <div class="margen-izquierdo guide3" style="opacity: 1; z-index: 1; position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
@@ -627,8 +643,8 @@
                                             
                                         </div>
 
+                                        </div>
                                     </div>
-                                </div>
                                 </div>
 
                                 {{-- </div> --}}
@@ -644,12 +660,11 @@
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="design-zoom-container" id="design-zoom-wrapper-4" style="transform-origin: top center;">
-                                <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="4"><i class="ri-zoom-out-line"></i></button>
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="4"><i class="ri-zoom-in-line"></i></button>
                                         <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -681,10 +696,10 @@
                                         <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
                                         <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
-
-                                    <br>
-                                    
-                                    <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+                                </div>
+                                <div class="design-zoom-scroll">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-4" style="transform-origin: top center;">
+                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
 
                                         {{-- margen izquierdo --}}
                                         <div class="margen-izquierdo guide4" style="opacity: 1; z-index: 1; position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
@@ -705,8 +720,8 @@
                                             </div>
                                         </div>
 
+                                        </div>
                                     </div>
-                                </div>
                                 </div>
 
                                 {{-- </div> --}}
@@ -1048,6 +1063,7 @@ $(document).ready(function() {
   var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5];
   function applyDesignZoom() {
     var s = designZoom;
+    // Aplicar zoom solo al contenedor del diseño, no a las herramientas
     $('.design-zoom-container').css('transform', 'scale(' + s + ')');
     $('.design-zoom-label').text(Math.round(s * 100) + '%');
     try { localStorage.setItem('designZoom', s); } catch (e) {}
@@ -2480,7 +2496,7 @@ $('#format').change(function (e) {
       console.log(ticketW,ticketH);
       if (ticketW && ticketH) {
           $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
-          $('.format-box-btn').css({width: ticketW+'mm'});
+          $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
       }
   }
 

@@ -48,7 +48,7 @@
 
                     			@php
                     				$admin = session('selected_administration');
-                    				$adminImg = $admin && (is_object($admin) ? ($admin->image ?? null) : ($admin['image'] ?? null));
+                    				$adminImg = data_get(session('selected_administration'), 'image');
                     				$entInfo = session('entity_information');
                     				$entImg = is_array($entInfo) ? ($entInfo['image'] ?? null) : null;
                     			@endphp
@@ -101,19 +101,13 @@
                     			<div class="row">
                 					<div class="col-4">
                 						@if($adminImg ?? null)
-                							<div class="photo-preview-3 logo-round" style="background-image: url('{{ asset('uploads/' . $adminImg) }}'); background-size: cover;"></div>
+                							<div class="photo-preview-3 logo-round" style="background-image: url('{{ asset('images/' . $adminImg) }}'); background-size: cover;"></div>
                 						@else
                 							<div class="photo-preview-3"><i class="ri-account-circle-fill"></i></div>
                 						@endif
-                						<small class="d-block text-center mt-1">Administración</small>
                 						<div style="clear: both;"></div>
                 					</div>
-                					<div class="col-4">
-                						<div class="photo-preview-3"><i class="ri-community-line"></i></div>
-                						<small class="d-block text-center mt-1">Entidad</small>
-                						<div style="clear: both;"></div>
-                					</div>
-                					<div class="col-4 text-center mt-2">
+                					<div class="col-8 text-center mt-2">
                 						<h4 class="mt-0 mb-0">{{ session('selected_administration')->name ?? 'Administración' }}</h4>
                 						<small>{{ session('entity_information.name') ?? 'Entidad' }}</small> <br>
                 						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ session('entity_information.province') ?? 'Provincia' }}
@@ -126,11 +120,14 @@
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                     	</div>
                     	<div class="col-md-9">
-                    		<div class="form-card bs" style="min-height: 658px;">
+                    		<div class="form-card bs" style="min-height: 658px; position: relative;">
+                    			<button type="button" id="back-to-buttons" class="d-none btn btn-light rounded-circle shadow-sm border" style="position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 0;" title="Volver a elegir tipo de gestor">
+                    				<i class="ri-arrow-left-line" style="font-size: 1.25rem;"></i>
+                    			</button>
                     			<h4 class="mb-0 mt-1">
-                    				Email de invitación
+                    				Invitación / Registro
                     			</h4>
-                    			<small><i>Asegúrese de que el email sea el correcto</i></small>
+                    			<small><i>Elige la manera en la que agregar al Gestor</i></small>
 
                     			<div class="form-group mt-2 mb-3 admin-box">
 
@@ -176,7 +173,7 @@
 
                     			<br>
 
-                    			<div id="all-options">
+                    			<div id="all-options" class="{{ $errors->any() ? 'd-none' : '' }}">
                     				<div class="row">
                     					
                     					<div class="col-12">
@@ -340,116 +337,125 @@
                     				</div>
                     			</div>
 
-                    			<div id="register-manager-selected" class="d-none">
-                    				<form action="{{url('entities/store-manager')}}" method="POST" enctype="multipart/form-data">
-                    					@csrf()
-                    					<div class="row">
-                    						
-                    						<div class="col-4">
-                    							<div class="form-group mt-2 mb-3">
-                    								<label class="label-control">Nombre</label>
+			<div id="register-manager-selected" class="{{ $errors->any() ? '' : 'd-none' }}">
+    				<form id="form-register-manager" action="{{ url('entities/store-manager') }}" method="POST" enctype="multipart/form-data">
+    					@csrf()
+    					@if ($errors->any())
+    						<div class="alert alert-danger mb-3">
+    							<ul class="mb-0">
+    								@foreach ($errors->all() as $error)
+    									<li>{{ $error }}</li>
+    								@endforeach
+    							</ul>
+    						</div>
+    					@endif
+    					<div class="row">
+    						
+    						<div class="col-4">
+    							<div class="form-group mt-2 mb-3">
+    								<label class="label-control">Nombre</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+			                                    </div>
 
-				                                    <input class="form-control" type="text" name="manager_name" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    						</div>
-                    						<div class="col-4">
-                    							<div class="form-group mt-2 mb-3">
-                    								<label class="label-control">Primer Apellido</label>
+			                                    <input class="form-control" type="text" name="manager_name" placeholder="Nombre" value="{{ old('manager_name', session('entity_manager.manager_name', '')) }}" required style="border-radius: 0 30px 30px 0;">
+			                                </div>
+		                    			</div>
+    						</div>
+    						<div class="col-4">
+    							<div class="form-group mt-2 mb-3">
+    								<label class="label-control">Primer Apellido</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+			                                    </div>
 
-				                                    <input class="form-control" type="text" name="manager_last_name" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    						</div>
+			                                    <input class="form-control" type="text" name="manager_last_name" placeholder="Primer Apellido" value="{{ old('manager_last_name', session('entity_manager.manager_last_name', '')) }}" required style="border-radius: 0 30px 30px 0;">
+			                                </div>
+		                    			</div>
+    						</div>
 
-                    						<div class="col-4">
-                    							<div class="form-group mt-2 mb-3">
-                    								<label class="label-control">Segundo Apellido</label>
+    						<div class="col-4">
+    							<div class="form-group mt-2 mb-3">
+    								<label class="label-control">Segundo Apellido</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-				                                    </div>
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+			                                    </div>
 
-				                                    <input class="form-control" type="text" name="manager_last_name2" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    						</div>
-                    						
-                    						<div class="col-2">
-                    							<div class="form-group mt-2 mb-3">
-                    								<label class="label-control">NIF/CIF</label>
+			                                    <input class="form-control" type="text" name="manager_last_name2" placeholder="Segundo Apellido" value="{{ old('manager_last_name2', session('entity_manager.manager_last_name2', '')) }}" style="border-radius: 0 30px 30px 0;">
+			                                </div>
+		                    			</div>
+    						</div>
+    						
+    						<div class="col-2">
+    							<div class="form-group mt-2 mb-3">
+    								<label class="label-control">NIF/CIF</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-				                                    </div>
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+			                                    </div>
 
-				                                    <input class="form-control" type="text" name="manager_nif_cif" id="entity-manager-nif-cif" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    						</div>
+			                                    <input class="form-control" type="text" name="manager_nif_cif" id="entity-manager-nif-cif" placeholder="B26262626" value="{{ old('manager_nif_cif', session('entity_manager.manager_nif_cif', '')) }}" style="border-radius: 0 30px 30px 0;">
+			                                </div>
+		                    			</div>
+    						</div>
 
-                    						<div class="col-3">
-                    							<div class="form-group mt-2 mb-3">
-                    								<label class="label-control">F. Nacimiento</label>
+    						<div class="col-3">
+    							<div class="form-group mt-2 mb-3">
+    								<label class="label-control">F. Nacimiento</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
-				                                    </div>
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
+			                                    </div>
 
-				                                    <input class="form-control" type="date" name="manager_birthday" placeholder="01/01/1990" required style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    						</div>
+			                                    <input class="form-control" type="date" name="manager_birthday" placeholder="01/01/1990" value="{{ old('manager_birthday', session('entity_manager.manager_birthday', '')) }}" required style="border-radius: 0 30px 30px 0;">
+			                                </div>
+		                    			</div>
+    						</div>
 
-                    						<div class="col-4">
-                    							<div class="form-group mt-2 mb-3">
-                    								<label class="label-control">Email</label>
+    						<div class="col-4">
+    							<div class="form-group mt-2 mb-3">
+    								<label class="label-control">Email</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
-				                                    </div>
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
+			                                    </div>
 
-				                                    <input class="form-control" type="email" name="manager_email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    						</div>
+			                                    <input class="form-control" type="email" name="manager_email" placeholder="ejemplo@cuentaemail.com" value="{{ old('manager_email', session('entity_manager.manager_email', '')) }}" required style="border-radius: 0 30px 30px 0;">
+			                                </div>
+		                    			</div>
+    						</div>
 
-                    						<div class="col-3">
-                    							<div class="form-group mt-2 mb-3">
-                    								<label class="label-control">Teléfono</label>
+    						<div class="col-3">
+    							<div class="form-group mt-2 mb-3">
+    								<label class="label-control">Teléfono</label>
 
-				                    			<div class="input-group input-group-merge group-form">
+			                    			<div class="input-group input-group-merge group-form">
 
-				                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-				                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
-				                                    </div>
+			                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
+			                                    </div>
 
-				                                    <input class="form-control" type="phone" name="manager_phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
-				                                </div>
-			                    			</div>
-                    						</div>
+			                                    <input class="form-control" type="text" name="manager_phone" placeholder="940 200 200" value="{{ old('manager_phone', session('entity_manager.manager_phone', '')) }}" style="border-radius: 0 30px 30px 0;">
+			                                </div>
+		                    			</div>
+    						</div>
 
-                    					</div>
+    					</div>
 
                     					<div class="row">
 
@@ -528,8 +534,8 @@
 	                    				</div>
 
 	                    			</div>
-                    				</form>
-                    			</div>
+    				</form>
+    			</div>
 
                     		</div>
                     	</div>
@@ -553,10 +559,9 @@
 
 $('#invite-manager').click(function (e) {
 	e.preventDefault();
-
 	$('#manager-buttons').addClass('d-none');
-
 	$('#invite-form').removeClass('d-none');
+	$('#back-to-buttons').removeClass('d-none');
 });
 
 $('.invite-email').keyup(function(event) {
@@ -632,11 +637,42 @@ $('#cancel-invite').click(function (e) {
 
 $('#register-manager').click(function (e) {
 	e.preventDefault();
-
 	$('#all-options').addClass('d-none');
-
 	$('#register-manager-selected').removeClass('d-none');
+	$('#back-to-buttons').removeClass('d-none');
+});
 
+$('#back-to-buttons').click(function (e) {
+	e.preventDefault();
+	if ($('#register-manager-selected').is(':visible') && !$('#register-manager-selected').hasClass('d-none')) {
+		var form = document.getElementById('form-register-manager');
+		var formData = new FormData(form);
+		formData.append('_token', '{{ csrf_token() }}');
+		$.ajax({
+			url: '{{ route("entities.save-manager-draft") }}',
+			method: 'POST',
+			data: formData,
+			processData: false,
+			contentType: false,
+			success: function() {
+				$('#register-manager-selected').addClass('d-none');
+				$('#all-options').removeClass('d-none');
+				$('#back-to-buttons').addClass('d-none');
+			},
+			error: function() {
+				$('#register-manager-selected').addClass('d-none');
+				$('#all-options').removeClass('d-none');
+				$('#back-to-buttons').addClass('d-none');
+			}
+		});
+	} else {
+		$('#invite-form').addClass('d-none');
+		$('#accept-invite').addClass('d-none');
+		$('#manager-buttons').removeClass('d-none');
+		$('#register-manager-selected').addClass('d-none');
+		$('#all-options').removeClass('d-none');
+		$('#back-to-buttons').addClass('d-none');
+	}
 });
 
 // Manejar el botón "Aceptar" para invitaciones
@@ -653,11 +689,13 @@ $('#accept-invite-btn').click(function (e) {
 	}
 });
 
-// Inicializar validación de documento español
 document.addEventListener('DOMContentLoaded', function() {
     initSpanishDocumentValidation('entity-manager-nif-cif', {
         showMessage: true
     });
+    if ($('#register-manager-selected').is(':visible') && !$('#register-manager-selected').hasClass('d-none')) {
+        $('#back-to-buttons').removeClass('d-none');
+    }
 });
 	
 </script>

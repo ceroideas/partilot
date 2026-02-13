@@ -103,7 +103,7 @@
                 					<div class="col-4">
                 						
 	                    				@php $adminImg = data_get(session('selected_administration'), 'image'); @endphp
-	                    				<div class="photo-preview-3 logo-round" @if($adminImg) style="background-image: url('{{ asset('uploads/' . $adminImg) }}'); background-size: cover;" @endif>
+	                    				<div class="photo-preview-3 logo-round" @if($adminImg) style="background-image: url('{{ asset('images/' . $adminImg) }}'); background-size: cover;" @endif>
 	                    					@if(!$adminImg)
 	                    						<i class="ri-account-circle-fill"></i>
 	                    					@endif
@@ -160,11 +160,11 @@
 	                    			@endif
 
 	                    			<div class="form-group mt-2 mb-3">
-
-	                    				<div class="photo-preview">
-	                    					
-	                    					<i class="ri-image-add-line"></i>
-
+	                    				<input type="hidden" name="remove_image" id="remove_image_input" value="0">
+	                    				<div class="photo-preview" id="entity-image-preview" @if(session('entity_information.image')) style="background-image: url('{{ asset('uploads/' . session('entity_information.image')) }}'); background-size: cover;" @endif>
+	                    					@if(!session('entity_information.image'))
+	                    						<i class="ri-image-add-line"></i>
+	                    					@endif
 	                    				</div>
 
 	                    				<div>
@@ -177,7 +177,7 @@
 	                    					<label style="border-radius: 30px; width: 150px; background-color: #333;" class="btn btn-md btn-dark mt-2"><small>Subir Imágen</small>
 	                    						<input type="file" id="imagenInput" name="image" style="display: none;" accept="image/*">
 	                    					</label>
-	                    					<label style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2"><small>Eliminar Imágen</small></label>
+	                    					<button type="button" id="btn-remove-entity-image" style="border-radius: 30px; width: 150px; background-color: transparent; color: #333;" class="btn btn-md btn-dark mt-2"><small>Eliminar Imágen</small></button>
 
 	                    				</div>
 	                    				
@@ -199,7 +199,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="name" placeholder="Nombre Entidad" value="{{ old('name') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="name" placeholder="Nombre Entidad" value="{{ old('name', session('entity_information.name')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('name')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -217,7 +217,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="province" placeholder="Provincia" value="{{ old('province') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="province" placeholder="Provincia" value="{{ old('province', session('entity_information.province')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('province')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -235,7 +235,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="city" placeholder="Localidad" value="{{ old('city') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="city" placeholder="Localidad" value="{{ old('city', session('entity_information.city')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('city')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -253,7 +253,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/7.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="postal_code" placeholder="C.P." value="{{ old('postal_code') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="postal_code" placeholder="C.P." value="{{ old('postal_code', session('entity_information.postal_code')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('postal_code')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -271,7 +271,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/8.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="address" placeholder="Dirección" value="{{ old('address') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="address" placeholder="Dirección" value="{{ old('address', session('entity_information.address')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('address')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -289,7 +289,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="nif_cif" id="entity-nif-cif" placeholder="B26262626" value="{{ old('nif_cif') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="nif_cif" id="entity-nif-cif" placeholder="B26262626" value="{{ old('nif_cif', session('entity_information.nif_cif')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('nif_cif')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -307,7 +307,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="phone" placeholder="940 200 200" value="{{ old('phone') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="phone" placeholder="940 200 200" value="{{ old('phone', session('entity_information.phone')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('phone')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -325,7 +325,7 @@
 					                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="email" id="entity-email" name="email" placeholder="ejemplo@cuentaemail.com" value="{{ old('email') }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="email" id="entity-email" name="email" placeholder="ejemplo@cuentaemail.com" value="{{ old('email', session('entity_information.email')) }}" required style="border-radius: 0 30px 30px 0;">
 					                                    @error('email')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -351,7 +351,7 @@
 
 				                    			<div class="input-group input-group-merge group-form">
 
-				                                    <textarea class="form-control" placeholder="Añade tu comentario" name="comments" id="" rows="6">{{ old('comments') }}</textarea>
+				                                    <textarea class="form-control" placeholder="Añade tu comentario" name="comments" id="" rows="6">{{ old('comments', session('entity_information.comments')) }}</textarea>
 				                                    @error('comments')
 				                                        <div class="text-danger small mt-1">{{ $message }}</div>
 				                                    @enderror
@@ -391,46 +391,52 @@
 
 	document.getElementById('imagenInput').addEventListener('change', function(event) {
 	    const archivo = event.target.files[0];
-
+	    document.getElementById('remove_image_input').value = '0';
+	    const preview = document.getElementById('entity-image-preview');
 	    if (archivo) {
 	        const lector = new FileReader();
 	        lector.onload = function(e) {
-	        	$('.photo-preview').css('background-image', 'url('+e.target.result+')');
-	        	// Guardar en localStorage para persistencia
-	        	localStorage.setItem('image_entity_create', e.target.result);
-	        }
+	            preview.style.backgroundImage = 'url(' + e.target.result + ')';
+	            preview.style.backgroundSize = 'cover';
+	            preview.querySelector('i') && preview.querySelector('i').remove();
+	        };
 	        lector.readAsDataURL(archivo);
 	    } else {
-	        $('.photo-preview').css('background-image', 'none');
-	        localStorage.removeItem('image_entity_create');
+	        preview.style.backgroundImage = 'none';
+	        preview.style.backgroundSize = '';
+	        if (!preview.querySelector('i')) {
+	            const i = document.createElement('i');
+	            i.className = 'ri-image-add-line';
+	            preview.appendChild(i);
+	        }
 	    }
 	});
 
-	// Restaurar imagen si hay error de validación
-	document.addEventListener('DOMContentLoaded', function() {
-	    const savedImage = localStorage.getItem('image_entity_create');
-	    if (savedImage) {
-	        $('.photo-preview').css('background-image', 'url('+savedImage+')');
+	document.getElementById('btn-remove-entity-image').addEventListener('click', function() {
+	    document.getElementById('remove_image_input').value = '1';
+	    const preview = document.getElementById('entity-image-preview');
+	    preview.style.backgroundImage = 'none';
+	    preview.style.backgroundSize = '';
+	    if (!preview.querySelector('i')) {
+	        const i = document.createElement('i');
+	        i.className = 'ri-image-add-line';
+	        preview.appendChild(i);
 	    }
+	    document.getElementById('imagenInput').value = '';
+	});
 
-	    // Inicializar validación de documento español
+	document.addEventListener('DOMContentLoaded', function() {
+	    // Al cargar sin imagen en sesión, no mostrar imagen previa de otros flujos
+	    localStorage.removeItem('image_entity_create');
+
 	    initSpanishDocumentValidation('entity-nif-cif', {
 	        forEntity: true,
 	        showMessage: true
 	    });
-	    
-	    // Inicializar validación de email
 	    initEmailValidation('entity-email', {
 	        context: 'entity',
 	        showMessage: true
 	    });
-	});
-
-	// Limpiar localStorage al enviar exitosamente
-	$('form[action*="store-information"]').on('submit', function() {
-	    setTimeout(() => {
-	        localStorage.removeItem('image_entity_create');
-	    }, 1000);
 	});
 
 </script>

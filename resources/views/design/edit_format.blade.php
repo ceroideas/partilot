@@ -79,9 +79,8 @@
     }
     .elements.selected {
         border: 2px solid #007bff !important;
-        outline: 2px dashed rgba(0, 123, 255, 0.6) !important;
-        outline-offset: 2px;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        outline: 2px solid rgba(0, 123, 255, 0.35);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
     }
     .elements.element-critical {
         z-index: 10000 !important;
@@ -122,13 +121,17 @@
         flex-direction: column;
         align-items: center;
         width: 100%;
+        transition: transform 0.2s ease;
     }
     /* Contenedor con scroll cuando el zoom > 100% */
     .design-zoom-scroll {
         overflow: auto;
-        max-height: 70vh;
+        max-height: calc(100vh - 300px);
         width: 100%;
         margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
     }
     
     /* Mejorar visualización de imágenes de fondo */
@@ -355,58 +358,52 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-card fade bs d-none" id="step-2" style="min-height: 658px;">
-                                    <h4 class="mb-0 mt-1">Diseñar Participación</h4>
-                                    <small><i>Edita el diseño de la participación</i></small>
+                            <div class="form-card fade bs d-none" id="step-2" style="min-height: 658px;">
+                                <h4 class="mb-0 mt-1">Diseñar Participación</h4>
+                                <small><i>Edita el diseño de la participación</i></small>
+                                <br>
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
                                     <br>
-                                    <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
-                                    <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
-                                        <br>
-                                        <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
-                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="2"><i class="ri-zoom-out-line"></i></button>
-                                            <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="2"><i class="ri-zoom-in-line"></i></button>
-                                            <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
-                                            <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
-                                            <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
-                                            <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
-                                            <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
-                                            <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
-                                                <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
-                                            </label>
-                                            <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
-                                            <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
-                                            <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
-                                            <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
-                                            <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
-                                            <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
-                                            <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
-                                        </div>
-                                        <br>
-                                        {!! $format->participation_html ?? '' !!}
-                                    </div>
-                                    </div>
-                                    </div>
-                                        {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
-                                            <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
-                                            </div>
-                                        </div> --}}
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="2"><i class="ri-zoom-out-line"></i></button>
+                                        <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="2"><i class="ri-zoom-in-line"></i></button>
+                                        <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
+                                        <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
+                                        <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
+                                        <button title="Fondo de la participación" class="btn btn-sm btn-dark" id="open-bg-modal" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-palette-line"></i></button>
+                                        <button title="Mostrar/ocultar guías" class="btn btn-sm btn-dark toggle-guide" data-id="2" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-ruler-line"></i></button>
+                                        <label title="Color de guías" class="btn btn-sm btn-dark color-guide" style="position: relative; padding-left: 12px; padding-right: 12px;" data-id="2" type="button">
+                                            <i class="ri-palette-line"></i><input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
+                                        </label>
+                                        <button class="btn btn-sm btn-warning undo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Deshacer"><i class="ri-arrow-go-back-line"></i></button>
+                                        <button class="btn btn-sm btn-success redo-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Rehacer"><i class="ri-arrow-go-forward-line"></i></button>
+                                        <button class="btn btn-sm btn-danger delete-element-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Eliminar elemento"><i class="ri-delete-bin-6-line"></i></button>
+                                        <button class="btn btn-sm btn-dark up-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Subir capa"><i class="ri-arrow-up-line"></i></button>
+                                        <button class="btn btn-sm btn-dark down-layer" disabled style="padding-left: 12px; padding-right: 12px;" title="Bajar capa"><i class="ri-arrow-down-line"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn bold-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Negrita"><i class="ri-bold"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn italic-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Cursiva"><i class="ri-italic"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn underline-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Subrayado"><i class="ri-underline"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn strike-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Tachado"><i class="ri-strikethrough"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-left-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear izquierda"><i class="ri-align-left"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-center-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Centrar"><i class="ri-align-center"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
+                                        <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
                                     </div>
                                 </div>
-                                <div class="form-card fade bs d-none" id="step-3" style="min-height: 658px;">
-                                    <h4 class="mb-0 mt-1">Diseñar Portada</h4>
-                                    <small><i>Edita el diseño de la portada</i></small>
+                                <div class="design-zoom-scroll">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
+                                        {!! $format->participation_html ?? '' !!}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-card fade bs d-none" id="step-3" style="min-height: 658px;">
+                                <h4 class="mb-0 mt-1">Diseñar Portada</h4>
+                                <small><i>Edita el diseño de la portada</i></small>
+                                <br>
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
                                     <br>
-                                    <div class="design-zoom-container" id="design-zoom-wrapper-3" style="transform-origin: top center;">
-                                    <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
-                                        <br>
-                                        <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                             <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="3"><i class="ri-zoom-out-line"></i></button>
                                             <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="3"><i class="ri-zoom-in-line"></i></button>
                                             <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -433,24 +430,18 @@
                                             <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
                                             <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
                                             <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
-                                        </div>
-                                        <br>
-                                        {!! $format->cover_html ?? '' !!}
-                                    </div>
-                                    </div>
-                                    </div>
-                                        {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
-                                            <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
-                                            </div>
-                                        </div> --}}
                                     </div>
                                 </div>
+                                <div class="design-zoom-scroll">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-3" style="transform-origin: top center;">
+                                        {!! $format->cover_html ?? '' !!}
+                                    </div>
+                                </div>
+                            </div>
                                 <div class="form-card fade bs d-none" id="step-4" style="min-height: 658px;">
                                     <h4 class="mb-0 mt-1">Diseñar Trasera</h4>
                                     <small><i>Edita el diseño de la trasera</i></small>
                                     <br>
-                                    <div class="design-zoom-scroll">
-                                    <div class="design-zoom-container" id="design-zoom-wrapper-4" style="transform-origin: top center;">
                                     <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
                                         <br>
                                         <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
@@ -480,18 +471,14 @@
                                             <button class="btn btn-sm btn-dark text-style-btn align-right-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Alinear derecha"><i class="ri-align-right"></i></button>
                                             <button class="btn btn-sm btn-dark text-style-btn font-size-up-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Aumentar tamaño"><i class="ri-font-size"></i>+</button>
                                             <button class="btn btn-sm btn-dark text-style-btn font-size-down-btn" disabled style="padding-left: 12px; padding-right: 12px;" title="Disminuir tamaño"><i class="ri-font-size"></i>-</button>
-                                        </div>
-                                        <br>
-                                        {!! $format->back_html ?? '' !!}
-                                    </div>
-                                    </div>
-                                    </div>
-                                        {{-- <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
-                                            <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;">
-                                            </div>
-                                        </div> --}}
                                     </div>
                                 </div>
+                                <div class="design-zoom-scroll">
+                                    <div class="design-zoom-container" id="design-zoom-wrapper-4" style="transform-origin: top center;">
+                                        {!! $format->back_html ?? '' !!}
+                                    </div>
+                                </div>
+                            </div>
                                 <div class="form-card fade bs d-none" id="step-5" style="min-height: 658px;">
                                     <h4 class="mb-0 mt-1">Configurar salida</h4>
                                     <small><i>Configura el formato de salida de las participaciones</i></small>
@@ -576,18 +563,19 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="row mt-4">
-                            <div class="col-6 text-start">
-                                <a href="javascript:;" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 prev-step">
-                                    <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
-                            </div>
-                            <div class="col-6 text-end">
-                                <button id="step" type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 next-step">Siguiente
-                                    <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
-                                <button id="save-step" type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 d-none">Guardar
-                                    <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+
+                                <div class="row">
+                                  <div class="col-6 text-start">
+                                      <a href="javascript:;" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 prev-step">
+                                          <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+                                  </div>
+                                  <div class="col-6 text-end">
+                                      <button id="step" type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 next-step">Siguiente
+                                          <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+                                      <button id="save-step" type="button" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 d-none">Guardar
+                                          <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+                                  </div>
+                              </div>
                             </div>
                         </div>
                     </div> <!-- end card body-->
@@ -947,6 +935,7 @@ var designZoom = 1;
 var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5];
 function applyDesignZoom() {
   var s = designZoom;
+  // Aplicar zoom solo al contenedor del diseño, no a las herramientas
   $('.design-zoom-container').css('transform', 'scale(' + s + ')');
   $('.design-zoom-label').text(Math.round(s * 100) + '%');
   try { localStorage.setItem('designZoom', s); } catch (e) {}
@@ -1321,7 +1310,7 @@ function configMargins()
       console.log(ticketW,ticketH);
       if (ticketW && ticketH) {
           $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
-          $('.format-box-btn').css({width: ticketW+'mm'});
+          $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
       }
   }
 
@@ -1521,6 +1510,39 @@ $(document).ready(function() {
                     }, 100);
                 }
             }, 100);
+
+            if (step == 2) {
+                let format = $('#format').val();
+                let w = 200;
+                let h = 92;
+                let orientation = $('#orientation').val();
+                if (format != 'custom') {
+                    if (format == 'a3-h-3x2') {
+                        w = 200;
+                        h = 92;
+                    }
+                    else if (format == 'a3-h-4x2') {
+                        w = 200;
+                        h = 68.88;
+                    }
+                    else if (format == 'a4-v-3x1') {
+                        w = 190;
+                        h = 92;
+                    }
+                    else if (format == 'a4-v-4x1') {
+                        w = 190;
+                        h = 69.38;
+                    }
+
+                    $('[id*="containment-wrapper"]').parent().css({
+                        width: w+'mm',
+                        height: h+'mm'
+                    });
+                    $('.format-box-btn').css('width', '250mm');
+                }
+                let matrix = $('#matrix-box').val() ?? 40;
+                $('#containment-wrapper4').css('padding-right', matrix+'mm');
+            }
         }else{
             $('#edit-format-form').submit();
         }

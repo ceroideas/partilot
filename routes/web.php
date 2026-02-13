@@ -107,6 +107,7 @@ Route::group(['prefix' => 'entities'], function() {
     Route::post('/store-information', [EntityController::class, 'store_information']);
     Route::get('/add/manager', [EntityController::class, 'create_manager'])->name('entities.add-manager');
     Route::post('/store-manager', [EntityController::class, 'store_manager']);
+    Route::post('/save-manager-draft', [EntityController::class, 'save_manager_draft'])->name('entities.save-manager-draft');
 
     // Nuevas rutas para invitación de gestores
     Route::post('/check-manager-email', [EntityController::class, 'check_manager_email'])->name('entities.check-manager-email');

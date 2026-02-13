@@ -15,6 +15,7 @@ use App\Services\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
 class SellerController extends Controller
@@ -1135,6 +1136,7 @@ class SellerController extends Controller
             }
 
             $assignedCount = 0;
+            $assignedParticipations = []; // Para agrupar por set
 
             foreach ($participations as $participationData) {
                 // Verificar que la participación esté disponible o ya asignada al vendedor actual
@@ -1162,10 +1164,45 @@ class SellerController extends Controller
                     ]);
 
                     $assignedCount++;
+                    // Guardar para agrupar después
+                    $assignedParticipations[] = $participation;
                 }
             }
 
             DB::commit();
+
+            // Enviar email de notificación si se asignaron participaciones
+            if ($assignedCount > 0 && $seller->email) {
+                try {
+                    // Agrupar participaciones por set
+                    $assignmentsBySet = [];
+                    foreach ($assignedParticipations as $participation) {
+                        $setId = $participation->set_id;
+                        
+                        if (!isset($assignmentsBySet[$setId])) {
+                            // Usar el set ya cargado desde la participación
+                            $set = $participation->set;
+                            
+                            $assignmentsBySet[$setId] = [
+                                'set' => $set,
+                                'lottery' => $set->reserve->lottery ?? null,
+                                'count' => 0
+                            ];
+                        }
+                        
+                        $assignmentsBySet[$setId]['count']++;
+                    }
+
+                    // Enviar email con las asignaciones agrupadas
+                    // \Mail::to($seller->email)->send(
+                    \Mail::to('jorgesolano92@gmail.com')->send(
+                        new \App\Mail\ParticipationAssignmentMail($seller, $assignmentsBySet)
+                    );
+                } catch (\Exception $e) {
+                    // Log el error pero no fallar la asignación
+                    \Log::error('Error enviando email de asignación de participaciones: ' . $e->getMessage());
+                }
+            }
 
             return response()->json([
                 'success' => true,
