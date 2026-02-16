@@ -267,12 +267,12 @@ class DesignController extends Controller
         
         // Configurar opciones de DomPDF para mejor rendimiento
         $pdf = Pdf::loadHTML($html);
-        $pdf->getDomPDF()->setOptions([
-            'defaultFont' => 'Arial',
-            'isRemoteEnabled' => true,
-            'isHtml5ParserEnabled' => true,
-            'isPhpEnabled' => true,
-        ]);
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->set('defaultFont', 'Arial');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
         
         return $pdf->download('diseño.pdf');
     }
@@ -295,11 +295,121 @@ class DesignController extends Controller
     }
 
     // Ajusta el width y height de los elementos con width, height y padding para DomPDF, sin importar el orden en el style
+    /**
+     * Preservar estilos inline correctamente para DomPDF
+     * Convierte todos los formatos de color a hexadecimal para mejor compatibilidad
+     */
+    private function preserveInlineStyles($html) {
+        // Primero convertir HSL a hex (DomPDF tiene problemas con HSL)
+        $html = preg_replace_callback(
+            '/color:\s*hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/i',
+            function($matches) {
+                $h = $matches[1] / 360;
+                $s = $matches[2] / 100;
+                $l = $matches[3] / 100;
+                
+                if ($s == 0) {
+                    $r = $g = $b = round($l * 255);
+                } else {
+                    $q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
+                    $p = 2 * $l - $q;
+                    $r = round($this->hue2rgb($p, $q, $h + 1/3) * 255);
+                    $g = round($this->hue2rgb($p, $q, $h) * 255);
+                    $b = round($this->hue2rgb($p, $q, $h - 1/3) * 255);
+                }
+                
+                return 'color: #' . str_pad(dechex($r), 2, '0', STR_PAD_LEFT) . 
+                              str_pad(dechex($g), 2, '0', STR_PAD_LEFT) . 
+                              str_pad(dechex($b), 2, '0', STR_PAD_LEFT);
+            },
+            $html
+        );
+        
+        // Convertir colores nombrados a hex
+        $colorMap = [
+            'yellow' => '#ffff00',
+            'black' => '#000000',
+            'white' => '#ffffff',
+            'red' => '#ff0000',
+            'green' => '#008000',
+            'blue' => '#0000ff',
+            'orange' => '#ffa500',
+        ];
+        
+        foreach ($colorMap as $name => $hex) {
+            // Reemplazar en estilos inline: color: yellow -> color: #ffff00
+            // Usar lookahead negativo para no reemplazar dentro de palabras
+            $html = preg_replace(
+                '/(style="[^"]*color:\s*)' . preg_quote($name, '/') . '(?![a-z0-9#-])/i',
+                '$1' . $hex,
+                $html
+            );
+            // También en background-color
+            $html = preg_replace(
+                '/(style="[^"]*background-color:\s*)' . preg_quote($name, '/') . '(?![a-z0-9#-])/i',
+                '$1' . $hex,
+                $html
+            );
+        }
+        
+        // Convertir HSL a hex (DomPDF tiene problemas con HSL)
+        $html = preg_replace_callback(
+            '/color:\s*hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/i',
+            function($matches) {
+                $h = $matches[1] / 360;
+                $s = $matches[2] / 100;
+                $l = $matches[3] / 100;
+                
+                if ($s == 0) {
+                    $r = $g = $b = round($l * 255);
+                } else {
+                    $q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
+                    $p = 2 * $l - $q;
+                    $r = round($this->hue2rgb($p, $q, $h + 1/3) * 255);
+                    $g = round($this->hue2rgb($p, $q, $h) * 255);
+                    $b = round($this->hue2rgb($p, $q, $h - 1/3) * 255);
+                }
+                
+                return 'color: #' . str_pad(dechex($r), 2, '0', STR_PAD_LEFT) . 
+                              str_pad(dechex($g), 2, '0', STR_PAD_LEFT) . 
+                              str_pad(dechex($b), 2, '0', STR_PAD_LEFT);
+            },
+            $html
+        );
+        
+        // Convertir RGB a hex
+        $html = preg_replace_callback(
+            '/color:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\)/i',
+            function($matches) {
+                $r = str_pad(dechex($matches[1]), 2, '0', STR_PAD_LEFT);
+                $g = str_pad(dechex($matches[2]), 2, '0', STR_PAD_LEFT);
+                $b = str_pad(dechex($matches[3]), 2, '0', STR_PAD_LEFT);
+                return 'color: #' . $r . $g . $b;
+            },
+            $html
+        );
+        
+        return $html;
+    }
+    
+    /**
+     * Helper para convertir HSL a RGB
+     */
+    private function hue2rgb($p, $q, $t) {
+        if ($t < 0) $t += 1;
+        if ($t > 1) $t -= 1;
+        if ($t < 1/6) return $p + ($q - $p) * 6 * $t;
+        if ($t < 1/2) return $q;
+        if ($t < 2/3) return $p + ($q - $p) * (2/3 - $t) * 6;
+        return $p;
+    }
+
     private function adjustWidthsForDomPdf($html) {
         return preg_replace_callback(
             '/style="([^"]*)"/i',
             function ($matches) {
                 $style = $matches[1];
+                $originalStyle = $style; // Preservar el estilo original
 
                 // Buscar width, height y padding (en cualquier orden)
                 if (
@@ -313,10 +423,12 @@ class DesignController extends Controller
                     $newWidth = $width - ($padding * 2);
                     $newHeight = $height - ($padding * 2);
 
-                    // Reemplazar los valores en el style
+                    // Reemplazar SOLO width y height, preservando TODOS los demás estilos (incluidos colores)
                     $style = preg_replace('/width:\s*\d+px;?/i', "width: {$newWidth}px;", $style);
                     $style = preg_replace('/height:\s*\d+px;?/i', "height: {$newHeight}px;", $style);
                 }
+                
+                // Asegurar que el estilo se devuelva completo sin perder nada
                 return 'style="' . $style . '"';
             },
             $html
@@ -434,6 +546,70 @@ class DesignController extends Controller
     }
 
     /**
+     * Exportar portada y trasera en un solo PDF
+     */
+    public function exportCoverAndBackPdf($id)
+    {
+        // Aumentar límites para PDFs grandes
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '1024M');
+        
+        $design = DesignFormat::findOrFail($id);
+        
+        // Verificar que ambas existan
+        if (empty($design->cover_html) || empty($design->back_html)) {
+            abort(404, 'Portada o trasera no encontradas');
+        }
+        
+        // Procesar HTML de portada (sin caché para aplicar cambios inmediatamente)
+        $coverHtml = $design->cover_html;
+        $imageService = new ImageOptimizationService();
+        $coverHtml = $imageService->optimizeHtmlImages($coverHtml);
+        $publicPath = public_path();
+        $coverHtml = str_replace(url('/'), $publicPath, $coverHtml);
+        $coverHtml = $this->ensureLocalPathsForPdf($coverHtml, $publicPath);
+        // Asegurar que los estilos inline se preserven correctamente
+        $coverHtml = $this->preserveInlineStyles($coverHtml);
+        $coverHtml = $this->adjustWidthsForDomPdf($coverHtml);
+        
+        // Procesar HTML de trasera (sin caché para aplicar cambios inmediatamente)
+        $backHtml = $design->back_html;
+        $backHtml = $imageService->optimizeHtmlImages($backHtml);
+        $backHtml = str_replace(url('/'), $publicPath, $backHtml);
+        $backHtml = $this->ensureLocalPathsForPdf($backHtml, $publicPath);
+        // Asegurar que los estilos inline se preserven correctamente
+        $backHtml = $this->preserveInlineStyles($backHtml);
+        $backHtml = $this->adjustWidthsForDomPdf($backHtml);
+        
+        // Determinar tamaño y orientación
+        $page = $design->page ?? 'a3';
+        $orientation = $design->orientation ?? 'h';
+        $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
+        
+        // Crear PDF con ambas páginas
+        $pdf = Pdf::loadView('design.pdf_cover_back', [
+            'coverHtml' => $coverHtml,
+            'backHtml' => $backHtml
+        ]);
+        $pdf->setPaper($page, $pdfOrientation);
+        
+        // Configurar opciones de DomPDF
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->set('defaultFont', 'Arial');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $options->set('enable_remote', true);
+        $options->set('enable_html5_parser', true);
+        $options->set('enable_php', true);
+        $options->set('enableCssFloat', true);
+        $options->set('enableFontSubsetting', false);
+        
+        return $pdf->download('portada-trasera.pdf');
+    }
+
+    /**
      * Método genérico optimizado para generar PDFs
      */
     private function generateOptimizedPdf($id, $htmlField, $filename)
@@ -444,20 +620,19 @@ class DesignController extends Controller
         
         $design = DesignFormat::findOrFail($id);
         
-        // Cache del HTML procesado con optimización de imágenes
-        $cacheKey = $htmlField . '_' . $id;
-        $html = cache()->remember($cacheKey, 3600, function() use ($design, $htmlField) {
-            $html = $design->$htmlField;
-            
-            // Usar servicio de optimización de imágenes
-            $imageService = new ImageOptimizationService();
-            $html = $imageService->optimizeHtmlImages($html);
-            
-            $publicPath = public_path();
-            $html = str_replace(url('/'), $publicPath, $html);
-            $html = $this->ensureLocalPathsForPdf($html, $publicPath);
-            return $this->adjustWidthsForDomPdf($html);
-        });
+        // Procesar HTML sin caché para aplicar cambios inmediatamente
+        $html = $design->$htmlField;
+        
+        // Usar servicio de optimización de imágenes
+        $imageService = new ImageOptimizationService();
+        $html = $imageService->optimizeHtmlImages($html);
+        
+        $publicPath = public_path();
+        $html = str_replace(url('/'), $publicPath, $html);
+        $html = $this->ensureLocalPathsForPdf($html, $publicPath);
+        // Asegurar que los estilos inline se preserven correctamente
+        $html = $this->preserveInlineStyles($html);
+        $html = $this->adjustWidthsForDomPdf($html);
 
         // Determinar tamaño y orientación
         $page = $design->page ?? 'a3';
@@ -477,15 +652,17 @@ class DesignController extends Controller
         $pdf->setPaper($page, $pdfOrientation);
         
         // Configurar opciones de DomPDF para mejor rendimiento
-        $pdf->getDomPDF()->setOptions([
-            'defaultFont' => 'Arial',
-            'isRemoteEnabled' => true,
-            'isHtml5ParserEnabled' => true,
-            'isPhpEnabled' => true,
-            'enable_remote' => true,
-            'enable_html5_parser' => true,
-            'enable_php' => true,
-        ]);
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->set('defaultFont', 'Arial');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $options->set('enable_remote', true);
+        $options->set('enable_html5_parser', true);
+        $options->set('enable_php', true);
+        $options->set('enableCssFloat', true);
+        $options->set('enableFontSubsetting', false);
         
         return $pdf->download($filename);
     }
@@ -557,11 +734,21 @@ class DesignController extends Controller
                 if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
                 if (isset($data['output'])) $format->output = $data['output'];
                 $format->save();
+                
+                // Si viene del paso 5 (configurar salida), redirigir al index
+                if (isset($data['from_step_5']) && $data['from_step_5'] === true) {
+                    return response()->json([
+                        'success' => true, 
+                        'redirect' => route('design.index')
+                    ]);
+                }
+                
                 return response()->json(['success' => true, 'redirect' => route('design.editFormat', $id)]);
             }
         // }
         // return response()->json(['success' => false], 200);
     }
+
 
     /**
      * Generar páginas optimizado para evitar bucles anidados costosos
@@ -979,5 +1166,40 @@ class DesignController extends Controller
     {
         $designs = DesignFormat::with(['entity', 'lottery', 'set'])->orderByDesc('id')->get();
         return view('design.index', compact('designs'));
+    }
+
+    /**
+     * Eliminar un formato de diseño.
+     */
+    public function destroy($id)
+    {
+        try {
+            $design = DesignFormat::with(['participations', 'set'])->findOrFail($id);
+            
+            // Verificar permisos: el usuario debe tener acceso a la entidad del diseño
+            if (!auth()->user()->canAccessEntity($design->entity_id)) {
+                abort(403, 'No tienes permisos para eliminar este diseño.');
+            }
+            
+            // Verificar si hay participaciones vendidas
+            $soldParticipations = $design->participations()->where('status', 'vendida')->count();
+            
+            if ($soldParticipations > 0) {
+                return redirect()->route('design.index')
+                    ->with('error', 'No se puede eliminar el diseño porque tiene ' . $soldParticipations . ' participación(es) vendida(s).');
+            }
+            
+            // El modelo DesignFormat tiene un evento boot que elimina automáticamente las participaciones
+            // cuando se elimina el diseño, así que solo necesitamos eliminar el diseño
+            $design->delete();
+            
+            return redirect()->route('design.index')
+                ->with('success', 'El trabajo de diseño ha sido eliminado correctamente. Las participaciones asociadas también han sido eliminadas.');
+                
+        } catch (\Exception $e) {
+            \Log::error('Error al eliminar diseño: ' . $e->getMessage());
+            return redirect()->route('design.index')
+                ->with('error', 'Error al eliminar el diseño: ' . $e->getMessage());
+        }
     }
 } 

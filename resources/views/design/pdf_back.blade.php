@@ -90,6 +90,12 @@
         .optimized-element {
             contain: layout style paint;
         }
+
+        /* Ocultar botones en el PDF */
+        button, .btn, input[type="button"], input[type="submit"], a.btn {
+            display: none !important;
+            visibility: hidden !important;
+        }
     </style>
 </head>
 <body>

@@ -465,7 +465,9 @@
             										<h4 class="mb-0 mt-1">
 					                    				Permisos Gestor
 					                    			</h4>
-					                    			<small><i>Este gestor es el principal y tiene todos los permisos</i></small>
+					                    			<div class="alert alert-info mb-3">
+					                    				<strong>Gestor principal.</strong> Este gestor es el principal y tiene todos los permisos activados. No se pueden restringir permisos al gestor principal. Una vez creada la entidad, podrás editar los datos del gestor desde la ficha de la entidad, pero para cambiar los permisos primero deberás asignar otro gestor como principal.
+					                    			</div>
 
 					                    			<br>
 

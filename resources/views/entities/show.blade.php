@@ -668,19 +668,19 @@
 							                                		<a href="#" class="btn btn-sm btn-danger delete-manager" data-manager-id="{{ $manager->id }}" title="Eliminar"><i class="ri-delete-bin-6-line"></i></a>
 							                                	@else
 							                                		@if($entity->managers->where('is_primary', false)->count() > 0)
-							                                			<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" onsubmit="return confirm('¿Asignar como gestor principal al seleccionado? El actual principal pasará a ser gestor secundario.');">
+							                                			<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" id="change-primary-form-{{ $manager->id }}" onsubmit="return validatePrimaryChange(event, {{ $manager->id }});">
 							                                				@csrf
 							                                				<input type="hidden" name="entity_id" value="{{ $entity->id }}">
-							                                				<select name="new_primary_manager_id" class="form-select form-select-sm d-inline-block" style="width: auto;" required>
-							                                					<option value="">-- Nuevo principal --</option>
+							                                				<select name="new_primary_manager_id" class="form-select form-select-sm d-inline-block primary-manager-select" style="width: auto;" required>
+							                                					<option value="">-- Seleccione nuevo principal --</option>
 							                                					@foreach($entity->managers->where('is_primary', false) as $other)
 							                                						<option value="{{ $other->id }}">{{ $other->user->name ?? '' }} {{ $other->user->last_name ?? '' }}</option>
 							                                					@endforeach
 							                                				</select>
-							                                				<button type="submit" class="btn btn-sm btn-outline-secondary">Cambiar</button>
+							                                				<button type="submit" class="btn btn-sm btn-outline-secondary" id="change-primary-btn-{{ $manager->id }}" disabled>Cambiar</button>
 							                                			</form>
 							                                		@else
-							                                			<span class="text-muted">-</span>
+							                                			<span class="text-muted" title="No hay otros gestores disponibles para asignar como principal">-</span>
 							                                		@endif
 							                                	@endif
 							                                </td>
@@ -1311,6 +1311,95 @@ document.getElementById('entity-toggle-status') && document.getElementById('enti
 if (typeof initSpanishDocumentValidation === 'function') {
     initSpanishDocumentValidation('entity-register-manager-nif-cif', { showMessage: true });
 }
+
+// Validar cambio de gestor principal
+function validatePrimaryChange(event, managerId) {
+    const form = document.getElementById('change-primary-form-' + managerId);
+    const select = form.querySelector('.primary-manager-select');
+    const selectedValue = select.value;
+    
+    if (!selectedValue || selectedValue === '') {
+        event.preventDefault();
+        alert('Debe seleccionar un gestor para asignar como principal. No puede quedar la entidad sin gestor principal.');
+        return false;
+    }
+    
+    const selectedText = select.options[select.selectedIndex].text;
+    const confirmMessage = '¿Está seguro de cambiar el gestor principal?\n\n' +
+                          'El gestor actual pasará a ser gestor secundario y podrá tener permisos restringidos.\n' +
+                          'El nuevo gestor principal será: ' + selectedText + '\n\n' +
+                          'Esta acción no se puede deshacer automáticamente.';
+    
+    if (!confirm(confirmMessage)) {
+        event.preventDefault();
+        return false;
+    }
+    
+    return true;
+}
+
+// Habilitar/deshabilitar botón de cambiar según selección
+document.querySelectorAll('.primary-manager-select').forEach(function(select) {
+    const managerId = select.closest('form').id.replace('change-primary-form-', '');
+    const btn = document.getElementById('change-primary-btn-' + managerId);
+    
+    select.addEventListener('change', function() {
+        if (this.value && this.value !== '') {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    });
+});
+
+// Eliminar gestor
+$(document).on('click', '.delete-manager', function(e) {
+    e.preventDefault();
+    
+    const managerId = $(this).data('manager-id');
+    const entityId = {{ $entity->id }};
+    const managerRow = $(this).closest('tr');
+    const managerName = managerRow.find('td').eq(1).text().trim() || 'Gestor';
+    const isPrimary = managerRow.find('.badge').text().includes('Principal');
+    
+    let confirmMessage = '¿Está seguro de eliminar este gestor?\n\n';
+    confirmMessage += 'Gestor: ' + managerName + '\n\n';
+    
+    if (isPrimary) {
+        confirmMessage += '⚠️ ADVERTENCIA: Este gestor es el principal.\n';
+        confirmMessage += 'Si es el único gestor disponible, no se podrá eliminar.\n\n';
+    }
+    
+    confirmMessage += 'Esta acción eliminará la relación del gestor con la entidad, pero NO eliminará el usuario asociado.';
+    
+    if (!confirm(confirmMessage)) {
+        return false;
+    }
+    
+    // Construir URL usando la ruta de Laravel
+    const deleteUrl = '{{ url("entities/destroy/manager") }}/' + entityId + '/' + managerId;
+    
+    // Crear formulario para enviar DELETE
+    const form = $('<form>', {
+        'method': 'POST',
+        'action': deleteUrl
+    });
+    
+    form.append($('<input>', {
+        'type': 'hidden',
+        'name': '_token',
+        'value': '{{ csrf_token() }}'
+    }));
+    
+    form.append($('<input>', {
+        'type': 'hidden',
+        'name': '_method',
+        'value': 'DELETE'
+    }));
+    
+    $('body').append(form);
+    form.submit();
+});
 
 </script>
 

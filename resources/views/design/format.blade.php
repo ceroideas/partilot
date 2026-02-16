@@ -109,7 +109,8 @@
     /* Contenedor con scroll cuando el zoom > 100% */
     .design-zoom-scroll {
         overflow: auto;
-        max-height: calc(100vh - 300px);
+        max-height: calc(100vh - 200px);
+        min-height: 600px;
         width: 100%;
         margin: 0 auto;
         display: flex;
@@ -1060,7 +1061,7 @@ function hideDesignLoading() {
 $(document).ready(function() {
   // Zoom del diseño (pasos 2, 3, 4)
   var designZoom = 1;
-  var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5];
+  var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 3.5, 4];
   function applyDesignZoom() {
     var s = designZoom;
     // Aplicar zoom solo al contenedor del diseño, no a las herramientas

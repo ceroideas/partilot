@@ -112,9 +112,20 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
+                    			@if(session('error'))
+                    				<div class="alert alert-danger">
+                    					<i class="ri-error-warning-line"></i> {{ session('error') }}
+                    				</div>
+                    			@endif
                     			@if($manager->is_primary)
-	                    			<div class="alert alert-info">
-	                    				<strong>Gestor principal.</strong> Tiene todos los permisos y no se pueden restringir. Para quitar como principal, vaya a la ficha de la entidad y asigne otro gestor como principal.
+	                    			<div class="alert alert-warning">
+	                    				<strong><i class="ri-alert-line"></i> Gestor principal.</strong> Este gestor tiene todos los permisos activados y no se pueden restringir. 
+	                    				<br><br>
+	                    				Para cambiar los permisos de este gestor, primero debe asignar otro gestor como principal desde la ficha de la entidad. 
+	                    				<br><br>
+	                    				<a href="{{ route('entities.show', $entity->id) }}" class="btn btn-sm btn-outline-primary">
+	                    					<i class="ri-arrow-left-line"></i> Ir a ficha de entidad
+	                    				</a>
 	                    			</div>
 	                    			<div class="row">
 	                    				<div class="col-12">

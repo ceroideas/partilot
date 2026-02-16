@@ -63,8 +63,8 @@
                         
                             <tbody>
                             @foreach($designs as $design)
-                            <tr class="row-clickable" data-href="{{ url('design/view', $design->id) }}" style="cursor: pointer;">
-                                <td><a href="{{ url('design/view', $design->id) }}">#DS{{ str_pad($design->id,5,'0',STR_PAD_LEFT) }}</a></td>
+                            <tr class="row-clickable" data-href="{{ route('design.editFormat', $design->id) }}" style="cursor: pointer;">
+                                <td><a href="{{ route('design.editFormat', $design->id) }}">#DS{{ str_pad($design->id,5,'0',STR_PAD_LEFT) }}</a></td>
                                 <td>{{ $design->set ? $design->set->id : '-' }}</td>
                                 <td>{{ $design->set ? $design->set->set_name : '-' }}</td>
                                 <td>{{ $design->lottery ? $design->lottery->name : '-' }}</td>
@@ -81,10 +81,17 @@
                                 <td>{{ $design->entity ? $design->entity->city : '-' }}</td>
                                 <td><label class="badge bg-success">Pendiente</label></td>
                                 <td class="no-click" style="cursor: default;">
-                                    <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                    <a target="_blank" href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
+                                    <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light" title="Editar diseño"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                    @php
+                                        $hasCover = !empty($design->cover_html);
+                                        $hasBack = !empty($design->back_html);
+                                    @endphp
+                                    @if($hasCover && $hasBack)
+                                    <a target="_blank" href="{{ route('design.exportCoverAndBackPdf', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de portada y trasera"><i class="ri-file-pdf-line"></i></a>
+                                    @endif
+                                    <a target="_blank" href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
                                     {{-- <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a> --}}
-                                    <a class="btn btn-sm btn-danger"><i class="ri-delete-bin-6-line"></i></a>
+                                    <a href="#" class="btn btn-sm btn-danger delete-design" data-design-id="{{ $design->id }}" data-design-name="{{ $design->set ? $design->set->set_name : 'Diseño #' . $design->id }}" title="Eliminar diseño"><i class="ri-delete-bin-6-line"></i></a>
                                 </td>
                             </tr>
                             @endforeach
@@ -247,6 +254,46 @@
     $(this).css('background-color', '#f8f9fa');
   }).on('mouseleave', '#example2 tbody tr.row-clickable', function() {
     $(this).css('background-color', '');
+  });
+
+  // Eliminar diseño/trabajo
+  $(document).on('click', '.delete-design', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const designId = $(this).data('design-id');
+    const designName = $(this).data('design-name');
+    
+    const confirmMessage = '¿Está seguro de eliminar este trabajo de diseño?\n\n' +
+                          'Trabajo: ' + designName + '\n\n' +
+                          'Esta acción eliminará el diseño y todas las participaciones asociadas.\n' +
+                          'Si hay participaciones vendidas, no se podrá eliminar.\n\n' +
+                          'Esta acción no se puede deshacer.';
+    
+    if (!confirm(confirmMessage)) {
+      return false;
+    }
+    
+    // Crear formulario para enviar DELETE request
+    const form = $('<form>', {
+      'method': 'POST',
+      'action': '{{ url("design/format") }}/' + designId
+    });
+    
+    form.append($('<input>', {
+      'type': 'hidden',
+      'name': '_token',
+      'value': '{{ csrf_token() }}'
+    }));
+    
+    form.append($('<input>', {
+      'type': 'hidden',
+      'name': '_method',
+      'value': 'DELETE'
+    }));
+    
+    $('body').append(form);
+    form.submit();
   });
 
 </script>

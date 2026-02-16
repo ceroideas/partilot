@@ -126,7 +126,8 @@
     /* Contenedor con scroll cuando el zoom > 100% */
     .design-zoom-scroll {
         overflow: auto;
-        max-height: calc(100vh - 300px);
+        max-height: calc(100vh - 200px);
+        min-height: 600px;
         width: 100%;
         margin: 0 auto;
         display: flex;
@@ -615,7 +616,7 @@
         <div class="form-group mt-2 mb-3">
             <label class="label-control">Subir imagen</label>
             <div class="input-group input-group-merge group-form">
-                <input class="" id="imageInput" type="file">
+                <input class="" id="imageInput" type="file" accept="image/*">
             </div>
         </div>
       </div>
@@ -775,7 +776,19 @@ function changeImage(event) {
         event.preventDefault();
         event.stopPropagation();
     }
-    actualElement = $(this).closest('.elements.images');
+    const imageElement = $(this).closest('.elements.images');
+    if (!imageElement.length) {
+        return false;
+    }
+    // Guardar como objeto jQuery para mantener la referencia
+    actualElement = imageElement;
+    selectedElement = imageElement;
+    // Guardar también en el modal usando data() para que no se pierda si actualElement se limpia
+    $('#imagen-modal').data('imageElement', imageElement);
+    // Seleccionar visualmente el elemento
+    $('.elements').removeClass('selected');
+    imageElement.addClass('selected');
+    
     $('#imagen-modal').modal('show');
     return false;
 }
@@ -932,7 +945,7 @@ var resizeTimeout;
 
 // Zoom del diseño (pasos 2, 3, 4)
 var designZoom = 1;
-var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5];
+var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 3.5, 4];
 function applyDesignZoom() {
   var s = designZoom;
   // Aplicar zoom solo al contenedor del diseño, no a las herramientas
@@ -1007,6 +1020,58 @@ function uploadImage(file) {
   const formData = new FormData();
   formData.append('image', file);
   showDesignLoading('Subiendo imagen...');
+  
+  // Intentar obtener el elemento del modal primero (más confiable)
+  let elementToUpdate = $('#imagen-modal').data('imageElement');
+  
+  // Si no está en el modal, intentar usar actualElement
+  if (!elementToUpdate || !$(elementToUpdate).length) {
+    elementToUpdate = actualElement;
+  }
+  
+  // Si aún no está disponible, intentar usar selectedElement
+  if (!elementToUpdate || !$(elementToUpdate).length) {
+    elementToUpdate = selectedElement;
+  }
+  
+  // Si aún no está disponible, buscar el elemento seleccionado visualmente
+  if (!elementToUpdate || !$(elementToUpdate).length) {
+    const selectedImages = $('.elements.images.selected');
+    if (selectedImages.length) {
+      elementToUpdate = selectedImages.first();
+    }
+  }
+  
+  if (!elementToUpdate || !$(elementToUpdate).length) {
+    hideDesignLoading();
+    alert('Error: No se encontró el elemento de imagen para actualizar. Por favor, seleccione el elemento de imagen y vuelva a intentar.');
+    return;
+  }
+  
+  // Asegurarse de que sea un objeto jQuery válido
+  elementToUpdate = $(elementToUpdate);
+  
+  if (!elementToUpdate.length) {
+    hideDesignLoading();
+    alert('Error: El elemento de imagen no es válido.');
+    return;
+  }
+  
+  // Verificar que sea un elemento de imagen
+  if (!elementToUpdate.hasClass('images')) {
+    hideDesignLoading();
+    alert('Error: El elemento seleccionado no es un elemento de imagen.');
+    return;
+  }
+  
+  // Verificar que el elemento tenga un img dentro
+  const imgElement = elementToUpdate.find('img');
+  if (!imgElement.length) {
+    hideDesignLoading();
+    alert('Error: No se encontró el elemento img dentro del contenedor.');
+    return;
+  }
+  
   fetch('{{url('api/upload-image')}}', {
     method: 'POST',
     body: formData
@@ -1014,7 +1079,10 @@ function uploadImage(file) {
   .then(response => response.json())
   .then(data => {
     if (data.url) {
-      $(actualElement).find('img').attr('src', data.url);
+      imgElement.attr('src', data.url);
+      hideDesignLoading(); // Ocultar loader después de actualizar la imagen
+      // Limpiar el data del modal después de usar
+      $('#imagen-modal').removeData('imageElement');
       $('#imagen-modal').modal('hide');
       const input = document.getElementById('imageInput');
       if (input) input.value = null;
@@ -1024,10 +1092,15 @@ function uploadImage(file) {
       updateUndoRedoButtons();
       // Re-vincular eventos después de cambiar imagen
       reapplyElementEvents();
+    } else {
+      hideDesignLoading();
+      alert('Error: No se recibió la URL de la imagen del servidor.');
     }
   })
-  .catch(error => console.error('Error al subir la imagen:', error))
-  .finally(() => hideDesignLoading());
+  .catch(error => {
+    hideDesignLoading();
+    alert('Error al subir la imagen. Por favor, intente nuevamente.');
+  });
 }
 
 function showStep(newStep) {
@@ -1067,13 +1140,20 @@ function addEventsElement() {
       updateUndoRedoButtons();
     });
     
-    // Deseleccionar al hacer clic fuera
+    // Deseleccionar al hacer clic fuera (pero no si el modal está abierto)
     $('body').unbind('click.deselect');
     $('body').bind('click.deselect', function(e) {
+      // No deseleccionar si algún modal está abierto
+      if ($('#imagen-modal').hasClass('show') || $('#ckeditor-modal').hasClass('show') || $('#qr-modal').hasClass('show') || $('#position-modal').hasClass('show')) {
+        return;
+      }
       if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn').length) {
         $('.elements').removeClass('selected');
         selectedElement = null;
-        actualElement = null;
+        // Solo limpiar actualElement si no hay un elemento guardado en el modal
+        if (!$('#imagen-modal').data('imageElement')) {
+          actualElement = null;
+        }
         $('.up-layer, .down-layer, .text-style-btn, .delete-element-btn').prop('disabled', true);
       }
     });
@@ -1431,6 +1511,12 @@ function hideDesignLoading() {
 $('#edit-format-form').on('submit', function(e) {
   e.preventDefault();
   const data = collectDesignData();
+  
+  // Si viene del paso 5, agregar el flag
+  const isFromStep5 = $(this).data('from-step-5') === true;
+  if (isFromStep5) {
+    data.from_step_5 = true;
+  }
 
   showDesignLoading('Guardando diseño...');
   fetch($(this).attr('action'), {
@@ -1444,7 +1530,12 @@ $('#edit-format-form').on('submit', function(e) {
   .then(response => response.json())
   .then(result => {
     if(result.success) {
-      alert('Diseño guardado correctamente.');
+      if (isFromStep5 && result.redirect) {
+        // Redirigir a la vista de resumen
+        window.location.href = result.redirect;
+      } else {
+        alert('Diseño guardado correctamente.');
+      }
     } else {
       alert('Error al guardar el diseño.');
     }
@@ -1544,6 +1635,8 @@ $(document).ready(function() {
                 $('#containment-wrapper4').css('padding-right', matrix+'mm');
             }
         }else{
+            // Marcar que viene del paso 5 antes de enviar
+            $('#edit-format-form').data('from-step-5', true);
             $('#edit-format-form').submit();
         }
     });
@@ -1613,7 +1706,15 @@ $(document).ready(function() {
     $('.add-image').off('click').on('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        $('#containment-wrapper'+step).append(`<div class="elements images" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div>`);
+        const newImageElement = $(`<div class="elements images" style="resize: both; overflow: hidden; position: absolute; top: 0"><span><img style="width: 100%; height: 100%" src="{{url('default.jpg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div>`);
+        $('#containment-wrapper'+step).append(newImageElement);
+        
+        // Establecer actualElement y selectedElement para la nueva imagen
+        actualElement = newImageElement;
+        selectedElement = newImageElement;
+        $('.elements').removeClass('selected');
+        newImageElement.addClass('selected');
+        
         reapplyElementEvents();
         saveHistoryState();
         updateUndoRedoButtons();
@@ -1846,17 +1947,30 @@ $(document).ready(function() {
         // Re-vincular eventos después de editar
         reapplyElementEvents();
     });
-    const input = document.getElementById('imageInput');
-    $('.accept-image').off('click').on('click', function (e) {
+    // Limpiar el data del modal cuando se cierra sin subir imagen
+    $('#imagen-modal').on('hidden.bs.modal', function() {
+        // Solo limpiar si no se subió una imagen (el data se limpia en uploadImage cuando se completa)
+        if ($(this).data('imageElement')) {
+            $(this).removeData('imageElement');
+        }
+    });
+    
+    // Handler para aceptar imagen usando delegación de eventos para asegurar que siempre funcione
+    $(document).off('click', '.accept-image').on('click', '.accept-image', function (e) {
         e.preventDefault();
-        if (input.files && input.files[0]) {
+        e.stopPropagation();
+        const input = document.getElementById('imageInput');
+        if (input && input.files && input.files[0]) {
             const file = input.files[0];
             if (file.type.startsWith('image/')) {
                 uploadImage(file);
             } else {
-                console.log("El archivo seleccionado no es una imagen.");
+                alert("El archivo seleccionado no es una imagen.");
             }
+        } else {
+            alert("Por favor, seleccione una imagen antes de aceptar.");
         }
+        return false;
     });
     
     $('.accept-qr').off('click').on('click', function (e) {

@@ -689,8 +689,8 @@ class EntityController extends Controller
             ->firstOrFail();
 
         if ($manager->is_primary) {
-            return redirect()->route('entities.show', $entity->id)
-                ->with('info', 'El gestor principal tiene todos los permisos y no se pueden restringir. Para quitar como principal, asigne primero otro gestor como principal.');
+            return redirect()->route('entities.edit-manager-permissions', ['entity_id' => $entity->id, 'manager_id' => $manager->id])
+                ->with('error', 'El gestor principal tiene todos los permisos y no se pueden restringir. Para cambiar los permisos de este gestor, primero debe asignar otro gestor como principal desde la ficha de la entidad.');
         }
 
         $request->validate([
@@ -723,9 +723,36 @@ class EntityController extends Controller
         ]);
 
         $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
+        
+        // Verificar que existe al menos otro gestor además del actual principal
+        $currentPrimary = Manager::where('entity_id', $entity->id)
+            ->where('is_primary', true)
+            ->first();
+        
+        if (!$currentPrimary) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'No se encontró un gestor principal actual.');
+        }
+        
         $newPrimary = Manager::where('id', $request->new_primary_manager_id)
             ->where('entity_id', $entity->id)
             ->firstOrFail();
+        
+        // Verificar que el nuevo gestor no sea el mismo que el actual
+        if ($newPrimary->id === $currentPrimary->id) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'El gestor seleccionado ya es el gestor principal.');
+        }
+        
+        // Verificar que hay al menos otro gestor disponible
+        $otherManagers = Manager::where('entity_id', $entity->id)
+            ->where('id', '!=', $currentPrimary->id)
+            ->count();
+        
+        if ($otherManagers < 1) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'No se puede quitar el gestor principal. Debe haber al menos otro gestor disponible para asignar como principal.');
+        }
 
         \DB::transaction(function () use ($entity, $newPrimary) {
             Manager::where('entity_id', $entity->id)->update(['is_primary' => false]);
@@ -739,7 +766,7 @@ class EntityController extends Controller
         });
 
         return redirect()->route('entities.show', $entity->id)
-            ->with('success', 'Gestor principal actualizado correctamente.');
+            ->with('success', 'Gestor principal actualizado correctamente. El gestor anterior ahora es gestor secundario.');
     }
 
     /**
@@ -781,6 +808,46 @@ class EntityController extends Controller
             'success' => true,
             'message' => 'Status del gestor actualizado correctamente'
         ]);
+    }
+
+    /**
+     * Eliminar un gestor (manager) de una entidad.
+     * Solo elimina la relación manager-entity, NO elimina el usuario.
+     * No se puede eliminar el gestor principal si es el único gestor.
+     */
+    public function destroy_manager($entity_id, $manager_id)
+    {
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
+        
+        $manager = Manager::where('id', $manager_id)
+            ->where('entity_id', $entity_id)
+            ->firstOrFail();
+        
+        // Verificar que no se está eliminando el gestor principal si es el único
+        if ($manager->is_primary) {
+            $totalManagers = Manager::where('entity_id', $entity_id)->count();
+            
+            if ($totalManagers <= 1) {
+                return redirect()->route('entities.show', $entity_id)
+                    ->with('error', 'No se puede eliminar el gestor principal. Debe haber al menos otro gestor disponible antes de eliminar el principal.');
+            }
+            
+            // Si hay otros gestores, verificar que al menos uno no sea principal
+            $otherManagers = Manager::where('entity_id', $entity_id)
+                ->where('id', '!=', $manager_id)
+                ->count();
+            
+            if ($otherManagers < 1) {
+                return redirect()->route('entities.show', $entity_id)
+                    ->with('error', 'No se puede eliminar el gestor principal. Debe asignar primero otro gestor como principal antes de eliminar este.');
+            }
+        }
+        
+        // Eliminar solo el manager (la relación), NO el usuario
+        $manager->delete();
+        
+        return redirect()->route('entities.show', $entity_id)
+            ->with('success', 'Gestor eliminado correctamente. El usuario asociado no ha sido eliminado.');
     }
 
     /**

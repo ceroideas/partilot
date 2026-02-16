@@ -133,6 +133,7 @@ Route::group(['prefix' => 'entities'], function() {
     Route::put('/update/manager-permissions/{entity_id}/{manager_id}', [EntityController::class, 'update_manager_permissions'])->name('entities.update-manager-permissions');
     Route::post('/set-primary-manager', [EntityController::class, 'set_primary_manager'])->name('entities.set-primary-manager');
     Route::post('/toggle-manager-status', [EntityController::class, 'toggle_manager_status'])->name('entities.toggle-manager-status');
+    Route::delete('/destroy/manager/{entity_id}/{manager_id}', [EntityController::class, 'destroy_manager'])->name('entities.destroy-manager');
     
 });
 
@@ -327,18 +328,20 @@ Route::group(['prefix' => 'design'], function() {
 
 });
 
-Route::get('/design/pdf/participation/{id}', [App\Http\Controllers\DesignController::class, 'exportParticipationPdf']);
+Route::get('/design/pdf/participation/{id}', [App\Http\Controllers\DesignController::class, 'exportParticipationPdf'])->name('design.exportParticipationPdf');
 Route::get('/design/pdf/participation-async/{id}', [App\Http\Controllers\DesignController::class, 'exportParticipationPdfAsync'])->name('design.exportParticipationPdfAsync');
 Route::get('/design/pdf/status/{job_id}', [App\Http\Controllers\DesignController::class, 'checkPdfStatus'])->name('design.checkPdfStatus');
 Route::get('/design/pdf/download/{job_id}', [App\Http\Controllers\DesignController::class, 'downloadPdf'])->name('design.downloadPdf');
-Route::get('/design/pdf/cover/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverPdf']);
+Route::get('/design/pdf/cover/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverPdf'])->name('design.exportCoverPdf');
 Route::get('/design/pdf/cover-async/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverPdfAsync'])->name('design.exportCoverPdfAsync');
-Route::get('/design/pdf/back/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdf']);
+Route::get('/design/pdf/back/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdf'])->name('design.exportBackPdf');
 Route::get('/design/pdf/back-async/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdfAsync'])->name('design.exportBackPdfAsync');
+Route::get('/design/pdf/cover-back/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverAndBackPdf'])->name('design.exportCoverAndBackPdf');
 Route::get('/design/pdf/export-async', [App\Http\Controllers\DesignController::class, 'exportPdf'])->name('design.exportPdfAsync');
 Route::post('/design/export-pdf', [App\Http\Controllers\DesignController::class, 'exportPdf']);
 Route::get('/design/format/edit/{id}', [App\Http\Controllers\DesignController::class, 'editFormat'])->name('design.editFormat');
 Route::put('/design/format/update/{id}', [App\Http\Controllers\DesignController::class, 'updateFormat'])->name('design.updateFormat');
+Route::delete('/design/format/{id}', [App\Http\Controllers\DesignController::class, 'destroy'])->name('design.destroy');
 
 Route::group(['prefix' => 'social'], function() {
     Route::get('/', [App\Http\Controllers\SocialWebController::class, 'index'])->name('social.index');
