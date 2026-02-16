@@ -78,9 +78,9 @@
         background: #0056b3;
     }
     .elements.selected {
-        border: 2px solid #007bff !important;
-        outline: 2px solid rgba(0, 123, 255, 0.35);
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+        outline: 2px solid #007bff;
+        outline-offset: 1px;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
     .elements.element-critical {
         z-index: 10000 !important;
@@ -336,6 +336,12 @@
                                                                 <input class="form-control" name="vertical_space" type="number" id="page-bottom" value="{{ old('vertical_space', $format->vertical_space) }}" step="0.1" placeholder="0.00" style="border-radius: 30px">
                                                             </div>
                                                         </div>
+                                                        <div class="row mt-3">
+                                                            <div class="col-12 text-end">
+                                                                <button type="submit" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="btn-guardar-margenes">Guardar
+                                                                    <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 </div>
@@ -351,10 +357,6 @@
                                                         <div style="height: 72px;"></div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-12 text-end">
-                                                <button type="submit" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-                                                    <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
                                             </div>
                                         </div>
                                     </div>
@@ -675,6 +677,36 @@
   </div>
 </div>
 
+<!-- Modal opciones de barra (portada/trasera) -->
+<div class="modal fade" id="bar-options-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Opciones de la barra</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Color de fondo</label>
+          <input type="color" id="bar-modal-bg" class="form-control form-control-color w-100" value="#dfdfdf" title="Color de fondo">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Borde (px) — 0 = sin borde</label>
+          <input type="number" id="bar-modal-border-width" class="form-control" min="0" max="20" value="2">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Color del borde</label>
+          <input type="color" id="bar-modal-border-color" class="form-control form-control-color w-100" value="#333333" title="Color del borde">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-danger" id="bar-modal-delete">Borrar barra</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- === MODAL FONDO DE TICKET === -->
 <div class="modal fade" id="background-modal" tabindex="-1" aria-labelledby="backgroundModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -923,6 +955,29 @@ $('#format').change(function (e) {
     $('.preview-design').html(html);
 });
 
+  /** Inicializa la miniatura de participaciones con los valores actuales del formulario (sin resetear campos). Usar al cargar la pantalla de edición. */
+  function initPreviewFromFormat() {
+    var format = $('#format').val();
+    var html = "";
+    if (format == 'a3-h-3x2') {
+      html = '<div class="a3"><div style="height: 72px;"></div><div style="height: 72px;"></div><div style="height: 72px;"></div><div style="height: 72px;"></div><div style="height: 72px;"></div><div style="height: 72px;"></div></div>';
+    } else if (format == 'a3-h-4x2') {
+      html = '<div class="a3"><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div></div>';
+    } else if (format == 'a4-v-3x1') {
+      html = '<div class="a4"><div style="height: 72px;"></div><div style="height: 72px;"></div><div style="height: 72px;"></div></div>';
+    } else if (format == 'a4-v-4x1') {
+      html = '<div class="a4"><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div><div style="height: 54px;"></div></div>';
+    } else if (format == 'custom') {
+      var page = $('#page').val();
+      var cls = (page == 'a4') ? 'a4' : 'a3';
+      html = '<div class="' + cls + '"></div>';
+      $('.preview-design').html(html);
+      recalculateDesign();
+      return;
+    }
+    $('.preview-design').html(html);
+  }
+
   function restoreValues()
   {
     $('#page').prop('selectedIndex',0);
@@ -1119,6 +1174,21 @@ function showStep(newStep) {
     if (typeof applyDesignZoom === 'function') {
         applyDesignZoom();
     }
+    // Tarea 8: aplicar reescalado pendiente al entrar en paso 2 (participación)
+    if (newStep === 2 && pendingRescale && $('#step-2 .format-box .elements').length > 0) {
+        var $box = $('#step-2 .format-box');
+        setTimeout(function() {
+            var newBoxPx = { w: $box.width(), h: $box.height() };
+            if (newBoxPx.w > 0 && newBoxPx.h > 0) {
+                var oldBoxPx = {
+                    w: pendingRescale.oldW * newBoxPx.w / pendingRescale.newW,
+                    h: pendingRescale.oldH * newBoxPx.h / pendingRescale.newH
+                };
+                repositionParticipationElementsByScale($box, oldBoxPx, newBoxPx);
+            }
+            pendingRescale = null;
+        }, 100);
+    }
 }
 
 function addEventsElement() {
@@ -1144,10 +1214,10 @@ function addEventsElement() {
     $('body').unbind('click.deselect');
     $('body').bind('click.deselect', function(e) {
       // No deseleccionar si algún modal está abierto
-      if ($('#imagen-modal').hasClass('show') || $('#ckeditor-modal').hasClass('show') || $('#qr-modal').hasClass('show') || $('#position-modal').hasClass('show')) {
+      if ($('#imagen-modal').hasClass('show') || $('#ckeditor-modal').hasClass('show') || $('#qr-modal').hasClass('show') || $('#position-modal').hasClass('show') || $('#bar-options-modal').hasClass('show')) {
         return;
       }
-      if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn').length) {
+      if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn, #bar-options-modal').length) {
         $('.elements').removeClass('selected');
         selectedElement = null;
         // Solo limpiar actualElement si no hay un elemento guardado en el modal
@@ -1158,6 +1228,56 @@ function addEventsElement() {
       }
     });
 }
+
+function rgbToHex(rgb) {
+  if (!rgb) return '#dfdfdf';
+  if (typeof rgb === 'string' && rgb.charAt(0) === '#') return rgb;
+  var m = rgb.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+  if (m) return '#' + [1,2,3].map(function(x) { return ('0'+parseInt(m[x],10).toString(16)).slice(-2); }).join('');
+  return '#dfdfdf';
+}
+
+var barModalElement = null;
+$(document).off('dblclick.barcontext').on('dblclick.barcontext', '.elements.context', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  barModalElement = $(this);
+  $('#bar-modal-bg').val(rgbToHex(barModalElement.css('background-color')) || '#dfdfdf');
+  var bw = parseInt(barModalElement.css('border-width'), 10);
+  $('#bar-modal-border-width').val(isNaN(bw) || bw < 0 ? 0 : Math.min(20, bw));
+  $('#bar-modal-border-color').val(rgbToHex(barModalElement.css('border-color')) || '#333333');
+  $('#bar-options-modal').modal('show');
+  return false;
+});
+$('#bar-modal-bg, #bar-modal-border-width, #bar-modal-border-color').on('input change', function() {
+  if (!barModalElement || !barModalElement.length) return;
+  var bg = $('#bar-modal-bg').val();
+  var bw = parseInt($('#bar-modal-border-width').val(), 10) || 0;
+  var bc = $('#bar-modal-border-color').val();
+  barModalElement.css('background-color', bg);
+  if (bw > 0) {
+    barModalElement.css('border-width', bw + 'px');
+    barModalElement.css('border-style', 'solid');
+    barModalElement.css('border-color', bc);
+  } else {
+    barModalElement.css('border-width', '0');
+    barModalElement.css('border-style', 'none');
+    barModalElement.css('border-color', 'transparent');
+  }
+  if (typeof saveHistoryState === 'function') saveHistoryState();
+});
+$('#bar-modal-delete').off('click').on('click', function() {
+  if (!barModalElement || !barModalElement.length) return;
+  if (!confirm('¿Eliminar esta barra?')) return;
+  barModalElement.remove();
+  barModalElement = null;
+  $('#bar-options-modal').modal('hide');
+  selectedElement = null;
+  $('.up-layer, .down-layer, .delete-element-btn').prop('disabled', true);
+  $('.text-style-btn').prop('disabled', true);
+  if (typeof saveHistoryState === 'function') saveHistoryState();
+  if (typeof updateUndoRedoButtons === 'function') updateUndoRedoButtons();
+});
 
 function changePositionElement(event) {
     event.preventDefault();
@@ -1309,7 +1429,30 @@ function configMargins()
       }
     }
   }
-  // === FIN BLOQUE NUEVO ===
+  // === Tarea 8: Reescalar elementos al cambiar grid (solución 1: por porcentaje) ===
+  var lastTicketDimensions = { w: null, h: null };
+  var pendingRescale = null;
+
+  function repositionParticipationElementsByScale($box, oldBoxPx, newBoxPx) {
+    if (!oldBoxPx || oldBoxPx.w <= 0 || oldBoxPx.h <= 0 || !newBoxPx || newBoxPx.w <= 0 || newBoxPx.h <= 0) return;
+    $box.find('.elements').each(function() {
+      var $el = $(this);
+      var left = parseFloat($el.css('left')) || 0;
+      var top = parseFloat($el.css('top')) || 0;
+      var w = $el.outerWidth();
+      var h = $el.outerHeight();
+      var leftPct = (left / oldBoxPx.w) * 100;
+      var topPct = (top / oldBoxPx.h) * 100;
+      var widthPct = (w / oldBoxPx.w) * 100;
+      var heightPct = (h / oldBoxPx.h) * 100;
+      var newLeft = (leftPct / 100) * newBoxPx.w;
+      var newTop = (topPct / 100) * newBoxPx.h;
+      var newWidth = (widthPct / 100) * newBoxPx.w;
+      var newHeight = (heightPct / 100) * newBoxPx.h;
+      $el.css({ left: newLeft + 'px', top: newTop + 'px', width: newWidth + 'px', height: newHeight + 'px' });
+    });
+  }
+  // === FIN Tarea 8 ===
 
   function updateTicketInfo() {
       // Definir plantillas rápidas
@@ -1386,17 +1529,44 @@ function configMargins()
 
       $('#ticket-size').text(ticketText__);
 
-      // Actualizar tamaño de la caja de diseño
-      console.log(ticketW,ticketH);
+      // Actualizar tamaño de la caja de diseño y reescalar elementos si cambió el grid (Tarea 8)
+      var prevW = lastTicketDimensions.w, prevH = lastTicketDimensions.h;
+      var dimensionsChanged = (prevW != null && (prevW !== ticketW || prevH !== ticketH));
+      var hasElements = $('#step-2 .format-box .elements').length > 0;
+      var $box = $('#step-2 .format-box');
+
       if (ticketW && ticketH) {
-          $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
-          $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+          if (dimensionsChanged && hasElements && $box.length) {
+              var step2Visible = $('#step-2').hasClass('show');
+              if (step2Visible) {
+                  var oldBoxPx = { w: $box.width(), h: $box.height() };
+                  if (oldBoxPx.w > 0 && oldBoxPx.h > 0) {
+                      $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+                      $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+                      var newBoxPx = { w: $box.width(), h: $box.height() };
+                      repositionParticipationElementsByScale($box, oldBoxPx, newBoxPx);
+                  } else {
+                      $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+                      $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+                      pendingRescale = { oldW: prevW, oldH: prevH, newW: ticketW, newH: ticketH };
+                  }
+              } else {
+                  $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+                  $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+                  pendingRescale = { oldW: prevW, oldH: prevH, newW: ticketW, newH: ticketH };
+              }
+          } else {
+              $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+              $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+          }
       }
+      lastTicketDimensions = { w: ticketW, h: ticketH };
   }
 
   // Llamar al cargar y al cambiar cualquier campo relevante
   $(document).ready(function() {
       updateTicketInfo();
+      if (typeof initPreviewFromFormat === 'function') initPreviewFromFormat();
       $('#format,#page,#rows,#cols,#orientation').on('change keyup', updateTicketInfo);
   });
   // === FIN BLOQUE NUEVO ===
@@ -1518,7 +1688,8 @@ $('#edit-format-form').on('submit', function(e) {
     data.from_step_5 = true;
   }
 
-  showDesignLoading('Guardando diseño...');
+  var loadingMsg = (typeof step !== 'undefined' && step === 1) ? 'Guardando márgenes...' : 'Guardando diseño...';
+  showDesignLoading(loadingMsg);
   fetch($(this).attr('action'), {
     method: 'PUT',
     headers: {
@@ -1531,10 +1702,17 @@ $('#edit-format-form').on('submit', function(e) {
   .then(result => {
     if(result.success) {
       if (isFromStep5 && result.redirect) {
-        // Redirigir a la vista de resumen
         window.location.href = result.redirect;
       } else {
-        alert('Diseño guardado correctamente.');
+        var msg = (typeof step !== 'undefined' && step === 1) ? 'Márgenes aplicados correctamente.' : 'Diseño guardado correctamente.';
+        alert(msg);
+        if (typeof step !== 'undefined' && step === 1) {
+          var $feedback = $('#ticket-info');
+          if ($feedback.length) {
+            $feedback.addClass('alert-success').removeClass('alert-info');
+            setTimeout(function() { $feedback.removeClass('alert-success').addClass('alert-info'); }, 2500);
+          }
+        }
       }
     } else {
       alert('Error al guardar el diseño.');
@@ -1722,18 +1900,14 @@ $(document).ready(function() {
     });
     $('.add-top').off('click').on('click', function (e) {
         e.preventDefault();
-        $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; top: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf"><span style="padding: 20px; display: block;"></span></div>`);
-        $('.elements.context').unbind('dblclick', deleteElements);
-        $('.elements.context').dblclick(deleteElements);
+        $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; top: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf; border: 2px solid #333;"><span style="padding: 20px; display: block;"></span></div>`);
         reapplyElementEvents();
         saveHistoryState();
         updateUndoRedoButtons();
     });
     $('.add-bottom').off('click').on('click', function (e) {
         e.preventDefault();
-        $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; bottom: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf"><span style="padding: 20px; display: block;"></span></div>`);
-        $('.elements.context').unbind('dblclick', deleteElements);
-        $('.elements.context').dblclick(deleteElements);
+        $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; bottom: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf; border: 2px solid #333;"><span style="padding: 20px; display: block;"></span></div>`);
         reapplyElementEvents();
         saveHistoryState();
         updateUndoRedoButtons();
@@ -2069,12 +2243,7 @@ function reapplyElementEvents() {
         editelements.call(this, e);
         return false;
     });
-    $('.elements.context').off('dblclick', deleteElements).on('dblclick', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        deleteElements.call(this, e);
-        return false;
-    });
+    // Doble clic en barra abre modal de opciones (manejador delegado en document)
     $('.elements.images').off('dblclick', changeImage).on('dblclick', function(e) {
         e.preventDefault();
         e.stopPropagation();

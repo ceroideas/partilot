@@ -62,22 +62,28 @@
  **Posibles soluciones:**
   - Portada/trasera: en el editor de portada y trasera (pasos donde se diseña cover/back) incluir un bloque o placeholder “QR / referencia de taco” que se rellene con el mismo dato que en participaciones (código de referencia o QR por taco), para que al asignar tacos se vea en pantalla. Exportación: en `DesignController` los métodos `exportCoverPdf` y `exportBackPdf` (o async) deben generar PDFs de portada y trasera; asegurar que la opción “Exportar” o “Configurar salida” incluya en el flujo la generación y descarga de esos PDFs además del de participaciones, y que en la pantalla de resumen/descarga se listen y enlacen los tres (participaciones, portada, trasera).
 
-- **Tarea 8:** Si haces una participación de 6xA3 y luego editas el set y le dices que sea 8×3, el sistema mantiene los datos como si fuese 6xA3 pero los que se quedan fuera de la nueva participación al ser más pequeña. El sistema al cambiar el tamaño debería señalarlos en rojo los que estén fuera de las guías, como que esa parte no se generará en el PDF.
+- ✅ **Tarea 8 COMPLETADA:** Si haces una participación de 6xA3 y luego editas el set y le dices que sea 8×3, el sistema mantiene los datos como si fuese 6xA3 pero los que se quedan fuera de la nueva participación al ser más pequeña. El sistema al cambiar el tamaño debería señalarlos en rojo los que estén fuera de las guías, como que esa parte no se generará en el PDF.
 
-  **Posibles soluciones:**
+  **Posibles soluciones (referencia):**
   - Al guardar el nuevo tamaño (filas/columnas u hoja) en el formato, recalcular qué “celdas” o posiciones quedan fuera del nuevo grid. En el JSON del diseño (elementos posicionados) marcar con un flag o clase (p. ej. `outOfBounds: true`) los elementos cuya posición quede fuera del nuevo tamaño. En la vista del editor, al pintar los elementos, aplicar una clase CSS (p. ej. `.out-of-bounds`) que los muestre en rojo o con borde rojo y un tooltip “Fuera de área de impresión”. En la generación del PDF, no dibujar esos elementos o dibujarlos solo en modo “vista previa de advertencia” según criterio.
 
-- **Tarea 9:** Si editas un trabajo, en la primera pantalla la imagen de las participaciones sale siempre por defecto A3 apaisado (3x2), aunque en el texto sea otra cosa.
+  **Solución implementada (Tarea 8):**
+  - ✅ **Reescalado por porcentaje:** Al cambiar el tamaño del formato, los elementos del paso 2 (participación) se reescalan por porcentaje para mantenerse dentro del nuevo grid. Implementado en `edit_format.blade.php` y `format.blade.php` (lastTicketDimensions, pendingRescale, repositionParticipationElementsByScale, updateTicketInfo y al entrar en paso 2).
 
-  **Posibles soluciones:**
-  - Al cargar la pantalla de edición de formato (`editFormat`), pasar el formato guardado (page, rows, cols, orientation) y en la vista no inicializar por defecto a A3 3x2; usar los valores de `$format` (p. ej. `$format->page`, `$format->rows`, `$format->cols`, `$format->orientation`) para el selector y la miniatura. Ajustar el JS que actualiza la imagen de las participaciones para que tome esos valores al cargar y no solo al cambiar.
+- ✅ **Tarea 9 COMPLETADA:** Si editas un trabajo, en la primera pantalla la imagen de las participaciones sale siempre por defecto A3 apaisado (3x2), aunque en el texto sea otra cosa.
+
+  **Posibles soluciones (referencia):**
+  - Al cargar la pantalla de edición de formato (`editFormat`), pasar el formato guardado (page, rows, cols, orientation) y en la vista no inicializar por defecto a A3 3x2; usar los valores de `$format` para el selector y la miniatura. Ajustar el JS que actualiza la imagen de las participaciones para que tome esos valores al cargar y no solo al cambiar.
+
+  **Solución implementada:**
+  - ✅ En `edit_format.blade.php` los selectores e inputs ya toman los valores de `$format` desde Blade. Añadida la función `initPreviewFromFormat()` que construye la miniatura de participaciones (`.preview-design`) según el valor actual de formato/página/filas/columnas/orientación sin resetear los campos. Se llama a `initPreviewFromFormat()` en el `$(document).ready` junto a `updateTicketInfo()`, de modo que al cargar la pantalla de edición la imagen coincide con el formato guardado.
 
 - **Tarea 10:** En la pantalla dos “Diseñar participación”, cuando en la primera has cambiado el tamaño de las participaciones y le das a siguiente, no guarda el diseño; simplemente pasa a la siguiente pantalla, por tanto no guarda lo que se ha hecho.
 
   **Posibles soluciones:**
   - Al pulsar “Siguiente” en el paso 1 (configurar formato), antes de cambiar de paso hacer una petición para guardar el formato (márgenes, tamaño, etc.) igual que hace el botón “Guardar” si existe. Reutilizar la misma ruta/acción que usa ese botón (p. ej. `design.updateFormat` o store) con los datos del formulario del paso 1; solo cuando la respuesta sea OK, avanzar al paso 2. Así el tamaño y márgenes quedan guardados antes de diseñar.
 
-- **Tarea 11:** El botón de guardar en la primera pantalla de configurar formato solo debe salir cuando despliegas “Configurar márgenes”, ya que solo sirve en ese caso. Debería estar al lado o debajo de configurar márgenes (el desplegable).
+- ✅ **Tarea 11 COMPLETADA:** El botón de guardar en la primera pantalla de configurar formato solo debe salir cuando despliegas “Configurar márgenes”, ya que solo sirve en ese caso. Debería estar al lado o debajo de configurar márgenes (el desplegable).
 
   **Posibles soluciones:**
   - En la vista del paso 1 (configurar formato), mover el botón “Guardar” dentro del bloque desplegable de “Configurar márgenes” (o justo debajo del desplegable). Mostrarlo solo cuando el desplegable esté abierto (por ejemplo con un `v-if`/`@if` o mostrando/ocultando con JS cuando se expande el acordeón).

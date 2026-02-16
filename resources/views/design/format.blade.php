@@ -71,9 +71,9 @@
         background: #0056b3;
     }
     .elements.selected {
-        border: 2px solid #007bff !important;
-        outline: 2px solid rgba(0, 123, 255, 0.35);
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+        outline: 2px solid #007bff;
+        outline-offset: 1px;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
     .elements.element-critical {
         z-index: 10000 !important;
@@ -408,6 +408,13 @@
                                                         </div>
 
                                                     </div>
+
+                                                    <div class="row mt-3">
+                                                        <div class="col-12 text-end">
+                                                            <a href="javascript:;" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2" id="btn-guardar-margenes">Guardar
+                                                                <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
+                                                        </div>
+                                                    </div>
                                                     
                                                 </div>
 
@@ -430,11 +437,6 @@
                                                 
                                             </div>
                                             
-                                        </div>
-
-                                        <div class="col-12 text-end">
-                                            <a href="javascript:;" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">Guardar
-                                                <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></a>
                                         </div>
                                     </div>
 
@@ -1010,6 +1012,36 @@
   </div>
 </div>
 
+<!-- Modal opciones de barra (portada/trasera) -->
+<div class="modal fade" id="bar-options-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Opciones de la barra</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Color de fondo</label>
+          <input type="color" id="bar-modal-bg" class="form-control form-control-color w-100" value="#dfdfdf" title="Color de fondo">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Borde (px) — 0 = sin borde</label>
+          <input type="number" id="bar-modal-border-width" class="form-control" min="0" max="20" value="2">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Color del borde</label>
+          <input type="color" id="bar-modal-border-color" class="form-control form-control-color w-100" value="#333333" title="Color del borde">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-danger" id="bar-modal-delete">Borrar barra</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- === MODAL FONDO DE TICKET === -->
 <div class="modal fade" id="background-modal" tabindex="-1" aria-labelledby="backgroundModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -1088,6 +1120,17 @@ $(document).ready(function() {
     $('#btn-desplegar-margenes').text('Ocultar');
   }).on('hide.bs.collapse', function() {
     $('#btn-desplegar-margenes').text('Desplegar');
+  });
+
+  // Botón Guardar márgenes (paso 1): feedback visual (los valores se guardan al finalizar el diseño)
+  $(document).on('click', '#btn-guardar-margenes', function(e) {
+    e.preventDefault();
+    var $ti = $('#ticket-info');
+    if ($ti.length) {
+      $ti.addClass('alert-success').removeClass('alert-info');
+      setTimeout(function() { $ti.removeClass('alert-success').addClass('alert-info'); }, 2500);
+    }
+    alert('Márgenes aplicados. Se guardarán con el diseño al finalizar.');
   });
 
   // Botón para abrir el modal
@@ -1443,7 +1486,7 @@ $('#format').change(function (e) {
         setupResizeObserver();    
 
         $('.elements.text .edit-btn').click(editelements);
-        $('.elements.context').dblclick(deleteElements);
+        // Doble clic en barra abre modal de opciones (manejador delegado)
         $('.elements.images .edit-btn').click(changeImage);
         {{-- $('.elements.qr').dblclick(setQRtext); --}}
         
@@ -1473,6 +1516,7 @@ $('#format').change(function (e) {
         addEventsElement();
         setupDraggable();
         setupResizeObserver();
+        if (typeof applyPendingRescaleIfStep2 === 'function') applyPendingRescaleIfStep2();
 
       }
   });
@@ -1545,7 +1589,7 @@ $('#format').change(function (e) {
           setupDraggable();
         setupResizeObserver();
           $('.elements.text .edit-btn').click(editelements);
-          $('.elements.context').dblclick(deleteElements);
+          // Doble clic en barra abre modal de opciones (manejador delegado)
           $('.elements.images .edit-btn').click(changeImage);
           {{-- $('.elements.qr').dblclick(setQRtext); --}}
           
@@ -1575,6 +1619,7 @@ $('#format').change(function (e) {
 
           configMargins();
           addEventsElement();
+          if (typeof applyPendingRescaleIfStep2 === 'function') applyPendingRescaleIfStep2();
 
           $('.up-layer').unbind('click');
           $('.up-layer').click(function(e) {
@@ -1921,9 +1966,7 @@ $('#format').change(function (e) {
   $('.elements.text .edit-btn').unbind('click', editelements);
   $('.elements.text .edit-btn').click(editelements);
   
-  $('.elements.context').unbind('dblclick', deleteElements);
-  $('.elements.context').dblclick(deleteElements);
-  
+  // Doble clic en barra: manejador delegado en document
   $('.elements.images .edit-btn').unbind('click', changeImage);
   $('.elements.images .edit-btn').click(changeImage);
   
@@ -2160,10 +2203,8 @@ $('#format').change(function (e) {
   $('.add-top').click(function (e) {
       e.preventDefault();
 
-      $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; top: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf"><span style="padding: 20px; display: block;"></span></div>`);
+      $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; top: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf; border: 2px solid #333;"><span style="padding: 20px; display: block;"></span></div>`);
 
-      $('.elements.context').unbind('dblclick',deleteElements);
-      $('.elements.context').dblclick(deleteElements);
       addEventsElement();
 
       setupDraggable();
@@ -2173,10 +2214,8 @@ $('#format').change(function (e) {
   $('.add-bottom').click(function (e) {
       e.preventDefault();
 
-      $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; bottom: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf"><span style="padding: 20px; display: block;"></span></div>`);
+      $('#containment-wrapper'+step).append(`<div class="elements context" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; bottom: 20px; left: 0; right: 0; margin: auto; background-color: #dfdfdf; border: 2px solid #333;"><span style="padding: 20px; display: block;"></span></div>`);
 
-      $('.elements.context').unbind('dblclick',deleteElements);
-      $('.elements.context').dblclick(deleteElements);
       addEventsElement();
 
       setupDraggable();
@@ -2207,10 +2246,35 @@ $('#format').change(function (e) {
       } else {
         $('.text-style-btn').prop('disabled', true);
       }
-      // Habilitar undo si hay elementos modificables
       updateUndoRedoButtons();
     });
   }
+
+  function rgbToHex(rgb) {
+    if (!rgb) return '#dfdfdf';
+    if (typeof rgb === 'string' && rgb.charAt(0) === '#') return rgb;
+    var m = rgb.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+    if (m) return '#' + [1,2,3].map(function(x) { return ('0'+parseInt(m[x],10).toString(16)).slice(-2); }).join('');
+    return '#dfdfdf';
+  }
+
+  $(document).on('input change', '.bar-bg-color, .bar-border-width, .bar-border-color', function() {
+    if (!selectedElement || !selectedElement.hasClass('context')) return;
+    var bg = $('#step-'+step+' .bar-bg-color').val();
+    var bw = parseInt($('#step-'+step+' .bar-border-width').val(), 10) || 0;
+    var bc = $('#step-'+step+' .bar-border-color').val();
+    selectedElement.css('background-color', bg);
+    if (bw > 0) {
+      selectedElement.css('border-width', bw + 'px');
+      selectedElement.css('border-style', 'solid');
+      selectedElement.css('border-color', bc);
+    } else {
+      selectedElement.css('border-width', '0');
+      selectedElement.css('border-style', 'none');
+      selectedElement.css('border-color', 'transparent');
+    }
+    if (typeof saveHistoryState === 'function') saveHistoryState();
+  });
 
   // Event listeners for text style buttons
   $('.bold-btn').click(function(e) {
@@ -2418,6 +2482,48 @@ $('#format').change(function (e) {
   }
   // === FIN BLOQUE NUEVO ===
 
+  // === Tarea 8: Reescalar elementos al cambiar grid (solución 1: por porcentaje) ===
+  var lastTicketDimensions = { w: null, h: null };
+  var pendingRescale = null;
+
+  function repositionParticipationElementsByScale($box, oldBoxPx, newBoxPx) {
+    if (!oldBoxPx || oldBoxPx.w <= 0 || oldBoxPx.h <= 0 || !newBoxPx || newBoxPx.w <= 0 || newBoxPx.h <= 0) return;
+    $box.find('.elements').each(function() {
+      var $el = $(this);
+      var left = parseFloat($el.css('left')) || 0;
+      var top = parseFloat($el.css('top')) || 0;
+      var w = $el.outerWidth();
+      var h = $el.outerHeight();
+      var leftPct = (left / oldBoxPx.w) * 100;
+      var topPct = (top / oldBoxPx.h) * 100;
+      var widthPct = (w / oldBoxPx.w) * 100;
+      var heightPct = (h / oldBoxPx.h) * 100;
+      var newLeft = (leftPct / 100) * newBoxPx.w;
+      var newTop = (topPct / 100) * newBoxPx.h;
+      var newWidth = (widthPct / 100) * newBoxPx.w;
+      var newHeight = (heightPct / 100) * newBoxPx.h;
+      $el.css({ left: newLeft + 'px', top: newTop + 'px', width: newWidth + 'px', height: newHeight + 'px' });
+    });
+  }
+
+  function applyPendingRescaleIfStep2() {
+    if (typeof step === 'undefined' || step !== 2) return;
+    if (!pendingRescale || $('#step-2 .format-box .elements').length === 0) return;
+    var $box = $('#step-2 .format-box');
+    setTimeout(function() {
+      var newBoxPx = { w: $box.width(), h: $box.height() };
+      if (newBoxPx.w > 0 && newBoxPx.h > 0) {
+        var oldBoxPx = {
+          w: pendingRescale.oldW * newBoxPx.w / pendingRescale.newW,
+          h: pendingRescale.oldH * newBoxPx.h / pendingRescale.newH
+        };
+        repositionParticipationElementsByScale($box, oldBoxPx, newBoxPx);
+      }
+      pendingRescale = null;
+    }, 100);
+  }
+  // === FIN Tarea 8 ===
+
   function updateTicketInfo() {
       // Definir plantillas rápidas
       const quickTemplates = {
@@ -2493,12 +2599,38 @@ $('#format').change(function (e) {
 
       $('#ticket-size').text(ticketText__);
 
-      // Actualizar tamaño de la caja de diseño
-      console.log(ticketW,ticketH);
+      // Actualizar tamaño de la caja de diseño y reescalar elementos si cambió el grid (Tarea 8)
+      var prevW = lastTicketDimensions.w, prevH = lastTicketDimensions.h;
+      var dimensionsChanged = (prevW != null && (prevW !== ticketW || prevH !== ticketH));
+      var hasElements = $('#step-2 .format-box .elements').length > 0;
+      var $box = $('#step-2 .format-box');
+
       if (ticketW && ticketH) {
-          $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
-          $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+          if (dimensionsChanged && hasElements && $box.length) {
+              var step2Visible = $('#step-2').hasClass('show');
+              if (step2Visible) {
+                  var oldBoxPx = { w: $box.width(), h: $box.height() };
+                  if (oldBoxPx.w > 0 && oldBoxPx.h > 0) {
+                      $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+                      $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+                      var newBoxPx = { w: $box.width(), h: $box.height() };
+                      repositionParticipationElementsByScale($box, oldBoxPx, newBoxPx);
+                  } else {
+                      $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+                      $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+                      pendingRescale = { oldW: prevW, oldH: prevH, newW: ticketW, newH: ticketH };
+                  }
+              } else {
+                  $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+                  $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+                  pendingRescale = { oldW: prevW, oldH: prevH, newW: ticketW, newH: ticketH };
+              }
+          } else {
+              $('.format-box').css({width: ticketW+'mm', height: ticketH+'mm'});
+              $('.format-box-btn').css({width: Math.max(ticketW + 20, 270)+'mm'});
+          }
       }
+      lastTicketDimensions = { w: ticketW, h: ticketH };
   }
 
   // Llamar al cargar y al cambiar cualquier campo relevante
