@@ -702,6 +702,15 @@ class DesignController extends Controller
     }
 
     /**
+     * Vista de resumen tras guardar el diseño (paso 5): descarga de PDFs y volver al listado.
+     */
+    public function summary($id)
+    {
+        $design = DesignFormat::with(['set', 'lottery', 'entity'])->findOrFail($id);
+        return view('design.summary', compact('design'));
+    }
+
+    /**
      * Actualiza el formato en la base de datos.
      */
     public function updateFormat(Request $request, $id)
@@ -735,11 +744,11 @@ class DesignController extends Controller
                 if (isset($data['output'])) $format->output = $data['output'];
                 $format->save();
                 
-                // Si viene del paso 5 (configurar salida), redirigir al index
+                // Si viene del paso 5 (configurar salida), redirigir a la vista de resumen
                 if (isset($data['from_step_5']) && $data['from_step_5'] === true) {
                     return response()->json([
-                        'success' => true, 
-                        'redirect' => route('design.index')
+                        'success' => true,
+                        'redirect' => route('design.summary', $id)
                     ]);
                 }
                 

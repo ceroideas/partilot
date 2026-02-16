@@ -1702,7 +1702,9 @@ $('#edit-format-form').on('submit', function(e) {
   .then(result => {
     if(result.success) {
       if (isFromStep5 && result.redirect) {
+        hideDesignLoading();
         window.location.href = result.redirect;
+        return;
       } else {
         var msg = (typeof step !== 'undefined' && step === 1) ? 'Márgenes aplicados correctamente.' : 'Diseño guardado correctamente.';
         alert(msg);
@@ -1720,7 +1722,6 @@ $('#edit-format-form').on('submit', function(e) {
   })
   .catch(() => alert('Error al guardar el diseño.'))
   .finally(() => hideDesignLoading());
-
 
   {{-- $.ajax({
     url: $(this).attr('action'),

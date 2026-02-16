@@ -341,6 +341,7 @@ Route::get('/design/pdf/export-async', [App\Http\Controllers\DesignController::c
 Route::post('/design/export-pdf', [App\Http\Controllers\DesignController::class, 'exportPdf']);
 Route::get('/design/format/edit/{id}', [App\Http\Controllers\DesignController::class, 'editFormat'])->name('design.editFormat');
 Route::put('/design/format/update/{id}', [App\Http\Controllers\DesignController::class, 'updateFormat'])->name('design.updateFormat');
+Route::get('/design/summary/{id}', [App\Http\Controllers\DesignController::class, 'summary'])->name('design.summary');
 Route::delete('/design/format/{id}', [App\Http\Controllers\DesignController::class, 'destroy'])->name('design.destroy');
 
 Route::group(['prefix' => 'social'], function() {

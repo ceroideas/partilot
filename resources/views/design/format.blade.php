@@ -1540,8 +1540,12 @@ $('#format').change(function (e) {
           .then(response => response.json())
           .then(result => {
             if(result.success) {
-              alert('Diseño guardado correctamente.');
-              window.open('{{url('design?table=1')}}','_self');
+              hideDesignLoading();
+              if (result.id) {
+                window.location.href = '{{ url("design/summary") }}/' + result.id;
+              } else {
+                window.location.href = '{{ route("design.index") }}';
+              }
             } else {
               alert('Error al guardar el diseño.');
             }

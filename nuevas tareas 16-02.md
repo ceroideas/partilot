@@ -88,7 +88,7 @@
   **Posibles soluciones:**
   - En la vista del paso 1 (configurar formato), mover el botón “Guardar” dentro del bloque desplegable de “Configurar márgenes” (o justo debajo del desplegable). Mostrarlo solo cuando el desplegable esté abierto (por ejemplo con un `v-if`/`@if` o mostrando/ocultando con JS cuando se expande el acordeón).
 
-- **Tarea 12:** Cuando llegas a configurar salida, sale el botón de siguiente, dice que lo guarda pero no deja hacer nada más (no se sale, no muestra el PDF generado/s). Debería salir una pantalla con el resumen de lo que se va a generar y cuando se genere abriría el PDF en pantalla y el sistema debería ir a la pantalla inicial donde están los sets.
+- ✅ **Tarea 12 COMPLETADA:** Cuando llegas a configurar salida, sale el botón de siguiente, dice que lo guarda pero no deja hacer nada más (no se sale, no muestra el PDF generado/s). Debería salir una pantalla con el resumen de lo que se va a generar y cuando se genere abriría el PDF en pantalla y el sistema debería ir a la pantalla inicial donde están los sets.
 
   **Posibles soluciones:**
   - Al pulsar “Siguiente” en configurar salida: (1) Guardar la configuración de salida. (2) Redirigir a una nueva vista “Resumen / Generando” que muestre: “Se generarán: PDF participaciones, PDF portada, PDF trasera” (según corresponda). (3) En esa pantalla lanzar la generación (ya sea en cola o síncrona) y mostrar enlaces de descarga cuando estén listos, o abrir en nueva pestaña el PDF de participaciones (y opcionalmente portada/trasera). (4) Incluir un botón “Volver a sets / Diseño e impresión” que redirija a la lista de diseños/sets (p. ej. `route('design.index')` o la URL inicial de diseño).
