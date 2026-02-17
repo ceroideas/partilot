@@ -1185,9 +1185,33 @@ class DesignController extends Controller
             
             // Asegurar que el directorio existe
             $directory = 'design_snapshots';
-            if (!Storage::disk('public')->exists($directory)) {
-                Storage::disk('public')->makeDirectory($directory, 0755, true);
-                \Log::info('Directorio creado: ' . $directory);
+            
+            // Verificar permisos de escritura en storage/public
+            $storagePath = storage_path('app/public');
+            if (!is_dir($storagePath)) {
+                \Log::error('El directorio storage/app/public no existe: ' . $storagePath);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error: El directorio de storage no existe. Ejecute: php artisan storage:link'
+                ], 500);
+            }
+            
+            if (!is_writable($storagePath)) {
+                \Log::error('El directorio storage/app/public no tiene permisos de escritura: ' . $storagePath);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error: Sin permisos de escritura en storage'
+                ], 500);
+            }
+            
+            // Crear directorio usando Storage facade primero
+            try {
+                if (!Storage::disk('public')->exists($directory)) {
+                    Storage::disk('public')->makeDirectory($directory, 0755, true);
+                    \Log::info('Directorio creado usando Storage: ' . $directory);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Error al crear directorio con Storage, intentando método alternativo: ' . $e->getMessage());
             }
             
             $fileName = $directory . '/design_set_' . $set->id . '.png';
@@ -1200,35 +1224,67 @@ class DesignController extends Controller
             }
             
             // Eliminar el snapshot anterior ANTES de guardar el nuevo (si existe y es diferente)
-            if ($oldSnapshotPath && $oldSnapshotPath !== $fileName && Storage::disk('public')->exists($oldSnapshotPath)) {
-                Storage::disk('public')->delete($oldSnapshotPath);
-                \Log::info('Snapshot anterior eliminado ANTES de guardar nuevo: ' . $oldSnapshotPath);
+            if ($oldSnapshotPath && $oldSnapshotPath !== $fileName) {
+                try {
+                    if (Storage::disk('public')->exists($oldSnapshotPath)) {
+                        Storage::disk('public')->delete($oldSnapshotPath);
+                        \Log::info('Snapshot anterior eliminado ANTES de guardar nuevo: ' . $oldSnapshotPath);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('No se pudo eliminar snapshot anterior: ' . $e->getMessage());
+                }
             }
             
-            // Guardar el archivo usando la ruta completa del sistema de archivos
-            $fullPath = Storage::disk('public')->path($fileName);
+            // Obtener la ruta completa del sistema de archivos
+            try {
+                $fullPath = Storage::disk('public')->path($fileName);
+            } catch (\Exception $e) {
+                // Fallback: construir la ruta manualmente
+                $fullPath = storage_path('app/public/' . $fileName);
+                \Log::info('Usando ruta manual para snapshot: ' . $fullPath);
+            }
+            
             $directoryPath = dirname($fullPath);
             
-            // Asegurar que el directorio existe a nivel del sistema de archivos
+            // Asegurar que el directorio existe a nivel del sistema de archivos con permisos correctos
             if (!is_dir($directoryPath)) {
-                mkdir($directoryPath, 0755, true);
+                if (!mkdir($directoryPath, 0755, true)) {
+                    \Log::error('No se pudo crear el directorio: ' . $directoryPath);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error al crear el directorio de snapshots'
+                    ], 500);
+                }
                 \Log::info('Directorio creado a nivel de sistema de archivos: ' . $directoryPath);
             }
             
-            // Guardar el archivo directamente usando file_put_contents para asegurar que se guarde
-            $saved = file_put_contents($fullPath, $decodedImage);
+            // Verificar permisos de escritura en el directorio
+            if (!is_writable($directoryPath)) {
+                \Log::error('El directorio no tiene permisos de escritura: ' . $directoryPath);
+                // Intentar cambiar permisos
+                @chmod($directoryPath, 0755);
+                if (!is_writable($directoryPath)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error: Sin permisos de escritura en el directorio de snapshots'
+                    ], 500);
+                }
+            }
+            
+            // Guardar el archivo directamente usando file_put_contents con flags de escritura
+            $saved = @file_put_contents($fullPath, $decodedImage, LOCK_EX);
             
             if ($saved === false || $saved === 0) {
-                \Log::error('Error al guardar snapshot en storage para set ID: ' . $set->id . '. Ruta completa: ' . $fullPath);
+                \Log::error('Error al guardar snapshot en storage para set ID: ' . $set->id . '. Ruta completa: ' . $fullPath . ', permisos dir: ' . substr(sprintf('%o', fileperms($directoryPath)), -4));
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error al guardar la imagen en storage'
+                    'message' => 'Error al guardar la imagen en storage. Verifique permisos del servidor.'
                 ], 500);
             }
             
             \Log::info('Archivo guardado usando file_put_contents: ' . $fullPath . ', bytes escritos: ' . $saved);
             
-            // Verificar que el archivo se guardó correctamente usando ambos métodos
+            // Verificar que el archivo se guardó correctamente
             if (!file_exists($fullPath)) {
                 \Log::error('El archivo no existe después de guardar para set ID: ' . $set->id . '. Ruta completa: ' . $fullPath);
                 return response()->json([
@@ -1237,11 +1293,20 @@ class DesignController extends Controller
                 ], 500);
             }
             
+            // Verificar también con Storage facade
             if (!Storage::disk('public')->exists($fileName)) {
-                \Log::error('El archivo no existe en Storage después de guardar para set ID: ' . $set->id . '. Ruta: ' . $fileName);
+                \Log::warning('El archivo no existe en Storage después de guardar para set ID: ' . $set->id . '. Ruta: ' . $fileName . ', pero existe en filesystem: ' . $fullPath);
             }
             
             $fileSize = filesize($fullPath);
+            if ($fileSize === false || $fileSize === 0) {
+                \Log::error('El archivo guardado tiene tamaño 0 o no se puede leer para set ID: ' . $set->id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo se guardó pero está vacío'
+                ], 500);
+            }
+            
             \Log::info('Archivo guardado exitosamente: ' . $fileName . ' (ruta completa: ' . $fullPath . '), tamaño: ' . $fileSize . ' bytes');
             
             // Guardar la ruta en el DesignFormat del set para que listados/API puedan mostrar la imagen
