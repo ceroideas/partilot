@@ -1149,23 +1149,132 @@ class DesignController extends Controller
     }
 
     public function saveSnapshot(Request $request) {
-        $validated = $request->validate([
-            'design_id' => 'required|exists:sets,id',
-            'snapshot' => 'required|string',
-        ]);
-        $set = \App\Models\Set::findOrFail($validated['design_id']);
-        $imgData = $validated['snapshot'];
-        $img = str_replace('data:image/png;base64,', '', $imgData);
-        $img = str_replace(' ', '+', $img);
-        $fileName = 'design_snapshots/design_set_' . $set->id . '.png';
-        \Storage::disk('public')->put($fileName, base64_decode($img));
-        // Guardar la ruta en el DesignFormat del set para que listados/API puedan mostrar la imagen
-        $format = DesignFormat::where('set_id', $set->id)->first();
-        if ($format) {
-            $format->snapshot_path = $fileName;
-            $format->save();
+        try {
+            $validated = $request->validate([
+                'design_id' => 'required|exists:sets,id',
+                'snapshot' => 'required|string',
+            ]);
+            
+            $set = \App\Models\Set::findOrFail($validated['design_id']);
+            $imgData = $validated['snapshot'];
+            
+            \Log::info('Recibido snapshot para set ID: ' . $set->id . ', longitud del string: ' . strlen($imgData));
+            
+            // Limpiar el string base64 - manejar diferentes formatos
+            $img = $imgData;
+            if (strpos($img, 'data:image/png;base64,') === 0) {
+                $img = str_replace('data:image/png;base64,', '', $img);
+            } elseif (strpos($img, 'data:image/jpeg;base64,') === 0) {
+                $img = str_replace('data:image/jpeg;base64,', '', $img);
+            }
+            $img = str_replace(' ', '+', $img);
+            $img = trim($img);
+            
+            // Decodificar base64
+            $decodedImage = base64_decode($img, true);
+            
+            if ($decodedImage === false || empty($decodedImage)) {
+                \Log::error('Error al decodificar imagen base64 para set ID: ' . $set->id . '. String recibido (primeros 100 chars): ' . substr($imgData, 0, 100));
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al procesar la imagen: datos base64 inválidos'
+                ], 422);
+            }
+            
+            \Log::info('Imagen decodificada correctamente, tamaño: ' . strlen($decodedImage) . ' bytes');
+            
+            // Asegurar que el directorio existe
+            $directory = 'design_snapshots';
+            if (!Storage::disk('public')->exists($directory)) {
+                Storage::disk('public')->makeDirectory($directory, 0755, true);
+                \Log::info('Directorio creado: ' . $directory);
+            }
+            
+            $fileName = $directory . '/design_set_' . $set->id . '.png';
+            
+            // IMPORTANTE: Obtener el DesignFormat ANTES de guardar para poder eliminar el snapshot anterior
+            $format = DesignFormat::where('set_id', $set->id)->first();
+            $oldSnapshotPath = null;
+            if ($format && $format->snapshot_path) {
+                $oldSnapshotPath = $format->snapshot_path;
+            }
+            
+            // Eliminar el snapshot anterior ANTES de guardar el nuevo (si existe y es diferente)
+            if ($oldSnapshotPath && $oldSnapshotPath !== $fileName && Storage::disk('public')->exists($oldSnapshotPath)) {
+                Storage::disk('public')->delete($oldSnapshotPath);
+                \Log::info('Snapshot anterior eliminado ANTES de guardar nuevo: ' . $oldSnapshotPath);
+            }
+            
+            // Guardar el archivo usando la ruta completa del sistema de archivos
+            $fullPath = Storage::disk('public')->path($fileName);
+            $directoryPath = dirname($fullPath);
+            
+            // Asegurar que el directorio existe a nivel del sistema de archivos
+            if (!is_dir($directoryPath)) {
+                mkdir($directoryPath, 0755, true);
+                \Log::info('Directorio creado a nivel de sistema de archivos: ' . $directoryPath);
+            }
+            
+            // Guardar el archivo directamente usando file_put_contents para asegurar que se guarde
+            $saved = file_put_contents($fullPath, $decodedImage);
+            
+            if ($saved === false || $saved === 0) {
+                \Log::error('Error al guardar snapshot en storage para set ID: ' . $set->id . '. Ruta completa: ' . $fullPath);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al guardar la imagen en storage'
+                ], 500);
+            }
+            
+            \Log::info('Archivo guardado usando file_put_contents: ' . $fullPath . ', bytes escritos: ' . $saved);
+            
+            // Verificar que el archivo se guardó correctamente usando ambos métodos
+            if (!file_exists($fullPath)) {
+                \Log::error('El archivo no existe después de guardar para set ID: ' . $set->id . '. Ruta completa: ' . $fullPath);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo no se guardó correctamente'
+                ], 500);
+            }
+            
+            if (!Storage::disk('public')->exists($fileName)) {
+                \Log::error('El archivo no existe en Storage después de guardar para set ID: ' . $set->id . '. Ruta: ' . $fileName);
+            }
+            
+            $fileSize = filesize($fullPath);
+            \Log::info('Archivo guardado exitosamente: ' . $fileName . ' (ruta completa: ' . $fullPath . '), tamaño: ' . $fileSize . ' bytes');
+            
+            // Guardar la ruta en el DesignFormat del set para que listados/API puedan mostrar la imagen
+            if ($format) {
+                $format->snapshot_path = $fileName;
+                $savedFormat = $format->save();
+                
+                if ($savedFormat) {
+                    \Log::info('Snapshot_path guardado en DesignFormat para set ID: ' . $set->id . ' en: ' . $fileName);
+                } else {
+                    \Log::error('Error al guardar snapshot_path en DesignFormat para set ID: ' . $set->id);
+                }
+            } else {
+                \Log::warning('No se encontró DesignFormat para set ID: ' . $set->id);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'path' => $fileName,
+                'url' => asset('storage/' . $fileName),
+                'file_size' => $fileSize
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error en saveSnapshot: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Request data: ' . json_encode($request->all()));
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar snapshot: ' . $e->getMessage()
+            ], 500);
         }
-        return ['success' => true, 'path' => $fileName];
     }
 
     /**

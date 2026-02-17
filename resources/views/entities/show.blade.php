@@ -465,7 +465,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->user->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager && $entity->manager->user ? $entity->manager->user->last_name : '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -525,7 +525,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $entity->manager->user->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $entity->manager && $entity->manager->user ? $entity->manager->user->email : '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -1158,7 +1158,6 @@
 		                    				
 		                    			</div>
 					                </div>
-					                </form>
 					                </form>
 			                    </div>
 			                </div>
