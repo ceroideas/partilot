@@ -189,6 +189,7 @@ Route::middleware('auth.api')->group(function () {
         Route::get('/me/entities', [SellerController::class, 'apiGetMyEntities']);
         Route::get('/me/lotteries', [SellerController::class, 'apiGetMyLotteries']);
         Route::get('/me/tacos', [SellerController::class, 'apiGetMyTacos']);
+        Route::get('/me/taco-by-qr', [SellerController::class, 'apiTacoByQr']);
         Route::get('/me/tacos/{setId}/{bookNumber}/participations', [SellerController::class, 'apiGetTacoParticipations']);
 
         // Listar vendedores

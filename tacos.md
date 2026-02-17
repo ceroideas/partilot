@@ -1,3 +1,32 @@
+1. Diferenciar QR de taco vs QR de participación (solo vendedor)
+Mismo escáner del menú inferior: el vendedor puede escanear tanto el QR de la portada del taco como el QR de una participación.
+Detección:
+Si el contenido del QR coincide con el formato TACO-{entity_id}-{set_id}-{set_number}-B{book_number}-{firma} (regex alineada al backend) → se trata como taco.
+Si no (incluye el caso de URL con ref= o texto que sea una referencia de participación) → se trata como participación.
+Origen del texto: se usa el texto del QR tal cual; si en el futuro el taco viene en una URL con ?taco_ref=..., se extrae ese parámetro.
+2. Flujo cuando el vendedor escanea un QR
+Escaneo (mismo botón “Escanear QR”, texto: “Escanea el QR del taco o de la participación”).
+Decisión:
+Taco: se llama a GET /api/sellers/me/taco-by-qr?taco_ref=... y se muestra la vista “Venta por taco” (set, sorteo, taco, participaciones disponibles, importe total). Al pulsar “Vender – Elegir forma de pago” se abre el mismo modal de resumen/pago que para participación.
+Participación: flujo actual: checkByReference → vista “Venta por QR” (una participación) → mismo modal de pago.
+Solo vendedor: el flujo de venta (taco o participación) sigue siendo solo en modo vendedor (iniciarScannerVendedor); el escáner de usuario no cambia.
+3. Cambios en código (Ionic)
+ventas.service.ts: nuevo método getTacoByQr(tacoRef) que llama a GET .../sellers/me/taco-by-qr?taco_ref=....
+escaner.page.ts:
+extraerTacoRefDeQR() para detectar y, si aplica, extraer taco_ref (texto directo o taco_ref= en URL).
+En iniciarScannerVendedor(): primero se comprueba si es taco; si no, se usa extraerReferenciaDeQR() y el flujo de participación.
+Estado ventaPendienteTaco y métodos: consultarTacoPorQr(), cancelarVentaTaco(), mostrarResumenVentaTaco(), registrarVentaTaco() (una llamada sellByQr(primera_referencia, desde, hasta) por rango), finalizarVentaTaco(), guardarVentaTacoEnHistorial().
+El modal de resumen/pago sirve para venta individual, venta por taco y digitalizaciones: getCantidadResumenVendedor() y getImporteTotalResumenVendedor() contemplan ventaPendienteTaco; registrarVentaDesdeModal() deriva a registrarVentaTaco() cuando hay taco pendiente.
+escaner.page.html:
+Vista nueva “Venta por taco (QR portada)” con datos del taco y botones “Vender – Elegir forma de pago” y “Cancelar”.
+Condiciones de visibilidad del escáner y de la vista de venta individual ajustadas para que no se solapen con la vista de taco.
+4. Resumen de comportamiento
+Escaneado	Quién	Acción
+QR taco (formato TACO-...)	Vendedor	getTacoByQr → vista taco → modal pago → venta por rangos con sellByQr(ref, desde, hasta).
+QR participación (ref o URL con ref=)	Vendedor	checkByReference → vista venta individual → mismo modal → sellByQr(referencia).
+QR participación	Usuario (no vendedor)	Flujo actual: comprobar / digitalizar / gestionar premio.
+Si quieres, el siguiente paso puede ser afinar mensajes (por ejemplo “Código de taco no válido” cuando el QR no sea ni taco ni participación) o el historial de “venta-taco”.
+
 en el laravel necesito imlementar una funcionalidad que genere un QR con un codigo que al leerlo desde la app permita vender un TACO completo, si el taco va desde la participacion 00001 hasta la 00050, al leer el QR de la portada del taco deberá permitirme vender todo el taco.
 
 Que necesito hacer?

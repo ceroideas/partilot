@@ -11,6 +11,7 @@ use App\Models\Participation;
 use App\Models\Lottery;
 use App\Models\SellerSettlement;
 use App\Models\SellerSettlementPayment;
+use App\Models\DesignFormat;
 use App\Services\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -754,6 +755,142 @@ class SellerController extends Controller
             ],
             'participations' => $formattedParticipations
         ]);
+    }
+
+    /**
+     * API: Resolver taco_ref (QR del taco) y devolver rangos de participaciones disponibles para el vendedor.
+     * Tarea 2 tacos: al escanear el QR de la portada del taco, la app llama aquí y muestra confirmación con rangos a vender.
+     */
+    public function apiTacoByQr(Request $request)
+    {
+        $request->validate([
+            'taco_ref' => 'required|string|max:120',
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        $parsed = DesignFormat::parseTacoRef($request->taco_ref);
+        if (!$parsed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Código de taco no válido o corrupto.',
+            ], 422);
+        }
+
+        $setId = $parsed['set_id'];
+        $bookNumber = $parsed['book_number'];
+
+        $set = Set::with(['reserve.lottery', 'designFormats'])->find($setId);
+        if (!$set) {
+            return response()->json(['success' => false, 'message' => 'Set no encontrado.'], 404);
+        }
+
+        $designFormat = $set->designFormats->first();
+        $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
+        $participationsPerBook = (int) ($output['participations_per_book'] ?? 50);
+        $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
+        $endParticipation = min($bookNumber * $participationsPerBook, (int) ($set->total_participations ?? 0));
+
+        if ($endParticipation < $startParticipation) {
+            return response()->json(['success' => false, 'message' => 'Rango de taco inválido.'], 422);
+        }
+
+        $participations = Participation::where('set_id', $setId)
+            ->where('seller_id', $seller->id)
+            ->whereBetween('participation_number', [$startParticipation, $endParticipation])
+            ->where('status', 'asignada')
+            ->orderBy('participation_number')
+            ->get();
+
+        if ($participations->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'taco_ref' => $request->taco_ref,
+                'set_id' => $setId,
+                'book_number' => $bookNumber,
+                'set_name' => $set->set_name,
+                'lottery_name' => $set->reserve->lottery->name ?? '',
+                'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
+                'rangos_disponibles' => [],
+                'total_disponibles' => 0,
+                'importe_por_participacion' => (float) ($set->played_amount ?? 0),
+                'importe_total' => 0,
+                'primera_referencia' => null,
+                'message' => 'No tienes participaciones disponibles en este taco (ya vendidas o no asignadas).',
+            ]);
+        }
+
+        $numbers = $participations->pluck('participation_number')->sort()->values()->all();
+        $rangos = $this->buildConsecutiveRanges($numbers);
+
+        $pricePerParticipation = (float) ($set->played_amount ?? 0);
+        $totalDisponibles = $participations->count();
+        $importeTotal = round($totalDisponibles * $pricePerParticipation, 2);
+
+        $primeraReferencia = null;
+        if ($set->tickets && !empty($numbers)) {
+            $tickets = is_array($set->tickets) ? $set->tickets : json_decode($set->tickets, true);
+            if (is_array($tickets)) {
+                $range = $set->getParticipationNumberRange();
+                $globalStart = $range['start'] ?? 1;
+                $firstNumGlobal = $numbers[0];
+                $localIndex = $firstNumGlobal - $globalStart + 1;
+                foreach ($tickets as $ticket) {
+                    if (isset($ticket['n']) && (int) $ticket['n'] === $localIndex) {
+                        $primeraReferencia = $ticket['r'] ?? null;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'taco_ref' => $request->taco_ref,
+            'set_id' => $setId,
+            'book_number' => $bookNumber,
+            'set_name' => $set->set_name,
+            'lottery_name' => $set->reserve->lottery->name ?? '',
+            'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
+            'rangos_disponibles' => $rangos,
+            'total_disponibles' => $totalDisponibles,
+            'importe_por_participacion' => $pricePerParticipation,
+            'importe_total' => $importeTotal,
+            'primera_referencia' => $primeraReferencia,
+            'participations_per_book' => $participationsPerBook,
+        ]);
+    }
+
+    /**
+     * Convierte una lista ordenada de números en rangos consecutivos [['desde' => n, 'hasta' => m], ...].
+     */
+    private function buildConsecutiveRanges(array $numbers): array
+    {
+        if (empty($numbers)) {
+            return [];
+        }
+        $rangos = [];
+        $desde = $numbers[0];
+        $hasta = $numbers[0];
+        for ($i = 1; $i < count($numbers); $i++) {
+            if ($numbers[$i] === $hasta + 1) {
+                $hasta = $numbers[$i];
+            } else {
+                $rangos[] = ['desde' => $desde, 'hasta' => $hasta];
+                $desde = $numbers[$i];
+                $hasta = $numbers[$i];
+            }
+        }
+        $rangos[] = ['desde' => $desde, 'hasta' => $hasta];
+        return $rangos;
     }
 
     /**
