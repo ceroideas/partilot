@@ -365,13 +365,9 @@
 			                    					<a href="{{ route('entities.edit-manager', $entity->id) }}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    					<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    					Editar</a>
-			                    				@else
-			                    					<a href="{{ route('entities.add-manager', $entity->id) }}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
-			                    					<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
-			                    					Agregar Gestor</a>
 			                    				@endif
 			                    			</h4>
-			                    			<small><i>@if($entity->manager && $entity->manager->user)Todos los campos son obligatorios@else Esta entidad no tiene gestor asignado. Puedes agregar uno haciendo clic en "Agregar Gestor".@endif</i></small>
+			                    			<small><i>@if($entity->manager && $entity->manager->user)Todos los campos son obligatorios@else Esta entidad no tiene gestor principal asignado. Puedes seleccionar uno de la lista de gestores en la pestaña "Gestores".@endif</i></small>
 			                    			<div style="clear: both;"></div>
 			                    			
 			                    			@if(!$entity->manager || !$entity->manager->user)
@@ -670,7 +666,13 @@
 							                                </td>
 							                                <td>
 							                                	@if(!$manager->is_primary)
-							                                		<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" onsubmit="return confirm('¿Asignar a este gestor como principal? El actual principal pasará a ser gestor secundario.');">
+							                                		@php
+							                                			$hasPrimary = $entity->managers->where('is_primary', true)->count() > 0;
+							                                			$confirmMessage = $hasPrimary 
+							                                				? '¿Asignar a este gestor como principal? El actual principal pasará a ser gestor secundario.' 
+							                                				: '¿Asignar a este gestor como principal?';
+							                                		@endphp
+							                                		<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" onsubmit="return confirm('{{ $confirmMessage }}');">
 							                                			@csrf
 							                                			<input type="hidden" name="entity_id" value="{{ $entity->id }}">
 							                                			<input type="hidden" name="new_primary_manager_id" value="{{ $manager->id }}">
