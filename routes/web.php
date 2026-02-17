@@ -33,6 +33,22 @@ use App\Models\Administration;
 |
 */
 
+// Ruta para servir archivos de storage (necesario para Nginx)
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    
+    $file = file_get_contents($filePath);
+    $type = mime_content_type($filePath);
+    
+    return response($file, 200)
+        ->header('Content-Type', $type)
+        ->header('Cache-Control', 'public, max-age=31536000');
+})->where('path', '.*');
+
 Route::get('comprobar-participacion', [App\Http\Controllers\ApiController::class, 'showParticipationTicket']);
 Route::get('comprobar-participaciones', [App\Http\Controllers\ApiController::class, 'showParticipationTicket']);
 Route::get('/participation-ticket', [ApiController::class, 'showParticipationTicket']);
