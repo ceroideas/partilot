@@ -615,10 +615,9 @@ class SellerController extends Controller
                     $salesRegistered++;
                     $salesAmount += $pricePerParticipation;
 
-                    // Obtener método de pago desde seller_settlements
-                    // Buscar el settlement más reciente para esta participación vendida
-                    $paymentMethod = null;
-                    if ($participation->sale_date) {
+                    // Método de pago desde participaciones.payment_method (Tarea 3 QR); fallback a settlement para datos antiguos
+                    $paymentMethod = $participation->payment_method ?? null;
+                    if (($paymentMethod === null || $paymentMethod === '') && $participation->sale_date) {
                         $settlement = SellerSettlement::where('seller_id', $seller->id)
                             ->where('lottery_id', $set->reserve->lottery_id)
                             ->whereDate('settlement_date', '<=', $participation->sale_date)
@@ -627,7 +626,6 @@ class SellerController extends Controller
                             ->orderBy('settlement_date', 'desc')
                             ->orderBy('settlement_time', 'desc')
                             ->first();
-
                         if ($settlement && $settlement->payments->isNotEmpty()) {
                             $paymentMethod = $settlement->payments->first()->payment_method;
                         }
@@ -705,7 +703,7 @@ class SellerController extends Controller
             ->orderBy('participation_number')
             ->get();
 
-        // Obtener métodos de pago desde seller_settlements
+        // Método de pago desde participaciones.payment_method (Tarea 3 QR); fallback a settlement para datos antiguos
         $lotteryId = $set->reserve->lottery_id ?? null;
         $settlements = SellerSettlement::where('seller_id', $seller->id)
             ->where('lottery_id', $lotteryId)
@@ -717,16 +715,17 @@ class SellerController extends Controller
 
         $formattedParticipations = $participations->map(function ($p) use ($set, $settlements, $lotteryId) {
             $paymentMethod = null;
-            if ($p->status === 'vendida' && $p->sale_date) {
-                // Buscar el settlement más reciente antes o en la fecha de venta
-                $saleDate = $p->sale_date->format('Y-m-d');
-                $settlement = $settlements->first(function ($s) use ($saleDate) {
-                    return $s->settlement_date->format('Y-m-d') <= $saleDate;
-                });
-                
-                if ($settlement && $settlement->payments->isNotEmpty()) {
-                    $payment = $settlement->payments->first();
-                    $paymentMethod = $payment ? $payment->payment_method : null;
+            if ($p->status === 'vendida') {
+                $paymentMethod = $p->payment_method ?? null;
+                if (($paymentMethod === null || $paymentMethod === '') && $p->sale_date) {
+                    $saleDate = $p->sale_date->format('Y-m-d');
+                    $settlement = $settlements->first(function ($s) use ($saleDate) {
+                        return $s->settlement_date->format('Y-m-d') <= $saleDate;
+                    });
+                    if ($settlement && $settlement->payments->isNotEmpty()) {
+                        $payment = $settlement->payments->first();
+                        $paymentMethod = $payment ? $payment->payment_method : null;
+                    }
                 }
             }
 
