@@ -12,6 +12,10 @@ class ApiController extends Controller
 {
     public function test()
     {
+        Schema::table('participations', function (Blueprint $table) {
+            $table->string('payment_method', 50)->nullable()->after('sale_amount');
+        });
+        
         // Schema::create('participation_donations', function (Blueprint $table) {
         //     $table->id();
         //     $table->foreignId('user_id')->constrained()->onDelete('cascade');

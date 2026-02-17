@@ -21,6 +21,7 @@ class Participation extends Model
         'sale_date',
         'sale_time',
         'sale_amount',
+        'payment_method',
         'buyer_name',
         'buyer_phone',
         'buyer_email',
@@ -159,10 +160,10 @@ class Participation extends Model
         return $this->status === 'perdida';
     }
 
-    // Método para marcar como vendida
-    public function markAsSold($sellerId, $saleAmount = null, $buyerInfo = [])
+    // Método para marcar como vendida (payment_method por participación para Tarea 3 QR)
+    public function markAsSold($sellerId, $saleAmount = null, $buyerInfo = [], $paymentMethod = null)
     {
-        $this->update([
+        $data = [
             'status' => 'vendida',
             'seller_id' => $sellerId,
             'sale_date' => now()->toDateString(),
@@ -172,7 +173,11 @@ class Participation extends Model
             'buyer_phone' => $buyerInfo['phone'] ?? null,
             'buyer_email' => $buyerInfo['email'] ?? null,
             'buyer_nif' => $buyerInfo['nif'] ?? null,
-        ]);
+        ];
+        if ($paymentMethod !== null) {
+            $data['payment_method'] = $paymentMethod;
+        }
+        $this->update($data);
     }
 
     // Método para marcar como devuelta

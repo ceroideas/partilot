@@ -411,12 +411,13 @@ class ParticipationController extends Controller
             $pricePerParticipation = (float) ($set->played_amount ?? 0);
             $saleAmount = $participations->count() * $pricePerParticipation;
 
+            $paymentMethod = $request->payment_method;
             DB::beginTransaction();
             foreach ($participations as $participation) {
-                $participation->markAsSold($seller->id, $pricePerParticipation);
+                $participation->markAsSold($seller->id, $pricePerParticipation, [], $paymentMethod);
             }
-            if ($this->shouldCreateSettlement($request->payment_method)) {
-                $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $request->payment_method, $user->id);
+            if ($this->shouldCreateSettlement($paymentMethod)) {
+                $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $paymentMethod, $user->id);
             }
             DB::commit();
 
@@ -566,13 +567,14 @@ class ParticipationController extends Controller
                 $set = $participations->first()->set()->with('reserve')->first();
                 $pricePerParticipation = (float) ($set->played_amount ?? 0);
                 $saleAmount = $participations->count() * $pricePerParticipation;
+                $paymentMethod = $request->payment_method;
 
                 DB::beginTransaction();
                 foreach ($participations as $participation) {
-                    $participation->markAsSold($seller->id, $pricePerParticipation);
+                    $participation->markAsSold($seller->id, $pricePerParticipation, [], $paymentMethod);
                 }
-                if ($this->shouldCreateSettlement($request->payment_method)) {
-                    $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $request->payment_method, $user->id);
+                if ($this->shouldCreateSettlement($paymentMethod)) {
+                    $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $paymentMethod, $user->id);
                 }
                 DB::commit();
                 return response()->json([
@@ -616,11 +618,12 @@ class ParticipationController extends Controller
             $set = $participation->set()->with('reserve')->first();
             $pricePerParticipation = (float) ($set->played_amount ?? 0);
             $saleAmount = $pricePerParticipation;
+            $paymentMethod = $request->payment_method;
 
             DB::beginTransaction();
-            $participation->markAsSold($seller->id, $pricePerParticipation);
-            if ($this->shouldCreateSettlement($request->payment_method)) {
-                $this->createSellerSettlementFromSale($seller, collect([$participation]), $set, $saleAmount, $request->payment_method, $user->id);
+            $participation->markAsSold($seller->id, $pricePerParticipation, [], $paymentMethod);
+            if ($this->shouldCreateSettlement($paymentMethod)) {
+                $this->createSellerSettlementFromSale($seller, collect([$participation]), $set, $saleAmount, $paymentMethod, $user->id);
             }
             DB::commit();
 
@@ -854,17 +857,20 @@ class ParticipationController extends Controller
                 }
             }
 
-            // Obtener método de pago desde settlement (si existe)
-            $formaPago = 'efectivo'; // Por defecto
-            $lotteryId = $lottery ? $lottery->id : null;
-            if ($lotteryId) {
-                $settlement = \App\Models\SellerSettlement::where('seller_id', $seller->id)
-                    ->where('lottery_id', $lotteryId)
-                    ->whereDate('settlement_date', $p->sale_date ?? now())
-                    ->with('payments')
-                    ->first();
-                if ($settlement && $settlement->payments->isNotEmpty()) {
-                    $formaPago = $settlement->payments->first()->payment_method ?? 'efectivo';
+            // Método de pago: por participación (Tarea 3 QR); fallback a settlement para datos antiguos
+            $formaPago = $p->payment_method ?? null;
+            if ($formaPago === null || $formaPago === '') {
+                $formaPago = 'efectivo';
+                $lotteryId = $lottery ? $lottery->id : null;
+                if ($lotteryId) {
+                    $settlement = \App\Models\SellerSettlement::where('seller_id', $seller->id)
+                        ->where('lottery_id', $lotteryId)
+                        ->whereDate('settlement_date', $p->sale_date ?? now())
+                        ->with('payments')
+                        ->first();
+                    if ($settlement && $settlement->payments->isNotEmpty()) {
+                        $formaPago = $settlement->payments->first()->payment_method ?? 'efectivo';
+                    }
                 }
             }
 
