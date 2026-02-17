@@ -429,4 +429,89 @@ class DesignFormat extends Model
     {
         return $this->set ? $this->set->set_number : 1;
     }
+
+    /**
+     * Tarea 1 tacos: genera taco_qrs para venta por QR de taco completo.
+     * taco_ref incluye entity_id, set_id, set_number, book_number y firma HMAC para verificación.
+     * Formato: TACO-{entity_id}-{set_id}-{set_number}-B{book_number}-{signature}
+     * Devuelve el array output con la clave 'taco_qrs' añadida/actualizada.
+     */
+    public static function mergeTacoQrsIntoOutput(?int $setId, array $output): array
+    {
+        if (!$setId || !isset($output['participations_per_book'])) {
+            return $output;
+        }
+        $set = Set::find($setId);
+        if (!$set) {
+            return $output;
+        }
+        $total = (int) ($set->total_participations ?? 0);
+        if ($total <= 0 && !empty($set->tickets)) {
+            $tickets = is_array($set->tickets) ? $set->tickets : [];
+            $total = count($tickets);
+        }
+        if ($total <= 0) {
+            return $output;
+        }
+        $perBook = (int) ($output['participations_per_book'] ?? 50);
+        if ($perBook <= 0) {
+            $perBook = 50;
+        }
+        $numBooks = (int) ceil($total / $perBook);
+        $entityId = (int) $set->entity_id;
+        $setNumber = (int) ($set->set_number ?? 0);
+        $tacoQrs = [];
+        for ($b = 1; $b <= $numBooks; $b++) {
+            $tacoQrs[] = [
+                'book_number' => $b,
+                'taco_ref' => self::buildTacoRef($entityId, $setId, $setNumber, $b),
+            ];
+        }
+        $output['taco_qrs'] = $tacoQrs;
+        return $output;
+    }
+
+    /**
+     * Construye un taco_ref con firma: TACO-{entity_id}-{set_id}-{set_number}-B{book_number}-{signature}
+     * La firma permite verificar en la API que el ref no ha sido alterado.
+     */
+    public static function buildTacoRef(int $entityId, int $setId, int $setNumber, int $bookNumber): string
+    {
+        $payload = implode('|', [$entityId, $setId, $setNumber, $bookNumber]);
+        $signature = substr(
+            hash_hmac('sha256', $payload, config('app.key')),
+            0,
+            8
+        );
+        return sprintf('TACO-%d-%d-%d-B%d-%s', $entityId, $setId, $setNumber, $bookNumber, $signature);
+    }
+
+    /**
+     * Parsea y valida un taco_ref. Devuelve ['entity_id', 'set_id', 'set_number', 'book_number'] o null si no es válido.
+     */
+    public static function parseTacoRef(string $tacoRef): ?array
+    {
+        if (!preg_match('/^TACO-(\d+)-(\d+)-(\d+)-B(\d+)-([a-f0-9]{8})$/', $tacoRef, $m)) {
+            return null;
+        }
+        $entityId = (int) $m[1];
+        $setId = (int) $m[2];
+        $setNumber = (int) $m[3];
+        $bookNumber = (int) $m[4];
+        $receivedSig = $m[5];
+        $expectedSig = substr(
+            hash_hmac('sha256', implode('|', [$entityId, $setId, $setNumber, $bookNumber]), config('app.key')),
+            0,
+            8
+        );
+        if (!hash_equals($expectedSig, $receivedSig)) {
+            return null;
+        }
+        return [
+            'entity_id' => $entityId,
+            'set_id' => $setId,
+            'set_number' => $setNumber,
+            'book_number' => $bookNumber,
+        ];
+    }
 }

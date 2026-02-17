@@ -212,7 +212,8 @@ class DesignController extends Controller
         $data['output'] = $data['blocks']['output'];
         $data['margins'] = $data['blocks']['margins'];
         $data['snapshot_path'] = $data['snapshot_path'] ?? null;
-        // return $data;
+        // Tarea 1 tacos: generar taco_qrs (un QR por taco) para venta por QR de taco completo
+        $data['output'] = DesignFormat::mergeTacoQrsIntoOutput($data['set_id'] ?? null, $data['output'] ?? []);
 
         $designFormat = DesignFormat::create($data);
 
@@ -741,7 +742,11 @@ class DesignController extends Controller
                 // Guardar los campos JSON como string si corresponde
                 if (isset($data['margins'])) $format->margins = $data['margins'];
                 if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
-                if (isset($data['output'])) $format->output = $data['output'];
+                if (isset($data['output'])) {
+                    $format->output = $data['output'];
+                    // Tarea 1 tacos: regenerar taco_qrs al guardar output (participations_per_book puede haber cambiado)
+                    $format->output = DesignFormat::mergeTacoQrsIntoOutput($format->set_id, $format->output ?? []);
+                }
                 $format->save();
                 
                 // Si viene del paso 5 (configurar salida), redirigir a la vista de resumen
