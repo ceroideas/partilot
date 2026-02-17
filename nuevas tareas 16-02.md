@@ -98,6 +98,49 @@
   **Posibles soluciones:**
   - Para sets digitales: al dar por cerrado el diseño (o al “generar” el set digital), generar una imagen de participación (por ejemplo un PNG o un frame del PDF por participación) y guardarla asociada al set o a cada participación digital, de forma que en la app/panel al listar participaciones digitales se muestre esa imagen y se pueda asignar (mismo flujo conceptual que “taco” en físicas). Revisar modelo Participation/Set por tipo digital y añadir campo o relación para imagen de participación si no existe; reutilizar la misma lógica de diseño (render del diseño con datos de la participación) para generar esa imagen.
 
+  **Contexto general: físicas vs digitales y vinculación a la cuenta del cliente**
+
+  Resumen de lo que tenemos y lo que se puede hacer en la aplicación y en el sistema web:
+
+  1. **Estado actual**
+  - El **Set** tiene `physical_participations` y `digital_participations` (y en creación de set se elige tipo físico/digital y cantidades).
+  - El **diseño** se puede generar tanto para sets físicos como digitales (mismo flujo en Diseño e impresión).
+  - Solo los **físicos** se imprimen (PDF con QR y referencia por participación); los digitales no se imprimen pero deben poder asignarse y venderse.
+  - Las **participaciones** se generan en `DesignFormat::generateParticipations()` con `participation_code`; el **Set** tiene `tickets` con referencia `r` y número `n` (QR en físicas). El modelo **Participation** no tiene campo `user_id` (cliente comprador); sí tiene `seller_id`, `buyer_name`, `buyer_phone`, etc.
+  - **Físicas:** tacos con QR; vendedor registra venta con `apiSellByQr`; el **cliente** escanea el QR de la participación comprada para “digitalizarla” y tenerla en su cartera (la app identifica por referencia y asocia a la cuenta del usuario).
+
+  2. **Flujo físico (resumido)**
+  - Impresión → tacos con QR (referencia única). Asignación a vendedor → estado “asignada”. Venta: vendedor escanea QR/referencia → “vendida”. Cliente: escanea QR de su participación → se vincula a su cuenta (cartera).
+
+  3. **Flujo digital (resumido y gap)**
+  - No se imprimen; deben tener **identificador único** por participación. Venta: selector de cantidad (“vender N participaciones digitales”) → N participaciones pasan a “vendidas”.
+  - **Problema:** En digitales no hay soporte físico que escanear, así que hay que definir **cómo** las participaciones digitales vendidas pasan a la **cartera del cliente**.
+
+  4. **Opciones para vincular participaciones digitales a la cuenta del cliente**
+  - **A) Venta con cliente identificado.** En la venta digital, si el comprador es un usuario cliente (o se asocia por email/teléfono): al confirmar la venta de N participaciones, asignar esas N al `user_id` del cliente. Haría falta un campo en **Participation** tipo `client_user_id` (o tabla intermedia) y que el flujo de venta digital pida/detecte el cliente y guarde el vínculo. Las participaciones quedarían directamente en la cartera del usuario.
+  - **B) Enlace o código de reclamación post-venta.** Tras la venta, generar un enlace único (o código) por participación o lote; enviar por email/SMS. El cliente abre el enlace en la app/web con sesión iniciada; el backend valida y asocia la participación al `user_id` actual (“reclamar” → cartera).
+  - **C) Ventas desde la app del cliente.** Si la compra digital se hace desde la app con el cliente logueado, en el mismo acto se asignan las N participaciones al `user_id` del comprador; no hace falta escaneo ni reclamación.
+
+  En todos los casos conviene que cada participación digital tenga **identificador único** (ej. `participation_code` o código “DIG-…”) para trazabilidad y XML. La Tarea 13 (imagen por participación digital para listar y asignar) encaja con tener participaciones digitales bien identificadas y mostrables, para luego asignarlas al vendedor y, tras la venta, vincularlas al cliente por una de las opciones anteriores.
+
+  Qué hay ahora en la aplicación
+Set: physical_participations y digital_participations; en la creación del set se elige tipo (físico/digital) y cantidades.
+Diseño: mismo flujo para sets físicos y digitales; solo los físicos se imprimen (PDF con QR y referencia).
+Participaciones: se generan con participation_code; el modelo Participation tiene seller_id, buyer_*, pero no tiene user_id del cliente comprador.
+Físicas: tacos con QR → vendedor vende por QR/referencia (apiSellByQr) → cliente escanea el QR de su participación y la “digitaliza” en su cartera (la app identifica por referencia y la asocia a su cuenta).
+Dónde está el hueco en digitales
+En digitales la venta es por cantidad (selector numérico): se marcan N participaciones como vendidas. No hay papel ni QR que escanear, así que falta definir cómo esas participaciones vendidas pasan a la cartera del cliente (cuenta de usuario).
+Opciones para vincular participaciones digitales al cliente
+En el documento se describen tres vías:
+Venta con cliente identificado (A)
+En la venta digital se identifica al comprador como usuario (por email/teléfono o selección). Al confirmar la venta de N participaciones, el sistema asigna esas N al user_id del cliente. Haría falta algo tipo client_user_id en Participation (o tabla intermedia) y que el flujo de venta digital guarde ese vínculo. Las participaciones quedarían directamente en la cartera, sin pasos extra.
+Enlace o código de reclamación (B)
+Después de la venta se genera un enlace único (o código) por participación o por lote y se envía por email/SMS. El cliente abre el enlace en la app/web con la sesión iniciada; el backend valida el token y asocia la participación (o el lote) al user_id actual. Así “reclama” las participaciones y pasan a su cartera.
+Venta desde la app del cliente (C)
+Si la venta de participaciones digitales se hace desde la app con el cliente logueado (compra a vendedor o a entidad), en el mismo acto de compra se pueden asignar las N participaciones al user_id del comprador. No haría falta escaneo ni reclamación posterior.
+En todos los casos es importante que cada participación digital tenga identificador único (por ejemplo el mismo participation_code o un código tipo “DIG-…”) para trazabilidad, XML y para poder asociarla sin ambigüedad a un usuario. La Tarea 13 (generar imagen de participación digital para listar y asignar) encaja con esto: tener participaciones digitales bien identificadas y mostrables permite asignarlas al vendedor y, tras la venta, vincularlas al cliente con una de las opciones anteriores.
+El texto completo está en nuevas tareas 16-02.md, en el bloque de la Tarea 13, justo después de “Posibles soluciones”.
+
 ---
 
 ## XML y exportación
@@ -131,22 +174,27 @@
 
 ## Datos de reserva y usuarios
 
-- **Tarea 19:** Datos de reserva, botón editar en el listado, atrás y se queda en la misma pantalla y hay que volverle a dar para salir.
+- ✅ **Tarea 19 COMPLETADA:** Datos de reserva, botón editar en el listado, atrás y se queda en la misma pantalla y hay que volverle a dar para salir.
 
-  **Posibles soluciones:**
+  **Solución implementada:** El botón "Atrás" en la vista de edición de reserva (`reserves/edit.blade.php`) ahora redirige directamente a la lista de reservas (`route('reserves.index')`) en lugar de ir a la vista de detalle, de modo que un solo clic devuelve al listado.
+
+  **Posibles soluciones (referencia):**
   - El “atrás” probablemente es `history.back()` o un enlace que no cambia la URL. Cambiar el botón “Atrás” en la vista de edición de reserva para que sea un enlace fijo a la lista de reservas (p. ej. `route('reserves.index')` o la que corresponda) en lugar de depender del historial. Así siempre se sale al listado con un solo clic.
 
-- **Tarea 20:** Imagen de un usuario, la sube pero no la muestra en su ficha. Si le das a editar sí la muestra.
+- ✅ **Tarea 20 COMPLETADA:** Imagen de un usuario, la sube pero no la muestra en su ficha. Si le das a editar sí la muestra.
 
-  **Posibles soluciones:**
+  **Soluciones implementadas:**
+  - En `resources/views/users/show.blade.php` se corrigió la visualización del avatar: el atributo `style="background-image: url(...)"` solo se aplica cuando `$user->image` existe, y la URL se escribe entre comillas en `url('...')` para que el CSS sea válido. Cuando no hay imagen se muestra el icono por defecto (`ri-account-circle-fill`). El controlador ya pasa el modelo `$user` con todos los atributos (route model binding).
+
+  **Posibles soluciones (referencia):**
   - En la vista de ficha del usuario (show) no se está mostrando el avatar. Comprobar que el controlador que carga la ficha (p. ej. para vendedor o usuario) pase el usuario con el campo `image` o `avatar` cargado. En la vista show, añadir el mismo bloque que en el formulario de edición para mostrar la foto: por ejemplo `<div class="photo-preview-3" style="background-image: url('{{ asset('uploads/' . $user->image) }}');">` (o el campo que use el modelo User). Si la imagen se guarda en otro disco (storage), usar `Storage::url($user->image)` y asegurar el enlace simbólico `php artisan storage:link`.
 
-- **Tarea 21:** Cuando estás dentro de un usuario, le das a Cartera o Historial y no te dirige a ningún sitio. Si le das a Cartera debería abrirse la cartera y poner que no hay movimientos o que no hay productos, y en el historial igual.
+- ✅ **Tarea 21 COMPLETADA:** Cuando estás dentro de un usuario, le das a Cartera o Historial y no te dirige a ningún sitio. Implementadas rutas users/{user}/wallet y users/{user}/history con vistas en tabla (estilo admin) y mensaje "No hay productos" / "No hay movimientos" si está vacío. Si le das a Cartera debería abrirse la cartera y poner que no hay movimientos o que no hay productos, y en el historial igual.
 
   **Posibles soluciones:**
   - Revisar los enlaces “Cartera” e “Historial” en la vista de detalle del usuario (p. ej. `sellers/show` o `users/show`). Deben apuntar a rutas existentes, por ejemplo `route('sellers.wallet', $user->id)` y `route('sellers.history', $user->id)` (o equivalentes). Si esas rutas no existen, crearlas: cada una mostrará la misma estructura de cartera/historial pero filtrada por ese usuario, y si no hay datos mostrar mensaje “No hay movimientos” / “No hay productos”.
 
-- **Tarea 22:** En la sección de usuarios, eliges uno y al entrar (sin darle a editar) sale el estado y el botón “Cambiar” pero el botón no funciona. No debería estar ahí y debería estar en la parte izquierda como los vendedores o los gestores y obviamente funcionar.
+- ✅ **Tarea 22 COMPLETADA:** En la sección de usuarios, eliges uno y al entrar (sin darle a editar) sale el estado y el botón “Cambiar” pero el botón no funciona. No debería estar ahí y debería estar en la parte izquierda como los vendedores o los gestores y obviamente funcionar.
 
   **Posibles soluciones:**
   - Revisar la vista de detalle del usuario (show): quitar el bloque “estado + Cambiar” de la posición actual si no funciona. Añadir en la barra lateral izquierda (junto a “Vendedores”, “Gestores”, etc.) un bloque “Estado” con el estado actual y un botón “Cambiar” que envíe a la ruta que actualice el estado (por ejemplo POST a `users/{id}/status` o similar). Conectar el botón al endpoint que cambie el estado y recargue o redirija para que el cambio se vea.
@@ -155,8 +203,17 @@
 
 ## Participaciones y tacos
 
-- **Tarea 23:** En la sección participaciones has creado dos sets físicos y uno digital. En el primer set físico le das a “saber”, te salen los tacos y le das a un taco y te salen las participaciones pero te pone que están vendidas las 60 y disponibles las 60. En el siguiente set físico (3/00001, contando el digital como set) le das a ver tacos, te sale el taco pero si le das dentro no hay participaciones y también están como vendidas todas y disponibles. NUNCA puede estar así: la suma de todas las categorías (vendidas, devueltas, anuladas, disponibles, disponibles DV) debe ser coherente.
+- ✅ **Tarea 23 COMPLETADA:** En la sección participaciones, los totales por set/taco eran incoherentes (p. ej. vendidas=60 y disponibles=60) y en sets posteriores el taco aparecía pero “no había participaciones” al entrar.
 
-  **Posibles soluciones:**
-  - Revisar cómo se calculan “vendidas” y “disponibles” en la vista de participaciones/tacos. Debe haber una única fuente de verdad: por ejemplo conteo por `status` de las filas de `participations` (vendida, devuelta, anulada, disponible, disponible_dv). Ajustar la query para que los totales se obtengan con `selectRaw`/`groupBy` por status y que “disponibles” + “vendidas” + “devueltas” + “anuladas” + “disponibles_dv” = total de participaciones del set/taco. Revisar también que al listar participaciones de un taco no se filtren mal (por ejemplo por `design_format_id` o `participation_number`) y que no se dupliquen filas. Si el set 3/00001 no tiene participaciones creadas aún (porque es digital o no se han generado), no debería mostrarse “60 vendidas y 60 disponibles”; en ese caso mostrar 0 en cada categoría hasta que existan registros en `participations` para ese set/taco, y asegurar que la creación de participaciones al generar el PDF o al activar el set rellene correctamente la tabla.
+  **Causa 1 (UI):** En `resources/views/participations/add.blade.php` el resumen expandible estaba hardcodeado (vendidas=total y disponibles=total, devueltas/anuladas=0).
 
+  **Causa 2 (Backend):** En `ParticipationController::calculateBooks()` y `getBookParticipations()` se filtraba por rango de `participation_number` como si fuese local (1..N), pero en BD se guarda como numeración global por reserva; eso hacía que en sets posteriores el rango no encontrara filas.
+
+  **Solución implementada:**
+  - **Resumen por set**: ahora se calcula por BD agrupando por `status` y se fuerza coherencia: `vendidas + devueltas + anuladas + disponibles = total_configurado`.
+  - **Tacos**: ahora se calculan por `book_number` (taco) en lugar de rangos de `participation_number`, evitando el problema de numeración global.
+  - **Detalle de taco (AJAX)**: el endpoint devuelve participaciones por `set_id + book_number` ordenadas por `participation_number`.
+
+- ✅ **Tarea 24 COMPLETADA:** En la aplicación Ionic, el acceso se debe poder controlar mejor. Implementado: (1) `loggedInGuard` en ruta principal: si no hay login redirige a /login. (2) Selector de rol: solo muestra opciones permitidas (Usuario siempre si logueado; Vendedor solo si isSeller; Gestor solo si isGestor/role entity). Aplicado en historial, venta, venta-qr, cartera.
+
+- ✅ **Tarea 25 COMPLETADA:** En venta con 1 solo sorteo se saltaba el paso de selección y no se cargaban reservas/sets. Solución: siempre mostrar `showLotteriesList = true` aunque haya 1 sorteo, para que el usuario haga clic y `selectLottery()` llame a `loadReservesAndSets()` correctamente.

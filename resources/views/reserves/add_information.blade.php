@@ -85,12 +85,11 @@
 
                             <div class="form-card">
                                 
-                                @php $selEntity = session('selected_entity'); $selEntityImg = $selEntity && (is_object($selEntity) ? $selEntity->image : ($selEntity['image'] ?? null)); @endphp
                                 <div class="row">
                                     <div class="col-4">
                                         
-                                        <div class="photo-preview-3 logo-round" @if($selEntityImg) style="background-image: url('{{ asset('uploads/' . $selEntityImg) }}');" @endif>
-                                            @if(!$selEntityImg)
+                                        <div class="photo-preview-3 logo-round" @if($entity->image ?? null) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+                                            @if(!($entity->image ?? null))
                                                 <i class="ri-account-circle-fill"></i>
                                             @endif
                                         </div>
@@ -100,9 +99,9 @@
 
                                     <div class="col-8 text-center mt-2">
 
-                                        <h3 class="mt-2 mb-0">{{ is_object($selEntity) ? ($selEntity->name ?? 'Entidad') : ($selEntity['name'] ?? 'Entidad') }}</h3>
+                                        <h3 class="mt-2 mb-0">{{ $entity->name ?? 'Entidad' }}</h3>
 
-                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ is_object($selEntity) ? ($selEntity->province ?? 'Sin provincia') : ($selEntity['province'] ?? 'Sin provincia') }}
+                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $entity->province ?? 'Sin provincia' }}
                                         
                                     </div>
                                 </div>
@@ -111,7 +110,7 @@
 
                             <form action="{{url('reserves/store-entity')}}" method="POST" style="position: absolute; bottom: 16px;">
                                 @csrf
-                                <input type="hidden" name="entity_id" value="{{session('selected_entity')->id}}">
+                                <input type="hidden" name="entity_id" value="{{ $entity->id }}">
                                 <button type="submit" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder;" class="btn btn-md btn-light mt-2">
                                     <i style="top: 18px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
                                 </button>
@@ -138,7 +137,7 @@
                                                     <img src="{{url('assets/form-groups/admin/16.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->name ?? ''}}" placeholder="Número" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="text" value="{{$lottery->name ?? ''}}" placeholder="Número" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -153,7 +152,7 @@
                                                     <img src="{{url('assets/form-groups/admin/17.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->description ?? ''}}" placeholder="Nombre del Sorteo" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="text" value="{{$lottery->description ?? ''}}" placeholder="Nombre del Sorteo" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -171,7 +170,7 @@
                                                     <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->lotteryType->name ?? 'Sin tipo'}}" placeholder="Tipo de Sorteo" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="text" value="{{$lottery->lotteryType->name ?? 'Sin tipo'}}" placeholder="Tipo de Sorteo" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -186,7 +185,7 @@
                                                     <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="number" value="{{session('selected_lottery')->ticket_price ?? 0}}" step="0.01" placeholder="0.00€" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="number" value="{{$lottery->ticket_price ?? 0}}" step="0.01" placeholder="0.00€" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -201,7 +200,7 @@
                                                     <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
                                                 </div>
 
-                                                <input class="form-control" readonly type="text" value="{{session('selected_lottery')->draw_date ? \Carbon\Carbon::parse(session('selected_lottery')->draw_date)->format('d/m/Y') : 'No definida'}}" placeholder="Fecha" style="border-radius: 0 30px 30px 0;">
+                                                <input class="form-control" readonly type="text" value="{{$lottery->draw_date ? \Carbon\Carbon::parse($lottery->draw_date)->format('d/m/Y') : 'No definida'}}" placeholder="Fecha" style="border-radius: 0 30px 30px 0;">
                                             </div>
                                         </div>
                                     </div>
@@ -409,7 +408,7 @@ $('#reservation_tickets').on('input', function() {
 // Función para calcular décimos basado en el importe (siempre redondear al alza y ajustar importe al múltiplo)
 function calculateTicketsFromAmount() {
     const reservationAmount = parseFloat($('#reservation_amount').val()) || 0;
-    const ticketPrice = {{session('selected_lottery')->ticket_price ?? 0}};
+    const ticketPrice = {{$lottery->ticket_price ?? 0}};
     
     if (ticketPrice > 0 && reservationAmount > 0) {
         const tickets = Math.ceil(reservationAmount / ticketPrice); // Siempre al alza: no fracciones de décimo
@@ -422,7 +421,7 @@ function calculateTicketsFromAmount() {
 // Función para calcular importe basado en los décimos
 function calculateAmountFromTickets() {
     const tickets = parseInt($('#reservation_tickets').val()) || 0;
-    const ticketPrice = {{session('selected_lottery')->ticket_price ?? 0}};
+    const ticketPrice = {{$lottery->ticket_price ?? 0}};
     
     const amount = tickets * ticketPrice;
     $('#reservation_amount').val(amount.toFixed(2));

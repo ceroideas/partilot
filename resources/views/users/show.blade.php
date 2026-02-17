@@ -44,18 +44,36 @@
                     				<label>Datos Usuario</label>
                     			</div>
 
-                    			<div class="form-wizard-element" data-tab="cartera">
+                    			<a href="{{ route('users.wallet', $user->id) }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
                     				<span>2</span>
                     				<img src="{{url('assets/form-groups/wallet.svg')}}" alt="">
                     				<label>Cartera</label>
-                    			</div>
+                    			</a>
 
-                    			<div class="form-wizard-element" data-tab="historial">
+                    			<a href="{{ route('users.history', $user->id) }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
                     				<span>3</span>
                     				<img src="{{url('assets/form-groups/history.svg')}}" alt="">
                     				<label>Historial</label>
-                    			</div>
+                    			</a>
                     			
+                    		</div>
+
+                    		<!-- Bloque Estado en barra lateral (mismo estilo que administraciones) -->
+                    		<div class="form-card bs mb-3 mt-3">
+                    			<h4 class="mb-0 mt-1">Estado Usuario</h4>
+                    			<small><i>Bloquea o desbloquea al usuario</i></small>
+
+                    			<div class="form-group mt-2">
+	                    			<label class="">Estado actual</label>
+	                    			<div class="input-group input-group-merge group-form">
+	                    				<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+	                    					<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
+	                    				</div>
+	                    				<input class="form-control" type="text" value="{{ $user->status ? 'Activo' : 'Bloqueado' }}" id="user-status-input" style="border-radius: 0 30px 0 0; border-bottom: 1px solid #dee2e6;" readonly>
+	                    				<button type="button" class="btn btn-sm btn-outline-secondary" id="user-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
+	                    			</div>
+	                    			<div style="clear: both;"></div>
+                    			</div>
                     		</div>
 
                     		<a href="{{ route('users.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
@@ -85,14 +103,10 @@
 			                    					
 			                    					<div class="col-1">
 			                    						
-			                    						<div class="photo-preview-3" style="background-image: url({{ asset('storage/' . $user->image) }});">
-			                    							
-			                    							@if($user->image)
-
-			                    							@else
+			                    						<div class="photo-preview-3" @if($user->image) style="background-image: url('{{ asset('storage/' . $user->image) }}');" @endif>
+			                    							@if(!$user->image)
 			                    								<i class="ri-account-circle-fill"></i>
 			                    							@endif
-
 			                    						</div>
 			                    						
 			                    						<div style="clear: both;"></div>
@@ -234,23 +248,6 @@
 						                    			</div>
 			                    					</div>
 
-			                    					<div class="col-3">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Estado</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                        <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
-							                                    </div>
-
-							                                    <input readonly="" value="{{ $user->status ? 'Activo' : 'Bloqueado' }}" class="form-control" type="text" id="user-status-input" style="border-radius: 0 30px 0 0;">
-							                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="user-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
-							                                </div>
-							                                <span class="badge bg-{{ $user->status ? 'success' : 'danger' }} mt-2" id="user-status-badge" style="display: none;">{{ $user->status ? 'Activo' : 'Bloqueado' }}</span>
-						                    			</div>
-			                    					</div>
-
 			                    				</div>
 			                    			</div>
 
@@ -314,9 +311,8 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                var badge = document.getElementById('user-status-badge');
-                badge.textContent = data.status_text;
-                badge.className = 'badge bg-' + data.status_class + ' fs-6';
+                var input = document.getElementById('user-status-input');
+                if (input) input.value = data.status_text;
             }
         })
         .catch(function() { alert('Error al cambiar el estado'); })

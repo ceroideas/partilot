@@ -392,6 +392,8 @@ Route::resource('devolutions', DevolutionsController::class);
 Route::get('users-data', [UserController::class, 'data'])->name('users.data');
 Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 Route::post('users/check-email', [UserController::class, 'checkEmail'])->name('users.check-email');
+Route::get('users/{user}/wallet', [UserController::class, 'wallet'])->name('users.wallet');
+Route::get('users/{user}/history', [UserController::class, 'history'])->name('users.history');
 Route::resource('users', UserController::class);
 
 // Rutas de Notificaciones

@@ -21,6 +21,35 @@ use App\Http\Controllers\ApiController;
 class ParticipationController extends Controller
 {
     /**
+     * Calcula resumen de estados para un set.
+     * Garantiza coherencia: vendidas + devueltas + anuladas + disponibles = total_configurado.
+     * Cualquier estado no contemplado se considera "disponible" a efectos de suma.
+     */
+    private function getSetStatusSummary(int $setId, int $totalConfigured): array
+    {
+        $counts = \App\Models\Participation::where('set_id', $setId)
+            ->select('status', DB::raw('COUNT(*) as c'))
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $sold = (int) ($counts['vendida'] ?? 0);
+        $returned = (int) ($counts['devuelta'] ?? 0);
+        $cancelled = (int) ($counts['anulada'] ?? 0);
+
+        $knownSum = $sold + $returned + $cancelled;
+        // Si por datos inconsistentes knownSum supera el configurado, ampliamos el total para no dar negativos.
+        $total = max($totalConfigured, $knownSum);
+        $available = max(0, $total - $knownSum);
+
+        return [
+            'total' => $total,
+            'sold' => $sold,
+            'returned' => $returned,
+            'cancelled' => $cancelled,
+            'available' => $available,
+        ];
+    }
+    /**
      * Mostrar lista de participaciones
      */
     public function index()
@@ -58,6 +87,12 @@ class ParticipationController extends Controller
         // Procesar cada designFormat para calcular los tacos
         foreach ($designFormats as $designFormat) {
             $this->calculateBooks($designFormat);
+            if ($designFormat->set) {
+                $totalConfigured = (int) ($designFormat->set->total_participations ?? 0);
+                $designFormat->set_stats = $this->getSetStatusSummary((int) $designFormat->set->id, $totalConfigured);
+            } else {
+                $designFormat->set_stats = ['total' => 0, 'sold' => 0, 'returned' => 0, 'cancelled' => 0, 'available' => 0];
+            }
         }
         
         return view('participations.add', compact('entity', 'designFormats'));
@@ -86,6 +121,12 @@ class ParticipationController extends Controller
         // Procesar cada designFormat para calcular los tacos
         foreach ($designFormats as $designFormat) {
             $this->calculateBooks($designFormat);
+            if ($designFormat->set) {
+                $totalConfigured = (int) ($designFormat->set->total_participations ?? 0);
+                $designFormat->set_stats = $this->getSetStatusSummary((int) $designFormat->set->id, $totalConfigured);
+            } else {
+                $designFormat->set_stats = ['total' => 0, 'sold' => 0, 'returned' => 0, 'cancelled' => 0, 'available' => 0];
+            }
         }
 
         return view('participations.add', compact('entity', 'designFormats'));
@@ -174,35 +215,47 @@ class ParticipationController extends Controller
         
         $books = [];
         for ($i = 1; $i <= $totalBooks; $i++) {
-            $startParticipation = (($i - 1) * $participationsPerBook) + 1;
-            $endParticipation = min($i * $participationsPerBook, $totalParticipations);
-            
-            // Calcular estadísticas reales del taco
-            $bookParticipations = \App\Models\Participation::where('set_id', $designFormat->set->id)
-                ->whereBetween('participation_number', [$startParticipation, $endParticipation])
-                ->get();
+            $expectedTotalInBook = (int) min(
+                $participationsPerBook,
+                max(0, $totalParticipations - (($i - 1) * $participationsPerBook))
+            );
 
-            $salesRegistered = $bookParticipations->where('status', 'vendida')->count();
-            $returnedParticipations = $bookParticipations->where('status', 'devuelta')->count();
-            $availableParticipations = $bookParticipations->where('status', 'disponible')->count();
+            // Estadísticas del taco por book_number (participation_number es global en BD)
+            $stats = \App\Models\Participation::where('set_id', $designFormat->set->id)
+                ->where('book_number', $i)
+                ->selectRaw('COUNT(*) as total_db')
+                ->selectRaw("SUM(CASE WHEN status = 'vendida' THEN 1 ELSE 0 END) as sold")
+                ->selectRaw("SUM(CASE WHEN status = 'devuelta' THEN 1 ELSE 0 END) as returned")
+                ->selectRaw("SUM(CASE WHEN status = 'anulada' THEN 1 ELSE 0 END) as cancelled")
+                ->selectRaw('MIN(participation_number) as min_number')
+                ->selectRaw('MAX(participation_number) as max_number')
+                ->first();
+
+            $salesRegistered = (int) ($stats->sold ?? 0);
+            $returnedParticipations = (int) ($stats->returned ?? 0);
+            $cancelledParticipations = (int) ($stats->cancelled ?? 0);
+            $knownSum = $salesRegistered + $returnedParticipations + $cancelledParticipations;
+            $availableParticipations = max(0, $expectedTotalInBook - $knownSum);
             
             // Determinar el estado del taco
             $status = 'Disponible';
-            if ($salesRegistered > 0 && $availableParticipations == 0) {
+            if ($returnedParticipations > 0) {
+                $status = 'Con Devoluciones';
+            } elseif ($salesRegistered > 0 && $availableParticipations == 0) {
                 $status = 'Vendido';
             } elseif ($salesRegistered > 0 && $availableParticipations > 0) {
                 $status = 'Parcial';
-            } elseif ($returnedParticipations > 0) {
-                $status = 'Con Devoluciones';
             }
 
             // Obtener el vendedor principal (el que más ha vendido en este taco)
-            $mainSeller = $bookParticipations->where('status', 'vendida')
+            $mainSeller = \App\Models\Participation::where('set_id', $designFormat->set->id)
+                ->where('book_number', $i)
+                ->where('status', 'vendida')
+                ->whereNotNull('seller_id')
+                ->select('seller_id', DB::raw('COUNT(*) as c'))
                 ->groupBy('seller_id')
-                ->map->count()
-                ->sortDesc()
-                ->keys()
-                ->first();
+                ->orderByDesc('c')
+                ->value('seller_id');
 
             $sellerName = 'Sin asignar';
             if ($mainSeller) {
@@ -210,13 +263,19 @@ class ParticipationController extends Controller
                 $sellerName = $seller ? $seller->user->name : 'Sin asignar';
             }
 
+            $minNum = (int) ($stats->min_number ?? 0);
+            $maxNum = (int) ($stats->max_number ?? 0);
+            $rangeText = ($minNum > 0 && $maxNum > 0)
+                ? sprintf('%d/%05d - %d/%05d', $setNumber, $minNum, $setNumber, $maxNum)
+                : '-';
+
             $books[] = [
                 'book_number' => $i,
                 'set_number' => $setNumber,
-                'start_participation' => $startParticipation,
-                'end_participation' => $endParticipation,
-                'total_participations' => $endParticipation - $startParticipation + 1,
-                'participations_range' => sprintf('%d/%05d - %d/%05d', $setNumber, $startParticipation, $setNumber, $endParticipation),
+                'start_participation' => $minNum ?: null,
+                'end_participation' => $maxNum ?: null,
+                'total_participations' => $expectedTotalInBook,
+                'participations_range' => $rangeText,
                 'sales_registered' => $salesRegistered,
                 'returned_participations' => $returnedParticipations,
                 'available_participations' => $availableParticipations,
@@ -271,10 +330,11 @@ class ParticipationController extends Controller
             return response()->json(['error' => 'Taco no encontrado'], 404);
         }
         
-        // Obtener las participaciones del rango específico
+        // Obtener las participaciones del taco por book_number (participation_number es global)
         $participations = \App\Models\Participation::where('set_id', $set_id)
-            ->whereBetween('participation_number', [$book['start_participation'], $book['end_participation']])
+            ->where('book_number', $book_number)
             ->with(['seller.user'])
+            ->orderBy('participation_number')
             ->get();
         
                  // Formatear las participaciones para la vista
@@ -1397,6 +1457,185 @@ class ParticipationController extends Controller
         });
 
         return response()->json(['success' => true, 'historial' => $historial]);
+    }
+
+    /**
+     * Datos de cartera para un usuario (uso web admin). Misma lógica que apiGetWalletParticipations pero para User $user.
+     */
+    public function getWalletDataForUser(User $user): array
+    {
+        $userId = (string) $user->id;
+        $items = [];
+
+        $participations = Participation::where('buyer_name', $userId)
+            ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats', 'gift.toUser'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        foreach ($participations as $p) {
+            $ref = $this->getReferenceFromParticipation($p);
+            $item = $this->formatParticipationForWallet($p, $ref);
+            $item['estado'] = 'activa';
+            $item['gifted_to_email'] = null;
+            if ($p->collected_at) {
+                $item['estado'] = 'cobrada';
+            } elseif ($p->donated_at) {
+                $item['estado'] = 'donada';
+            } elseif ($p->relationLoaded('gift') && $p->gift) {
+                $item['estado'] = 'regalada';
+                $item['gifted_to_email'] = $p->gift->toUser->email ?? null;
+            }
+            $item['premio'] = null;
+            $items[] = $item;
+        }
+
+        $giftsReceived = ParticipationGift::where('to_user_id', $user->id)
+            ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'fromUser'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($giftsReceived as $gift) {
+            $p = $gift->participation;
+            if (!$p) continue;
+            $ref = $this->getReferenceFromParticipation($p);
+            $item = $this->formatParticipationForWallet($p, $ref);
+            $item['estado'] = $p->collected_at ? 'cobrada' : ($p->donated_at ? 'donada' : 'recibida');
+            $item['received_from_email'] = $gift->fromUser->email ?? null;
+            $item['gifted_to_email'] = null;
+            $item['premio'] = null;
+            $items[] = $item;
+        }
+
+        usort($items, function ($a, $b) {
+            return ($b['id'] ?? 0) <=> ($a['id'] ?? 0);
+        });
+
+        return $items;
+    }
+
+    /**
+     * Datos de historial para un usuario (uso web admin). Misma lógica que apiGetUserHistorial pero para User $user.
+     */
+    public function getHistorialDataForUser(User $user): array
+    {
+        $userId = (string) $user->id;
+        $historial = [];
+
+        $participations = Participation::where('buyer_name', $userId)
+            ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        foreach ($participations as $p) {
+            $ref = $this->getReferenceFromParticipation($p);
+            $participacion = $this->formatParticipationForWallet($p, $ref);
+            $historial[] = [
+                'id' => 'd-' . $p->id,
+                'tipo' => 'digitalizacion',
+                'fecha' => $p->updated_at->toIso8601String(),
+                'participacion' => $participacion,
+                'descripcion' => 'Participación ' . ($participacion['entidad'] ?? 'digitalizada'),
+            ];
+        }
+
+        $giftsSent = ParticipationGift::where('from_user_id', $user->id)
+            ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'toUser'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($giftsSent as $gift) {
+            $p = $gift->participation;
+            if (!$p) continue;
+            $ref = $this->getReferenceFromParticipation($p);
+            $participacion = $this->formatParticipationForWallet($p, $ref);
+            $historial[] = [
+                'id' => 'r-env-' . $gift->id,
+                'tipo' => 'regalo',
+                'fecha' => $gift->created_at->toIso8601String(),
+                'participacion' => $participacion,
+                'destinatario' => $gift->toUser->email ?? '—',
+                'direccion' => 'enviado',
+                'descripcion' => 'Participación regalada a ' . ($gift->toUser->email ?? '—'),
+            ];
+        }
+
+        $giftsReceived = ParticipationGift::where('to_user_id', $user->id)
+            ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'fromUser'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($giftsReceived as $gift) {
+            $p = $gift->participation;
+            if (!$p) continue;
+            $ref = $this->getReferenceFromParticipation($p);
+            $participacion = $this->formatParticipationForWallet($p, $ref);
+            $historial[] = [
+                'id' => 'r-rec-' . $gift->id,
+                'tipo' => 'regalo',
+                'fecha' => $gift->created_at->toIso8601String(),
+                'participacion' => $participacion,
+                'remitente' => $gift->fromUser->email ?? '—',
+                'direccion' => 'recibido',
+                'descripcion' => 'Participación recibida de ' . ($gift->fromUser->email ?? '—'),
+            ];
+        }
+
+        $collections = ParticipationCollection::where('user_id', $user->id)
+            ->with(['items.participation.set.reserve.lottery', 'items.participation.set.entity', 'items.participation.set.designFormats'])
+            ->orderBy('collected_at', 'desc')
+            ->get();
+
+        foreach ($collections as $collection) {
+            $participaciones = [];
+            foreach ($collection->items as $item) {
+                $p = $item->participation;
+                if (!$p) continue;
+                $ref = $this->getReferenceFromParticipation($p);
+                $participaciones[] = $this->formatParticipationForWallet($p, $ref);
+            }
+            if (!empty($participaciones)) {
+                $historial[] = [
+                    'id' => 'c-' . $collection->id,
+                    'tipo' => 'cobro',
+                    'fecha' => $collection->collected_at->toIso8601String(),
+                    'participaciones' => $participaciones,
+                    'importeTotal' => (float) $collection->importe_total,
+                    'descripcion' => 'Cobro de ' . count($participaciones) . ' participación(es) - €' . number_format($collection->importe_total, 2, ',', '.'),
+                ];
+            }
+        }
+
+        $donations = ParticipationDonation::where('user_id', $user->id)
+            ->with(['items.participation.set.reserve.lottery', 'items.participation.set.entity', 'items.participation.set.designFormats'])
+            ->orderByRaw('COALESCE(donated_at, created_at) DESC')
+            ->get();
+
+        foreach ($donations as $donation) {
+            $participaciones = [];
+            if ($donation->items && $donation->items->count() > 0) {
+                foreach ($donation->items as $item) {
+                    if ($item->participation) {
+                        $ref = $this->getReferenceFromParticipation($item->participation);
+                        $participaciones[] = $this->formatParticipationForWallet($item->participation, $ref);
+                    }
+                }
+            }
+            $fechaDonacion = $donation->donated_at ? $donation->donated_at->toIso8601String() : ($donation->created_at ? $donation->created_at->toIso8601String() : now()->toIso8601String());
+            $historial[] = [
+                'id' => 'don-' . $donation->id,
+                'tipo' => 'donacion',
+                'fecha' => $fechaDonacion,
+                'participaciones' => $participaciones,
+                'importeDonacion' => (float) $donation->importe_donacion,
+                'descripcion' => 'Donación' . (count($participaciones) > 0 ? ' de ' . count($participaciones) . ' participación(es)' : '') . ($donation->importe_donacion > 0 ? ' - €' . number_format($donation->importe_donacion, 2, ',', '.') : ''),
+            ];
+        }
+
+        usort($historial, function ($a, $b) {
+            return strcmp($b['fecha'] ?? '', $a['fecha'] ?? '');
+        });
+
+        return $historial;
     }
 
     private function getReferenceFromParticipation(Participation $p): string

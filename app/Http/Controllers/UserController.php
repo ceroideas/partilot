@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Seller;
+use App\Http\Controllers\ParticipationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -96,6 +97,26 @@ class UserController extends Controller
     {
         $tab = $request->query('tab');
         return view('users.show', compact('user', 'tab'));
+    }
+
+    /**
+     * Cartera del usuario: participaciones en cartera (propias + recibidas como regalo).
+     */
+    public function wallet(User $user)
+    {
+        $participationController = app(ParticipationController::class);
+        $items = $participationController->getWalletDataForUser($user);
+        return view('users.wallet', compact('user', 'items'));
+    }
+
+    /**
+     * Historial del usuario: digitalizaciones, regalos, cobros, donaciones.
+     */
+    public function history(User $user)
+    {
+        $participationController = app(ParticipationController::class);
+        $historial = $participationController->getHistorialDataForUser($user);
+        return view('users.history', compact('user', 'historial'));
     }
 
     /**

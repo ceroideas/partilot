@@ -194,13 +194,19 @@
                                                 <th>Lotería + Donativo TOTAL</th>
                                             </tr>
                                             <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
-                                                <td>{{$designFormat->set ? $designFormat->set->total_participations : 0}}</td>
-                                                <td>0</td>
-                                                <td>0</td>
-                                                <td>{{$designFormat->set ? $designFormat->set->total_participations : 0}}</td>
-                                                <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? number_format($designFormat->set->total_participations * $designFormat->set->reserve->lottery->ticket_price, 2) : '0,00'}}€</td>
-                                                <td>{{$designFormat->set ? number_format($designFormat->set->total_participations * $designFormat->set->donation_amount, 2) : '0,00'}}€</td>
-                                                                                                 <td>{{$designFormat->set ? number_format(($designFormat->set->total_participations * ($designFormat->set->reserve && $designFormat->set->reserve->lottery ? $designFormat->set->reserve->lottery->ticket_price : 0)) + ($designFormat->set->total_participations * $designFormat->set->donation_amount), 2) : '0,00'}}€</td>
+                                                @php
+                                                    $stats = $designFormat->set_stats ?? ['total' => 0, 'sold' => 0, 'returned' => 0, 'cancelled' => 0, 'available' => 0];
+                                                    $totalForAmounts = (int) ($stats['total'] ?? 0);
+                                                    $ticketPrice = $designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? (float) $designFormat->set->reserve->lottery->ticket_price : 0;
+                                                    $donation = $designFormat->set ? (float) $designFormat->set->donation_amount : 0;
+                                                @endphp
+                                                <td>{{ $stats['sold'] ?? 0 }}</td>
+                                                <td>{{ $stats['returned'] ?? 0 }}</td>
+                                                <td>{{ $stats['cancelled'] ?? 0 }}</td>
+                                                <td>{{ $stats['available'] ?? 0 }}</td>
+                                                <td>{{ number_format($totalForAmounts * $ticketPrice, 2) }}€</td>
+                                                <td>{{ number_format($totalForAmounts * $donation, 2) }}€</td>
+                                                <td>{{ number_format(($totalForAmounts * $ticketPrice) + ($totalForAmounts * $donation), 2) }}€</td>
                                             </tr>
                                         </thead>
                                     </table>

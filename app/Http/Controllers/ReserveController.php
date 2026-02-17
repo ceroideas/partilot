@@ -56,7 +56,7 @@ class ReserveController extends Controller
             ->orderBy('draw_date','desc')
             ->get();
 
-        return view('reserves.add_lottery', compact('lotteries'));
+        return view('reserves.add_lottery', compact('lotteries', 'entity'));
     }
 
     /**
@@ -366,6 +366,6 @@ class ReserveController extends Controller
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_lottery', $lottery);
 
-        return view('reserves.add_information');
+        return view('reserves.add_information', compact('entity', 'lottery'));
     }
 }
