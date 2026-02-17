@@ -33,20 +33,43 @@ use App\Models\Administration;
 |
 */
 
-// Ruta para servir archivos de storage (necesario para Nginx)
+// Ruta para servir archivos de storage (necesario para Nginx cuando el symlink no funciona)
 Route::get('/storage/{path}', function ($path) {
+    // Prevenir path traversal attacks
+    $path = str_replace('..', '', $path);
     $filePath = storage_path('app/public/' . $path);
     
-    if (!file_exists($filePath)) {
-        abort(404);
+    // Verificar que el archivo existe y está dentro del directorio permitido
+    $realPath = realpath($filePath);
+    $allowedPath = realpath(storage_path('app/public'));
+    
+    if (!$realPath || strpos($realPath, $allowedPath) !== 0) {
+        abort(404, 'Archivo no encontrado');
     }
     
-    $file = file_get_contents($filePath);
-    $type = mime_content_type($filePath);
+    if (!file_exists($realPath) || is_dir($realPath)) {
+        abort(404, 'Archivo no encontrado');
+    }
     
-    return response($file, 200)
-        ->header('Content-Type', $type)
-        ->header('Cache-Control', 'public, max-age=31536000');
+    // Obtener el tipo MIME
+    $type = mime_content_type($realPath);
+    if (!$type) {
+        $extension = pathinfo($realPath, PATHINFO_EXTENSION);
+        $types = [
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'pdf' => 'application/pdf',
+        ];
+        $type = $types[strtolower($extension)] ?? 'application/octet-stream';
+    }
+    
+    return response()->file($realPath, [
+        'Content-Type' => $type,
+        'Cache-Control' => 'public, max-age=31536000',
+    ]);
 })->where('path', '.*');
 
 Route::get('comprobar-participacion', [App\Http\Controllers\ApiController::class, 'showParticipationTicket']);
