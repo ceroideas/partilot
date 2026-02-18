@@ -157,6 +157,9 @@ Route::middleware('auth.api')->group(function () {
         Route::get('/search/{code}', [ParticipationController::class, 'apiSearch']);
     });
     
+    // Verificar si existe un usuario por email (para venta digital)
+    Route::post('/users/check-exists', [UserController::class, 'apiCheckUserExists']);
+
     // ========================================================================
     // VENTAS
     // ========================================================================
@@ -166,6 +169,9 @@ Route::middleware('auth.api')->group(function () {
         
         // Venta manual
         Route::post('/manual', [ParticipationController::class, 'apiSellManual']);
+
+        // Venta digital (solo usuarios existentes)
+        Route::post('/digital', [ParticipationController::class, 'apiSellDigital']);
         
         // Historial de ventas del vendedor autenticado (para app móvil)
         Route::get('/me', [ParticipationController::class, 'apiGetMySales']);

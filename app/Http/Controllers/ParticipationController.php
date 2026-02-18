@@ -436,6 +436,87 @@ class ParticipationController extends Controller
     }
 
     /**
+     * API: Vender participaciones digitales a un usuario existente.
+     * Solo vendedores. El usuario debe existir (por email). Las participaciones se vinculan a su cartera (buyer_name).
+     */
+    public function apiSellDigital(Request $request)
+    {
+        $request->validate([
+            'set_id' => 'required|integer|exists:sets,id',
+            'quantity' => 'required|integer|min:1',
+            'buyer_email' => 'required|email',
+            'payment_method' => 'nullable|string|in:efectivo,bizum,transferencia,omitir,otro',
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $buyer = User::where('email', $request->buyer_email)->first();
+        if (!$buyer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El correo no está registrado. Solo se puede vender a usuarios que ya tengan cuenta.',
+            ], 422);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        $set = \App\Models\Set::with('reserve')->findOrFail($request->set_id);
+        if (($set->digital_participations ?? 0) <= 0) {
+            return response()->json(['success' => false, 'message' => 'Este set no es de participaciones digitales.'], 422);
+        }
+
+        $participations = Participation::where('set_id', $request->set_id)
+            ->where('seller_id', $seller->id)
+            ->where('status', 'asignada')
+            ->orderBy('participation_number')
+            ->limit($request->quantity)
+            ->get();
+
+        if ($participations->count() < $request->quantity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay suficientes participaciones digitales disponibles. Disponibles: ' . $participations->count(),
+            ], 422);
+        }
+
+        $pricePerParticipation = (float) ($set->played_amount ?? 0);
+        $saleAmount = $participations->count() * $pricePerParticipation;
+        $paymentMethod = $request->payment_method;
+
+        try {
+            DB::beginTransaction();
+            foreach ($participations as $p) {
+                $p->markAsSold($seller->id, $pricePerParticipation, [
+                    'name' => (string) $buyer->id,
+                    'email' => $buyer->email,
+                ], $paymentMethod);
+            }
+            if ($this->shouldCreateSettlement($paymentMethod)) {
+                $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $paymentMethod, $user->id);
+            }
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Venta digital registrada. ' . $participations->count() . ' participaciones vinculadas al cliente.',
+                'count' => $participations->count(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar la venta: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Solo crear seller_settlement cuando hay método de pago (efectivo, bizum, transferencia).
      * Si es omitir o null, no se registra.
      */
@@ -882,6 +963,7 @@ class ParticipationController extends Controller
                 'descripcion' => 'Participación ' . $entidadNombre,
                 'participacion' => [
                     'entidad' => $entidadNombre,
+                    'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
                     'numero' => $numeroReservado,
                     'fechaSorteo' => $fechaSorteo,
                     'importeJugado' => $importeJugado,
@@ -969,6 +1051,7 @@ class ParticipationController extends Controller
             'id' => $participation->id,
             'referencia' => $referencia,
             'entidad' => $entity ? $entity->name : '—',
+            'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
             'numero' => $participation->participation_number,
             'numeroReservado' => $numeroReservado,
             'fechaSorteo' => $lottery && $lottery->draw_date ? $lottery->draw_date->format('d/m/y') : '—',
@@ -1316,13 +1399,18 @@ class ParticipationController extends Controller
         $userId = (string) $user->id;
         $historial = [];
 
-        // 1. Digitalizaciones: participaciones vinculadas a la cartera (buyer_name = user)
+        // 1. Participaciones vinculadas a la cartera (buyer_name = user): digitalizaciones o ventas digitales recibidas
         $participations = Participation::where('buyer_name', $userId)
             ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        foreach ($participations as $p) {
+        // Separar: digitales (set con digital_participations > 0) vs físicas (digitalización por QR)
+        $digitales = $participations->filter(fn ($p) => $p->set && ($p->set->digital_participations ?? 0) > 0);
+        $fisicas = $participations->filter(fn ($p) => !$p->set || ($p->set->digital_participations ?? 0) <= 0);
+
+        // Digitalizaciones (físicas escaneadas): una entrada por participación
+        foreach ($fisicas as $p) {
             $ref = $this->getReferenceFromParticipation($p);
             $participacion = $this->formatParticipationForWallet($p, $ref);
             $historial[] = [
@@ -1331,6 +1419,26 @@ class ParticipationController extends Controller
                 'fecha' => $p->updated_at->toIso8601String(),
                 'participacion' => $participacion,
                 'descripcion' => 'Participación ' . ($participacion['entidad'] ?? 'digitalizada'),
+            ];
+        }
+
+        // Ventas digitales recibidas: agrupar por set_id + sale_date y una entrada por lote
+        foreach ($digitales->groupBy(fn ($p) => ($p->set_id ?? 0) . '-' . ($p->sale_date?->format('Y-m-d') ?? $p->updated_at->format('Y-m-d'))) as $grupo) {
+            $p = $grupo->first();
+            $participaciones = [];
+            foreach ($grupo as $part) {
+                $ref = $this->getReferenceFromParticipation($part);
+                $participaciones[] = $this->formatParticipationForWallet($part, $ref);
+            }
+            $count = $grupo->count();
+            $entidad = $p->set?->entity?->name ?? $participaciones[0]['entidad'] ?? '—';
+            $historial[] = [
+                'id' => 'vd-' . $p->id . '-' . $grupo->count(),
+                'tipo' => 'venta_digital_recibida',
+                'fecha' => $p->updated_at->toIso8601String(),
+                'participacion' => $participaciones[0],
+                'participaciones' => $participaciones,
+                'descripcion' => 'Has recibido ' . $count . ' participación(es) digital(es) - ' . $entidad,
             ];
         }
 

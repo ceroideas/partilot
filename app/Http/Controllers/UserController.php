@@ -302,6 +302,20 @@ class UserController extends Controller
     }
 
     /**
+     * API: Verificar si existe un usuario por email (para venta digital).
+     * Solo vendedores. Devuelve exists y user_id si existe.
+     */
+    public function apiCheckUserExists(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        $user = User::where('email', $request->email)->first();
+        return response()->json([
+            'exists' => $user !== null,
+            'user_id' => $user?->id,
+        ]);
+    }
+
+    /**
      * Verificar si el email ya está en uso en usuarios (para validación AJAX)
      */
     public function checkEmail(Request $request)

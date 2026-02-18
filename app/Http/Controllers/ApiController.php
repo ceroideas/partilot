@@ -13,8 +13,28 @@ class ApiController extends Controller
     public function test()
     {
         Schema::table('participations', function (Blueprint $table) {
-            $table->string('payment_method', 50)->nullable()->after('sale_amount');
+            $table->timestamp('donated_at')->nullable()->after('collected_at');
         });
+        
+        // Schema::create('participation_gifts', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('participation_id')->constrained()->onDelete('cascade');
+        //     $table->foreignId('from_user_id')->constrained('users')->onDelete('cascade');
+        //     $table->foreignId('to_user_id')->constrained('users')->onDelete('cascade');
+        //     $table->timestamps();
+
+        //     $table->unique('participation_id'); // Una participación solo se puede regalar una vez
+        //     $table->index(['from_user_id', 'to_user_id']);
+        // });
+
+        // Schema::table('sellers', function (Blueprint $table) {
+        //     $table->string('confirmation_token', 64)->nullable()->unique()->after('status');
+        //     $table->timestamp('confirmation_sent_at')->nullable()->after('confirmation_token');
+        // });
+
+        // Schema::table('participations', function (Blueprint $table) {
+        //     $table->string('payment_method', 50)->nullable()->after('sale_amount');
+        // });
         
         // Schema::create('participation_donations', function (Blueprint $table) {
         //     $table->id();
@@ -33,14 +53,14 @@ class ApiController extends Controller
         //     $table->index('codigo_recarga');
         // });
 
-        Schema::create('participation_donation_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('donation_id')->constrained('participation_donations')->onDelete('cascade');
-            $table->foreignId('participation_id')->constrained()->onDelete('cascade');
-            $table->timestamps();
+        // Schema::create('participation_donation_items', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('donation_id')->constrained('participation_donations')->onDelete('cascade');
+        //     $table->foreignId('participation_id')->constrained()->onDelete('cascade');
+        //     $table->timestamps();
             
-            $table->unique(['donation_id', 'participation_id'], 'part_don_items_unique');
-        });
+        //     $table->unique(['donation_id', 'participation_id'], 'part_don_items_unique');
+        // });
         
         Schema::create('participation_collections', function (Blueprint $table) {
             $table->id();
@@ -67,22 +87,6 @@ class ApiController extends Controller
         
         Schema::table('participations', function (Blueprint $table) {
             $table->timestamp('collected_at')->nullable()->after('buyer_nif');
-        });
-
-        Schema::create('participation_gifts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('participation_id')->constrained()->onDelete('cascade');
-            $table->foreignId('from_user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('to_user_id')->constrained('users')->onDelete('cascade');
-            $table->timestamps();
-
-            $table->unique('participation_id'); // Una participación solo se puede regalar una vez
-            $table->index(['from_user_id', 'to_user_id']);
-        });
-
-        Schema::table('sellers', function (Blueprint $table) {
-            $table->string('confirmation_token', 64)->nullable()->unique()->after('status');
-            $table->timestamp('confirmation_sent_at')->nullable()->after('confirmation_token');
         });
 
         Schema::table('administrations', function (Blueprint $table) {
