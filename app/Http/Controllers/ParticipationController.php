@@ -1810,12 +1810,6 @@ class ParticipationController extends Controller
                 'message' => 'No existe ningún usuario con ese correo. El destinatario debe estar registrado como usuario.',
             ], 422);
         }
-        if (!$destinatario->isClient()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'El correo no corresponde a un usuario. Solo se puede regalar a usuarios con perfil de usuario.',
-            ], 422);
-        }
         if ((string) $destinatario->id === $userId) {
             return response()->json(['success' => false, 'message' => 'No puedes regalarte la participación a ti mismo.'], 422);
         }

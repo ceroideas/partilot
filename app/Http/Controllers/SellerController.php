@@ -395,22 +395,16 @@ class SellerController extends Controller
         $reserves = Reserve::whereIn('entity_id', $entityIds)
             ->where('status', 1)
             ->with(['lottery.lotteryType'])
-            ->whereHas('sets', function ($q) {
+            ->whereHas('sets', function ($q) use ($seller) {
                 $q->where('status', 1)
-                  ->whereExists(function ($sub) {
-                      $sub->select(DB::raw(1))
-                          ->from('participations')
-                          ->whereRaw('participations.set_id = sets.id');
-                  });
+                  ->whereHas('designFormats')
+                  ->whereHas('participations', fn ($pq) => $pq->where('seller_id', $seller->id));
             })
-            ->with(['sets' => function ($q) {
+            ->with(['sets' => function ($q) use ($seller) {
                 $q->where('status', 1)
-                  ->whereExists(function ($sub) {
-                      $sub->select(DB::raw(1))
-                          ->from('participations')
-                          ->whereRaw('participations.set_id = sets.id');
-                  })
-                  ->select('sets.id', 'sets.reserve_id', 'sets.set_name', 'sets.total_participations', 'sets.played_amount');
+                  ->whereHas('designFormats')
+                  ->whereHas('participations', fn ($pq) => $pq->where('seller_id', $seller->id))
+                  ->select('sets.id', 'sets.reserve_id', 'sets.set_name', 'sets.total_participations', 'sets.played_amount', 'sets.physical_participations', 'sets.digital_participations');
             }])
             ->orderBy('reservation_date', 'desc')
             ->get();
@@ -585,11 +579,16 @@ class SellerController extends Controller
                     $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
                     $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
                     
+                    $reservationNumbers = $set->reserve->reservation_numbers ?? [];
+                    $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
+
                     $tacosByBook[$bookNumber] = [
                         'set_id' => $set->id,
                         'set_name' => $set->set_name,
                         'set_number' => $set->set_number ?? $set->id,
                         'book_number' => $bookNumber,
+                        'reservation_numbers' => $reservationNumbers,
+                        'reservation_numbers_display' => $reservationNumbersDisplay,
                         'lottery_id' => $set->reserve->lottery_id,
                         'lottery_name' => $set->reserve->lottery->name ?? '',
                         'lottery_date' => $set->reserve->lottery->draw_date ?? null,
@@ -741,6 +740,9 @@ class SellerController extends Controller
             ];
         });
 
+        $reservationNumbers = $set->reserve->reservation_numbers ?? [];
+        $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
+
         return response()->json([
             'success' => true,
             'taco_info' => [
@@ -748,6 +750,8 @@ class SellerController extends Controller
                 'set_name' => $set->set_name,
                 'set_number' => $set->set_number ?? $set->id,
                 'book_number' => $bookNumber,
+                'reservation_numbers' => $reservationNumbers,
+                'reservation_numbers_display' => $reservationNumbersDisplay,
                 'lottery_name' => $set->reserve->lottery->name ?? '',
                 'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
                 'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
@@ -839,14 +843,24 @@ class SellerController extends Controller
         if ($set->tickets && !empty($numbers)) {
             $tickets = is_array($set->tickets) ? $set->tickets : json_decode($set->tickets, true);
             if (is_array($tickets)) {
-                $range = $set->getParticipationNumberRange();
-                $globalStart = $range['start'] ?? 1;
-                $firstNumGlobal = $numbers[0];
-                $localIndex = $firstNumGlobal - $globalStart + 1;
+                $firstNumGlobal = (int) $numbers[0];
                 foreach ($tickets as $ticket) {
-                    if (isset($ticket['n']) && (int) $ticket['n'] === $localIndex) {
+                    if (isset($ticket['n']) && (int) $ticket['n'] === $firstNumGlobal) {
                         $primeraReferencia = $ticket['r'] ?? null;
                         break;
+                    }
+                }
+                // Fallback: si no se encontró por n, buscar por participation_code de la primera participación
+                if (!$primeraReferencia && $participations->isNotEmpty()) {
+                    $firstParticipation = $participations->first();
+                    $participationCode = $firstParticipation->participation_code;
+                    if ($participationCode) {
+                        foreach ($tickets as $ticket) {
+                            if (isset($ticket['r']) && $ticket['r'] === $participationCode) {
+                                $primeraReferencia = $ticket['r'];
+                                break;
+                            }
+                        }
                     }
                 }
             }
