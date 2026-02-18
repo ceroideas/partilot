@@ -16,6 +16,22 @@ class EndroidQrCodeService
     }
 
     /**
+     * Generar QR code desde texto raw (p. ej. taco_ref) - sin imagick.
+     * Usado en PDF portadas de tacos.
+     */
+    public function generateQrFromTextBase64(string $text, int $size = 200): string
+    {
+        $qrCode = QrCode::create($text)
+            ->setSize($size)
+            ->setMargin(2);
+
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+
+        return 'data:image/png;base64,' . base64_encode($result->getString());
+    }
+
+    /**
      * Generar QR code como base64 (optimizado con Endroid)
      */
     public function generateQrCodeBase64($reference)

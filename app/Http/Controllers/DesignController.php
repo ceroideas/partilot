@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ImageOptimizationService;
 use App\Services\QrCodeService;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class DesignController extends Controller
 {
@@ -547,7 +546,8 @@ class DesignController extends Controller
     }
 
     /**
-     * Exportar portada y trasera en un solo PDF
+     * Exportar portada y trasera en un solo PDF.
+     * Tarea 3 tacos: si hay taco_qrs en output, genera una portada por taco, cada una con su QR taco_ref.
      */
     public function exportCoverAndBackPdf($id)
     {
@@ -562,36 +562,80 @@ class DesignController extends Controller
             abort(404, 'Portada o trasera no encontradas');
         }
         
-        // Procesar HTML de portada (sin caché para aplicar cambios inmediatamente)
-        $coverHtml = $design->cover_html;
         $imageService = new ImageOptimizationService();
-        $coverHtml = $imageService->optimizeHtmlImages($coverHtml);
         $publicPath = public_path();
-        $coverHtml = str_replace(url('/'), $publicPath, $coverHtml);
-        $coverHtml = $this->ensureLocalPathsForPdf($coverHtml, $publicPath);
-        // Asegurar que los estilos inline se preserven correctamente
-        $coverHtml = $this->preserveInlineStyles($coverHtml);
-        $coverHtml = $this->adjustWidthsForDomPdf($coverHtml);
         
-        // Procesar HTML de trasera (sin caché para aplicar cambios inmediatamente)
+        // Procesar HTML de trasera (común para todas las páginas)
         $backHtml = $design->back_html;
         $backHtml = $imageService->optimizeHtmlImages($backHtml);
         $backHtml = str_replace(url('/'), $publicPath, $backHtml);
         $backHtml = $this->ensureLocalPathsForPdf($backHtml, $publicPath);
-        // Asegurar que los estilos inline se preserven correctamente
         $backHtml = $this->preserveInlineStyles($backHtml);
         $backHtml = $this->adjustWidthsForDomPdf($backHtml);
+        
+        // Tarea 3: comprobar si hay tacos (taco_qrs en output)
+        $output = $design->output ?? [];
+        if (!empty($output['participations_per_book']) && $design->set_id && empty($output['taco_qrs'])) {
+            $output = DesignFormat::mergeTacoQrsIntoOutput($design->set_id, $output);
+        }
+        $tacoQrs = $output['taco_qrs'] ?? [];
+        
+        if (!empty($tacoQrs)) {
+            // Una portada por taco, cada una con su QR
+            $coverPages = [];
+            $coverTemplate = $design->cover_html;
+            $coverTemplate = $imageService->optimizeHtmlImages($coverTemplate);
+            $coverTemplate = str_replace(url('/'), $publicPath, $coverTemplate);
+            $coverTemplate = $this->ensureLocalPathsForPdf($coverTemplate, $publicPath);
+            $coverTemplate = $this->preserveInlineStyles($coverTemplate);
+            $coverTemplate = $this->adjustWidthsForDomPdf($coverTemplate);
+            
+            foreach ($tacoQrs as $taco) {
+                $tacoRef = $taco['taco_ref'] ?? '';
+                $bookNumber = $taco['book_number'] ?? 0;
+                if (empty($tacoRef)) {
+                    continue;
+                }
+                $qrBase64 = (new \App\Services\EndroidQrCodeService())->generateQrFromTextBase64($tacoRef);
+                $coverHtml = $this->replaceCoverQrWithTacoQr($coverTemplate, $qrBase64, $bookNumber);
+                $coverPages[] = $coverHtml;
+            }
+            
+            if (empty($coverPages)) {
+                abort(500, 'No se pudieron generar las portadas de tacos');
+            }
+
+            $coverBackPairs = [];
+            foreach ($coverPages as $coverHtml) {
+                $coverBackPairs[] = ['cover' => $coverHtml, 'back' => $backHtml];
+            }
+
+            $viewData = [
+                'coverBackPairs' => $coverBackPairs,
+            ];
+            $viewName = 'design.pdf_cover_back_multiple';
+        } else {
+            // Sin tacos: una sola portada (comportamiento anterior)
+            $coverHtml = $design->cover_html;
+            $coverHtml = $imageService->optimizeHtmlImages($coverHtml);
+            $coverHtml = str_replace(url('/'), $publicPath, $coverHtml);
+            $coverHtml = $this->ensureLocalPathsForPdf($coverHtml, $publicPath);
+            $coverHtml = $this->preserveInlineStyles($coverHtml);
+            $coverHtml = $this->adjustWidthsForDomPdf($coverHtml);
+            
+            $viewData = [
+                'coverHtml' => $coverHtml,
+                'backHtml' => $backHtml,
+            ];
+            $viewName = 'design.pdf_cover_back';
+        }
         
         // Determinar tamaño y orientación
         $page = $design->page ?? 'a3';
         $orientation = $design->orientation ?? 'h';
         $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
         
-        // Crear PDF con ambas páginas
-        $pdf = Pdf::loadView('design.pdf_cover_back', [
-            'coverHtml' => $coverHtml,
-            'backHtml' => $backHtml
-        ]);
+        $pdf = Pdf::loadView($viewName, $viewData);
         $pdf->setPaper($page, $pdfOrientation);
         
         // Configurar opciones de DomPDF
@@ -608,6 +652,88 @@ class DesignController extends Controller
         $options->set('enableFontSubsetting', false);
         
         return $pdf->download('portada-trasera.pdf');
+    }
+
+    /**
+     * Reemplaza o inyecta el elemento QR de la portada con el QR del taco.
+     * Prueba varios patrones (como participaciones) y si no hay QR, lo inyecta.
+     */
+    private function replaceCoverQrWithTacoQr(string $coverHtml, string $qrBase64, int $bookNumber): string
+    {
+        $qrImg = '<img src="' . $qrBase64 . '" class="qr-code" style="width:100%;height:100%;display:block;" alt="QR Taco ' . (int) $bookNumber . '" />';
+        $replaced = false;
+
+        // 1. Igual que participaciones: div.qr con span ui-draggable-handle vacío
+        $before1 = $coverHtml;
+        $coverHtml = preg_replace(
+            '/<div([^>]*class="[^"]*qr[^"]*"[^>]*)>\s*<span class="ui-draggable-handle"><\/span>\s*<\/div>/s',
+            '<div$1>' . $qrImg . '</div>',
+            $coverHtml,
+            1
+        );
+        if ($coverHtml !== $before1) {
+            $replaced = true;
+        }
+
+        // 2. Div qr con span que contiene img (placeholder basicqr, etc.)
+        if (!$replaced && preg_match('/<div[^>]*class="[^"]*qr[^"]*"[^>]*>/i', $coverHtml)) {
+            $before = $coverHtml;
+            $coverHtml = preg_replace_callback(
+                '/(<div[^>]*class="[^"]*qr[^"]*"[^>]*>)\s*<span[^>]*>.*?<\/span>\s*(<\/div>)/s',
+                function ($m) use ($qrImg) {
+                    return $m[1] . $qrImg . $m[2];
+                },
+                $coverHtml,
+                1
+            );
+            if ($coverHtml !== $before) {
+                $replaced = true;
+            }
+        }
+
+        // 3. Reemplazar img con basicqr.jpg por nuestro QR (cualquier ubicación)
+        if (!$replaced && (stripos($coverHtml, 'basicqr') !== false || preg_match('/<img[^>]+src="[^"]*basicqr[^"]*"/i', $coverHtml))) {
+            $coverHtml = preg_replace(
+                '/<img([^>]*)src="[^"]*basicqr[^"]*"([^>]*)>/i',
+                '<img$1src="' . $qrBase64 . '"$2 class="qr-code" style="width:100%;height:100%;display:block;">',
+                $coverHtml,
+                1
+            );
+            $replaced = true;
+        }
+
+        // 4. Si no hay elemento QR: inyectar uno en la portada (esquina inferior derecha, más grande)
+        if (!$replaced) {
+            $qrDiv = '<div class="elements qr" style="position:absolute;bottom:3mm;right:3mm;width:75px;height:75px;z-index:9999;padding:3px;background:#fff;border-radius:6px;">' . $qrImg . '</div>';
+            if (preg_match('/<div[^>]*containment-wrapper[^>]*>/i', $coverHtml)) {
+                $coverHtml = preg_replace(
+                    '/(<div[^>]*containment-wrapper[^>]*>)/i',
+                    '$1' . $qrDiv,
+                    $coverHtml,
+                    1
+                );
+            } else {
+                $coverHtml = preg_replace('/(<div[^>]*format-box[^>]*>)/i', '$1' . $qrDiv, $coverHtml, 1);
+            }
+        }
+
+        $coverHtml = preg_replace('/\{\{taco_number\}\}/i', (string) $bookNumber, $coverHtml);
+
+        // Posicionar QR existente en esquina inferior derecha y tamaño mayor (75px)
+        $coverHtml = preg_replace_callback(
+            '/(<div[^>]*class="[^"]*qr[^"]*"[^>]*)style="([^"]*)"/i',
+            function ($m) {
+                $style = preg_replace('/\b(top|left):[^;]+;?/i', '', $m[2]);
+                $style = preg_replace('/\bwidth:\s*[\d.]+px/i', 'width:75px', $style);
+                $style = preg_replace('/\bheight:\s*[\d.]+px/i', 'height:75px', $style);
+                $style = trim(preg_replace('/;+/', ';', $style), '; ') . '; bottom:3mm; right:3mm;';
+                return $m[1] . 'style="' . $style . '"';
+            },
+            $coverHtml,
+            1
+        );
+
+        return $coverHtml;
     }
 
     /**

@@ -478,13 +478,17 @@ class SetController extends Controller
         }
 
         // Cargar las relaciones necesarias
-        $set->load(['entity.administration', 'reserve.lottery', 'reserve']);
+        $set->load(['entity.administration', 'reserve.lottery', 'reserve', 'participations', 'designFormats']);
 
         // Obtener datos necesarios
         $entity = $set->entity;
         $administration = $entity->administration;
         $reserve = $set->reserve;
         $lottery = $reserve->lottery;
+
+        // Determinar si es set físico o digital
+        $isDigital = $set->digital_participations > 0 && $set->physical_participations == 0;
+        $isPhysical = $set->physical_participations > 0;
 
         // Crear el contenido XML
         $xmlContent = '<?xml version="1.0" encoding="utf-8"?>' . "\n";
@@ -494,25 +498,64 @@ class SetController extends Controller
         $xmlContent .= '  <donativo>' . number_format($set->donation_amount, 2) . '</donativo>' . "\n";
         $xmlContent .= '  <fechasorteo>' . $lottery->draw_date->format('d/m/Y') . '</fechasorteo>' . "\n";
 
-        // Agregar números de reserva
+        // Agregar números de reserva con importe por número (Tarea 17)
         if ($reserve->reservation_numbers && count($reserve->reservation_numbers) > 0) {
             $xmlContent .= '  <numeros>';
+            $numeroCount = count($reserve->reservation_numbers);
+            $importePorNumero = $numeroCount > 0 ? round($set->played_amount / $numeroCount, 2) : 0;
+            
             foreach ($reserve->reservation_numbers as $number) {
-                $xmlContent .= '<numero><![CDATA[' . $number . ']]></numero>';
+                // Formato: <numero importe="X.XX"><![CDATA[numero]]></numero>
+                // Compatible con importación existente (lee contenido) y nuevo formato (lee atributo importe)
+                $xmlContent .= '<numero importe="' . number_format($importePorNumero, 2) . '"><![CDATA[' . $number . ']]></numero>';
             }
             $xmlContent .= '<importe>' . number_format($reserve->total_amount, 2) . '</importe></numeros>' . "\n";
         } else {
             $xmlContent .= '  <numeros><importe>' . number_format($reserve->total_amount, 2) . '</importe></numeros>' . "\n";
         }
 
-        $xmlContent .= '  <urlweb><![CDATA[' . ($administration->web ?? '') . ']]></urlweb>' . "\n";
+        // Tarea 16: Usar valor por defecto si administration->web está vacío
+        $webUrl = !empty($administration->web) ? $administration->web : config('app.url', '');
+        $xmlContent .= '  <urlweb><![CDATA[' . $webUrl . ']]></urlweb>' . "\n";
         $xmlContent .= '  <pagoweb>si</pagoweb>' . "\n";
         $xmlContent .= '  <pagowebpage><![CDATA[loteria-empresas-parti.php?ref=]]></pagowebpage>' . "\n";
         $xmlContent .= '  <participaciones>' . "\n";
 
-        // Generar participaciones
-        for ($i = 1; $i <= $set->total_participations; $i++) {
-            $xmlContent .= '   <p><s>' . $i . '</s><r>REF' . str_pad($i, 6, '0', STR_PAD_LEFT) . '</r></p>' . "\n";
+        // Tarea 14 y 15: Generar participaciones con referencias reales
+        if ($isPhysical) {
+            // Para sets físicos: intentar usar participation_code de las participaciones con diseño
+            $participations = $set->participations()
+                ->whereNotNull('participation_code')
+                ->orderBy('participation_number')
+                ->get();
+
+            if ($participations->count() > 0) {
+                // Usar referencias reales de participaciones existentes
+                foreach ($participations as $participation) {
+                    $reference = $participation->participation_code ?? 'REF' . str_pad($participation->participation_number ?? $participation->id, 6, '0', STR_PAD_LEFT);
+                    $xmlContent .= '   <p><s>' . ($participation->participation_number ?? $participation->id) . '</s><r>' . htmlspecialchars($reference, ENT_XML1, 'UTF-8') . '</r></p>' . "\n";
+                }
+            } else {
+                // Si no hay participaciones creadas aún, usar tickets del set o generar REF
+                if ($set->tickets && is_array($set->tickets) && count($set->tickets) > 0) {
+                    foreach ($set->tickets as $ticket) {
+                        $reference = $ticket['r'] ?? 'REF' . str_pad($ticket['n'] ?? 0, 6, '0', STR_PAD_LEFT);
+                        $xmlContent .= '   <p><s>' . ($ticket['n'] ?? 0) . '</s><r>' . htmlspecialchars($reference, ENT_XML1, 'UTF-8') . '</r></p>' . "\n";
+                    }
+                } else {
+                    // Fallback: generar REF000001, REF000002, etc.
+                    for ($i = 1; $i <= $set->total_participations; $i++) {
+                        $xmlContent .= '   <p><s>' . $i . '</s><r>REF' . str_pad($i, 6, '0', STR_PAD_LEFT) . '</r></p>' . "\n";
+                    }
+                }
+            }
+        } else {
+            // Tarea 15: Para sets digitales, generar referencias únicas
+            for ($i = 1; $i <= $set->total_participations; $i++) {
+                // Generar referencia única: DIG + set_id + número de participación
+                $reference = 'DIG' . str_pad($set->id, 6, '0', STR_PAD_LEFT) . str_pad($i, 6, '0', STR_PAD_LEFT);
+                $xmlContent .= '   <p><s>' . $i . '</s><r>' . htmlspecialchars($reference, ENT_XML1, 'UTF-8') . '</r></p>' . "\n";
+            }
         }
 
         $xmlContent .= '  </participaciones>' . "\n";
