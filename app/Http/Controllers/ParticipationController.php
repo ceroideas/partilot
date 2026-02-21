@@ -983,6 +983,62 @@ class ParticipationController extends Controller
     }
 
     /**
+     * Búsqueda global por número de referencia (desplegable del topbar).
+     * Solo busca si el término tiene al menos config('partilot.search_min_chars') caracteres.
+     */
+    public function searchByReference(Request $request)
+    {
+        $request->validate(['q' => 'nullable|string|max:100']);
+        $q = trim((string) $request->input('q', ''));
+        $minChars = (int) config('partilot.search_min_chars', 6);
+        if ($q === '' || strlen($q) < $minChars) {
+            return response()->json(['results' => []]);
+        }
+        $maxResults = 20;
+        $candidates = [];
+        $sets = \App\Models\Set::whereNotNull('tickets')->get();
+        foreach ($sets as $set) {
+            if (!is_array($set->tickets)) {
+                continue;
+            }
+            foreach ($set->tickets as $ticket) {
+                $ref = $ticket['r'] ?? null;
+                if ($ref !== null && (str_starts_with((string) $ref, $q) || str_contains((string) $ref, $q))) {
+                    $candidates[] = [
+                        'set_id' => $set->id,
+                        'participation_number' => $ticket['n'] ?? null,
+                        'referencia' => (string) $ref,
+                    ];
+                    if (count($candidates) >= $maxResults * 2) {
+                        break 2;
+                    }
+                }
+            }
+        }
+        $results = [];
+        $user = auth()->user();
+        foreach (array_slice($candidates, 0, $maxResults) as $c) {
+            if ($c['participation_number'] === null) {
+                continue;
+            }
+            $participation = Participation::where('set_id', $c['set_id'])
+                ->where('participation_number', $c['participation_number'])
+                ->forUser($user)
+                ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats'])
+                ->first();
+            if (!$participation) {
+                continue;
+            }
+            $row = $this->formatParticipationForWallet($participation, $c['referencia']);
+            $row['status'] = $participation->status;
+            $row['status_text'] = $participation->status_text;
+            $row['detail_url'] = route('participations.show', $participation->id);
+            $results[] = $row;
+        }
+        return response()->json(['results' => $results]);
+    }
+
+    /**
      * Buscar set y número de participación por referencia (campo 'r' del ticket).
      */
     private function findSetAndParticipationNumberByReference(string $referencia): ?array

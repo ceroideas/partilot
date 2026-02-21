@@ -63,6 +63,77 @@
                 min-width: 48px;
                 min-height: 48px;
             }
+            /* Estilos para el buscador de participaciones */
+            #top-search-wrap,
+            #top-search-wrap.app-search,
+            .app-search#top-search-wrap {
+                min-width: 400px;
+                position: relative !important;
+                z-index: 10000 !important;
+                overflow: visible !important;
+                overflow-y: visible !important;
+                overflow-x: visible !important;
+            }
+            /* Asegurar que el form dentro también permita overflow */
+            #top-search-wrap form,
+            .app-search#top-search-wrap form {
+                overflow: visible !important;
+                overflow-y: visible !important;
+                overflow-x: visible !important;
+            }
+            #top-search {
+                min-width: 400px;
+            }
+            #search-dropdown {
+                width: 500px !important;
+                min-width: 500px !important;
+                max-width: 500px !important;
+                max-height: 500px !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                z-index: 10001 !important;
+                background-color: #fff !important;
+                border: 1px solid rgba(0,0,0,.15) !important;
+                border-radius: 0.375rem !important;
+                box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15) !important;
+                position: absolute !important;
+                top: 100% !important;
+                left: 0 !important;
+                margin-top: 0.5rem !important;
+                transform: translateZ(0) !important;
+                will-change: transform !important;
+            }
+            /* Evitar overflow horizontal en los items del dropdown */
+            #search-dropdown .dropdown-item,
+            #search-dropdown .notification-list {
+                overflow-x: hidden !important;
+                word-wrap: break-word !important;
+            }
+            #search-dropdown .search-result-item {
+                max-width: 100% !important;
+                overflow: hidden !important;
+            }
+            #search-dropdown .text-truncate {
+                max-width: 100% !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+            #top-search-wrap.show {
+                z-index: 10000 !important;
+            }
+            #top-search-wrap.show #search-dropdown,
+            #search-dropdown.show {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            /* Asegurar que el topbar tenga z-index alto */
+            .navbar-custom,
+            .topbar-menu {
+                position: relative;
+                z-index: 1000;
+            }
         </style>
 
         @yield('styles')
@@ -325,6 +396,18 @@
                             </a>
                         </li>
 
+                        @if($currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration()))
+                            <li class="menu-item @if (Request::is('configuration/*') || Request::is('configuration')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{url('configuration')}}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <i class="fe-settings"></i>
+                                    </span>
+                                    <span class="menu-text"> Ajustes </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @endif
+
 
                         {{-- <li class="menu-item">
                             <a href="#menuCrm" data-bs-toggle="collapse" class="menu-link">
@@ -415,65 +498,22 @@
                         </div>
 
                         <ul class="topbar-menu d-flex align-items-center">
-                            <!-- Topbar Search Form -->
-                            <li class="app-search dropdown me-3 d-none d-lg-block">
-                                <form>
-                                    <input type="search" class="form-control rounded-pill" placeholder="Buscar..." id="top-search">
+                            <!-- Topbar Search Form: búsqueda por número de referencia -->
+                            <li class="app-search dropdown me-3 d-none d-lg-block position-relative" id="top-search-wrap" style="min-width: 400px;">
+                                <form class="position-relative" onsubmit="return false;">
+                                    <input type="search" class="form-control rounded-pill" placeholder="Buscar por referencia..." id="top-search" autocomplete="off"
+                                           data-search-url="{{ route('participations.search-by-reference') }}"
+                                           data-min-chars="{{ config('partilot.search_min_chars', 16) }}"
+                                           style="min-width: 400px;">
                                     <span class="fe-search search-icon font-16"></span>
                                 </form>
-                                {{-- <div class="dropdown-menu dropdown-menu-animated dropdown-lg" id="search-dropdown">
-                                    <!-- item-->
-                                    <div class="dropdown-header noti-title">
-                                        <h5 class="text-overflow mb-2">Found 22 results</h5>
+                                <div class="dropdown-menu dropdown-menu-animated dropdown-lg shadow" id="search-dropdown" 
+                                     style="width: 500px; min-width: 500px; max-width: 500px; max-height: 500px; overflow-y: auto; overflow-x: hidden; display: none; position: absolute; top: 100%; left: 0; z-index: 1050; margin-top: 0.5rem; visibility: hidden;">
+                                    <div class="dropdown-header noti-title py-2">
+                                        <h6 class="text-overflow mb-0" id="search-dropdown-title">Escribe al menos {{ config('partilot.search_min_chars', 16) }} caracteres</h6>
                                     </div>
-
-                                    <!-- item-->
-                                    <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                        <i class="fe-home me-1"></i>
-                                        <span>Analytics Report</span>
-                                    </a>
-
-                                    <!-- item-->
-                                    <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                        <i class="fe-aperture me-1"></i>
-                                        <span>How can I help you?</span>
-                                    </a>
-
-                                    <!-- item-->
-                                    <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                        <i class="fe-settings me-1"></i>
-                                        <span>User profile settings</span>
-                                    </a>
-
-                                    <!-- item-->
-                                    <div class="dropdown-header noti-title">
-                                        <h6 class="text-overflow mb-2 text-uppercase">Users</h6>
-                                    </div>
-
-                                    <div class="notification-list">
-                                        <!-- item-->
-                                        <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                            <div class="d-flex align-items-start">
-                                                <img class="d-flex me-2 rounded-circle" src="{{url('default')}}/assets/images/users/user-2.jpg" alt="Generic placeholder image" height="32">
-                                                <div class="w-100">
-                                                    <h5 class="m-0 font-14">Erwin E. Brown</h5>
-                                                    <span class="font-12 mb-0">UI Designer</span>
-                                                </div>
-                                            </div>
-                                        </a>
-
-                                        <!-- item-->
-                                        <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                            <div class="d-flex align-items-start">
-                                                <img class="d-flex me-2 rounded-circle" src="{{url('default')}}/assets/images/users/user-5.jpg" alt="Generic placeholder image" height="32">
-                                                <div class="w-100">
-                                                    <h5 class="m-0 font-14">Jacob Deo</h5>
-                                                    <span class="font-12 mb-0">Developer</span>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div> --}}
+                                    <div class="notification-list" id="search-results"></div>
+                                </div>
                             </li>
 
                             <!-- Fullscreen Button -->
@@ -1367,6 +1407,127 @@
         <script src="{{url('js/email-validator.js')}}"></script>
 
         @yield('scripts')
+
+        <script>
+        (function() {
+            var searchInput = document.getElementById('top-search');
+            var searchDropdown = document.getElementById('search-dropdown');
+            var searchResults = document.getElementById('search-results');
+            var searchTitle = document.getElementById('search-dropdown-title');
+            var wrap = document.getElementById('top-search-wrap');
+            if (!searchInput || !searchDropdown) {
+                console.error('Elementos del buscador no encontrados');
+                return;
+            }
+            console.log('Buscador inicializado correctamente');
+            var searchUrl = searchInput.getAttribute('data-search-url');
+            var minChars = parseInt(searchInput.getAttribute('data-min-chars') || '6', 10);
+            var debounceTimer = null;
+            var hideTimer = null;
+
+            function showDropdown() {
+                wrap.classList.add('show');
+                wrap.style.setProperty('z-index', '10000', 'important');
+                searchDropdown.classList.add('show');
+                searchDropdown.style.setProperty('display', 'block', 'important');
+                searchDropdown.style.setProperty('visibility', 'visible', 'important');
+                searchDropdown.style.setProperty('opacity', '1', 'important');
+                searchDropdown.style.setProperty('z-index', '10001', 'important');
+                console.log('Dropdown mostrado - z-index:', window.getComputedStyle(searchDropdown).zIndex);
+            }
+            function hideDropdown() {
+                wrap.classList.remove('show');
+                searchDropdown.classList.remove('show');
+                searchDropdown.style.setProperty('display', 'none', 'important');
+                wrap.style.removeProperty('z-index');
+            }
+
+            function renderResult(r) {
+                var img = r.snapshot_path ? '<img src="' + escapeHtml(r.snapshot_path) + '" alt="" class="rounded me-2" style="width:48px;height:48px;object-fit:cover;flex-shrink:0;">' : '<div class="rounded me-2 bg-light d-flex align-items-center justify-content-center" style="width:48px;height:48px;flex-shrink:0;"><span class="fe-file font-18 text-muted"></span></div>';
+                var statusBadge = '<span class="badge ' + (r.status === 'vendida' ? 'bg-primary' : r.status === 'disponible' ? 'bg-success' : r.status === 'devuelta' ? 'bg-info' : r.status === 'anulada' ? 'bg-danger' : 'bg-secondary') + '" style="flex-shrink:0;">' + escapeHtml(r.status_text || r.status) + '</span>';
+                var detailUrl = escapeHtml(r.detail_url || ('/participations/view/' + r.id));
+                return '<a href="' + detailUrl + '" class="dropdown-item notify-item py-2 border-bottom border-light search-result-item" style="overflow:hidden;">' +
+                    '<div class="d-flex align-items-start" style="min-width:0;">' +
+                    '<div class="flex-shrink-0">' + img + '</div>' +
+                    '<div class="flex-grow-1" style="min-width:0;overflow:hidden;">' +
+                    '<div class="fw-semibold text-truncate" style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.referencia) + '</div>' +
+                    '<div class="small text-muted" style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.sorteo) + ' · ' + formatMoney(r.importeJugado) + ' · Donativo ' + formatMoney(r.donativo) + ' · ' + escapeHtml(r.fechaSorteo) + '</div>' +
+                    '</div>' +
+                    '<div class="flex-shrink-0 ms-2">' + statusBadge + '</div>' +
+                    '</div></a>';
+            }
+            function escapeHtml(s) {
+                if (s == null) return '';
+                var div = document.createElement('div');
+                div.textContent = s;
+                return div.innerHTML;
+            }
+            function formatMoney(n) {
+                if (n == null) return '—';
+                return parseFloat(n).toFixed(2) + ' €';
+            }
+
+            function doSearch() {
+                var q = (searchInput.value || '').trim();
+                if (q.length < minChars) {
+                    searchTitle.textContent = 'Escribe al menos ' + minChars + ' caracteres';
+                    searchResults.innerHTML = '';
+                    showDropdown();
+                    console.log('Mostrando dropdown - caracteres insuficientes');
+                    return;
+                }
+                searchTitle.textContent = 'Buscando...';
+                searchResults.innerHTML = '';
+                showDropdown();
+                console.log('Mostrando dropdown - buscando:', q);
+                fetch(searchUrl + '?q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        var list = (data && data.results) ? data.results : [];
+                        searchTitle.textContent = list.length === 0 ? 'Sin resultados' : (list.length + ' resultado' + (list.length !== 1 ? 's' : ''));
+                        searchResults.innerHTML = list.map(function(r) { return renderResult(r); }).join('');
+                        if (list.length === 0) {
+                            searchResults.innerHTML = '<div class="dropdown-item text-muted small py-2">No hay participaciones con esa referencia.</div>';
+                        }
+                    })
+                    .catch(function() {
+                        searchTitle.textContent = 'Error en la búsqueda';
+                        searchResults.innerHTML = '<div class="dropdown-item text-muted small py-2">Inténtalo de nuevo.</div>';
+                    });
+            }
+
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(doSearch, 320);
+            });
+            searchInput.addEventListener('focus', function() {
+                doSearch();
+            });
+            searchInput.addEventListener('blur', function(e) {
+                // No ocultar si el clic es dentro del dropdown
+                setTimeout(function() {
+                    if (!wrap.contains(document.activeElement) && !searchDropdown.matches(':hover')) {
+                        hideDropdown();
+                    }
+                }, 200);
+            });
+            searchDropdown.addEventListener('mousedown', function(e) {
+                e.preventDefault(); // Prevenir blur del input
+                clearTimeout(hideTimer);
+            });
+            searchDropdown.addEventListener('click', function(e) {
+                // Si es un link, permitir navegación
+                if (e.target.closest('a')) {
+                    return; // Permitir navegación
+                }
+            });
+            document.addEventListener('click', function(e) {
+                if (!wrap.contains(e.target)) {
+                    hideDropdown();
+                }
+            });
+        })();
+        </script>
 
         <script>
             localStorage.removeItem('step2');

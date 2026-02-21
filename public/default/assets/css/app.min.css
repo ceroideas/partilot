@@ -923,7 +923,7 @@ html[data-layout-mode="detached"]:not([data-layout="horizontal"]) body:not(.auth
     min-height: calc(100vh - var(--ct-topbar-height) - 1.5rem - var(--ct-theme-border-width) * 2);
 }
 html[data-layout-mode="detached"]:not([data-layout="horizontal"]) body:not(.auth-fluid-pages) #wrapper .content-page .navbar-custom {
-    top: 0.75rem;
+    /* top: 0.75rem; */
     margin: 0 0.75rem;
     border-radius: var(--ct-border-radius);
     border: var(--ct-theme-border-width) solid var(--ct-border-color);

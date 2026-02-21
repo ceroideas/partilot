@@ -16,6 +16,7 @@ class ParticipationCollection extends Model
         'iban',
         'importe_total',
         'collected_at',
+        'sepa_payment_order_id',
     ];
 
     protected $casts = [
@@ -36,5 +37,15 @@ class ParticipationCollection extends Model
     public function participations()
     {
         return $this->belongsToMany(Participation::class, 'participation_collection_items', 'collection_id', 'participation_id');
+    }
+
+    public function sepaPaymentOrder(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\SepaPaymentOrder::class);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->whereNull('sepa_payment_order_id');
     }
 }

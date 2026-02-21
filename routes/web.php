@@ -331,6 +331,7 @@ Route::group(['prefix' => 'sets', 'middleware' => 'role:super_admin,administrati
 Route::group(['prefix' => 'participations'], function() {
     //
     Route::get('/', [ParticipationController::class, 'index'])->name('participations.index');
+    Route::get('/search-by-reference', [ParticipationController::class, 'searchByReference'])->name('participations.search-by-reference');
     Route::get('/add', [ParticipationController::class, 'create'])->name('participations.create');
     Route::post('/view-entity', [ParticipationController::class, 'store_entity'])->name('participations.view-entity');
     Route::get('/view/{id}', [ParticipationController::class, 'show'])->name('participations.show');
@@ -396,6 +397,15 @@ Route::group(['prefix' => 'social'], function() {
 });
 Route::get('requests',function() {
     return view('requests.index');
+});
+
+// Rutas de configuración/ajustes
+Route::group(['prefix' => 'configuration'], function() {
+    Route::get('/', [App\Http\Controllers\ConfigurationController::class, 'index'])->name('configuration.index');
+    Route::delete('ordenes-pago-entidades/collections/{participationCollection}', [App\Http\Controllers\ConfigurationController::class, 'destroyCollection'])->name('ordenes-pago-entidades.collections.destroy');
+    Route::post('ordenes-pago-entidades/crear-sepa', [App\Http\Controllers\ConfigurationController::class, 'crearSepa'])->name('ordenes-pago-entidades.crear-sepa');
+    Route::get('ordenes-pago-entidades/nueva-orden', [App\Http\Controllers\ConfigurationController::class, 'nuevaOrdenSepa'])->name('ordenes-pago-entidades.nueva-orden');
+    Route::post('ordenes-pago-entidades/store-sepa', [App\Http\Controllers\ConfigurationController::class, 'storeOrdenSepa'])->name('ordenes-pago-entidades.store-sepa');
 });
 Route::get('communications',function() {
     return view('communications.index');
