@@ -12,6 +12,7 @@ class SepaPaymentBeneficiary extends Model
 
     protected $fillable = [
         'sepa_payment_order_id',
+        'participation_collection_id',
         'end_to_end_id',
         'amount',
         'currency',
@@ -32,6 +33,14 @@ class SepaPaymentBeneficiary extends Model
     public function paymentOrder(): BelongsTo
     {
         return $this->belongsTo(SepaPaymentOrder::class, 'sepa_payment_order_id');
+    }
+
+    /**
+     * Relación con ParticipationCollection (cuando el beneficiario proviene de una solicitud de cobro)
+     */
+    public function participationCollection(): BelongsTo
+    {
+        return $this->belongsTo(ParticipationCollection::class);
     }
 
     /**

@@ -190,7 +190,7 @@ class SepaXmlGeneratorService
         file_put_contents($fullPath, $xmlContent);
 
         // Actualizar el nombre del archivo en la orden
-        $order->update(['xml_filename' => $filename, 'status' => 'generated']);
+        $order->update(['xml_filename' => $filename, 'status' => 'descargado']);
 
         return $fullPath;
     }

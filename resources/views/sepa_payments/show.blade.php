@@ -60,8 +60,10 @@
                             <strong>Estado:</strong><br>
                             @if($sepaPaymentOrder->status == 'draft')
                                 <label class="badge bg-warning">Borrador</label>
-                            @elseif($sepaPaymentOrder->status == 'generated')
-                                <label class="badge bg-success">Generado</label>
+                            @elseif(in_array($sepaPaymentOrder->status, ['descargado', 'generated']))
+                                <label class="badge bg-info">Descargado</label>
+                            @elseif($sepaPaymentOrder->status == 'listo')
+                                <label class="badge bg-success">Listo</label>
                             @elseif($sepaPaymentOrder->status == 'uploaded')
                                 <label class="badge bg-info">Subido</label>
                             @else
@@ -168,6 +170,14 @@
                                 <a href="{{route('sepa-payments.generate-xml', $sepaPaymentOrder->id)}}" class="btn btn-success">
                                     <i class="ri-file-add-line"></i> Generar XML
                                 </a>
+                            @endif
+                            @if(in_array($sepaPaymentOrder->status, ['descargado', 'generated']))
+                                <form action="{{route('sepa-payments.mark-ready', $sepaPaymentOrder->id)}}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar esta orden como Listo (pago realizado)?');">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="ri-check-line"></i> Marcar como Listo (pago realizado)
+                                    </button>
+                                </form>
                             @endif
                             <form action="{{route('sepa-payments.destroy', $sepaPaymentOrder->id)}}" method="POST" class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar esta orden de pago?');">
                                 @csrf

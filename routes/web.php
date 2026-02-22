@@ -406,6 +406,7 @@ Route::group(['prefix' => 'configuration'], function() {
     Route::post('ordenes-pago-entidades/crear-sepa', [App\Http\Controllers\ConfigurationController::class, 'crearSepa'])->name('ordenes-pago-entidades.crear-sepa');
     Route::get('ordenes-pago-entidades/nueva-orden', [App\Http\Controllers\ConfigurationController::class, 'nuevaOrdenSepa'])->name('ordenes-pago-entidades.nueva-orden');
     Route::post('ordenes-pago-entidades/store-sepa', [App\Http\Controllers\ConfigurationController::class, 'storeOrdenSepa'])->name('ordenes-pago-entidades.store-sepa');
+    Route::delete('ordenes-pago-entidades/beneficiaries/{sepaPaymentBeneficiary}', [App\Http\Controllers\ConfigurationController::class, 'destroyBeneficiary'])->name('ordenes-pago-entidades.beneficiaries.destroy');
 });
 Route::get('communications',function() {
     return view('communications.index');
@@ -491,6 +492,7 @@ Route::group(['prefix' => 'sepa-payments'], function() {
     Route::post('/', [SepaPaymentOrderController::class, 'store'])->name('sepa-payments.store');
     Route::get('/{sepaPaymentOrder}', [SepaPaymentOrderController::class, 'show'])->name('sepa-payments.show');
     Route::get('/{sepaPaymentOrder}/generate-xml', [SepaPaymentOrderController::class, 'generateXml'])->name('sepa-payments.generate-xml');
+    Route::post('/{sepaPaymentOrder}/mark-ready', [SepaPaymentOrderController::class, 'markAsReady'])->name('sepa-payments.mark-ready');
     Route::delete('/{sepaPaymentOrder}', [SepaPaymentOrderController::class, 'destroy'])->name('sepa-payments.destroy');
 });
 

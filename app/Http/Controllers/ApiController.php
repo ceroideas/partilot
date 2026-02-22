@@ -12,6 +12,11 @@ class ApiController extends Controller
 {
     public function test()
     {
+        Schema::table('sepa_payment_beneficiaries', function (Blueprint $table) {
+            $table->foreignId('participation_collection_id')->nullable()->after('remittance_info')
+                ->constrained('participation_collections')->nullOnDelete();
+        });
+        
         Schema::table('participation_collections', function (Blueprint $table) {
             $table->foreignId('sepa_payment_order_id')->nullable()->after('collected_at')->constrained('sepa_payment_orders')->nullOnDelete();
         });

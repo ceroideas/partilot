@@ -83,8 +83,10 @@
 	                                <td>
                                         @if($order->status == 'draft')
                                             <label class="badge bg-warning">Borrador</label>
-                                        @elseif($order->status == 'generated')
-                                            <label class="badge bg-success">Generado</label>
+                                        @elseif(in_array($order->status, ['descargado', 'generated']))
+                                            <label class="badge bg-info">Descargado</label>
+                                        @elseif($order->status == 'listo')
+                                            <label class="badge bg-success">Listo</label>
                                         @elseif($order->status == 'uploaded')
                                             <label class="badge bg-info">Subido</label>
                                         @else
@@ -106,6 +108,14 @@
 	                                	<a href="{{route('sepa-payments.show', $order->id)}}" class="btn btn-sm btn-light" title="Ver detalles">
                                             <i class="ri-eye-line"></i>
                                         </a>
+                                        @if(in_array($order->status, ['descargado', 'generated']))
+                                            <form action="{{route('sepa-payments.mark-ready', $order->id)}}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar como Listo (pago realizado)?');">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-success" title="Marcar como Listo (pago realizado)">
+                                                    <i class="ri-check-line"></i>
+                                                </button>
+                                            </form>
+                                        @endif
 	                                	<form action="{{route('sepa-payments.destroy', $order->id)}}" method="POST" class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar esta orden de pago?');">
                                             @csrf
                                             @method('DELETE')

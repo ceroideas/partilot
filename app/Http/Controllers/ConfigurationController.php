@@ -26,6 +26,7 @@ class ConfigurationController extends Controller
         $entity = null;
         $collections = collect();
         $sepaOrders = collect();
+        $sepaOrder = null;
         $provincias = collect();
         $localidades = collect();
 
@@ -67,19 +68,72 @@ class ConfigurationController extends Controller
             }
 
             if ($entity && $step === 3) {
-                $collections = ParticipationCollection::whereHas('items.participation', function ($q) use ($entityId) {
-                    $q->where('entity_id', $entityId);
-                });
-                if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
-                    $collections = $collections->pending();
+                $orderId = $request->get('order_id');
+                if ($orderId && $entity->administration_id) {
+                    $sepaOrder = SepaPaymentOrder::where('administration_id', $entity->administration_id)
+                        ->with(['beneficiaries' => fn ($q) => $q->with('participationCollection')])
+                        ->find($orderId);
                 }
-                $collections = $collections->with(['user', 'items'])->orderBy('created_at', 'desc')->get();
+                if (!$sepaOrder) {
+                    $collections = ParticipationCollection::whereHas('items.participation', function ($q) use ($entityId) {
+                        $q->where('entity_id', $entityId);
+                    });
+                    if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
+                        $collections = $collections->pending();
+                    }
+                    $collections = $collections->with(['user', 'items'])->orderBy('created_at', 'desc')->get();
+                }
             }
         }
 
         return view('configuration.index', compact(
-            'section', 'step', 'entityId', 'entities', 'entity', 'collections', 'sepaOrders', 'provincias', 'localidades'
+            'section', 'step', 'entityId', 'entities', 'entity', 'collections', 'sepaOrders', 'sepaOrder', 'provincias', 'localidades'
         ));
+    }
+
+    /**
+     * Eliminar un beneficiario de una orden SEPA (cuenta vinculada).
+     * Si el beneficiario está vinculado a una participation_collection, se borra dicha solicitud de cobro
+     * para que desde la app el usuario pueda volver a cobrarla creando una nueva (llenando los datos de nuevo).
+     */
+    public function destroyBeneficiary(Request $request, SepaPaymentBeneficiary $sepaPaymentBeneficiary)
+    {
+        $request->validate([
+            'entity_id' => 'required|exists:entities,id',
+            'order_id' => 'required|exists:sepa_payment_orders,id',
+        ]);
+        $entity = Entity::with('administration')->forUser($request->user())->findOrFail($request->entity_id);
+        $order = $sepaPaymentBeneficiary->paymentOrder;
+        if (!$order || (int) $order->id !== (int) $request->order_id || $order->administration_id != $entity->administration_id) {
+            return redirect()->route('configuration.index', ['section' => 'ordenes-pago-entidades', 'step' => 1])
+                ->with('error', 'No tiene permiso para modificar esta orden.');
+        }
+
+        try {
+            DB::beginTransaction();
+            $collection = $sepaPaymentBeneficiary->participationCollection;
+            $sepaPaymentBeneficiary->delete();
+            if ($collection) {
+                $collection->delete();
+            }
+            $remaining = SepaPaymentBeneficiary::where('sepa_payment_order_id', $order->id)->get();
+            $order->update([
+                'number_of_transactions' => $remaining->count(),
+                'control_sum' => $remaining->sum('amount'),
+            ]);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('configuration.index', [
+                'section' => 'ordenes-pago-entidades', 'step' => 3,
+                'entity_id' => $entity->id, 'order_id' => $order->id,
+            ])->with('error', 'Error al eliminar: ' . $e->getMessage());
+        }
+
+        return redirect()->route('configuration.index', [
+            'section' => 'ordenes-pago-entidades', 'step' => 3,
+            'entity_id' => $entity->id, 'order_id' => $order->id,
+        ])->with('success', 'Cuenta eliminada de la orden. La solicitud de cobro se ha borrado; desde la app se puede volver a cobrar llenando los datos de nuevo.');
     }
 
     /**
@@ -202,8 +256,6 @@ class ConfigurationController extends Controller
         }
         $collections = $query->with('user')->orderBy('created_at', 'desc')->get();
 
-        return $collections;
-
         $administrations = Administration::all();
         $debtorName = $entity->administration->name ?? $entity->name;
         $debtorNif = $entity->administration->nif_cif ?? $entity->nif_cif ?? '';
@@ -289,8 +341,10 @@ class ConfigurationController extends Controller
                 if (!str_starts_with(strtoupper($creditorIban), 'ES')) {
                     $creditorIban = 'ES' . $creditorIban;
                 }
+                $participationCollectionId = !empty($beneficiary['collection_id']) ? (int) $beneficiary['collection_id'] : null;
                 SepaPaymentBeneficiary::create([
                     'sepa_payment_order_id' => $order->id,
+                    'participation_collection_id' => $participationCollectionId,
                     'end_to_end_id' => SepaPaymentBeneficiary::generateEndToEndId(),
                     'amount' => $beneficiary['amount'],
                     'currency' => $beneficiary['currency'] ?? 'EUR',
@@ -300,13 +354,10 @@ class ConfigurationController extends Controller
                     'purpose_code' => $beneficiary['purpose_code'] ?? 'CASH',
                     'remittance_info' => $beneficiary['remittance_info'] ?? null,
                 ]);
-                if (!empty($beneficiary['collection_id']) && Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
-                    $collection = ParticipationCollection::where('id', $beneficiary['collection_id'])
+                if ($participationCollectionId && Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
+                    ParticipationCollection::where('id', $participationCollectionId)
                         ->whereNull('sepa_payment_order_id')
-                        ->first();
-                    if ($collection) {
-                        $collection->update(['sepa_payment_order_id' => $order->id]);
-                    }
+                        ->update(['sepa_payment_order_id' => $order->id]);
                 }
             }
 
@@ -316,14 +367,14 @@ class ConfigurationController extends Controller
             return back()->withInput()->withErrors(['error' => 'Error al crear la orden: ' . $e->getMessage()]);
         }
 
-        $redirectTo = $request->input('redirect_to', 'step3');
+        $redirectTo = $request->input('redirect_to', 'step2');
         if ($redirectTo === 'show') {
             return redirect()->route('sepa-payments.show', $order->id)->with('success', 'Orden de pago creada.');
         }
         return redirect()->route('configuration.index', [
             'section' => 'ordenes-pago-entidades',
-            'step' => 3,
+            'step' => 2,
             'entity_id' => $entity->id,
-        ])->with('success', 'Orden de pago creada. Puede verla en el paso 2 o generar el XML desde Órdenes de Pago SEPA.');
+        ])->with('success', 'Orden de pago creada. Seleccione la orden en la lista y pulse "Ver detalle" para ver los beneficiarios o generar el XML.');
     }
 }

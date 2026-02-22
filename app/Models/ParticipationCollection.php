@@ -48,4 +48,17 @@ class ParticipationCollection extends Model
     {
         return $query->whereNull('sepa_payment_order_id');
     }
+
+    /**
+     * Al borrar la solicitud de cobro, poner collected_at en null en las participaciones vinculadas.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (ParticipationCollection $collection) {
+            $participationIds = $collection->items()->pluck('participation_id')->unique()->filter()->values()->all();
+            if ($participationIds !== [] && \Illuminate\Support\Facades\Schema::hasColumn('participations', 'collected_at')) {
+                Participation::whereIn('id', $participationIds)->update(['collected_at' => null]);
+            }
+        });
+    }
 }

@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\SepaPaymentOrder;
 use App\Models\SepaPaymentBeneficiary;
 use App\Models\Administration;
+use App\Models\ParticipationCollection;
 use App\Services\SepaXmlGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class SepaPaymentOrderController extends Controller
@@ -183,11 +185,27 @@ class SepaPaymentOrderController extends Controller
     }
 
     /**
-     * Eliminar una orden de pago
+     * Marcar la orden como Listo (pago realizado manualmente por el usuario).
      */
-    public function destroy(SepaPaymentOrder $sepaPaymentOrder)
+    public function markAsReady(SepaPaymentOrder $sepaPaymentOrder)
+    {
+        $sepaPaymentOrder->update(['status' => 'listo']);
+        return back()->with('success', 'Orden marcada como Listo (pago realizado).');
+    }
+
+    /**
+     * Eliminar una orden de pago.
+     * Las participation_collections vinculadas no se borran; se les pone sepa_payment_order_id = null
+     * para que sigan disponibles (pagos pendientes).
+     */
+    public function destroy(Request $request, SepaPaymentOrder $sepaPaymentOrder)
     {
         try {
+            if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
+                ParticipationCollection::where('sepa_payment_order_id', $sepaPaymentOrder->id)
+                    ->update(['sepa_payment_order_id' => null]);
+            }
+
             // Eliminar archivo XML si existe
             if ($sepaPaymentOrder->xml_filename) {
                 $filePath = storage_path('app/sepa_payments/' . $sepaPaymentOrder->xml_filename);
@@ -197,6 +215,14 @@ class SepaPaymentOrderController extends Controller
             }
 
             $sepaPaymentOrder->delete();
+
+            if ($request->input('redirect_to') === 'configuration' && $request->filled('entity_id')) {
+                return redirect()->route('configuration.index', [
+                    'section' => 'ordenes-pago-entidades',
+                    'step' => 2,
+                    'entity_id' => $request->input('entity_id'),
+                ])->with('success', 'Orden de pago eliminada correctamente.');
+            }
 
             return redirect()->route('sepa-payments.index')
                 ->with('success', 'Orden de pago eliminada correctamente.');
