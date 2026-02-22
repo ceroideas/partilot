@@ -33,6 +33,7 @@ class SepaPaymentOrderController extends Controller
 
     /**
      * Show the form for creating a new resource.
+     * Los beneficiarios se añaden manualmente. El listado de participation_collections está en Configuration (nueva orden por entidad).
      */
     public function create()
     {
@@ -117,7 +118,7 @@ class SepaPaymentOrderController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Crear beneficiarios
+            // Crear beneficiarios y vincular participation_collections si aplica
             foreach ($validated['beneficiaries'] as $index => $beneficiary) {
                 $creditorIban = $beneficiary['creditor_iban'];
                 if (!str_starts_with(strtoupper($creditorIban), 'ES')) {

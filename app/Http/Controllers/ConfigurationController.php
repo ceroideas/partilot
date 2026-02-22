@@ -186,15 +186,23 @@ class ConfigurationController extends Controller
     }
 
     /**
-     * Formulario para crear nueva orden SEPA desde Ordenes Pago Entidades (beneficiarios desde participation_collections).
+     * Formulario para crear nueva orden SEPA desde Ordenes Pago Entidades.
+     * Los beneficiarios salen de participation_collections pendientes (no vinculadas a ninguna orden SEPA) de la entidad elegida.
      */
     public function nuevaOrdenSepa(Request $request)
     {
         $request->validate(['entity_id' => 'required|exists:entities,id']);
         $entity = Entity::with('administration')->forUser($request->user())->findOrFail($request->entity_id);
-        $collections = ParticipationCollection::whereHas('items.participation', function ($q) use ($entity) {
+
+        $query = ParticipationCollection::whereHas('items.participation', function ($q) use ($entity) {
             $q->where('entity_id', $entity->id);
-        })->pending()->with('user')->orderBy('created_at', 'desc')->get();
+        });
+        if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
+            $query->pending();
+        }
+        $collections = $query->with('user')->orderBy('created_at', 'desc')->get();
+
+        return $collections;
 
         $administrations = Administration::all();
         $debtorName = $entity->administration->name ?? $entity->name;
@@ -293,7 +301,12 @@ class ConfigurationController extends Controller
                     'remittance_info' => $beneficiary['remittance_info'] ?? null,
                 ]);
                 if (!empty($beneficiary['collection_id']) && Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
-                    ParticipationCollection::where('id', $beneficiary['collection_id'])->update(['sepa_payment_order_id' => $order->id]);
+                    $collection = ParticipationCollection::where('id', $beneficiary['collection_id'])
+                        ->whereNull('sepa_payment_order_id')
+                        ->first();
+                    if ($collection) {
+                        $collection->update(['sepa_payment_order_id' => $order->id]);
+                    }
                 }
             }
 

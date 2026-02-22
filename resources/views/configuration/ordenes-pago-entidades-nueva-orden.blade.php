@@ -13,7 +13,7 @@
                 'collection_id' => $b['collection_id'] ?? null,
                 'creditor_name' => $b['creditor_name'] ?? '',
                 'creditor_nif_cif' => $b['creditor_nif_cif'] ?? '',
-                'creditor_iban' => $iban,
+                'creditor_iban' => strlen($iban) >= 22 ? substr($iban, 0, 22) : $iban,
                 'amount' => (string) ($b['amount'] ?? ''),
                 'currency' => $b['currency'] ?? 'EUR',
                 'purpose_code' => $b['purpose_code'] ?? 'CASH',
@@ -21,20 +21,7 @@
             ];
         })->values()->all();
     } else {
-        $initialBeneficiaries = $collections->map(function ($c) {
-            $iban = preg_replace('/\s+/', '', $c->iban ?? '');
-            $iban = str_starts_with(strtoupper($iban), 'ES') ? substr($iban, 2) : $iban;
-            return [
-                'collection_id' => $c->id,
-                'creditor_name' => trim(($c->nombre ?? '') . ' ' . ($c->apellidos ?? '')),
-                'creditor_nif_cif' => $c->nif ?? '',
-                'creditor_iban' => $iban,
-                'amount' => (string) $c->importe_total,
-                'currency' => 'EUR',
-                'purpose_code' => 'CASH',
-                'remittance_info' => '',
-            ];
-        })->values()->all();
+        $initialBeneficiaries = [];
     }
 @endphp
 
@@ -70,7 +57,7 @@
                     @endif
 
                     <p class="text-muted mb-3">
-                        Los beneficiarios se han rellenado desde las peticiones de cobro pendientes de esta entidad. Puede editarlos o añadir más manualmente.
+                        Añada como beneficiarios las solicitudes de cobro pendientes de esta entidad usando "Añadir a la orden", o añada beneficiarios manualmente.
                     </p>
 
                     <form action="{{ route('ordenes-pago-entidades.store-sepa') }}" method="POST" id="sepa-payment-form">
@@ -133,6 +120,50 @@
                             </div>
                         </div>
 
+                        @if($collections->isNotEmpty())
+                        <h5 class="mb-3 mt-4">Solicitudes de cobro pendientes</h5>
+                        <p class="text-muted small">Estas solicitudes no están vinculadas a ninguna orden de pago. Añádalas a la orden con el botón de cada fila.</p>
+                        <div class="table-responsive mb-4">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Solicitante</th>
+                                        <th>Beneficiario</th>
+                                        <th>NIF</th>
+                                        <th>Importe</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($collections as $col)
+                                    @php
+                                        $creditorName = trim(($col->nombre ?? '') . ' ' . ($col->apellidos ?? '')) ?: ($col->user->name ?? '—');
+                                        $ibanRaw = preg_replace('/\s+/', '', $col->iban ?? '');
+                                        $iban22 = str_starts_with(strtoupper($ibanRaw), 'ES') ? substr($ibanRaw, 2) : $ibanRaw;
+                                        $iban22 = strlen($iban22) >= 22 ? substr($iban22, 0, 22) : $iban22;
+                                    @endphp
+                                    <tr data-collection-id="{{ $col->id }}"
+                                        data-creditor-name="{{ e($creditorName) }}"
+                                        data-creditor-nif="{{ e($col->nif ?? '') }}"
+                                        data-creditor-iban="{{ $iban22 }}"
+                                        data-amount="{{ number_format($col->importe_total, 2, '.', '') }}"
+                                        data-remittance="Cobro participaciones">
+                                        <td>{{ $col->user->name ?? '—' }}</td>
+                                        <td>{{ $creditorName }}</td>
+                                        <td>{{ $col->nif ?? '—' }}</td>
+                                        <td>€{{ number_format($col->importe_total, 2, ',', '.') }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary add-from-collection" title="Añadir a la orden">
+                                                <i class="ri-add-line"></i> Añadir a la orden
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        @endif
+
                         <h5 class="mb-3 mt-4">Beneficiarios <span class="text-danger">*</span></h5>
                         <div id="beneficiaries-container"></div>
                         <button type="button" class="btn btn-success mb-3" id="add-beneficiary">
@@ -169,7 +200,7 @@
             + '<div class="beneficiary-item card mb-3" data-index="' + index + '">'
             + '<div class="card-body">'
             + '<div class="d-flex justify-content-between align-items-center mb-3">'
-            + '<h6 class="mb-0">Beneficiario #' + (index + 1) + '</h6>'
+            + '<h6 class="mb-0">Beneficiario #' + (index + 1) + (collectionId ? ' <span class="badge bg-info">Solicitud de cobro</span>' : '') + '</h6>'
             + '<button type="button" class="btn btn-sm btn-danger remove-beneficiary" data-index="' + index + '"><i class="ri-delete-bin-line"></i> Eliminar</button>'
             + '</div>'
             + collectionInput
@@ -227,17 +258,35 @@
                     if (h) h.textContent = 'Beneficiario #' + (i + 1);
                 });
             }
+            return;
+        }
+        if (e.target.closest('.add-from-collection')) {
+            var btn = e.target.closest('.add-from-collection');
+            var row = btn.closest('tr');
+            if (!row) return;
+            var collectionId = row.getAttribute('data-collection-id');
+            var data = {
+                creditor_name: row.getAttribute('data-creditor-name') || '',
+                creditor_nif_cif: row.getAttribute('data-creditor-nif') || '',
+                creditor_iban: row.getAttribute('data-creditor-iban') || '',
+                amount: row.getAttribute('data-amount') || '',
+                currency: 'EUR',
+                purpose_code: 'CASH',
+                remittance_info: row.getAttribute('data-remittance') || 'Cobro participaciones'
+            };
+            addBeneficiary(data, collectionId);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ri-check-line"></i> Añadido';
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-outline-secondary');
         }
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-        var container = document.getElementById('beneficiaries-container');
         if (initialBeneficiaries && initialBeneficiaries.length) {
             initialBeneficiaries.forEach(function(b) {
                 addBeneficiary(b, b.collection_id);
             });
-        } else {
-            addBeneficiary(null, null);
         }
         if (typeof initSpanishDocumentValidation === 'function') {
             initSpanishDocumentValidation('debtor_nif_cif', { showMessage: true });

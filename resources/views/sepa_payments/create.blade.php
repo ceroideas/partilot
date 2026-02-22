@@ -188,11 +188,11 @@ function getBeneficiaryTemplate(index, exampleData = null) {
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nombre del Beneficiario <span class="text-danger">*</span></label>
-                        <input type="text" name="beneficiaries[${index}][creditor_name]" class="form-control" value="${data.creditor_name || ''}" required maxlength="255">
+                        <input type="text" name="beneficiaries[${index}][creditor_name]" class="form-control" value="${(data.creditor_name || '').replace(/"/g, '&quot;')}" required maxlength="255">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NIF/CIF del Beneficiario</label>
-                        <input type="text" name="beneficiaries[${index}][creditor_nif_cif]" id="beneficiary-${index}-nif-cif" class="form-control creditor-nif-cif" value="${data.creditor_nif_cif || ''}" maxlength="50">
+                        <input type="text" name="beneficiaries[${index}][creditor_nif_cif]" id="beneficiary-${index}-nif-cif" class="form-control creditor-nif-cif" value="${(data.creditor_nif_cif || '').replace(/"/g, '&quot;')}" maxlength="50">
                     </div>
                 </div>
                 <div class="row">
@@ -211,7 +211,7 @@ function getBeneficiaryTemplate(index, exampleData = null) {
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Moneda <span class="text-danger">*</span></label>
                         <select name="beneficiaries[${index}][currency]" class="form-select" required>
-                            <option value="EUR" ${data.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+                            <option value="EUR" ${(data.currency || 'EUR') === 'EUR' ? 'selected' : ''}>EUR</option>
                             <option value="USD" ${data.currency === 'USD' ? 'selected' : ''}>USD</option>
                             <option value="GBP" ${data.currency === 'GBP' ? 'selected' : ''}>GBP</option>
                         </select>
@@ -224,7 +224,7 @@ function getBeneficiaryTemplate(index, exampleData = null) {
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Información de Remesa</label>
-                        <input type="text" name="beneficiaries[${index}][remittance_info]" class="form-control" value="${data.remittance_info || ''}" maxlength="500" placeholder="Ej: https://web.elbuholotero.es">
+                        <input type="text" name="beneficiaries[${index}][remittance_info]" class="form-control" value="${(data.remittance_info || '').replace(/"/g, '&quot;')}" maxlength="500" placeholder="Ej: Cobro participaciones">
                     </div>
                 </div>
             </div>
@@ -270,11 +270,9 @@ function updateBeneficiaryNumbers() {
 // Añadir beneficiarios de ejemplo al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('beneficiaries-container');
-    
-    // Si no hay datos antiguos (old input), añadir beneficiarios de ejemplo
+
     @if(!old('beneficiaries'))
-        // Añadir 2 beneficiarios de ejemplo
-        exampleBeneficiaries.slice(0, 2).forEach((example, idx) => {
+        exampleBeneficiaries.slice(0, 2).forEach((example) => {
             const template = getBeneficiaryTemplate(beneficiaryIndex, example);
             container.insertAdjacentHTML('beforeend', template);
             if (typeof initSpanishDocumentValidation === 'function') {
@@ -283,11 +281,9 @@ document.addEventListener('DOMContentLoaded', function() {
             beneficiaryIndex++;
         });
     @else
-        // Si hay datos antiguos, añadir un beneficiario vacío
         document.getElementById('add-beneficiary').click();
     @endif
 
-    // Validación NIF/CIF del deudor
     if (typeof initSpanishDocumentValidation === 'function') {
         initSpanishDocumentValidation('debtor_nif_cif', { showMessage: true });
     }
