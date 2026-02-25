@@ -238,6 +238,15 @@ Route::middleware('auth.api')->group(function () {
         Route::get('/group-stats', [SellerController::class, 'getGroupStats']);
         Route::post('/{id}/update-group', [SellerController::class, 'updateGroup']);
     });
+
+    // ========================================================================
+    // GESTOR (participaciones de vendedores de sus entidades; tabla managers)
+    // ========================================================================
+    Route::prefix('managers')->group(function () {
+        Route::get('/me/entities', [SellerController::class, 'apiGetManagerEntities']);
+        Route::get('/me/tacos', [SellerController::class, 'apiGetManagerTacos']);
+        Route::get('/me/tacos/{setId}/{bookNumber}/participations', [SellerController::class, 'apiGetManagerTacoParticipations']);
+    });
     
     // ========================================================================
     // NOTIFICACIONES

@@ -95,7 +95,7 @@
                                             </div>
                                             <div class="mb-2">
                                                 <strong>Ventas registradas:</strong>
-                                                <span id="liquidacion-ventas-registradas">{{ $devolution->details()->where('action', 'vender')->count() }}</span>
+                                                <span id="liquidacion-ventas-registradas">{{ $devolution->total_participations - $devolution->details()->where('action', 'devolver')->count() }}</span>
                                             </div>
                                         </div>
                                         <div class="col-6">
@@ -112,6 +112,13 @@
                                     </div>
                                 </div>
                                 
+                            @php
+                                $totalLiquidacionEdit = $devolution->total_liquidation !== null
+                                    ? (float) $devolution->total_liquidation
+                                    : $devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; });
+                                $totalPagosEdit = $devolution->payments()->sum('amount');
+                                $totalAPagarEdit = $totalLiquidacionEdit - $totalPagosEdit;
+                            @endphp
                             <!-- Liquidación Actual -->
                             <div class="card mb-3">
                                 <div class="card-body">
@@ -120,19 +127,19 @@
                                         <div class="col-4">
                                             <div class="mb-2">
                                                 <strong>Total Liquidación:</strong>
-                                                <span id="liquidacion-total-liquidacion">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }), 2) }}€</span>
+                                                <span id="liquidacion-total-liquidacion">{{ number_format($totalLiquidacionEdit, 2) }}€</span>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <div class="mb-2">
                                                 <strong>Pagos Registrados:</strong>
-                                                <span id="liquidacion-pagos-registrados">{{ number_format($devolution->payments()->sum('amount'), 2) }}€</span>
+                                                <span id="liquidacion-pagos-registrados">{{ number_format($totalPagosEdit, 2) }}€</span>
                                         </div>
                                     </div>
                                         <div class="col-4">
                                             <div class="mb-2">
                                                 <strong>Total a Pagar:</strong>
-                                                <span id="liquidacion-total-pagar">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</span>
+                                                <span id="liquidacion-total-pagar">{{ number_format($totalAPagarEdit, 2) }}€</span>
                                         </div>
                                     </div>
                                 </div>
@@ -191,7 +198,7 @@
                                             <div class="text-center">
                                                 <div class="border rounded p-3 mb-3 bg-light">
                                                     <small class="text-muted">Total a Pagar</small>
-                                                    <div class="text-danger h4" id="liquidacion-importe-total">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</div>
+                                                    <div class="text-danger h4" id="liquidacion-importe-total">{{ number_format($totalAPagarEdit, 2) }}€</div>
                                                 </div>
                                                 <div class="border rounded p-3 mb-3 bg-success bg-opacity-10">
                                                     <small class="text-muted">Total a Pagar Ahora</small>
@@ -199,7 +206,7 @@
                                                 </div>
                                                 <div class="border rounded p-3 mb-3" id="pendiente-container">
                                                     <small class="text-muted">Quedará Pendiente</small>
-                                                    <div class="h5" id="total-pendiente">{{ number_format($devolution->details()->where('action', 'vender')->with('participation.set')->get()->sum(function($detail) { return $detail->participation->set->played_amount ?? 0; }) - $devolution->payments()->sum('amount'), 2) }}€</div>
+                                                    <div class="h5" id="total-pendiente">{{ number_format($totalAPagarEdit, 2) }}€</div>
                                                 </div>
                                         </div>
                 </div>
@@ -245,9 +252,17 @@ jQuery(document).ready(function($) {
         const totalPagarAhora = efectivoMonto + bizumMonto + transferenciaMonto;
         $('#total-pagar-ahora').text(totalPagarAhora.toFixed(2) + '€');
         
-        // Calcular pendiente
-        const totalAPagarText = $('#liquidacion-importe-total').text();
-        const totalAPagar = parseFloat(totalAPagarText.replace('€', '').replace(',', '.').trim()) || 0;
+        // Calcular pendiente (parsear importe con miles: 1,194.00 o 1.194,00)
+        const totalAPagarText = $('#liquidacion-importe-total').text().replace('€', '').trim();
+        let totalAPagar = 0;
+        if (totalAPagarText) {
+            const sinSeparadores = totalAPagarText.replace(/[.,\s]/g, '');
+            if (/[.,]\d{2}$/.test(totalAPagarText)) {
+                totalAPagar = parseFloat(sinSeparadores.slice(0, -2) + '.' + sinSeparadores.slice(-2)) || 0;
+            } else {
+                totalAPagar = parseFloat(sinSeparadores) || 0;
+            }
+        }
         const pendiente = totalAPagar - totalPagarAhora;
         
         console.log('Total a pagar:', totalAPagar, 'Pendiente:', pendiente);

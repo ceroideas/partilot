@@ -168,14 +168,54 @@ class DevolutionsController extends Controller
             $now = Carbon::now();
             $userId = auth()->id();
 
+            // Calcular total real del set/s y liquidación (misma lógica que getLiquidationSummary)
+            $totalParticipations = 0;
+            $totalLiquidation = 0.0;
+
+            if (empty($participationsToReturn) && isset($data['set_id'])) {
+                $setId = (int) $data['set_id'];
+                $set = Set::forUser(auth()->user())->find($setId);
+                if ($set) {
+                    $totalInSet = Participation::forUser(auth()->user())
+                        ->where('set_id', $setId)
+                        ->where('status', '!=', 'anulada')
+                        ->count();
+                    $price = $set->played_amount ?? 0;
+                    $totalParticipations = $totalInSet;
+                    $totalLiquidation = $totalInSet * $price;
+                }
+            } elseif (!empty($participationsToReturn)) {
+                $participations = Participation::forUser(auth()->user())
+                    ->whereIn('id', $participationsToReturn)->get();
+                $setIds = $participations->pluck('set_id')->unique()->toArray();
+                foreach ($setIds as $setId) {
+                    $set = Set::forUser(auth()->user())->find($setId);
+                    if (!$set) {
+                        continue;
+                    }
+                    $totalInSet = Participation::forUser(auth()->user())
+                        ->where('set_id', $setId)
+                        ->where('status', '!=', 'anulada')
+                        ->count();
+                    $returnedInSet = $participations->where('set_id', $setId)->count();
+                    $price = $set->played_amount ?? 0;
+                    $totalParticipations += $totalInSet;
+                    $totalLiquidation += ($totalInSet - $returnedInSet) * $price;
+                }
+            } else {
+                // Sin set ni participaciones a devolver: usar conteo de las procesadas
+                $totalParticipations = count($participationsToReturn) + count($participationsToSell);
+                $totalLiquidation = 0;
+            }
+
             // Crear registro de devolución
-            $totalParticipations = count($participationsToReturn) + count($participationsToSell);
             $devolution = Devolution::create([
                 'entity_id' => $data['entity_id'],
                 'lottery_id' => $data['lottery_id'],
                 'seller_id' => $data['seller_id'] ?? null,
                 'user_id' => $userId,
                 'total_participations' => $totalParticipations,
+                'total_liquidation' => $totalLiquidation,
                 'return_reason' => $data['return_reason'] ?? 'Devolución de entidad a administración',
                 'devolution_date' => $now->format('Y-m-d'),
                 'devolution_time' => $now->format('H:i:s'),
@@ -223,10 +263,10 @@ class DevolutionsController extends Controller
                         'sale_date' => $now->format('Y-m-d'),
                         'sale_time' => $now->format('H:i:s'),
                         'sale_amount' => $saleAmount,
-                        'buyer_name' => 'Liquidación automática',
-                        'buyer_phone' => '',
-                        'buyer_email' => '',
-                        'buyer_nif' => '',
+                        'buyer_name' => null,
+                        'buyer_phone' => null,
+                        'buyer_email' => null,
+                        'buyer_nif' => null,
                         'notes' => 'Liquidación automática',
                     ]);
 
@@ -385,6 +425,7 @@ class DevolutionsController extends Controller
                 'devolutions.seller_id',
                 'devolutions.user_id',
                 'devolutions.total_participations',
+                'devolutions.total_liquidation',
                 'devolutions.return_reason',
                 'devolutions.devolution_date',
                 'devolutions.devolution_time',
@@ -400,20 +441,19 @@ class DevolutionsController extends Controller
                 $returnedCount = $devolution->details()->where('action', 'devolver')->count();
                 $soldCount = $devolution->details()->where('action', 'vender')->count();
                 
-                // Calcular total de liquidación (participaciones vendidas * precio promedio)
-                $totalLiquidation = 0;
-                $totalPayments = 0;
-                
-                if ($soldCount > 0) {
-                    // Obtener el precio de las participaciones vendidas
+                // Total liquidación: usar valor guardado si existe, si no calcular desde detalles
+                $totalLiquidation = $devolution->total_liquidation !== null
+                    ? (float) $devolution->total_liquidation
+                    : 0;
+                if ($totalLiquidation == 0 && $soldCount > 0) {
                     $soldParticipations = $devolution->details()->where('action', 'vender')->with('participation.set')->get();
                     foreach ($soldParticipations as $detail) {
                         if ($detail->participation && $detail->participation->set) {
-                            $price = $detail->participation->set->played_amount ?? 0;
-                            $totalLiquidation += $price;
+                            $totalLiquidation += $detail->participation->set->played_amount ?? 0;
                         }
                     }
                 }
+                $totalPayments = 0;
                 
                 // Calcular pagos registrados (suma de amount en pagos de la devolución)
                 $totalPayments = $devolution->payments()->sum('amount') ?? 0;
@@ -838,28 +878,38 @@ class DevolutionsController extends Controller
 
             \Log::info("Processing set: $setId - " . $set->set_name);
 
-            // Participaciones del set que se van a devolver
+            // Participaciones del set que se van a devolver (las seleccionadas por el usuario)
             $returnedInSet = $participations->where('set_id', $setId)->count();
-            
-            // Todas las participaciones del set (EXCLUIR ANULADAS)
+
+            // Total real del set: todas las participaciones del set (cualquier estado salvo anulada)
+            $totalInSet = Participation::forUser(auth()->user())
+                ->where('set_id', $setId)
+                ->where('status', '!=', 'anulada')
+                ->count();
+
+            // Participaciones en pool para esta liquidación: solo disponible + asignada (las que se pueden devolver o liquidar)
             $allInSet = Participation::forUser(auth()->user())
                 ->where('set_id', $setId)
                 ->whereIn('status', ['disponible', 'asignada'])
                 ->where('status', '!=', 'anulada')
                 ->count();
-            
-            // Las que se van a vender (total - devueltas)
+
+            // No devolver más de las que hay en el pool (evitar ventas registradas negativas)
+            $returnedInSet = min($returnedInSet, $allInSet);
+
+            // Las que se van a liquidar como vendidas en el pool (para estadísticas)
             $soldInSet = $allInSet - $returnedInSet;
-            
+
             // Precio por participación del set
             $pricePerParticipation = $set->played_amount ?? 0;
-            
-            // Liquidación del set
-            $setLiquidation = $soldInSet * $pricePerParticipation;
+
+            // Importe a liquidar: (Total del set - Devueltas) × precio (no solo el pool)
+            $setLiquidation = ($totalInSet - $returnedInSet) * $pricePerParticipation;
 
             \Log::info("Set $setId stats:", [
+                'total_in_set' => $totalInSet,
+                'in_pool' => $allInSet,
                 'returned' => $returnedInSet,
-                'total' => $allInSet,
                 'sold' => $soldInSet,
                 'price' => $pricePerParticipation,
                 'liquidation' => $setLiquidation
@@ -868,23 +918,27 @@ class DevolutionsController extends Controller
             $setsInfo[] = [
                 'set_id' => $setId,
                 'set_name' => $set->set_name,
-                'total_participations' => $allInSet,
+                'total_participations' => $totalInSet,
                 'sold_participations' => $soldInSet,
                 'returned_participations' => $returnedInSet,
-                'available_participations' => 0, // Ya no hay disponibles después de la liquidación
+                'available_participations' => 0,
                 'price_per_participation' => $pricePerParticipation,
                 'total_liquidation' => $setLiquidation
             ];
 
-            $totalParticipations += $allInSet;
+            $totalParticipations += $totalInSet;
             $totalSold += $soldInSet;
             $totalReturned += $returnedInSet;
             $totalLiquidation += $setLiquidation;
         }
 
+        // Para la UI: "Ventas registradas" = cuántas quedarán como vendidas tras la devolución (Total - Devueltas)
+        $ventasRegistradasDisplay = $totalParticipations - $totalReturned;
+
         $summary = [
             'total_participations' => $totalParticipations,
             'sold_participations' => $totalSold,
+            'ventas_registradas' => $ventasRegistradasDisplay,
             'returned_participations' => $totalReturned,
             'available_participations' => 0,
             'total_liquidation' => $totalLiquidation,

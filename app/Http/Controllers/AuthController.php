@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Seller;
+use App\Models\Manager;
 
 class AuthController extends Controller
 {
@@ -121,22 +122,14 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Solo vendedores pueden acceder a la app móvil para marcar ventas
-        if (!$user->isSeller()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solo los vendedores pueden acceder a esta aplicación.'
-            ], 403);
-        }
+        // Obtener el vendedor vinculado al usuario (por tabla sellers, no por rol en users)
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
 
-        // Obtener el vendedor vinculado al usuario
-        $seller = Seller::where('user_id', $user->id)->first();
-
-        // Debe tener usuario vinculado (seller con user_id)
+        // Solo vendedores (presencia en tabla sellers activos) pueden acceder a esta ruta de login
         if (!$seller) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes un perfil de vendedor asociado. Contacta con tu administrador.'
+                'message' => 'Solo los vendedores pueden acceder a esta aplicación.'
             ], 403);
         }
 
@@ -172,8 +165,8 @@ class AuthController extends Controller
 
     /**
      * API: Login para aplicación móvil - perfil Usuario.
-     * Permite tanto usuarios con rol client como vendedores (seller) para que puedan acceder como usuarios normales.
-     * Rechaza otros roles (gestores, administraciones, etc.).
+     * Permite cualquier usuario con email/password. Las capacidades (cliente, vendedor, gestor)
+     * se determinan por las tablas sellers y managers, no por users.role.
      */
     public function apiLoginUsuario(Request $request)
     {
@@ -191,15 +184,6 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Permitir usuarios con rol client o seller (los vendedores también pueden ser usuarios normales)
-        // Rechazar otros roles (gestores, administraciones, etc.)
-        if (!$user->isClient() && !$user->isSeller()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Esta cuenta no tiene acceso al perfil de usuario. Solo usuarios y vendedores pueden acceder aquí.'
-            ], 403);
-        }
-
         $payload = [
             'user_id' => $user->id,
             'exp' => now()->addDays(30)->timestamp,
@@ -213,12 +197,16 @@ class AuthController extends Controller
             'message' => 'Login exitoso'
         ];
 
-        // Si el usuario es vendedor, también incluir información del seller para que pueda cambiar entre roles
-        if ($user->isSeller()) {
-            $seller = Seller::where('user_id', $user->id)->first();
-            if ($seller && (int) $seller->status === Seller::STATUS_ACTIVE) {
-                $response['seller'] = $seller->load('entities');
-            }
+        // Capacidades por tablas: seller activo → puede actuar como vendedor
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if ($seller) {
+            $response['seller'] = $seller->load('entities');
+        }
+
+        // Capacidades por tablas: presencia en managers → puede actuar como gestor
+        $manager = Manager::where('user_id', $user->id)->first();
+        if ($manager) {
+            $response['manager'] = $manager;
         }
 
         return response()->json($response);
@@ -284,13 +272,13 @@ class AuthController extends Controller
     }
 
     /**
-     * API: Refresh token (crear nuevo token)
+     * API: Refresh token (crear nuevo token).
+     * Devuelve user, seller y manager según tablas (no users.role).
      */
     public function apiRefresh(Request $request)
     {
         $user = $request->user();
 
-        // Crear nuevo token cifrado
         $payload = ['user_id' => $user->id, 'exp' => now()->addDays(30)->timestamp];
         $token = Crypt::encrypt($payload);
         $response = [
@@ -298,12 +286,17 @@ class AuthController extends Controller
             'token' => $token,
             'user' => $user
         ];
-        if ($user->isSeller()) {
-            $seller = Seller::where('user_id', $user->id)->with('entities')->first();
-            if ($seller) {
-                $response['seller'] = $seller;
-            }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->with('entities')->first();
+        if ($seller) {
+            $response['seller'] = $seller;
         }
+
+        $manager = Manager::where('user_id', $user->id)->first();
+        if ($manager) {
+            $response['manager'] = $manager;
+        }
+
         return response()->json($response);
     }
 } 

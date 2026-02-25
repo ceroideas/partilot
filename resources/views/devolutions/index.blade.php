@@ -88,13 +88,15 @@
                                     @if(isset($devolutions))
                                         @foreach($devolutions as $devolution)
                                             @php
-                                                $totalLiquidacion = $devolution->details()
-                                                    ->where('action', 'vender')
-                                                    ->with('participation.set')
-                                                    ->get()
-                                                    ->sum(function($detail) {
-                                                        return $detail->participation->set->played_amount ?? 0;
-                                                    });
+                                                $totalLiquidacion = $devolution->total_liquidation !== null
+                                                    ? (float) $devolution->total_liquidation
+                                                    : $devolution->details()
+                                                        ->where('action', 'vender')
+                                                        ->with('participation.set')
+                                                        ->get()
+                                                        ->sum(function($detail) {
+                                                            return $detail->participation->set->played_amount ?? 0;
+                                                        });
                                                 $totalPagos = $devolution->payments->sum('amount');
                                                 $participacionesAnuladas = $devolution->details()->where('action', 'anular')->count();
                                                 

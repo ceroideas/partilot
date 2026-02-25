@@ -20,6 +20,7 @@ class Devolution extends Model
         'seller_id',
         'user_id',
         'total_participations',
+        'total_liquidation',
         'return_reason',
         'devolution_date',
         'devolution_time',
@@ -30,6 +31,7 @@ class Devolution extends Model
     protected $casts = [
         'devolution_date' => 'date',
         'devolution_time' => 'datetime:H:i:s',
+        'total_liquidation' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

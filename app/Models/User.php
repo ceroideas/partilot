@@ -331,6 +331,27 @@ class User extends Authenticatable
     }
 
     /**
+     * IDs de entidades que el usuario gestiona según la tabla managers (no el rol).
+     * Usado por la app para el flujo gestor: participaciones de vendedores de sus entidades.
+     */
+    public function getManagerEntityIds(): array
+    {
+        $managers = $this->managers()->get();
+        $entityIds = collect();
+        foreach ($managers as $m) {
+            if ($m->entity_id) {
+                $entityIds->push($m->entity_id);
+            }
+            if ($m->administration_id) {
+                $entityIds = $entityIds->merge(
+                    Entity::where('administration_id', $m->administration_id)->pluck('id')
+                );
+            }
+        }
+        return $entityIds->unique()->values()->all();
+    }
+
+    /**
      * Obtener el nombre completo del usuario
      */
     public function getFullNameAttribute()

@@ -176,8 +176,8 @@
                             <span class="text-danger">{{ $devolution->details()->where('action', 'devolver')->count() }}</span>
                         </div>
                         <div class="resumen-item">
-                            <span>Participaciones Vendidas:</span>
-                            <span class="text-success">{{ $devolution->details()->where('action', 'vender')->count() }}</span>
+                            <span>Ventas registradas:</span>
+                            <span class="text-success">{{ $devolution->total_participations - $devolution->details()->where('action', 'devolver')->count() }}</span>
                         </div>
                     </div>
 
@@ -188,13 +188,15 @@
                         </div>
                         <div class="card-body">
                             @php
-                                $totalLiquidacion = $devolution->details()
-                                    ->where('action', 'vender')
-                                    ->with('participation.set')
-                                    ->get()
-                                    ->sum(function($detail) {
-                                        return $detail->participation->set->played_amount ?? 0;
-                                    });
+                                $totalLiquidacion = $devolution->total_liquidation !== null
+                                    ? (float) $devolution->total_liquidation
+                                    : $devolution->details()
+                                        ->where('action', 'vender')
+                                        ->with('participation.set')
+                                        ->get()
+                                        ->sum(function($detail) {
+                                            return $detail->participation->set->played_amount ?? 0;
+                                        });
                                 $totalPagado = $devolution->payments()->sum('amount');
                                 $pendiente = $totalLiquidacion - $totalPagado;
                             @endphp

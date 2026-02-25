@@ -1864,6 +1864,14 @@ class ParticipationController extends Controller
                 'message' => 'No se encuentra la participación.',
             ], 404);
         }
+        // Solo se puede vincular si está disponible o asignada (no devuelta, vendida, anulada, etc.)
+        if (!in_array($participation->status, ['disponible', 'asignada', 'vendida'], true)) {
+            return response()->json([
+                'success' => false,
+                'status' => 'not_linkable',
+                'message' => 'Esta participación no se puede vincular. No se encuentra disponible.',
+            ], 422);
+        }
         $currentBuyer = $participation->buyer_name;
         if ($currentBuyer !== null && $currentBuyer !== '') {
             if ($currentBuyer === $userId) {
@@ -1911,6 +1919,12 @@ class ParticipationController extends Controller
             ->first();
         if (!$participation) {
             return response()->json(['success' => false, 'message' => 'No se encuentra la participación.'], 404);
+        }
+        if (!in_array($participation->status, ['disponible', 'asignada','vendida'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta participación no se puede vincular. No se encuentra disponible.',
+            ], 422);
         }
         if ($participation->buyer_name !== null && $participation->buyer_name !== '') {
             if ($participation->buyer_name === $userId) {

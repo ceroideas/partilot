@@ -762,6 +762,231 @@ class SellerController extends Controller
     }
 
     /**
+     * API Gestor: Entidades que el usuario gestiona (según tabla managers).
+     */
+    public function apiGetManagerEntities(Request $request)
+    {
+        $user = $request->user();
+        $entityIds = $user->getManagerEntityIds();
+        if (empty($entityIds)) {
+            return response()->json(['success' => false, 'message' => 'No tienes entidades asignadas como gestor.'], 403);
+        }
+        $entities = Entity::whereIn('id', $entityIds)->select('id', 'name', 'image')->get();
+        return response()->json(['success' => true, 'entities' => $entities]);
+    }
+
+    /**
+     * API Gestor: Tacos de una entidad (participaciones asignadas a vendedores de esa entidad), con nombre de vendedor.
+     */
+    public function apiGetManagerTacos(Request $request)
+    {
+        $request->validate(['entity_id' => 'required|integer|exists:entities,id']);
+        $user = $request->user();
+        $entityIds = $user->getManagerEntityIds();
+        if (!in_array((int) $request->entity_id, $entityIds, true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+        $entityId = (int) $request->entity_id;
+        $sellerIds = Seller::whereHas('entities', fn ($q) => $q->where('entities.id', $entityId))
+            ->where('status', Seller::STATUS_ACTIVE)
+            ->pluck('id')
+            ->all();
+        if (empty($sellerIds)) {
+            return response()->json([
+                'success' => true,
+                'summary' => [
+                    'total_participations' => 0, 'total_amount' => 0,
+                    'sales_registered' => 0, 'sales_amount' => 0,
+                    'returned_participations' => 0, 'returned_amount' => 0,
+                    'available_participations' => 0, 'available_amount' => 0,
+                    'payment_breakdown' => ['efectivo' => 0, 'bizum' => 0, 'transferencia' => 0, 'sin_registrar' => 0],
+                ],
+                'tacos' => [],
+            ]);
+        }
+        $sets = Set::whereHas('reserve', fn ($q) => $q->where('entity_id', $entityId))
+            ->whereHas('participations', fn ($q) => $q->whereIn('seller_id', $sellerIds))
+            ->with(['reserve.lottery', 'designFormats'])
+            ->get();
+        $sellersById = Seller::whereIn('id', $sellerIds)->get()->keyBy('id');
+        $tacos = [];
+        $totals = ['participations' => 0, 'amount' => 0, 'sales' => 0, 'salesAmount' => 0, 'returned' => 0, 'returnedAmount' => 0, 'available' => 0, 'availableAmount' => 0];
+        $paymentBreakdown = ['efectivo' => 0, 'bizum' => 0, 'transferencia' => 0, 'sin_registrar' => 0];
+        foreach ($sets as $set) {
+            $participations = Participation::where('set_id', $set->id)
+                ->whereIn('seller_id', $sellerIds)
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->get();
+            if ($participations->isEmpty()) continue;
+            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            $designFormat = $set->designFormats->first();
+            $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
+            $participationsPerBook = $output['participations_per_book'] ?? 50;
+            $tacosByBookSeller = [];
+            foreach ($participations as $p) {
+                $bookNumber = (int) ceil($p->participation_number / $participationsPerBook);
+                $key = $bookNumber . '_' . $p->seller_id;
+                if (!isset($tacosByBookSeller[$key])) {
+                    $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
+                    $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
+                    $seller = $sellersById->get($p->seller_id);
+                    $sellerName = $seller ? trim($seller->name . ' ' . ($seller->last_name ?? '')) : 'Vendedor';
+                    $reservationNumbers = $set->reserve->reservation_numbers ?? [];
+                    $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
+                    $tacosByBookSeller[$key] = [
+                        'set_id' => $set->id,
+                        'set_name' => $set->set_name,
+                        'set_number' => $set->set_number ?? $set->id,
+                        'book_number' => $bookNumber,
+                        'seller_id' => $p->seller_id,
+                        'seller_name' => $sellerName,
+                        'reservation_numbers' => $reservationNumbers,
+                        'reservation_numbers_display' => $reservationNumbersDisplay,
+                        'lottery_id' => $set->reserve->lottery_id,
+                        'lottery_name' => $set->reserve->lottery->name ?? '',
+                        'lottery_date' => $set->reserve->lottery->draw_date ?? null,
+                        'start_participation' => $startParticipation,
+                        'end_participation' => $endParticipation,
+                        'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
+                        'total_participations' => 0, 'sales_registered' => 0, 'returned_participations' => 0, 'available_participations' => 0,
+                        'sales_amount' => 0, 'returned_amount' => 0, 'available_amount' => 0,
+                    ];
+                }
+                $tacosByBookSeller[$key]['total_participations']++;
+                $totals['participations']++;
+                $totals['amount'] += $pricePerParticipation;
+                if ($p->status === 'vendida') {
+                    $tacosByBookSeller[$key]['sales_registered']++;
+                    $tacosByBookSeller[$key]['sales_amount'] += $pricePerParticipation;
+                    $totals['sales']++;
+                    $totals['salesAmount'] += $pricePerParticipation;
+                    $pm = $p->payment_method ?? '';
+                    if (in_array($pm, ['efectivo', 'bizum', 'transferencia'])) {
+                        $paymentBreakdown[$pm] += $pricePerParticipation;
+                    } else {
+                        $paymentBreakdown['sin_registrar'] += $pricePerParticipation;
+                    }
+                } elseif ($p->status === 'devuelta') {
+                    $tacosByBookSeller[$key]['returned_participations']++;
+                    $tacosByBookSeller[$key]['returned_amount'] += $pricePerParticipation;
+                    $totals['returned']++;
+                    $totals['returnedAmount'] += $pricePerParticipation;
+                } else {
+                    $tacosByBookSeller[$key]['available_participations']++;
+                    $tacosByBookSeller[$key]['available_amount'] += $pricePerParticipation;
+                    $totals['available']++;
+                    $totals['availableAmount'] += $pricePerParticipation;
+                }
+            }
+            $tacos = array_merge($tacos, array_values($tacosByBookSeller));
+        }
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_participations' => $totals['participations'],
+                'total_amount' => round($totals['amount'], 2),
+                'sales_registered' => $totals['sales'],
+                'sales_amount' => round($totals['salesAmount'], 2),
+                'returned_participations' => $totals['returned'],
+                'returned_amount' => round($totals['returnedAmount'], 2),
+                'available_participations' => $totals['available'],
+                'available_amount' => round($totals['availableAmount'], 2),
+                'payment_breakdown' => [
+                    'efectivo' => round($paymentBreakdown['efectivo'], 2),
+                    'bizum' => round($paymentBreakdown['bizum'], 2),
+                    'transferencia' => round($paymentBreakdown['transferencia'], 2),
+                    'sin_registrar' => round($paymentBreakdown['sin_registrar'], 2),
+                ],
+            ],
+            'tacos' => $tacos,
+        ]);
+    }
+
+    /**
+     * API Gestor: Participaciones de un taco (set + book + seller); el gestor debe indicar seller_id por query.
+     */
+    public function apiGetManagerTacoParticipations(Request $request, $setId, $bookNumber)
+    {
+        $request->validate(['seller_id' => 'required|integer|exists:sellers,id']);
+        $sellerId = (int) $request->seller_id;
+        $user = $request->user();
+        $entityIds = $user->getManagerEntityIds();
+        if (empty($entityIds)) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos.'], 403);
+        }
+        $seller = Seller::with('entities:id')->find($sellerId);
+        if (!$seller || !$seller->entities->contains(fn ($e) => in_array($e->id, $entityIds, true))) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a este vendedor.'], 403);
+        }
+        $set = Set::with(['reserve.lottery', 'designFormats'])->findOrFail($setId);
+        if (!in_array((int) $set->reserve->entity_id, $entityIds, true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a este set.'], 403);
+        }
+        $designFormat = $set->designFormats->first();
+        $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
+        $participationsPerBook = $output['participations_per_book'] ?? 50;
+        $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
+        $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
+        $participations = Participation::where('set_id', $setId)
+            ->where('seller_id', $sellerId)
+            ->whereBetween('participation_number', [$startParticipation, $endParticipation])
+            ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+            ->orderBy('participation_number')
+            ->get();
+        $lotteryId = $set->reserve->lottery_id ?? null;
+        $settlements = SellerSettlement::where('seller_id', $sellerId)
+            ->where('lottery_id', $lotteryId)
+            ->whereHas('payments')
+            ->with('payments')
+            ->orderBy('settlement_date', 'desc')
+            ->orderBy('settlement_time', 'desc')
+            ->get();
+        $formattedParticipations = $participations->map(function ($p) use ($settlements) {
+            $paymentMethod = null;
+            if ($p->status === 'vendida') {
+                $paymentMethod = $p->payment_method ?? null;
+                if (($paymentMethod === null || $paymentMethod === '') && $p->sale_date) {
+                    $saleDate = $p->sale_date->format('Y-m-d');
+                    $settlement = $settlements->first(fn ($s) => $s->settlement_date->format('Y-m-d') <= $saleDate);
+                    if ($settlement && $settlement->payments->isNotEmpty()) {
+                        $paymentMethod = $settlement->payments->first()->payment_method ?? null;
+                    }
+                }
+            }
+            return [
+                'id' => $p->id,
+                'participation_code' => $p->participation_code,
+                'participation_number' => $p->participation_number,
+                'status' => $p->status,
+                'payment_method' => $paymentMethod,
+                'sale_date' => $p->sale_date ? $p->sale_date->format('d/m/Y') : null,
+                'sale_time' => $p->sale_time ? $p->sale_time->format('H:i') : null,
+            ];
+        });
+        $reservationNumbers = $set->reserve->reservation_numbers ?? [];
+        $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
+        $sellerName = trim($seller->name . ' ' . ($seller->last_name ?? ''));
+        return response()->json([
+            'success' => true,
+            'taco_info' => [
+                'set_id' => $set->id,
+                'set_name' => $set->set_name,
+                'set_number' => $set->set_number ?? $set->id,
+                'book_number' => (int) $bookNumber,
+                'seller_id' => $sellerId,
+                'seller_name' => $sellerName,
+                'reservation_numbers' => $reservationNumbers,
+                'reservation_numbers_display' => $reservationNumbersDisplay,
+                'lottery_name' => $set->reserve->lottery->name ?? '',
+                'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
+                'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
+                'price_per_participation' => (float) ($set->played_amount ?? 0),
+            ],
+            'participations' => $formattedParticipations,
+        ]);
+    }
+
+    /**
      * API: Resolver taco_ref (QR del taco) y devolver rangos de participaciones disponibles para el vendedor.
      * Tarea 2 tacos: al escanear el QR de la portada del taco, la app llama aquí y muestra confirmación con rangos a vender.
      */

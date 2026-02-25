@@ -1696,7 +1696,7 @@ $(document).ready(function() {
                     console.log('Resumen calculado:', summary);
                     
                     $('#liquidacion-total-participaciones').text(summary.total_participations);
-                    $('#liquidacion-ventas-registradas').text(summary.sold_participations);
+                    $('#liquidacion-ventas-registradas').text(summary.ventas_registradas !== undefined ? summary.ventas_registradas : summary.sold_participations);
                     $('#liquidacion-participaciones-devueltas').text(summary.returned_participations);
                     $('#liquidacion-disponibles').text(summary.available_participations);
                     $('#liquidacion-total-liquidacion').text(summary.total_liquidation.toFixed(2) + '€');
