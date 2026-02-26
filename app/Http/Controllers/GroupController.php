@@ -75,12 +75,10 @@ class GroupController extends Controller
                 ->with('error', 'No tienes permisos para gestionar esta entidad.');
         }
         
-        // Obtener vendedores de la entidad seleccionada que NO tienen grupo asignado
-        $sellers = Seller::whereHas('entities', function($query) use ($entity) {
+        // Todos los vendedores de la entidad (pueden estar en varios grupos de la misma u otra entidad)
+        $sellers = Seller::whereHas('entities', function ($query) use ($entity) {
             $query->where('entities.id', $entity->id);
-        })
-        ->whereDoesntHave('groups')
-        ->get();
+        })->get();
 
         return view('groups.add_information', compact('entity', 'sellers'));
     }
@@ -157,18 +155,11 @@ class GroupController extends Controller
             ->forUser(auth()->user())
             ->findOrFail($id);
         $entity = $group->entity;
-        
-        // Obtener vendedores de la entidad del grupo que NO tienen grupo asignado
-        // O que ya están en este grupo
-        $sellersInGroup = $group->sellers->pluck('id')->toArray();
-        $sellers = Seller::whereHas('entities', function($query) use ($entity) {
+
+        // Todos los vendedores de la entidad del grupo (así al quitar uno vuelve al listado y se puede re-añadir; un vendedor puede estar en varios grupos)
+        $sellers = Seller::whereHas('entities', function ($query) use ($entity) {
             $query->where('entities.id', $entity->id);
-        })
-        ->where(function($query) use ($sellersInGroup) {
-            $query->whereDoesntHave('groups')
-                  ->orWhereIn('id', $sellersInGroup);
-        })
-        ->get();
+        })->get();
 
         return view('groups.edit', compact('group', 'entity', 'sellers'));
     }

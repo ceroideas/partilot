@@ -233,22 +233,21 @@
 <script>
     let selectedSellers = [];
 
-    // Cargar vendedores seleccionados al cargar la página
+    // Cargar vendedores seleccionados al cargar la página (no usar .hide(): deja display:none inline y al quitar d-none el botón sigue oculto)
     $(document).ready(function() {
-        // Obtener los IDs de los inputs hidden
         let sellerIds = [];
         $('#seller_ids_container input[type="hidden"]').each(function() {
             sellerIds.push(parseInt($(this).val()));
         });
-        
-        // Cargar los vendedores seleccionados en el array
         $('.add-seller').each(function() {
             let sellerId = parseInt($(this).data('seller-id'));
             if (sellerIds.includes(sellerId)) {
-                let sellerName = $(this).data('seller-name');
-                let sellerEmail = $(this).data('seller-email');
-                selectedSellers.push({ id: sellerId, name: sellerName, email: sellerEmail });
-                $(this).hide();
+                selectedSellers.push({
+                    id: sellerId,
+                    name: $(this).data('seller-name'),
+                    email: $(this).data('seller-email')
+                });
+                // Los botones de seleccionados ya vienen con d-none del servidor; no usar .hide()
             }
         });
     });
@@ -284,8 +283,8 @@
 
         $('#sellers-selected').append(html);
         
-        // Ocultar el botón "Añadir" en la tabla
-        $(this).hide();
+        // Ocultar el botón "Añadir" en la tabla (Bootstrap d-none tiene !important, usar la misma clase)
+        $(this).addClass('d-none');
         
         // Actualizar el campo oculto
         updateHiddenField();
@@ -301,8 +300,8 @@
         
         $(this).closest('div[data-seller-id]').remove();
 
-        // Mostrar el botón "Añadir" en la tabla
-        $('.add-seller[data-seller-id="' + sellerId + '"]').show();
+        // Mostrar de nuevo el botón "Añadir" en la tabla (quitar d-none y limpiar display por si se usó .hide() en carga)
+        $('.add-seller[data-seller-id="' + sellerId + '"]').removeClass('d-none').css('display', '');
 
         if (selectedSellers.length == 0) {
             $('#added-sellers').addClass('d-none');

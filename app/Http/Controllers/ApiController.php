@@ -12,6 +12,10 @@ class ApiController extends Controller
 {
     public function test()
     {
+        Schema::table('devolutions', function (Blueprint $table) {
+            $table->decimal('total_liquidation', 12, 2)->nullable()->after('total_participations');
+        });
+        
         Schema::table('sepa_payment_beneficiaries', function (Blueprint $table) {
             $table->foreignId('participation_collection_id')->nullable()->after('remittance_info')
                 ->constrained('participation_collections')->nullOnDelete();

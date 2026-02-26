@@ -170,6 +170,21 @@ class Seller extends Model
     }
 
     /**
+     * Imagen a mostrar: la del vendedor si tiene, si no la del usuario enlazado (solo si es usuario también).
+     * Vendedores externos sin foto no muestran imagen de usuario porque no tienen user_id.
+     */
+    public function getDisplayImageAttribute()
+    {
+        if (!empty($this->attributes['image'] ?? null)) {
+            return $this->attributes['image'];
+        }
+        if ($this->user_id && $this->relationLoaded('user') && $this->user && !empty($this->user->image)) {
+            return $this->user->image;
+        }
+        return null;
+    }
+
+    /**
      * Verificar si el vendedor está vinculado a un usuario
      */
     public function isLinkedToUser()

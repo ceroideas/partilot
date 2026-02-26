@@ -323,7 +323,7 @@ class SellerController extends Controller
      */
     public function show($id, Request $request)
     {
-        $seller = Seller::with(['entities.administration'])
+        $seller = Seller::with(['entities.administration', 'user:id,name,last_name,image'])
             ->forUser(auth()->user())
             ->findOrFail($id);
 
@@ -773,6 +773,409 @@ class SellerController extends Controller
         }
         $entities = Entity::whereIn('id', $entityIds)->select('id', 'name', 'image')->get();
         return response()->json(['success' => true, 'entities' => $entities]);
+    }
+
+    /**
+     * API Gestor: Vendedores de una entidad (para listado en app).
+     * Devuelve: id, name, image, participations_count, pending_amount, group_name, is_external.
+     */
+    public function apiGetManagerEntitySellers(Request $request, $entityId)
+    {
+        $entityId = (int) $entityId;
+        $user = $request->user();
+        $managerEntityIds = $user->getManagerEntityIds();
+        if (!in_array($entityId, $managerEntityIds, true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+
+        $sellers = Seller::whereHas('entities', fn ($q) => $q->where('entities.id', $entityId))
+            ->where('status', Seller::STATUS_ACTIVE)
+            ->with(['user:id,name,last_name,image','groups'])
+            ->orderBy('group_priority', 'desc')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $sellerIds = $sellers->pluck('id')->all();
+        $pendingBySeller = $this->getPendingLiquidationBySellers($sellerIds);
+
+        $setIdsEntity = Set::whereHas('reserve', fn ($q) => $q->where('entity_id', $entityId))->pluck('id')->all();
+        $participationCounts = [];
+        if (!empty($setIdsEntity)) {
+            $counts = Participation::whereIn('seller_id', $sellerIds)
+                ->whereIn('set_id', $setIdsEntity)
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->selectRaw('seller_id, count(*) as cnt')
+                ->groupBy('seller_id')
+                ->pluck('cnt', 'seller_id');
+            foreach ($counts as $sid => $cnt) {
+                $participationCounts[(int) $sid] = (int) $cnt;
+            }
+        }
+
+        $list = $sellers->map(function ($seller) use ($pendingBySeller, $participationCounts) {
+            $groupNames = $seller->relationLoaded('groups')
+                ? $seller->groups->pluck('name')->values()->all()
+                : [];
+            if (empty($groupNames)) {
+                $col = trim((string) ($seller->getRawOriginal('group_name') ?? ''));
+                $groupNames = $col !== '' ? [$col] : [];
+            }
+            return [
+                'id' => $seller->id,
+                'name' => $seller->full_name,
+                'first_name' => $seller->display_name,
+                'last_name' => trim(($seller->display_last_name ?? '') . ' ' . ($seller->attributes['last_name2'] ?? '')),
+                'image' => $seller->display_image,
+                'participations_count' => $participationCounts[$seller->id] ?? 0,
+                'pending_amount' => (float) ($pendingBySeller[$seller->id] ?? 0),
+                'group_name' => $groupNames,
+                'is_external' => $seller->user_id == 0 || $seller->seller_type === 'externo',
+            ];
+        })->values()->all();
+
+        return response()->json(['success' => true, 'sellers' => $list]);
+    }
+
+    /**
+     * API Gestor: Detalle de un vendedor (participaciones + liquidación) para la app.
+     */
+    public function apiGetManagerSellerDetail(Request $request, $entityId, $sellerId)
+    {
+        $entityId = (int) $entityId;
+        $sellerId = (int) $sellerId;
+        $user = $request->user();
+        $managerEntityIds = $user->getManagerEntityIds();
+        if (!in_array($entityId, $managerEntityIds, true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+
+        $entityIdInt = (int) $entityId;
+        $seller = Seller::with(['user:id,name,last_name,last_name2,image,email,phone,birthday,nif_cif', 'groups'])
+            ->whereHas('entities', fn ($q) => $q->where('entities.id', $entityIdInt))
+            ->where('status', Seller::STATUS_ACTIVE)
+            ->find($sellerId);
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado.'], 404);
+        }
+
+        $sets = Set::whereHas('reserve', fn ($q) => $q->where('entity_id', $entityId))
+            ->whereHas('participations', fn ($q) => $q->where('seller_id', $seller->id))
+            ->with(['reserve.lottery', 'designFormats'])
+            ->get();
+
+        $totalParticipations = 0;
+        $totalAmount = 0;
+        $salesRegistered = 0;
+        $salesAmount = 0;
+        $returnedParticipations = 0;
+        $returnedAmount = 0;
+        $availableParticipations = 0;
+        $availableAmount = 0;
+
+        foreach ($sets as $set) {
+            $participations = Participation::where('set_id', $set->id)
+                ->where('seller_id', $seller->id)
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->get();
+            if ($participations->isEmpty()) {
+                continue;
+            }
+            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            foreach ($participations as $p) {
+                $totalParticipations++;
+                $totalAmount += $pricePerParticipation;
+                if ($p->status === 'vendida') {
+                    $salesRegistered++;
+                    $salesAmount += $pricePerParticipation;
+                } elseif ($p->status === 'devuelta') {
+                    $returnedParticipations++;
+                    $returnedAmount += $pricePerParticipation;
+                } else {
+                    $availableParticipations++;
+                    $availableAmount += $pricePerParticipation;
+                }
+            }
+        }
+
+        $pendingBySeller = $this->getPendingLiquidationBySellers([$seller->id]);
+        $totalToPay = (float) ($pendingBySeller[$seller->id] ?? 0);
+        $totalPaid = SellerSettlement::where('seller_id', $seller->id)->sum('paid_amount');
+        $totalToLiquidate = $totalAmount > 0 ? (float) ($salesAmount + $availableAmount) : 0;
+
+        // Loterías con pendiente por liquidar (para modal de liquidación en app)
+        $lotteriesWithPending = $this->getLotteriesWithPendingForSeller($seller->id, $entityId);
+
+        $groupNames = $seller->relationLoaded('groups')
+            ? $seller->groups->pluck('name')->values()->all()
+            : [];
+        if (empty($groupNames)) {
+            $col = trim((string) ($seller->getRawOriginal('group_name') ?? ''));
+            $groupNames = $col !== '' ? [$col] : [];
+        }
+
+        $birthday = $seller->birthday ?? ($seller->relationLoaded('user') && $seller->user ? $seller->user->birthday : null);
+        $birthdayFormatted = $birthday ? $birthday->format('d/m/Y') : '';
+
+        $first_name = $seller->seller_type === 'externo' ? ($seller->getRawOriginal('name') ?? '') : ($seller->user ? $seller->user->name : '');
+        $last_name = $seller->display_last_name ?? '';
+        $last_name2 = $seller->seller_type === 'externo' ? ($seller->getRawOriginal('last_name2') ?? '') : ($seller->user ? ($seller->user->last_name2 ?? '') : '');
+
+        return response()->json([
+            'success' => true,
+            'seller' => [
+                'id' => $seller->id,
+                'name' => $seller->full_name,
+                'image' => $seller->display_image,
+                'is_external' => $seller->user_id == 0 || $seller->seller_type === 'externo',
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'last_name2' => $last_name2,
+                'email' => $seller->display_email ?? '',
+                'phone' => $seller->display_phone ?? '',
+                'birthday' => $birthdayFormatted,
+                'nif_cif' => $seller->getRawOriginal('nif_cif') ?: ($seller->user ? ($seller->user->nif_cif ?? '') : ''),
+                'group_name' => $groupNames,
+            ],
+            'participations_summary' => [
+                'total_participations' => $totalParticipations,
+                'total_amount' => round($totalAmount, 2),
+                'sales_registered' => $salesRegistered,
+                'sales_amount' => round($salesAmount, 2),
+                'returned_participations' => $returnedParticipations,
+                'returned_amount' => round($returnedAmount, 2),
+                'available_participations' => $availableParticipations,
+                'available_amount' => round($availableAmount, 2),
+            ],
+            'liquidation_summary' => [
+                'total_to_liquidate' => round($totalToLiquidate, 2),
+                'total_paid' => round((float) $totalPaid, 2),
+                'total_to_pay' => round($totalToPay, 2),
+            ],
+            'lotteries_with_pending' => $lotteriesWithPending,
+        ]);
+    }
+
+    /**
+     * Para un vendedor y una entidad, devuelve las loterías que tienen pendiente por liquidar.
+     * Solo participaciones asignada+vendida; no se toca participaciones.
+     *
+     * @return array<int, array{lottery_id: int, lottery_name: string, pending_amount: float}>
+     */
+    private function getLotteriesWithPendingForSeller(int $sellerId, int $entityId): array
+    {
+        $byLottery = DB::table('participations as p')
+            ->join('sets as s', 'p.set_id', '=', 's.id')
+            ->join('reserves as r', 's.reserve_id', '=', 'r.id')
+            ->where('r.entity_id', $entityId)
+            ->where('p.seller_id', $sellerId)
+            ->whereIn('p.status', ['asignada', 'vendida'])
+            ->selectRaw('r.lottery_id, COALESCE(SUM(s.played_amount), 0) as total_to_liquidate')
+            ->groupBy('r.lottery_id')
+            ->get();
+
+        $paidByLottery = SellerSettlement::where('seller_id', $sellerId)
+            ->whereIn('lottery_id', $byLottery->pluck('lottery_id'))
+            ->selectRaw('lottery_id, SUM(paid_amount) as total_paid')
+            ->groupBy('lottery_id')
+            ->pluck('total_paid', 'lottery_id');
+
+        $lotteryIds = $byLottery->pluck('lottery_id')->unique()->filter()->values()->all();
+        $lotteries = $lotteryIds ? Lottery::whereIn('id', $lotteryIds)->pluck('name', 'id') : collect();
+
+        $result = [];
+        foreach ($byLottery as $row) {
+            $lid = (int) $row->lottery_id;
+            $totalToLiquidate = (float) $row->total_to_liquidate;
+            $totalPaid = (float) ($paidByLottery[$lid] ?? 0);
+            $pending = $totalToLiquidate - $totalPaid;
+            if ($pending > 0.001) {
+                $result[] = [
+                    'lottery_id' => $lid,
+                    'lottery_name' => $lotteries[$lid] ?? 'Sorteo #' . $lid,
+                    'pending_amount' => round($pending, 2),
+                ];
+            }
+        }
+        usort($result, fn ($a, $b) => $b['pending_amount'] <=> $a['pending_amount']);
+        return $result;
+    }
+
+    /**
+     * API Gestor: Registrar liquidación de un vendedor (solo seller_settlements; no toca participaciones).
+     * Misma lógica que storeSettlement, con comprobación de acceso por entidad.
+     */
+    public function apiManagerStoreSettlement(Request $request, $entityId, $sellerId)
+    {
+        $entityId = (int) $entityId;
+        $sellerId = (int) $sellerId;
+        $user = $request->user();
+        $managerEntityIds = $user->getManagerEntityIds();
+        if (! in_array($entityId, $managerEntityIds, true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+
+        $seller = Seller::whereHas('entities', fn ($q) => $q->where('entities.id', $entityId))
+            ->where('status', Seller::STATUS_ACTIVE)
+            ->find($sellerId);
+        if (! $seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado.'], 404);
+        }
+
+        $data = $request->validate([
+            'lottery_id' => 'required|exists:lotteries,id',
+            'pagos' => 'required|array',
+            'pagos.*.payment_method' => 'required|string|in:efectivo,bizum,transferencia',
+            'pagos.*.amount' => 'required|numeric|min:0.01',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $totalPagoNuevo = collect($data['pagos'])->sum('amount');
+
+            $participations = Participation::where('seller_id', $seller->id)
+                ->whereHas('set.reserve', fn ($q) => $q->where('lottery_id', $data['lottery_id']))
+                ->whereIn('status', ['asignada', 'vendida'])
+                ->with('set')
+                ->get();
+
+            $totalParticipations = $participations->count();
+            $pricePerParticipation = $participations->first()->set->played_amount ?? 0;
+            $totalAmount = $participations->sum(fn ($p) => (float) ($p->set->played_amount ?? 0));
+
+            $previousPaid = SellerSettlement::where('seller_id', $seller->id)
+                ->where('lottery_id', $data['lottery_id'])
+                ->sum('paid_amount');
+
+            $totalPaidWithNew = $previousPaid + $totalPagoNuevo;
+            $pendingAmount = $totalAmount - $totalPaidWithNew;
+            $calculatedParticipations = $pricePerParticipation > 0 ? ($totalPagoNuevo / $pricePerParticipation) : 0;
+
+            $now = Carbon::now();
+
+            $settlement = SellerSettlement::create([
+                'seller_id' => $seller->id,
+                'lottery_id' => $data['lottery_id'],
+                'user_id' => $user->id,
+                'total_amount' => $totalAmount,
+                'paid_amount' => $totalPagoNuevo,
+                'pending_amount' => $pendingAmount,
+                'total_participations' => $totalParticipations,
+                'calculated_participations' => round($calculatedParticipations, 2),
+                'settlement_date' => $now->format('Y-m-d'),
+                'settlement_time' => $now->format('H:i:s'),
+                'notes' => 'Liquidación de vendedor (app gestor)',
+            ]);
+
+            foreach ($data['pagos'] as $pago) {
+                SellerSettlementPayment::create([
+                    'seller_settlement_id' => $settlement->id,
+                    'amount' => $pago['amount'],
+                    'payment_method' => $pago['payment_method'],
+                    'notes' => 'Pago de liquidación - ' . ucfirst($pago['payment_method']),
+                    'payment_date' => $now,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Liquidación registrada correctamente',
+                'settlement_id' => $settlement->id,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar la liquidación: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API Gestor: Comprobar si existe un usuario por email (para flujo Añadir Vendedor SIPART).
+     */
+    public function apiManagerCheckUserEmail(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        $exists = User::where('email', $request->email)->exists();
+        return response()->json(['exists' => $exists]);
+    }
+
+    /**
+     * API Gestor: Añadir vendedor PARTILOT (usuario existente). entity_id debe estar en getManagerEntityIds().
+     */
+    public function apiManagerStoreExistingUser(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'entity_id' => 'required|integer|exists:entities,id',
+        ]);
+        $user = $request->user();
+        if (!in_array((int) $request->entity_id, $user->getManagerEntityIds(), true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+        try {
+            $sellerService = new SellerService();
+            $seller = $sellerService->createSeller($request->only(['email']), (int) $request->entity_id, 'partilot');
+            return response()->json(['success' => true, 'message' => 'Vendedor PARTILOT añadido.', 'seller_id' => $seller->id]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * API Gestor: Invitar vendedor (0 coincidencias): crear seller externo con email para invitación.
+     */
+    public function apiManagerStoreNewUser(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'entity_id' => 'required|integer|exists:entities,id',
+            'name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+        ]);
+        $user = $request->user();
+        if (!in_array((int) $request->entity_id, $user->getManagerEntityIds(), true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+        try {
+            $sellerService = new SellerService();
+            $seller = $sellerService->createSeller($request->only(['email', 'name', 'last_name']), (int) $request->entity_id, 'externo');
+            return response()->json(['success' => true, 'message' => 'Invitación enviada.', 'seller_id' => $seller->id]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * API Gestor: Crear vendedor externo (formulario completo). entity_id debe estar en getManagerEntityIds().
+     */
+    public function apiManagerStoreExternalSeller(Request $request)
+    {
+        $request->validate([
+            'entity_id' => 'required|integer|exists:entities,id',
+            'name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'last_name2' => 'nullable|string|max:255',
+            'email' => 'required|email',
+            'phone' => 'nullable|string|max:255',
+            'birthday' => 'nullable|date',
+            'nif_cif' => 'nullable|string|max:255',
+        ]);
+        $user = $request->user();
+        if (!in_array((int) $request->entity_id, $user->getManagerEntityIds(), true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+        try {
+            $sellerService = new SellerService();
+            $data = $request->only(['name', 'last_name', 'last_name2', 'email', 'phone', 'birthday', 'nif_cif']);
+            $seller = $sellerService->createSeller($data, (int) $request->entity_id, 'externo');
+            return response()->json(['success' => true, 'message' => 'Vendedor externo creado.', 'seller_id' => $seller->id]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**

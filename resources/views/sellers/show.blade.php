@@ -239,14 +239,16 @@
                              <div class="form-card bs mb-3">
                                  <div class="row">
                                      <div class="col-4">
-                                         <div class="photo-preview-3">
+                                         <div class="photo-preview-3 logo-round" @if($seller->display_image) style="background-image: url('{{ asset('storage/' . $seller->display_image) }}'); background-size: cover;" @endif>
+                                             @if(!$seller->display_image)
                                              <i class="ri-account-circle-fill"></i>
+                                             @endif
                                          </div>
                                          <div style="clear: both;"></div>
                                      </div>
                                      <div class="col-8 text-center mt-2">
-                                         <h3 class="mt-2 mb-0">{{ $seller->name ?? 'N/A' }}</h3>
-                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-mail-line"></i> {{ $seller->email ?? 'N/A' }}
+                                         <h3 class="mt-2 mb-0">{{ $seller->full_name ?? 'N/A' }}</h3>
+                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-mail-line"></i> {{ $seller->display_email ?? 'N/A' }}
                                      </div>
                                  </div>
                              </div>

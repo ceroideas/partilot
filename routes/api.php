@@ -244,8 +244,15 @@ Route::middleware('auth.api')->group(function () {
     // ========================================================================
     Route::prefix('managers')->group(function () {
         Route::get('/me/entities', [SellerController::class, 'apiGetManagerEntities']);
+        Route::get('/me/entities/{entityId}/sellers', [SellerController::class, 'apiGetManagerEntitySellers']);
+        Route::get('/me/entities/{entityId}/sellers/{sellerId}/detail', [SellerController::class, 'apiGetManagerSellerDetail']);
+        Route::post('/me/entities/{entityId}/sellers/{sellerId}/settlement', [SellerController::class, 'apiManagerStoreSettlement']);
         Route::get('/me/tacos', [SellerController::class, 'apiGetManagerTacos']);
         Route::get('/me/tacos/{setId}/{bookNumber}/participations', [SellerController::class, 'apiGetManagerTacoParticipations']);
+        Route::post('/me/check-user-email', [SellerController::class, 'apiManagerCheckUserEmail']);
+        Route::post('/me/store-existing-user', [SellerController::class, 'apiManagerStoreExistingUser']);
+        Route::post('/me/store-new-user', [SellerController::class, 'apiManagerStoreNewUser']);
+        Route::post('/me/store-external-seller', [SellerController::class, 'apiManagerStoreExternalSeller']);
     });
     
     // ========================================================================
