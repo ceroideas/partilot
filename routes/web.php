@@ -335,6 +335,7 @@ Route::group(['prefix' => 'participations'], function() {
     Route::get('/add', [ParticipationController::class, 'create'])->name('participations.create');
     Route::post('/view-entity', [ParticipationController::class, 'store_entity'])->name('participations.view-entity');
     Route::get('/view/{id}', [ParticipationController::class, 'show'])->name('participations.show');
+    Route::patch('/view/{id}/notes', [ParticipationController::class, 'updateNotes'])->name('participations.update-notes');
     Route::get('/view/{id}/seller', [ParticipationController::class, 'show_seller'])->name('participations.show-seller');
     Route::get('/book/{set_id}/{book_number}/participations', [ParticipationController::class, 'getBookParticipations'])->name('participations.book-participations');
     

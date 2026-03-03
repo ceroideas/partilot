@@ -367,7 +367,7 @@ Route::middleware('auth.api')->group(function () {
     // ========================================================================
     // GESTIÓN (Para gestores)
     // ========================================================================
-    Route::prefix('management')->middleware('role:super_admin,administration,entity')->group(function () {
+    Route::prefix('management')->middleware('role:super_admin,administration,entity,manager')->group(function () {
         
         // Participaciones
         Route::prefix('participations')->group(function () {
@@ -385,15 +385,8 @@ Route::middleware('auth.api')->group(function () {
             Route::post('/{id}/toggle-status', [SellerController::class, 'toggleStatus']);
         });
         
-        // Devoluciones
+        // Devoluciones (rutas específicas ANTES de /{id} para no capturar "entities", "lotteries", etc.)
         Route::prefix('devolutions')->group(function () {
-            Route::get('/', [DevolutionsController::class, 'apiIndex']);
-            Route::post('/', [DevolutionsController::class, 'apiStore']);
-            Route::get('/{id}', [DevolutionsController::class, 'apiShow']);
-            Route::put('/{id}', [DevolutionsController::class, 'apiUpdate']);
-            Route::delete('/{id}', [DevolutionsController::class, 'apiDestroy']);
-            
-            // Obtener entidades, loterías, vendedores, sets para devoluciones
             Route::get('/entities', [DevolutionsController::class, 'getEntities']);
             Route::get('/lotteries', [DevolutionsController::class, 'getLotteriesByEntity']);
             Route::get('/sellers', [DevolutionsController::class, 'getSellersByEntity']);
@@ -402,12 +395,16 @@ Route::middleware('auth.api')->group(function () {
             Route::get('/participations', [DevolutionsController::class, 'getParticipationsBySellerAndLottery']);
             Route::post('/validate', [DevolutionsController::class, 'validateParticipations']);
             Route::get('/liquidation-summary', [DevolutionsController::class, 'getLiquidationSummary']);
-            
-            // Pagos de devoluciones
+
+            Route::get('/', [DevolutionsController::class, 'apiIndex']);
+            Route::post('/', [DevolutionsController::class, 'apiStore']);
             Route::get('/{id}/payments', [DevolutionsController::class, 'getPayments']);
             Route::post('/{id}/payments', [DevolutionsController::class, 'addPayment']);
             Route::put('/{devolutionId}/payments/{paymentId}', [DevolutionsController::class, 'updatePayment']);
             Route::delete('/{devolutionId}/payments/{paymentId}', [DevolutionsController::class, 'deletePayment']);
+            Route::get('/{id}', [DevolutionsController::class, 'apiShow']);
+            Route::put('/{id}', [DevolutionsController::class, 'apiUpdate']);
+            Route::delete('/{id}', [DevolutionsController::class, 'apiDestroy']);
         });
         
         // Pagos de gestor

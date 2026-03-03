@@ -349,12 +349,9 @@
                     					<div class="form-card bs" style="min-height: 658px;">
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos de contacto
-
-			                    				<a href="{{url('administrations/edit/manager/1')}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
-			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
-			                    				Editar</a>
+			                    				{{-- Sin botón Editar vendedor cuando la participación está asignada: se edita desde el perfil del vendedor si hace falta --}}
 			                    			</h4>
-			                    			<small><i>Todos los campos son obligatorios</i></small>
+			                    			<small><i>Datos del vendedor asignado (solo lectura)</i></small>
 			                    			<div style="clear: both;"></div>
 
 			                    			
@@ -476,7 +473,7 @@
 			                    			<h4 class="mb-0 mt-1">
 			                    				Comentarios
 			                    			</h4>
-			                    			<small><i>Puedes añadir un comentario si necesitas añadir información adicional <br> sobre la entidad. Puedes añadir comentarios mas tarde.</i></small>
+			                    			<small><i>Puedes editar el comentario de la participación directamente aquí.</i></small>
 
 			                    			<div class="row">
 			                    				
@@ -487,8 +484,11 @@
 
 						                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6"></textarea>
+						                                    <textarea class="form-control" placeholder="Añade tu comentario" name="notes" id="participation-notes" rows="6">{{ old('notes', $participation->notes ?? '') }}</textarea>
 						                                </div>
+						                                <button type="button" class="btn btn-primary mt-2" id="btn-guardar-comentario" style="border-radius: 30px;">
+						                                    <i class="ri-save-line"></i> Guardar comentario
+						                                </button>
 					                    			</div>
 
 			                    				</div>
@@ -551,6 +551,30 @@
 
 	// ==================== HISTORIAL DE ACTIVIDADES ====================
 	const participationId = {{ $participation->id }};
+
+	// Guardar comentario de la participación
+	$('#btn-guardar-comentario').on('click', function() {
+		const notes = $('#participation-notes').val();
+		const $btn = $(this);
+		$btn.prop('disabled', true).html('<i class="ri-loader-4-line spin"></i> Guardando...');
+		$.ajax({
+			url: `{{ url('participations/view') }}/${participationId}/notes`,
+			type: 'POST',
+			data: {
+				notes: notes,
+				_token: '{{ csrf_token() }}',
+				_method: 'PATCH'
+			},
+			success: function() {
+				$btn.prop('disabled', false).html('<i class="ri-save-line"></i> Guardar comentario');
+				alert('Comentario guardado correctamente');
+			},
+			error: function() {
+				$btn.prop('disabled', false).html('<i class="ri-save-line"></i> Guardar comentario');
+				alert('Error al guardar el comentario');
+			}
+		});
+	});
 
 	// Cargar el historial al cargar la página
 	$(document).ready(function() {

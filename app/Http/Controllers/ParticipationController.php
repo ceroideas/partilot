@@ -182,6 +182,24 @@ class ParticipationController extends Controller
     }
 
     /**
+     * Actualizar solo el comentario/notas de una participación
+     */
+    public function updateNotes(Request $request, $id)
+    {
+        $request->validate([
+            'notes' => 'nullable|string|max:65535'
+        ]);
+
+        $participation = Participation::forUser(auth()->user())->findOrFail($id);
+        $participation->update(['notes' => $request->input('notes', '')]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Comentario guardado correctamente'
+        ]);
+    }
+
+    /**
      * Mostrar participación para vendedor
      */
     public function show_seller($id)

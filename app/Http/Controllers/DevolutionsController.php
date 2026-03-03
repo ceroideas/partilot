@@ -69,6 +69,24 @@ class DevolutionsController extends Controller
                 'liquidacion.pagos.*.amount' => 'required|numeric'
             ]);
 
+            // Como en la web: al menos un pago con importe para completar la devolución
+            $pagos = $data['liquidacion']['pagos'] ?? [];
+            if (empty($pagos) || !is_array($pagos)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes registrar al menos un pago para completar la liquidación.'
+                ], 422);
+            }
+            $tieneImporte = collect($pagos)->contains(fn ($p) => (float) ($p['amount'] ?? 0) > 0);
+            if (!$tieneImporte) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes registrar al menos un pago con importe.'
+                ], 422);
+            }
+
             if (!auth()->user()->canAccessEntity((int) $data['entity_id'])) {
                 DB::rollBack();
                 return response()->json([
@@ -122,12 +140,30 @@ class DevolutionsController extends Controller
 
             // Obtener las participaciones seleccionadas para devolver (puede estar vacío)
             $participationsToReturn = $data['liquidacion']['devolver'] ?? [];
-            
+            $tipoDevolucion = $request->input('tipo_devolucion');
+
             // Calcular participaciones a vender
             $participationsToSell = [];
-            
+            $sellerIdForSell = $data['seller_id'] ?? null;
+            if ($tipoDevolucion === 'vendedor' && !empty($participationsToReturn) && $sellerIdForSell) {
+                // Devolución vendedor: las que quedan asignadas al vendedor (no devueltas) se marcan como vendida
+                $participations = Participation::forUser(auth()->user())
+                    ->whereIn('id', $participationsToReturn)->get();
+                $setIds = $participations->pluck('set_id')->unique()->toArray();
+                foreach ($setIds as $setId) {
+                    $returnedInSet = $participations->where('set_id', $setId)->pluck('id')->toArray();
+                    $allSellerInSet = Participation::forUser(auth()->user())
+                        ->where('set_id', $setId)
+                        ->where('seller_id', $sellerIdForSell)
+                        ->where('status', '!=', 'anulada')
+                        ->pluck('id')
+                        ->toArray();
+                    $toSellInSet = array_values(array_diff($allSellerInSet, $returnedInSet));
+                    $participationsToSell = array_merge($participationsToSell, $toSellInSet);
+                }
+            }
             // Caso 1: No hay participaciones a devolver pero hay set_id (liquidar set completo)
-            if (empty($participationsToReturn) && isset($data['set_id'])) {
+            elseif (empty($participationsToReturn) && isset($data['set_id'])) {
                 $setId = $data['set_id'];
 
                 Set::forUser(auth()->user())->findOrFail($setId);
@@ -139,8 +175,8 @@ class DevolutionsController extends Controller
                     ->pluck('id')
                     ->toArray();
             }
-            // Caso 2: Hay participaciones a devolver
-            elseif (!empty($participationsToReturn)) {
+            // Caso 2: Hay participaciones a devolver (solo para administración; vendedor solo desasigna, no marca el resto como vendida)
+            elseif (!empty($participationsToReturn) && $tipoDevolucion !== 'vendedor') {
                 // Obtener los sets únicos de las participaciones seleccionadas
                 $participations = Participation::forUser(auth()->user())
                     ->whereIn('id', $participationsToReturn)->get();
@@ -188,6 +224,7 @@ class DevolutionsController extends Controller
                 $participations = Participation::forUser(auth()->user())
                     ->whereIn('id', $participationsToReturn)->get();
                 $setIds = $participations->pluck('set_id')->unique()->toArray();
+                $sellerIdForCalc = $data['seller_id'] ?? null;
                 foreach ($setIds as $setId) {
                     $set = Set::forUser(auth()->user())->find($setId);
                     if (!$set) {
@@ -198,9 +235,36 @@ class DevolutionsController extends Controller
                         ->where('status', '!=', 'anulada')
                         ->count();
                     $returnedInSet = $participations->where('set_id', $setId)->count();
-                    $price = $set->played_amount ?? 0;
+                    $price = (float) ($set->played_amount ?? 0);
                     $totalParticipations += $totalInSet;
-                    $totalLiquidation += ($totalInSet - $returnedInSet) * $price;
+                    // Devolución vendedor: liquidación = por las que QUEDAN con el vendedor (total asignadas al vendedor en set − devueltas)
+                    if ($tipoDevolucion === 'vendedor' && $sellerIdForCalc) {
+                        $totalSellerInSet = Participation::forUser(auth()->user())
+                            ->where('set_id', $setId)
+                            ->where('seller_id', $sellerIdForCalc)
+                            ->where('status', '!=', 'anulada')
+                            ->count();
+                        $remainingWithSeller = max(0, $totalSellerInSet - $returnedInSet);
+                        $totalLiquidation += $remainingWithSeller * $price;
+                    } else {
+                        $totalLiquidation += ($totalInSet - $returnedInSet) * $price;
+                    }
+                }
+                if ($tipoDevolucion === 'vendedor') {
+                    // En el registro: total participaciones = las que se liquidan (quedan con vendedor); el detalle de devolución ya tiene las devueltas
+                    $totalParticipations = (int) round($totalLiquidation / ($price ?? 1)) ?: count($participationsToReturn);
+                    if ($sellerIdForCalc && count($setIds) > 0) {
+                        $totalParticipations = 0;
+                        foreach ($setIds as $setId) {
+                            $totalSellerInSet = Participation::forUser(auth()->user())
+                                ->where('set_id', $setId)
+                                ->where('seller_id', $sellerIdForCalc)
+                                ->where('status', '!=', 'anulada')
+                                ->count();
+                            $returnedInSet = $participations->where('set_id', $setId)->count();
+                            $totalParticipations += max(0, $totalSellerInSet - $returnedInSet);
+                        }
+                    }
                 }
             } else {
                 // Sin set ni participaciones a devolver: usar conteo de las procesadas
@@ -228,22 +292,41 @@ class DevolutionsController extends Controller
                 // USAR MODELO ELOQUENT para disparar el Observer
                 $participationsToUpdateReturn = Participation::forUser(auth()->user())
                     ->whereIn('id', $participationsToReturn)->get();
-                
-                foreach ($participationsToUpdateReturn as $participation) {
-                    $participation->update([
-                        'status' => 'devuelta',
-                        'return_date' => $now->format('Y-m-d'),
-                        'return_time' => $now->format('H:i:s'),
-                        'return_reason' => $data['return_reason'] ?? 'Devolución de entidad a administración',
-                        'returned_by' => $userId,
-                    ]);
 
-                    // Crear detalle de devolución
-                    DevolutionDetail::create([
-                        'devolution_id' => $devolution->id,
-                        'participation_id' => $participation->id,
-                        'action' => 'devolver'
-                    ]);
+                foreach ($participationsToUpdateReturn as $participation) {
+                    if ($tipoDevolucion === 'vendedor' && !empty($data['seller_id'])) {
+                        // Devolución de vendedor a entidad: dejar la participación disponible y sin vendedor
+                        $participation->update([
+                            'status' => 'disponible',
+                            'seller_id' => null,
+                            'return_date' => $now->format('Y-m-d'),
+                            'return_time' => $now->format('H:i:s'),
+                            'return_reason' => $data['return_reason'] ?? 'Devolución de vendedor a entidad',
+                            'returned_by' => $userId,
+                        ]);
+
+                        DevolutionDetail::create([
+                            'devolution_id' => $devolution->id,
+                            'participation_id' => $participation->id,
+                            'action' => 'devolver_vendedor'
+                        ]);
+                    } else {
+                        // Devolución de entidad a administración (comportamiento existente)
+                        $participation->update([
+                            'status' => 'devuelta',
+                            'return_date' => $now->format('Y-m-d'),
+                            'return_time' => $now->format('H:i:s'),
+                            'return_reason' => $data['return_reason'] ?? 'Devolución de entidad a administración',
+                            'returned_by' => $userId,
+                        ]);
+
+                        // Crear detalle de devolución
+                        DevolutionDetail::create([
+                            'devolution_id' => $devolution->id,
+                            'participation_id' => $participation->id,
+                            'action' => 'devolver'
+                        ]);
+                    }
                 }
             }
 
@@ -412,6 +495,61 @@ class DevolutionsController extends Controller
     }
 
     /**
+     * API: Listado de devoluciones (JSON)
+     */
+    public function apiIndex()
+    {
+        return $this->data();
+    }
+
+    /**
+     * API: Crear devolución (delega en store; store ya devuelve JSON)
+     */
+    public function apiStore(Request $request)
+    {
+        return $this->store($request);
+    }
+
+    /**
+     * API: Ver una devolución (JSON)
+     */
+    public function apiShow(string $id)
+    {
+        $devolution = Devolution::with([
+            'entity',
+            'lottery',
+            'seller',
+            'user',
+            'details.participation.set',
+            'payments'
+        ])
+            ->forUser(auth()->user())
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'devolution' => $devolution
+        ]);
+    }
+
+    /**
+     * API: Actualizar devolución (JSON)
+     */
+    public function apiUpdate(Request $request, string $id)
+    {
+        $this->update($request, $id);
+        return response()->json(['success' => true, 'message' => 'Actualizado']);
+    }
+
+    /**
+     * API: Eliminar devolución (delega en destroy; destroy ya devuelve JSON)
+     */
+    public function apiDestroy(string $id)
+    {
+        return $this->destroy($id);
+    }
+
+    /**
      * Obtener datos para la tabla de devoluciones (DataTable)
      */
     public function data()
@@ -489,6 +627,7 @@ class DevolutionsController extends Controller
                 return [
                     'id' => $entity->id,
                     'name' => $entity->name,
+                    'image' => $entity->image,
                     'province' => $entity->province ?? 'N/A',
                     'city' => $entity->city ?? 'N/A',
                     'administration_name' => $entity->administration->name ?? 'Sin administración',
@@ -540,20 +679,26 @@ class DevolutionsController extends Controller
             ]);
         }
         
-        // Ahora usamos la relación many-to-many
+        // Ahora usamos la relación many-to-many. Mostrar Activo, Pendiente y Bloqueado (solo ocultar Inactivo)
         $sellers = Seller::with(['user:id,name,last_name,email,phone'])
             ->forUser(auth()->user())
             ->whereHas('entities', function($query) use ($entityId) {
                 $query->where('entities.id', $entityId);
             })
-            ->where('status', true) // status es boolean
+            ->whereIn('status', [\App\Models\Seller::STATUS_ACTIVE, \App\Models\Seller::STATUS_PENDING, \App\Models\Seller::STATUS_BLOCKED])
             ->get()
             ->map(function($seller) {
+                $statusMap = [
+                    \App\Models\Seller::STATUS_ACTIVE => 'active',
+                    \App\Models\Seller::STATUS_PENDING => 'pending',
+                    \App\Models\Seller::STATUS_BLOCKED => 'blocked',
+                ];
+                $status = $statusMap[(int) $seller->status] ?? 'inactive';
                 return [
                     'id' => $seller->id,
                     'user_id' => $seller->user_id,
                     'seller_type' => $seller->seller_type,
-                    'status' => $seller->status ? 'active' : 'inactive',
+                    'status' => $status,
                     'user' => [
                         'id' => $seller->user ? $seller->user->id : null,
                         'name' => $seller->display_name,
@@ -661,7 +806,7 @@ class DevolutionsController extends Controller
             ]);
         }
         
-        $participations = Participation::select([
+        $query = Participation::select([
                 'participations.id',
                 'participations.number',
                 'participations.participation_code',
@@ -672,14 +817,31 @@ class DevolutionsController extends Controller
             ])
             ->join('sets', 'participations.set_id', '=', 'sets.id')
             ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
-            ->forUser(auth()->user())
             ->where('participations.seller_id', $sellerId)
             ->where('reserves.lottery_id', $lotteryId)
-            ->where(function($query) {
-                $query->whereNull('participations.sale_date')
-                      ->whereNull('participations.return_date');
-            })
-            ->get();
+            ->where(function($q) {
+                $q->whereNull('participations.sale_date')
+                  ->whereNull('participations.return_date');
+            });
+
+        $user = auth()->user();
+        if (!$user->isSuperAdmin()) {
+            $entityIds = $user->accessibleEntityIds();
+            $sellerIds = $user->accessibleSellerIds();
+            if (empty($entityIds) && empty($sellerIds)) {
+                return response()->json(['success' => true, 'participations' => collect()]);
+            }
+            $query->where(function ($q) use ($entityIds, $sellerIds) {
+                if (!empty($entityIds)) {
+                    $q->whereIn('participations.entity_id', $entityIds);
+                }
+                if (!empty($sellerIds)) {
+                    $q->orWhereIn('participations.seller_id', $sellerIds);
+                }
+            });
+        }
+
+        $participations = $query->get();
 
         return response()->json([
             'success' => true,
@@ -697,10 +859,11 @@ class DevolutionsController extends Controller
             'seller_id' => 'nullable|exists:sellers,id', // Ahora es opcional
             'entity_id' => 'nullable|exists:entities,id', // Para devoluciones de entidad
             'lottery_id' => 'required|exists:lotteries,id',
-            'set_id' => 'required|exists:sets,id',
+            'set_id' => 'nullable|exists:sets,id', // Opcional si se envía referencia
             'desde' => 'nullable|integer',
             'hasta' => 'nullable|integer',
-            'participation_id' => 'nullable|integer' // Número de participación, no ID de base de datos
+            'participation_id' => 'nullable|integer', // Número de participación, no ID de base de datos
+            'referencia' => 'nullable|string' // QR: referencia para resolver set + participación
         ]);
 
         if (!empty($data['seller_id']) && !auth()->user()->canAccessSeller((int) $data['seller_id'])) {
@@ -717,6 +880,19 @@ class DevolutionsController extends Controller
             ]);
         }
 
+        // Si viene referencia (QR), resolver y devolver esa participación si pertenece al sorteo/entidad
+        if (!empty($data['referencia'])) {
+            return $this->validateByReference(
+                $data['referencia'],
+                (int) ($data['entity_id'] ?? 0),
+                (int) $data['lottery_id']
+            );
+        }
+
+        if (empty($data['set_id'])) {
+            return response()->json(['success' => false, 'message' => 'Falta set_id o referencia.'], 422);
+        }
+
         Set::forUser(auth()->user())->findOrFail($data['set_id']);
 
         $query = Participation::select([
@@ -726,9 +902,26 @@ class DevolutionsController extends Controller
             ])
             ->join('sets', 'participations.set_id', '=', 'sets.id')
             ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
-            ->forUser(auth()->user())
             ->where('reserves.lottery_id', $data['lottery_id'])
             ->where('participations.set_id', $data['set_id']);
+
+        // Filtro de acceso (mismo criterio que Participation::forUser, con columnas calificadas para evitar ambigüedad con sets.entity_id)
+        $user = auth()->user();
+        if (!$user->isSuperAdmin()) {
+            $entityIds = $user->accessibleEntityIds();
+            $sellerIds = $user->accessibleSellerIds();
+            if (empty($entityIds) && empty($sellerIds)) {
+                return response()->json(['success' => true, 'participations' => collect()]);
+            }
+            $query->where(function ($q) use ($entityIds, $sellerIds) {
+                if (!empty($entityIds)) {
+                    $q->whereIn('participations.entity_id', $entityIds);
+                }
+                if (!empty($sellerIds)) {
+                    $q->orWhereIn('participations.seller_id', $sellerIds);
+                }
+            });
+        }
 
         // Si hay seller_id, filtrar por vendedor (devolución de vendedor) - EXCLUIR ANULADAS
         if (isset($data['seller_id'])) {
@@ -738,7 +931,7 @@ class DevolutionsController extends Controller
             // Si no hay seller_id, mostrar participaciones asignadas o vendidas (devolución de entidad) - EXCLUIR ANULADAS
             $query->whereIn('participations.status', ['asignada', 'vendida','disponible']);
         }
-        
+
         // EXCLUIR EXPLÍCITAMENTE LAS PARTICIPACIONES ANULADAS
         $query->where('participations.status', '!=', 'anulada');
 
@@ -761,6 +954,91 @@ class DevolutionsController extends Controller
     }
 
     /**
+     * Resolver referencia (QR) y validar participación para devolución en contexto entity/lottery.
+     */
+    private function validateByReference(string $referencia, int $entityId, int $lotteryId)
+    {
+        $found = $this->findSetAndParticipationByReference($referencia);
+        if (!$found) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encuentra ninguna participación con esa referencia.',
+                'participations' => []
+            ], 404);
+        }
+        $set = $found['set'];
+        $participationNumber = $found['participation_number'];
+
+        if ($entityId && $set->entity_id != $entityId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La participación no pertenece a la entidad seleccionada.',
+                'participations' => []
+            ], 422);
+        }
+        $reserve = $set->reserve ?? $set->reserve()->first();
+        if (!$reserve || $reserve->lottery_id != $lotteryId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La participación no pertenece al sorteo seleccionado.',
+                'participations' => []
+            ], 422);
+        }
+
+        $participation = Participation::forUser(auth()->user())
+            ->where('set_id', $set->id)
+            ->where('participation_number', $participationNumber)
+            ->whereIn('status', ['disponible', 'asignada', 'vendida'])
+            ->where('status', '!=', 'anulada')
+            ->first();
+
+        if (!$participation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esa participación no está disponible para devolución.',
+                'participations' => []
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'participations' => [[
+                'id' => $participation->id,
+                'number' => $participation->participation_number,
+                'participation_code' => $participation->participation_code,
+                'set_id' => $set->id,
+                'set_name' => $set->set_name ?? $set->name ?? 'Set ' . $set->set_number,
+            ]]
+        ]);
+    }
+
+    private function findSetAndParticipationByReference(string $referencia): ?array
+    {
+        $set = Set::forUser(auth()->user())->whereNotNull('tickets')->get()->first(function ($s) use ($referencia) {
+            if (!is_array($s->tickets)) {
+                return false;
+            }
+            foreach ($s->tickets as $ticket) {
+                if (isset($ticket['r']) && $ticket['r'] == $referencia) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        if (!$set) {
+            return null;
+        }
+        $participationNumber = null;
+        foreach ($set->tickets as $ticket) {
+            if (isset($ticket['r']) && $ticket['r'] == $referencia) {
+                $participationNumber = $ticket['n'] ?? null;
+                break;
+            }
+        }
+        return $participationNumber !== null ? ['set' => $set, 'participation_number' => $participationNumber] : null;
+    }
+
+    /**
      * Obtener resumen de liquidación para los sets seleccionados
      */
     public function getLiquidationSummary(Request $request)
@@ -769,6 +1047,12 @@ class DevolutionsController extends Controller
         $lotteryId = $request->get('lottery_id');
         $setId = $request->get('set_id');
         $selectedParticipations = $request->get('participations', []);
+        $tipoDevolucion = $request->get('tipo_devolucion');
+        $sellerId = $request->get('seller_id');
+        // Si hay seller_id y participaciones seleccionadas, tratar como vendedor para el cálculo (liquidar por las que quedan)
+        if ($sellerId && !empty($selectedParticipations) && $tipoDevolucion !== 'vendedor') {
+            $tipoDevolucion = 'vendedor';
+        }
 
         if ($entityId && !auth()->user()->canAccessEntity((int) $entityId)) {
             return response()->json([
@@ -783,9 +1067,9 @@ class DevolutionsController extends Controller
         \Log::info('Set ID:', [$setId]);
         \Log::info('Selected Participations:', $selectedParticipations);
 
-        // Si no hay participaciones pero hay set_id, calcular liquidación del set completo
+        // Sin participaciones seleccionadas pero con set_id: resumen del set (liquidar sin devolver nada)
         if (empty($selectedParticipations) && $setId) {
-            \Log::info('No participations selected but set provided, calculating full set liquidation');
+            \Log::info('No participations selected but set provided, returning set breakdown for liquidar sin devolver');
             
             $set = Set::forUser(auth()->user())->find($setId);
             if (!$set) {
@@ -796,39 +1080,37 @@ class DevolutionsController extends Controller
                 ], 404);
             }
 
-            // Contar todas las participaciones del set que están disponibles o asignadas (vendibles) - EXCLUIR ANULADAS
-            $allParticipations = Participation::forUser(auth()->user())
+            $baseQuery = Participation::forUser(auth()->user())
                 ->where('set_id', $setId)
-                ->whereIn('status', ['disponible', 'asignada', 'vendida'])
-                ->where('status', '!=', 'anulada')
-                ->count();
+                ->where('status', '!=', 'anulada');
 
-            $pricePerParticipation = $set->played_amount ?? 0;
-            $totalLiquidation = $allParticipations * $pricePerParticipation;
+            $totalInSet = (clone $baseQuery)->count();
+            $ventasRegistradas = (clone $baseQuery)->where('status', 'vendida')->count();
+            $devueltas = (clone $baseQuery)->where('status', 'devuelta')->count();
+            $disponibles = (clone $baseQuery)->whereIn('status', ['disponible', 'asignada'])->count();
 
-            \Log::info("Full set liquidation:", [
-                'set_id' => $setId,
-                'total_participations' => $allParticipations,
-                'price_per_participation' => $pricePerParticipation,
-                'total_liquidation' => $totalLiquidation
-            ]);
+            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            // Total liquidación = (total del set − ya devueltas) × precio (igual que cuando se seleccionan participaciones a devolver)
+            $totalLiquidation = ($totalInSet - $devueltas) * $pricePerParticipation;
 
             return response()->json([
                 'success' => true,
                 'summary' => [
-                    'total_participations' => $allParticipations,
-                    'sold_participations' => $allParticipations, // Todas se venden
-                    'returned_participations' => 0, // No se devuelve ninguna
-                    'available_participations' => 0,
+                    'total_participations' => $totalInSet,
+                    'ventas_registradas' => $ventasRegistradas,
+                    'sold_participations' => $ventasRegistradas,
+                    'returned_participations' => $devueltas,
+                    'available_participations' => $disponibles,
                     'total_liquidation' => $totalLiquidation,
                     'registered_payments' => 0,
                     'total_to_pay' => $totalLiquidation,
                     'sets_info' => [[
                         'set_id' => $setId,
                         'set_name' => $set->set_name,
-                        'total_participations' => $allParticipations,
-                        'sold_participations' => $allParticipations,
-                        'returned_participations' => 0,
+                        'total_participations' => $totalInSet,
+                        'sold_participations' => $ventasRegistradas,
+                        'returned_participations' => $devueltas,
+                        'available_participations' => $disponibles,
                         'price_per_participation' => $pricePerParticipation,
                         'liquidation' => $totalLiquidation
                     ]]
@@ -868,6 +1150,8 @@ class DevolutionsController extends Controller
         $totalSold = 0;
         $totalReturned = 0;
         $totalLiquidation = 0;
+        $totalSellerParticipations = 0;   // solo para vendedor: total asignadas al vendedor en el set
+        $totalRemainingWithSeller = 0;     // solo para vendedor: las que quedan a liquidar
 
         foreach ($setIds as $setId) {
             $set = Set::forUser(auth()->user())->find($setId);
@@ -897,14 +1181,27 @@ class DevolutionsController extends Controller
             // No devolver más de las que hay en el pool (evitar ventas registradas negativas)
             $returnedInSet = min($returnedInSet, $allInSet);
 
-            // Las que se van a liquidar como vendidas en el pool (para estadísticas)
-            $soldInSet = $allInSet - $returnedInSet;
-
             // Precio por participación del set
-            $pricePerParticipation = $set->played_amount ?? 0;
+            $pricePerParticipation = (float) ($set->played_amount ?? 0);
 
-            // Importe a liquidar: (Total del set - Devueltas) × precio (no solo el pool)
-            $setLiquidation = ($totalInSet - $returnedInSet) * $pricePerParticipation;
+            $totalSellerInSet = $totalInSet; // por defecto; en vendedor se sobrescribe
+            // Devolución vendedor: liquidar por las que QUEDAN asignadas al vendedor (total del vendedor en el set − devueltas)
+            if ($tipoDevolucion === 'vendedor' && $sellerId) {
+                $totalSellerInSet = Participation::forUser(auth()->user())
+                    ->where('set_id', $setId)
+                    ->where('seller_id', $sellerId)
+                    ->where('status', '!=', 'anulada')
+                    ->count();
+                $remainingWithSeller = max(0, $totalSellerInSet - $returnedInSet);
+                $setLiquidation = $remainingWithSeller * $pricePerParticipation;
+                $soldInSet = $remainingWithSeller; // para estadísticas: las que se liquidan (quedan con vendedor)
+                $totalSellerParticipations += $totalSellerInSet;
+                $totalRemainingWithSeller += $remainingWithSeller;
+            } else {
+                // Administración: liquidación = (total set - devueltas) × precio (lo que queda como vendido)
+                $soldInSet = $allInSet - $returnedInSet;
+                $setLiquidation = ($totalInSet - $returnedInSet) * $pricePerParticipation;
+            }
 
             \Log::info("Set $setId stats:", [
                 'total_in_set' => $totalInSet,
@@ -912,13 +1209,14 @@ class DevolutionsController extends Controller
                 'returned' => $returnedInSet,
                 'sold' => $soldInSet,
                 'price' => $pricePerParticipation,
-                'liquidation' => $setLiquidation
+                'liquidation' => $setLiquidation,
+                'tipo_devolucion' => $tipoDevolucion
             ]);
 
             $setsInfo[] = [
                 'set_id' => $setId,
                 'set_name' => $set->set_name,
-                'total_participations' => $totalInSet,
+                'total_participations' => $totalSellerInSet,
                 'sold_participations' => $soldInSet,
                 'returned_participations' => $returnedInSet,
                 'available_participations' => 0,
@@ -932,11 +1230,14 @@ class DevolutionsController extends Controller
             $totalLiquidation += $setLiquidation;
         }
 
-        // Para la UI: "Ventas registradas" = cuántas quedarán como vendidas tras la devolución (Total - Devueltas)
-        $ventasRegistradasDisplay = $totalParticipations - $totalReturned;
+        // Para la UI: administración = ventas que quedarán (Total - Devueltas). Vendedor = participaciones que quedan a liquidar (las que siguen con el vendedor)
+        $ventasRegistradasDisplay = $tipoDevolucion === 'vendedor' ? $totalRemainingWithSeller : ($totalParticipations - $totalReturned);
+
+        // Devolución vendedor: mostrar total del vendedor en el set (ej. 100), no solo las devueltas
+        $totalParticipationsDisplay = $tipoDevolucion === 'vendedor' ? $totalSellerParticipations : $totalParticipations;
 
         $summary = [
-            'total_participations' => $totalParticipations,
+            'total_participations' => $totalParticipationsDisplay,
             'sold_participations' => $totalSold,
             'ventas_registradas' => $ventasRegistradasDisplay,
             'returned_participations' => $totalReturned,

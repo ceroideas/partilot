@@ -257,8 +257,10 @@
                              <div class="form-card bs mb-3" id="entity-info-sidebar">
                                  <div class="row">
                                      <div class="col-4">
-                                         <div class="photo-preview-3">
-                                             <i class="ri-building-line"></i>
+                                         <div class="photo-preview-3 logo-round" style="width: 56px; height: 56px; min-width: 56px; min-height: 56px; @if($currentEntity && ($currentEntity->image ?? null)) background-image: url('{{ asset('uploads/' . $currentEntity->image) }}'); @endif">
+                                             @if(!$currentEntity || !($currentEntity->image ?? null))
+                                                 <i class="ri-building-line"></i>
+                                             @endif
                                          </div>
                                          <div style="clear: both;"></div>
                                      </div>
@@ -356,8 +358,10 @@
                                             <div class="form-group mt-2 mb-3 admin-box">
                                                 <div class="row">
                                                     <div class="col-1">
-                                                        <div class="photo-preview-3">
-                                                            <i class="ri-account-circle-fill"></i>
+                                                        <div class="photo-preview-3 logo-round" style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; @if($currentEntity && ($currentEntity->image ?? null)) background-image: url('{{ asset('uploads/' . $currentEntity->image) }}'); @endif">
+                                                            @if(!$currentEntity || !($currentEntity->image ?? null))
+                                                                <i class="ri-building-line"></i>
+                                                            @endif
                                                         </div>
                                                         <div style="clear: both;"></div>
                                                     </div>

@@ -275,7 +275,7 @@
                             <div class="form-card bs mb-3" id="entity-info" style="display: none;">
                                 <div class="row">
                                     <div class="col-4">
-                                        <div class="photo-preview-3">
+                                        <div class="photo-preview-3 logo-round" id="entity-info-image" style="width: 56px; height: 56px; min-width: 56px; min-height: 56px;">
                                             <i class="ri-building-line"></i>
                                         </div>
                                     </div>
@@ -312,6 +312,7 @@
                                                 <table id="tabla-entidades" class="table table-striped nowrap w-100">
                                                     <thead>
                                                         <tr>
+                                                            <th>Imagen</th>
                                                             <th>ID</th>
                                                             <th>Entidad</th>
                                                             <th>Provincia</th>
@@ -870,7 +871,7 @@
                                                     <div class="card mb-3">
                                                         <div class="card-body">
                                                             <h5 class="card-title">Resumen Devolución</h5>
-                                                            <small class="text-muted">Resumen Devolución Administración</small>
+                                                            <small class="text-muted" id="liquidacion-resumen-subtitulo">Resumen Devolución Administración</small>
                                                             
                                                             <div class="text-center my-3">
                                                                 <img src="{{url('assets/ticket.svg')}}" alt="" width="60px">
@@ -1053,7 +1054,7 @@ $(document).ready(function() {
         wizardSteps.find('li:gt(1)').remove();
         
         if (tipoDevolucion === 'vendedor') {
-            // Flujo: Entidad -> Opción -> Vendedor -> Liquidación
+            // Flujo: Entidad -> Opción -> Vendedor -> Sorteo -> Participaciones -> Liquidación
             wizardSteps.append(`
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-3">
@@ -1064,6 +1065,20 @@ $(document).ready(function() {
                 </li>
                 <li class="nav-item">
                     <div class="form-wizard-element" id="step-4">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
+                        <label>Seleccionar Sorteo</label>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-5">
+                        <span>&nbsp;&nbsp;</span>
+                        <img src="{{url('icons_/participaciones.svg')}}" alt="">
+                        <label>Seleccionar Participaciones</label>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="form-wizard-element" id="step-6">
                         <span>&nbsp;&nbsp;</span>
                         <img src="{{url('icons_/dinero.svg')}}" alt="">
                         <label>Liquidación</label>
@@ -1156,11 +1171,13 @@ $(document).ready(function() {
         let pasosOrden = [];
         
         if (tipoDevolucion === 'vendedor') {
-            // Flujo con vendedor: Entidad -> Opción -> Vendedor -> Liquidación
+            // Flujo con vendedor: Entidad -> Opción -> Vendedor -> Sorteo -> Participaciones -> Liquidación
             pasosOrden = [
                 'paso-entidad',
                 'paso-opcion',
                 'paso-vendedor',
+                'paso-sorteo',
+                'paso-participaciones',
                 'paso-liquidacion'
             ];
         } else if (tipoDevolucion === 'administracion') {
@@ -1236,6 +1253,17 @@ $(document).ready(function() {
                 "dataSrc": "entities"
             },
             "columns": [
+                {
+                    "data": "image",
+                    "orderable": false,
+                    "render": function(data, type, row) {
+                        if (data) {
+                            const url = "{{ asset('uploads/') }}/" + data;
+                            return `<div class="photo-preview-3 logo-round" style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; background-image: url('${url}');"></div>`;
+                        }
+                        return `<div class="photo-preview-3 logo-round" style="width: 40px; height: 40px; min-width: 40px; min-height: 40px;"><img src="{{ url('assets/entidad.svg') }}" alt="" width="24" style="object-fit: contain;"></div>`;
+                    }
+                },
                 { "data": "id" },
                 { "data": "name" },
                 { "data": "province" },
@@ -1387,8 +1415,8 @@ $(document).ready(function() {
                 { 
                     "data": "status",
                     "render": function(data, type, row) {
-                        const badgeClass = data === 'active' ? 'bg-success' : 'bg-danger';
-                        const statusText = data === 'active' ? 'Activo' : 'Inactivo';
+                        const statusMap = { active: ['Activo', 'bg-success'], pending: ['Pendiente', 'bg-warning text-dark'], blocked: ['Bloqueado', 'bg-secondary'], inactive: ['Inactivo', 'bg-danger'] };
+                        const [statusText, badgeClass] = statusMap[data] || ['Inactivo', 'bg-danger'];
                         return `<span class="badge ${badgeClass}">${statusText}</span>`;
                     }
                 },
@@ -1424,14 +1452,16 @@ $(document).ready(function() {
     $(document).on('change', '.seleccionar-entidad', function() {
         const entityId = $(this).data('entity-id');
         const row = $(this).closest('tr');
+        const rowData = tablaEntidades && tablaEntidades.row(row).data ? tablaEntidades.row(row).data() : null;
         const entityData = {
             id: entityId,
-            name: row.find('td:eq(1)').text(),
-            province: row.find('td:eq(2)').text(),
-            city: row.find('td:eq(3)').text(),
-            administration: row.find('td:eq(4)').text(),
-            address: 'N/A', // Esto debería venir de los datos
-            phone: 'N/A'     // Esto debería venir de los datos
+            name: rowData ? rowData.name : row.find('td:eq(2)').text(),
+            province: rowData ? rowData.province : row.find('td:eq(3)').text(),
+            city: rowData ? rowData.city : row.find('td:eq(4)').text(),
+            administration: rowData ? rowData.administration_name : row.find('td:eq(5)').text(),
+            image: rowData ? rowData.image : null,
+            address: 'N/A',
+            phone: 'N/A'
         };
         
         entidadSeleccionada = entityData;
@@ -1439,6 +1469,14 @@ $(document).ready(function() {
         // Mostrar información de la entidad en varias secciones
         $('#entity-name').text(entityData.name);
         $('#entity-location').text(`${entityData.province}, ${entityData.city}`);
+        const $imgDiv = $('#entity-info-image');
+        if (entityData.image) {
+            $imgDiv.css('background-image', "url('{{ asset('uploads/') }}/" + entityData.image.replace(/'/g, "\\'") + "')");
+            $imgDiv.find('i').remove();
+        } else {
+            $imgDiv.css('background-image', '');
+            if (!$imgDiv.find('i').length) $imgDiv.append('<i class="ri-building-line"></i>');
+        }
         $('#entity-info').show();
         
         // También en la sección de opciones
@@ -1536,9 +1574,9 @@ $(document).ready(function() {
 
     $('#btn-siguiente-vendedor').click(function() {
         if (vendedorSeleccionado) {
-            // Para vendedor, ir directo a liquidación
-            mostrarPaso('paso-liquidacion');
-            configurarLiquidacionPorTipo();
+            // Para vendedor, después de seleccionar vendedor pasamos a sorteo
+            mostrarPaso('paso-sorteo');
+            inicializarDataTableSorteos();
         }
     });
 
@@ -1679,9 +1717,10 @@ $(document).ready(function() {
             participations: participationIds
         };
 
-        // Agregar seller_id si es devolución de vendedor
+        // Agregar seller_id y tipo_devolucion si es devolución de vendedor (para cálculo correcto del resumen)
         if (tipoDevolucion === 'vendedor' && vendedorSeleccionado) {
             datosResumen.seller_id = vendedorSeleccionado.id;
+            datosResumen.tipo_devolucion = 'vendedor';
         }
 
         // Obtener resumen del servidor
@@ -1998,23 +2037,20 @@ $(document).ready(function() {
     // Función para configurar la liquidación según el tipo
     function configurarLiquidacionPorTipo() {
         if (tipoDevolucion === 'vendedor') {
-            // Liquidación de vendedor
+            // Devolución vendedor: liquidar por las participaciones que QUEDAN con el vendedor (ej. 90 × 6€ = 540€)
             $('#liquidacion-titulo').text('Liquidación de Vendedor');
-            $('#liquidacion-subtitulo').html('<i>Registra pagos del vendedor</i>');
-            $('#btn-volver-text').text('Volver a Vendedor');
-            $('#liquidacion-vendedor-container').show();
-            $('#liquidacion-administracion-container').hide();
-            
-            // Cargar sorteos disponibles para el vendedor
-            cargarSorteosVendedor();
-            
-            // Resetear selector y ocultar resumen
-            $('#vendedor-selector-sorteo-liquidacion').val('');
-            $('#vendedor-resumen-liquidacion-container').hide();
+            $('#liquidacion-subtitulo').html('<i>Registra pagos por las participaciones que siguen asignadas al vendedor</i>');
+            $('#liquidacion-resumen-subtitulo').text('Resumen Devolución Vendedor');
+            $('#btn-volver-text').text('Volver a Participaciones');
+            $('#liquidacion-vendedor-container').hide();
+            $('#liquidacion-administracion-container').show();
+            cargarParticipacionesParaLiquidacion();
+            actualizarResumenLiquidacion();
         } else {
             // Liquidación de administración
             $('#liquidacion-titulo').text('Liquidación de Administración');
             $('#liquidacion-subtitulo').html('<i>Procesa la liquidación de participaciones</i>');
+            $('#liquidacion-resumen-subtitulo').text('Resumen Devolución Administración');
             $('#btn-volver-text').text('Volver a Participaciones');
             $('#liquidacion-vendedor-container').hide();
             $('#liquidacion-administracion-container').show();
@@ -2236,18 +2272,17 @@ $(document).ready(function() {
             return;
         }
 
-        // Preparar datos para la liquidación
+        // Preparar datos para la liquidación (solo liquidacion.devolver para las IDs; no duplicar en participations)
         const liquidacionData = {
             entity_id: entidadSeleccionada.id,
             lottery_id: sorteoSeleccionado.id,
             set_id: setSeleccionado ? setSeleccionado.id : null,
-            participations: participacionesAsignadas.map(p => p.id),
             return_reason: tipoDevolucion === 'vendedor' ? 'Devolución de vendedor a entidad' : 'Devolución de entidad a administración',
-            tipo_devolucion: tipoDevolucion, // Agregar tipo de devolución
+            tipo_devolucion: tipoDevolucion,
             liquidacion: {
-                pagos: pagos, // Array de pagos múltiples
-                devolver: participacionesAsignadas.map(p => p.id), // Las seleccionadas se devuelven (puede estar vacío)
-                vender: [] // Se calculará en el backend
+                pagos: pagos,
+                devolver: participacionesAsignadas.map(p => p.id),
+                vender: []
             },
             _token: '{{ csrf_token() }}'
         };

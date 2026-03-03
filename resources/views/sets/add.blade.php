@@ -103,6 +103,7 @@
 	                    			<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="">
 				                            <tr>
+				                                <th>Imagen</th>
 				                                <th>ID</th>
 				                                <th>Nombre Entidad</th>
 				                                <th>Provincia</th>
@@ -117,6 +118,13 @@
 				                        <tbody>
 				                            @foreach($entities as $entity)
 				                            <tr class="selectable-row" style="cursor: pointer;">
+				                                <td>
+				                                    <div class="photo-preview-3 logo-round" style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; @if($entity->image ?? null) background-image: url('{{ asset('uploads/' . $entity->image) }}'); @endif">
+				                                        @if(!($entity->image ?? null))
+				                                            <img src="{{ url('assets/entidad.svg') }}" alt="" width="24" style="object-fit: contain;">
+				                                        @endif
+				                                    </div>
+				                                </td>
 				                                <td>#EN{{str_pad($entity->id, 4, '0', STR_PAD_LEFT)}}</td>
 				                                <td>{{$entity->name}}</td>
 				                                <td>{{$entity->province ?? 'Sin provincia'}}</td>

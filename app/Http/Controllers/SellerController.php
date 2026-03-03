@@ -694,12 +694,12 @@ class SellerController extends Controller
         $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
         $participationsPerBook = $output['participations_per_book'] ?? 50;
         $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
-        $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
+        $endParticipation = $bookNumber * $participationsPerBook;
 
         $participations = Participation::where('set_id', $setId)
             ->where('seller_id', $seller->id)
             ->whereBetween('participation_number', [$startParticipation, $endParticipation])
-            ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+            ->whereIn('status', ['disponible', 'asignada', 'vendida', 'devuelta'])
             ->orderBy('participation_number')
             ->get();
 
@@ -1231,7 +1231,8 @@ class SellerController extends Controller
                 $key = $bookNumber . '_' . $p->seller_id;
                 if (!isset($tacosByBookSeller[$key])) {
                     $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
-                    $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
+                    $endParticipation = $bookNumber * $participationsPerBook;
+                    $endParticipation = max($startParticipation, min($endParticipation, $set->total_participations ?? 1000));
                     $seller = $sellersById->get($p->seller_id);
                     $sellerName = $seller ? trim($seller->name . ' ' . ($seller->last_name ?? '')) : 'Vendedor';
                     $reservationNumbers = $set->reserve->reservation_numbers ?? [];
@@ -1329,11 +1330,11 @@ class SellerController extends Controller
         $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
         $participationsPerBook = $output['participations_per_book'] ?? 50;
         $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
-        $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
+        $endParticipation = $bookNumber * $participationsPerBook;
         $participations = Participation::where('set_id', $setId)
             ->where('seller_id', $sellerId)
             ->whereBetween('participation_number', [$startParticipation, $endParticipation])
-            ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+            ->whereIn('status', ['disponible', 'asignada', 'vendida', 'devuelta'])
             ->orderBy('participation_number')
             ->get();
         $lotteryId = $set->reserve->lottery_id ?? null;
@@ -1916,35 +1917,36 @@ class SellerController extends Controller
             $assignedCount = 0;
             $assignedParticipations = []; // Para agrupar por set
 
+            // Una sola consulta: obtener todas las participaciones candidatas (disponible sin vendedor o ya asignadas a este vendedor)
+            $ids = array_column($participations, 'id');
+            $setIds = array_unique(array_column($participations, 'set_id'));
+            $participationsToUpdate = Participation::with(['set.reserve.lottery'])
+                ->whereIn('id', $ids)
+                ->whereIn('set_id', $setIds)
+                ->where(function ($query) use ($seller) {
+                    $query->where(function ($q) {
+                        $q->where('status', 'disponible')->whereNull('seller_id');
+                    })->orWhere(function ($q) use ($seller) {
+                        $q->where('status', 'asignada')->where('seller_id', $seller->id);
+                    });
+                })
+                ->get()
+                ->keyBy('id');
+
             foreach ($participations as $participationData) {
-                // Verificar que la participación esté disponible o ya asignada al vendedor actual
-                // USAR MODELO ELOQUENT para que se dispare el Observer
-                $participation = Participation::where('id', $participationData['id'])
-                    ->where('set_id', $participationData['set_id'])
-                    ->where(function($query) use ($seller) {
-                        $query->where('status', 'disponible')
-                              ->whereNull('seller_id')
-                              ->orWhere(function($subQuery) use ($seller) {
-                                  $subQuery->where('status', 'asignada')
-                                          ->where('seller_id', $seller->id);
-                              });
-                    })
-                    ->first();
-
-                if ($participation) {
-                    // Asignar la participación al vendedor
-                    // USAR update() del modelo para disparar el Observer
-                    $participation->update([
-                        'seller_id' => $seller->id,
-                        'sale_date' => now()->toDateString(),
-                        'sale_time' => now()->toTimeString(),
-                        'status' => 'asignada'
-                    ]);
-
-                    $assignedCount++;
-                    // Guardar para agrupar después
-                    $assignedParticipations[] = $participation;
+                $participation = $participationsToUpdate->get($participationData['id']);
+                if (!$participation || $participation->set_id != $participationData['set_id']) {
+                    continue;
                 }
+                // USAR update() del modelo para disparar el Observer
+                $participation->update([
+                    'seller_id' => $seller->id,
+                    'sale_date' => now()->toDateString(),
+                    'sale_time' => now()->toTimeString(),
+                    'status' => 'asignada'
+                ]);
+                $assignedCount++;
+                $assignedParticipations[] = $participation;
             }
 
             DB::commit();

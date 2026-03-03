@@ -71,10 +71,17 @@ class User extends Authenticatable
     /**
      * Comprobar si el usuario tiene un rol específico.
      */
+    /** Rol virtual: usuario con registro en tabla managers (gestor en la app). */
+    public const ROLE_MANAGER = 'manager';
+
     public function hasRole(string $role): bool
     {
         if ($this->role === self::ROLE_SUPER_ADMIN && $role !== self::ROLE_CLIENT) {
             return true;
+        }
+
+        if ($role === self::ROLE_MANAGER) {
+            return $this->managers()->exists();
         }
 
         return $this->role === $role;
@@ -241,6 +248,7 @@ class User extends Authenticatable
 
     /**
      * Obtener los IDs de vendedores accesibles según el rol del usuario.
+     * Incluye a gestores (tabla managers): vendedores de las entidades que gestionan.
      */
     public function accessibleSellerIds(): array
     {
@@ -256,7 +264,7 @@ class User extends Authenticatable
             $entityIds = $this->accessibleEntityIds();
 
             if (empty($entityIds)) {
-                return $this->cachedSellerIds = [];
+                return $this->cachedSellerIds = $this->mergeOwnSellerIds([]);
             }
 
             $sellerIds = Seller::query()
@@ -268,7 +276,23 @@ class User extends Authenticatable
                 ->values()
                 ->all();
 
-            return $this->cachedSellerIds = $sellerIds;
+            return $this->cachedSellerIds = $this->mergeOwnSellerIds($sellerIds);
+        }
+
+        // Gestor (tiene registro en managers): puede acceder a vendedores de sus entidades gestionadas
+        if ($this->managers()->exists()) {
+            $entityIds = $this->getManagerEntityIds();
+            if (!empty($entityIds)) {
+                $sellerIds = Seller::query()
+                    ->whereHas('entities', function ($query) use ($entityIds) {
+                        $query->whereIn('entities.id', $entityIds);
+                    })
+                    ->pluck('id')
+                    ->unique()
+                    ->values()
+                    ->all();
+                return $this->cachedSellerIds = $this->mergeOwnSellerIds($sellerIds);
+            }
         }
 
         if ($this->isSeller()) {
@@ -276,6 +300,15 @@ class User extends Authenticatable
         }
 
         return $this->cachedSellerIds = [];
+    }
+
+    /**
+     * Añadir los IDs de vendedores propios del usuario a una lista (para gestor que también es vendedor).
+     */
+    protected function mergeOwnSellerIds(array $sellerIds): array
+    {
+        $own = $this->sellers()->pluck('id')->all();
+        return array_values(array_unique(array_merge($sellerIds, $own)));
     }
 
     /**
@@ -304,10 +337,16 @@ class User extends Authenticatable
 
     /**
      * Determinar si el usuario puede acceder a un vendedor específico.
+     * Incluye acceso al propio vendedor cuando el usuario es gestor y vendedor (misma persona).
      */
     public function canAccessSeller(int $sellerId): bool
     {
         if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        // Si el vendedor es el propio usuario (misma persona como gestor y vendedor), tiene permiso
+        if ($this->sellers()->where('id', $sellerId)->exists()) {
             return true;
         }
 
