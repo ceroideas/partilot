@@ -479,6 +479,7 @@ class SellerController extends Controller
                     'draw_date_formatted' => $lottery->draw_date ? $lottery->draw_date->format('d/m/Y') : null,
                     'lottery_number' => $lottery->lottery_number ?? '',
                     'lottery_type' => $lottery->lotteryType->name ?? null,
+                    'image' => $lottery->image ?? null,
                     'reserve_id' => $reserve->id,
                     'has_design' => true,
                     'sets_count' => $sets->count(),
