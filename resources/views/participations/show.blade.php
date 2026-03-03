@@ -363,7 +363,7 @@
 			                    					
 			                    					<div class="col-4">
 			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Nombre</label>
+			                    							<label class="label-control">Nombre completo</label>
 
 							                    			<div class="input-group input-group-merge group-form">
 
@@ -371,7 +371,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-                                            <input readonly="" value="{{ optional(optional($participation->seller)->user)->name ?? $participation->seller->name ?? 'Sin asignar' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+                                            <input readonly="" value="{{ $participation->seller ? $participation->seller->full_name : 'Sin asignar' }}" class="form-control" type="text" placeholder="Nombre completo" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -385,7 +385,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-                                            <input readonly="" value="{{ optional(optional($participation->seller)->user)->last_name ?? $participation->seller->last_name ?? 'Sin asignar' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+                                            <input readonly="" value="{{ optional($participation->seller)->user ? optional($participation->seller->user)->last_name : (optional($participation->seller)->last_name ?? '-') }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -400,7 +400,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-                                            <input readonly="" value="{{ optional(optional($participation->seller)->user)->last_name2 ?? $participation->seller->last_name2 ?? 'Sin asignar' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+                                            <input readonly="" value="{{ optional($participation->seller)->user ? optional($participation->seller->user)->last_name2 : (optional($participation->seller)->last_name2 ?? '-') }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -415,7 +415,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-                                        <input readonly="" value="{{ $participation->seller->user->nif_cif ?? $participation->seller->nif_cif ?? 'N/A' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ optional($participation->seller)->user ? optional($participation->seller->user)->nif_cif : (optional($participation->seller)->nif_cif ?? 'N/A') }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -430,7 +430,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 							                                    </div>
 
-                                        <input readonly="" value="{{ optional(optional($participation->seller)->user)->birthday ? \Carbon\Carbon::parse($participation->seller->user->birthday)->format('Y-m-d') : '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ optional(optional($participation->seller)->user)->birthday ? \Carbon\Carbon::parse(optional(optional($participation->seller)->user)->birthday)->format('Y-m-d') : '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -445,7 +445,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-                                        <input readonly="" value="{{ $participation->seller->email ?? optional($participation->seller->user)->email ?? 'N/A' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ optional($participation->seller)->email ?? optional(optional($participation->seller)->user)->email ?? 'N/A' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -460,7 +460,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-                                        <input readonly="" value="{{ $participation->seller->phone ?? optional($participation->seller->user)->phone ?? 'N/A' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+                                        <input readonly="" value="{{ optional($participation->seller)->phone ?? optional(optional($participation->seller)->user)->phone ?? 'N/A' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
                         @endif
 						                    			</div>

@@ -265,7 +265,7 @@ class ParticipationController extends Controller
                 $status = 'Parcial';
             }
 
-            // Obtener el vendedor principal (el que más ha vendido en este taco)
+            // Obtener el vendedor principal: primero el que más ha vendido; si no hay ventas, el que tiene más participaciones asignadas
             $mainSeller = \App\Models\Participation::where('set_id', $designFormat->set->id)
                 ->where('book_number', $i)
                 ->where('status', 'vendida')
@@ -275,10 +275,20 @@ class ParticipationController extends Controller
                 ->orderByDesc('c')
                 ->value('seller_id');
 
+            if (!$mainSeller) {
+                $mainSeller = \App\Models\Participation::where('set_id', $designFormat->set->id)
+                    ->where('book_number', $i)
+                    ->whereNotNull('seller_id')
+                    ->select('seller_id', DB::raw('COUNT(*) as c'))
+                    ->groupBy('seller_id')
+                    ->orderByDesc('c')
+                    ->value('seller_id');
+            }
+
             $sellerName = 'Sin asignar';
             if ($mainSeller) {
                 $seller = \App\Models\Seller::with('user')->find($mainSeller);
-                $sellerName = $seller ? $seller->user->name : 'Sin asignar';
+                $sellerName = $seller ? $seller->full_name : 'Sin asignar';
             }
 
             $minNum = (int) ($stats->min_number ?? 0);
@@ -362,7 +372,7 @@ class ParticipationController extends Controller
                  'id' => $participation->id,
                  'participation_number' => $participation->participation_code,
                  'status' => $participation->status_text,
-                 'seller' => $participation->seller ? $participation->seller->user->name : 'Sin asignar',
+                 'seller' => $participation->seller ? $participation->seller->full_name : 'Sin asignar',
                  'sale_date' => $participation->sale_date ? $participation->sale_date->format('d/m/Y') : '-',
                  'sale_time' => $participation->sale_time ? $participation->sale_time->format('H:i') . 'h' : '-',
              ];
@@ -2020,6 +2030,188 @@ class ParticipationController extends Controller
             'success' => true,
             'message' => 'Participación enviada con éxito.',
             'gifted_to_email' => $destinatario->email,
+        ]);
+    }
+
+    /**
+     * API Gestor: Entidades para la pantalla de Pago (solo las que el usuario gestiona como gestor).
+     * Usa getManagerEntityIds() para que un gestor con una sola entidad vea solo esa;
+     * si no tiene registros en managers (ej. admin), usa entidades accesibles.
+     */
+    public function apiGetEntitiesForPayment()
+    {
+        $user = auth()->user();
+        $entityIds = $user->getManagerEntityIds();
+        if (empty($entityIds)) {
+            $entityIds = $user->accessibleEntityIds();
+        }
+        if (empty($entityIds)) {
+            return response()->json(['success' => true, 'entities' => []]);
+        }
+
+        $entities = Entity::with('administration')
+            ->whereIn('id', $entityIds)
+            ->get()
+            ->map(function ($entity) {
+                return [
+                    'id' => $entity->id,
+                    'name' => $entity->name,
+                    'image' => $entity->image,
+                    'province' => $entity->province ?? 'N/A',
+                    'city' => $entity->city ?? 'N/A',
+                    'administration_name' => $entity->administration->name ?? 'Sin administración',
+                    'status' => $entity->status ? 'activo' : 'inactivo',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'entities' => $entities,
+        ]);
+    }
+
+    /**
+     * API Gestor: Validar participaciones para pago (solo con premio tras escrutinio).
+     * Parámetros: entity_id, lottery_id, set_id, desde?, hasta?, referencia?.
+     * Devuelve solo participaciones con premio, no pagadas, de la entidad del gestor.
+     */
+    public function apiValidateParticipationsForPayment(Request $request)
+    {
+        $data = $request->validate([
+            'entity_id' => 'required|exists:entities,id',
+            'lottery_id' => 'required|exists:lotteries,id',
+            'set_id' => 'nullable|exists:sets,id',
+            'desde' => 'nullable|integer',
+            'hasta' => 'nullable|integer',
+            'referencia' => 'nullable|string',
+        ]);
+
+        if (!auth()->user()->canAccessEntity((int) $data['entity_id'])) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para esta entidad.'], 403);
+        }
+
+        $apiController = app(ApiController::class);
+        $participations = [];
+
+        if (!empty($data['referencia'])) {
+            $req = new Request([
+                'entity_id' => $data['entity_id'],
+                'lottery_id' => $data['lottery_id'],
+                'referencia' => $data['referencia'],
+            ]);
+            $resp = app(DevolutionsController::class)->validateParticipations($req);
+            $content = $resp->getData(true);
+            if (!$content['success'] || empty($content['participations'])) {
+                return response()->json(['success' => true, 'participations' => []]);
+            }
+            $participations = $content['participations'];
+        } else {
+            if (empty($data['set_id'])) {
+                return response()->json(['success' => false, 'message' => 'Falta set_id o referencia.'], 422);
+            }
+            $req = new Request(array_merge($data, ['set_id' => $data['set_id']]));
+            $resp = app(DevolutionsController::class)->validateParticipations($req);
+            $content = $resp->getData(true);
+            if (!$content['success'] || empty($content['participations'])) {
+                return response()->json(['success' => true, 'participations' => []]);
+            }
+            $participations = $content['participations'];
+        }
+
+        $entityId = (int) $data['entity_id'];
+        $out = [];
+        foreach ($participations as $item) {
+            $id = $item['id'] ?? null;
+            if (!$id) {
+                continue;
+            }
+            $p = Participation::with(['set.reserve.lottery', 'entity'])
+                ->forUser(auth()->user())
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->where('status', '!=', 'pagada')
+                ->first();
+            if (!$p) {
+                continue;
+            }
+            $ref = $this->getReferenceFromParticipation($p);
+            $prizeInfo = $apiController->getPrizeInfoForReference($ref);
+            if (!($prizeInfo['has_won'] && $prizeInfo['prize_amount'] > 0)) {
+                continue;
+            }
+            $out[] = [
+                'id' => $p->id,
+                'participation_code' => $p->participation_code,
+                'participation_number' => $p->participation_number,
+                'set_id' => $p->set_id,
+                'set_name' => $p->set->set_name ?? ('Set ' . ($p->set->set_number ?? '')),
+                'entity_name' => $p->entity->name ?? '',
+                'lottery_name' => $p->set && $p->set->reserve && $p->set->reserve->lottery ? $p->set->reserve->lottery->name : '',
+                'premio' => $prizeInfo['prize_amount'],
+                'premio_categoria' => $prizeInfo['prize_category'] ?? null,
+            ];
+        }
+
+        return response()->json(['success' => true, 'participations' => $out]);
+    }
+
+    /**
+     * API Gestor: Registrar pago de participaciones (pasan a pagada y se registra en historial).
+     */
+    public function apiRegisterPayment(Request $request)
+    {
+        $request->validate([
+            'participation_ids' => 'required|array|min:1',
+            'participation_ids.*' => 'integer|exists:participations,id',
+        ]);
+
+        $user = auth()->user();
+        $apiController = app(ApiController::class);
+        $valid = [];
+        foreach ($request->participation_ids as $id) {
+            $p = Participation::with('set.entity')
+                ->forUser($user)
+                ->where('id', $id)
+                ->where('status', '!=', 'pagada')
+                ->first();
+            if (!$p || !$user->canAccessEntity((int) $p->entity_id)) {
+                continue;
+            }
+            $ref = $this->getReferenceFromParticipation($p);
+            $prizeInfo = $apiController->getPrizeInfoForReference($ref);
+            if (!$prizeInfo['has_won'] || $prizeInfo['prize_amount'] <= 0) {
+                continue;
+            }
+            $valid[] = $p;
+        }
+
+        if (empty($valid)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ninguna participación válida para pagar (deben tener premio y no estar ya pagadas).',
+            ], 422);
+        }
+
+        $now = now();
+        foreach ($valid as $p) {
+            $oldStatus = $p->status;
+            $p->update([
+                'status' => 'pagada',
+                'collected_at' => $now,
+            ]);
+            \App\Models\ParticipationActivityLog::log($p->id, 'paid', [
+                'user_id' => $user->id,
+                'entity_id' => $p->entity_id,
+                'old_status' => $oldStatus,
+                'new_status' => 'pagada',
+                'description' => 'Pago de premio registrado por el gestor.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pago registrado con éxito.',
+            'count' => count($valid),
         ]);
     }
 }

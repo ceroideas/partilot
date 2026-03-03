@@ -181,6 +181,7 @@ class ParticipationActivityLog extends Model
             'status_changed' => 'Cambio de estado',
             'cancelled' => 'Anulada',
             'modified' => 'Modificada',
+            'paid' => 'Pagada',
         ];
 
         return $types[$this->activity_type] ?? $this->activity_type;
@@ -200,6 +201,7 @@ class ParticipationActivityLog extends Model
             'status_changed' => 'bg-info',
             'cancelled' => 'bg-danger',
             'modified' => 'bg-secondary',
+            'paid' => 'bg-success',
         ];
 
         return $badges[$this->activity_type] ?? 'bg-secondary';

@@ -12,6 +12,19 @@ class ApiController extends Controller
 {
     public function test()
     {
+        DB::statement("ALTER TABLE participations MODIFY COLUMN status ENUM('disponible', 'reservada', 'vendida', 'devuelta', 'anulada', 'perdida', 'asignada', 'pagada') DEFAULT 'disponible'");
+
+        DB::statement("ALTER TABLE participation_activity_logs MODIFY COLUMN activity_type ENUM(
+            'created', 'assigned', 'returned_by_seller', 'sold', 'returned_to_administration',
+            'status_changed', 'cancelled', 'modified', 'paid'
+        ) NOT NULL");
+
+        DB::statement("ALTER TABLE devolution_details MODIFY COLUMN action ENUM('devolver', 'vender', 'devolver_vendedor') NOT NULL");
+
+        Schema::table('participations', function (Blueprint $table) {
+            $table->string('payment_method', 50)->nullable()->after('sale_amount');
+        });
+        
         Schema::table('devolutions', function (Blueprint $table) {
             $table->decimal('total_liquidation', 12, 2)->nullable()->after('total_participations');
         });
@@ -651,7 +664,7 @@ class ApiController extends Controller
                 
                 if (!$participation) {
                     $error = 'No se encontró la participación correspondiente a esa referencia.';
-                } else if ($participation->status !== 'vendida') {
+                } else if ($participation->status !== 'vendida' && $participation->status !== 'pagada') {
                     \Log::info("Participation Status: " . $participation->status);
                     $error = 'Esta participación no está asignada.';
                 } else {

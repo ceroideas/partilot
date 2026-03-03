@@ -374,6 +374,9 @@ Route::middleware('auth.api')->group(function () {
             Route::get('/', [ParticipationController::class, 'apiManagementIndex']);
             Route::get('/stats', [ParticipationController::class, 'apiGetManagementStats']);
             Route::post('/bulk-assign', [ParticipationController::class, 'apiBulkAssign']);
+            // Pago de premios (gestor): validar participaciones con premio y registrar pago
+            Route::post('/validate-for-payment', [ParticipationController::class, 'apiValidateParticipationsForPayment']);
+            Route::post('/register-payment', [ParticipationController::class, 'apiRegisterPayment']);
         });
         
         // Vendedores
@@ -407,8 +410,9 @@ Route::middleware('auth.api')->group(function () {
             Route::delete('/{id}', [DevolutionsController::class, 'apiDestroy']);
         });
         
-        // Pagos de gestor
+        // Pagos de gestor (premios)
         Route::prefix('payments')->group(function () {
+            Route::get('/entities', [ParticipationController::class, 'apiGetEntitiesForPayment']);
             Route::get('/', [ManagerController::class, 'apiGetPayments']);
             Route::post('/', [ManagerController::class, 'apiCreatePayment']);
             Route::get('/{id}', [ManagerController::class, 'apiGetPaymentDetails']);

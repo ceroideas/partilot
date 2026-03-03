@@ -163,17 +163,19 @@ class DevolutionsController extends Controller
                 }
             }
             // Caso 1: No hay participaciones a devolver pero hay set_id (liquidar set completo)
+            // Entidad→administración: todo el set. Vendedor→entidad: solo participaciones del vendedor.
             elseif (empty($participationsToReturn) && isset($data['set_id'])) {
                 $setId = $data['set_id'];
 
                 Set::forUser(auth()->user())->findOrFail($setId);
-                // Todas las participaciones del set se venden (EXCLUIR ANULADAS)
-                $participationsToSell = Participation::forUser(auth()->user())
+                $query = Participation::forUser(auth()->user())
                     ->where('set_id', $setId)
                     ->whereIn('status', ['disponible', 'asignada', 'vendida'])
-                    ->where('status', '!=', 'anulada')
-                    ->pluck('id')
-                    ->toArray();
+                    ->where('status', '!=', 'anulada');
+                if ($tipoDevolucion === 'vendedor' && !empty($data['seller_id'])) {
+                    $query->where('seller_id', $data['seller_id']);
+                }
+                $participationsToSell = $query->pluck('id')->toArray();
             }
             // Caso 2: Hay participaciones a devolver (solo para administración; vendedor solo desasigna, no marca el resto como vendida)
             elseif (!empty($participationsToReturn) && $tipoDevolucion !== 'vendedor') {
@@ -212,10 +214,13 @@ class DevolutionsController extends Controller
                 $setId = (int) $data['set_id'];
                 $set = Set::forUser(auth()->user())->find($setId);
                 if ($set) {
-                    $totalInSet = Participation::forUser(auth()->user())
+                    $baseCount = Participation::forUser(auth()->user())
                         ->where('set_id', $setId)
-                        ->where('status', '!=', 'anulada')
-                        ->count();
+                        ->where('status', '!=', 'anulada');
+                    if ($tipoDevolucion === 'vendedor' && !empty($data['seller_id'])) {
+                        $baseCount->where('seller_id', $data['seller_id']);
+                    }
+                    $totalInSet = $baseCount->count();
                     $price = $set->played_amount ?? 0;
                     $totalParticipations = $totalInSet;
                     $totalLiquidation = $totalInSet * $price;
@@ -338,22 +343,16 @@ class DevolutionsController extends Controller
                     ->whereIn('id', $participationsToSell)->get();
                 
                 foreach ($participationsToUpdateSell as $participation) {
-                    // Obtener el precio del set
                     $saleAmount = $participation->set ? $participation->set->played_amount : 0;
-                    
+                    // No limpiar buyer_name ni datos del comprador si ya tienen valor (digitalización previa)
                     $participation->update([
                         'status' => 'vendida',
                         'sale_date' => $now->format('Y-m-d'),
                         'sale_time' => $now->format('H:i:s'),
                         'sale_amount' => $saleAmount,
-                        'buyer_name' => null,
-                        'buyer_phone' => null,
-                        'buyer_email' => null,
-                        'buyer_nif' => null,
                         'notes' => 'Liquidación automática',
                     ]);
 
-                    // Crear detalle de venta
                     DevolutionDetail::create([
                         'devolution_id' => $devolution->id,
                         'participation_id' => $participation->id,
@@ -445,30 +444,43 @@ class DevolutionsController extends Controller
                 ->forUser(auth()->user())
                 ->findOrFail($id);
 
-            // Obtener IDs de participaciones afectadas
-            $participationIds = $devolution->details->pluck('participation_id')->toArray();
+            // Revertir cada participación según el tipo de acción y devolution.seller_id (sin nuevos campos)
+            // Si la devolución tiene seller_id → participaciones asignadas a ese vendedor (asignada); si no → disponible
+            $sellerId = $devolution->seller_id;
 
-            // Revertir estado de participaciones
-            // USAR MODELO ELOQUENT para disparar el Observer
-            $participationsToRevert = Participation::forUser(auth()->user())
-                ->whereIn('id', $participationIds)->get();
-            
-            foreach ($participationsToRevert as $participation) {
-                $participation->update([
-                    'status' => 'disponible',
+            foreach ($devolution->details as $detail) {
+                $participation = Participation::forUser(auth()->user())->find($detail->participation_id);
+                if (!$participation) {
+                    continue;
+                }
+
+                $updateData = [
                     'return_date' => null,
                     'return_time' => null,
                     'return_reason' => null,
                     'returned_by' => null,
-                    'sale_date' => null,
-                    'sale_time' => null,
-                    'sale_amount' => null,
-                    'buyer_name' => null,
-                    'buyer_phone' => null,
-                    'buyer_email' => null,
-                    'buyer_nif' => null,
-                    'notes' => null,
-                ]);
+                ];
+
+                if ($detail->action === 'devolver_vendedor') {
+                    // Restaurar: estaba asignada al vendedor de la devolución
+                    $updateData['status'] = $sellerId ? 'asignada' : 'disponible';
+                    $updateData['seller_id'] = $sellerId;
+                } elseif ($detail->action === 'devolver') {
+                    // Entidad→administración: quedan disponibles sin vendedor
+                    $updateData['status'] = 'disponible';
+                    $updateData['seller_id'] = null;
+                } else {
+                    // action === 'vender': deshacer liquidación; si la devolución es de vendedor, quedan asignadas a él
+                    $updateData['status'] = $sellerId ? 'asignada' : 'disponible';
+                    $updateData['seller_id'] = $sellerId;
+                    $updateData['sale_date'] = null;
+                    $updateData['sale_time'] = null;
+                    $updateData['sale_amount'] = null;
+                    $updateData['notes'] = null;
+                    // No tocar buyer_name, buyer_phone, buyer_email, buyer_nif (pueden estar digitalizados)
+                }
+
+                $participation->update($updateData);
             }
 
             // Eliminar detalles de devolución
@@ -616,14 +628,25 @@ class DevolutionsController extends Controller
     }
 
     /**
-     * Obtener entidades disponibles
+     * Obtener entidades disponibles.
+     * Si el usuario es gestor (tiene registros en managers), solo devuelve entidades donde es gestor.
+     * Así en devoluciones solo puede devolver participaciones de sus entidades gestionadas.
      */
     public function getEntities()
     {
+        $user = auth()->user();
+        $entityIds = $user->getManagerEntityIds();
+        if (empty($entityIds)) {
+            $entityIds = $user->accessibleEntityIds();
+        }
+        if (empty($entityIds)) {
+            return response()->json(['success' => true, 'entities' => []]);
+        }
+
         $entities = Entity::with('administration')
-            ->forUser(auth()->user())
+            ->whereIn('id', $entityIds)
             ->get()
-            ->map(function($entity) {
+            ->map(function ($entity) {
                 return [
                     'id' => $entity->id,
                     'name' => $entity->name,
@@ -631,13 +654,13 @@ class DevolutionsController extends Controller
                     'province' => $entity->province ?? 'N/A',
                     'city' => $entity->city ?? 'N/A',
                     'administration_name' => $entity->administration->name ?? 'Sin administración',
-                    'status' => $entity->status ? 'activo' : 'inactivo'
+                    'status' => $entity->status ? 'activo' : 'inactivo',
                 ];
             });
 
         return response()->json([
             'success' => true,
-            'entities' => $entities
+            'entities' => $entities,
         ]);
     }
 
@@ -654,7 +677,7 @@ class DevolutionsController extends Controller
             ]);
         }
 
-        $lotteries = Lottery::select(['lotteries.id', 'lotteries.name', 'lotteries.description', 'lotteries.draw_date'])
+        $lotteries = Lottery::select(['lotteries.id', 'lotteries.name', 'lotteries.description', 'lotteries.draw_date', 'lotteries.image'])
             ->join('reserves', 'lotteries.id', '=', 'reserves.lottery_id')
             ->where('reserves.entity_id', $entityId)
             ->distinct()
@@ -680,7 +703,7 @@ class DevolutionsController extends Controller
         }
         
         // Ahora usamos la relación many-to-many. Mostrar Activo, Pendiente y Bloqueado (solo ocultar Inactivo)
-        $sellers = Seller::with(['user:id,name,last_name,email,phone'])
+        $sellers = Seller::with(['user:id,name,last_name,email,phone,image'])
             ->forUser(auth()->user())
             ->whereHas('entities', function($query) use ($entityId) {
                 $query->where('entities.id', $entityId);
@@ -704,8 +727,10 @@ class DevolutionsController extends Controller
                         'name' => $seller->display_name,
                         'last_name' => $seller->display_last_name,
                         'email' => $seller->display_email,
-                        'phone' => $seller->display_phone
-                    ]
+                        'phone' => $seller->display_phone,
+                        'image' => $seller->user ? $seller->user->image : null,
+                    ],
+                    'image' => $seller->user ? $seller->user->image : null,
                 ];
             });
 
@@ -1068,6 +1093,7 @@ class DevolutionsController extends Controller
         \Log::info('Selected Participations:', $selectedParticipations);
 
         // Sin participaciones seleccionadas pero con set_id: resumen del set (liquidar sin devolver nada)
+        // Entidad→administración: todo el set. Vendedor→entidad: solo participaciones del vendedor.
         if (empty($selectedParticipations) && $setId) {
             \Log::info('No participations selected but set provided, returning set breakdown for liquidar sin devolver');
             
@@ -1083,6 +1109,9 @@ class DevolutionsController extends Controller
             $baseQuery = Participation::forUser(auth()->user())
                 ->where('set_id', $setId)
                 ->where('status', '!=', 'anulada');
+            if ($tipoDevolucion === 'vendedor' && $sellerId) {
+                $baseQuery->where('seller_id', $sellerId);
+            }
 
             $totalInSet = (clone $baseQuery)->count();
             $ventasRegistradas = (clone $baseQuery)->where('status', 'vendida')->count();

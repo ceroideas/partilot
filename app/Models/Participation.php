@@ -230,7 +230,8 @@ class Participation extends Model
             'vendida' => 'Vendida',
             'devuelta' => 'Devuelta',
             'anulada' => 'Anulada',
-            'perdida' => 'Perdida'
+            'perdida' => 'Perdida',
+            'pagada' => 'Pagada',
         ];
 
         return $statuses[$this->status] ?? $this->status;
@@ -245,7 +246,8 @@ class Participation extends Model
             'vendida' => 'bg-primary',
             'devuelta' => 'bg-info',
             'anulada' => 'bg-danger',
-            'perdida' => 'bg-secondary'
+            'perdida' => 'bg-secondary',
+            'pagada' => 'bg-success',
         ];
 
         return $badges[$this->status] ?? 'bg-secondary';

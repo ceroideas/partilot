@@ -173,48 +173,48 @@
                                                              <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                  <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
                                                              </div>
-                                                             <input class="form-control" type="text" value="{{ $participation->seller && $participation->seller->user ? $participation->seller->user->name : 'Sin asignar' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                             <input class="form-control" type="text" value="{{ $participation->seller ? $participation->seller->full_name : 'Sin asignar' }}" style="border-radius: 0 30px 30px 0;" readonly>
                                                          </div>
                                                      </div>
                                                  </div>
                                                  
-                                                 @if($participation->seller && $participation->seller->user)
-                                                 <div class="col-md-6">
-                                                     <div class="form-group mt-2 mb-3">
-                                                         <label class="label-control">Email Vendedor</label>
-                                                         <div class="input-group input-group-merge group-form">
-                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                                 <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-                                                             </div>
-                                                             <input class="form-control" type="text" value="{{ $participation->seller->user->email ?? 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
-                                                         </div>
-                                                     </div>
-                                                 </div>
-                                                 
-                                                 <div class="col-md-6">
-                                                     <div class="form-group mt-2 mb-3">
-                                                         <label class="label-control">Teléfono Vendedor</label>
-                                                         <div class="input-group input-group-merge group-form">
-                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                                 <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-                                                             </div>
-                                                             <input class="form-control" type="text" value="{{ $participation->seller->user->phone ?? 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
-                                                         </div>
-                                                     </div>
-                                                 </div>
-                                                 
-                                                 <div class="col-md-6">
-                                                     <div class="form-group mt-2 mb-3">
-                                                         <label class="label-control">Tipo Vendedor</label>
-                                                         <div class="input-group input-group-merge group-form">
-                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                                 <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
-                                                             </div>
-                                                             <input class="form-control" type="text" value="{{ ucfirst($participation->seller->seller_type ?? 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
-                                                         </div>
-                                                     </div>
-                                                 </div>
-                                                 @endif
+@if($participation->seller)
+                                                <div class="col-md-6">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Email Vendedor</label>
+                                                        <div class="input-group input-group-merge group-form">
+                                                            <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                                <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+                                                            </div>
+                                                            <input class="form-control" type="text" value="{{ $participation->seller->display_email ?: 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="col-md-6">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Teléfono Vendedor</label>
+                                                        <div class="input-group input-group-merge group-form">
+                                                            <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                                <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+                                                            </div>
+                                                            <input class="form-control" type="text" value="{{ $participation->seller->display_phone ?: 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="col-md-6">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Tipo Vendedor</label>
+                                                        <div class="input-group input-group-merge group-form">
+                                                            <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                                <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
+                                                            </div>
+                                                            <input class="form-control" type="text" value="{{ ucfirst($participation->seller->seller_type ?? 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                @endif
                                             </div>
 
                                             @if($participation->set)

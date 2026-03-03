@@ -105,11 +105,14 @@ class Seller extends Model
      */
     public function getFullNameAttribute()
     {
+        $ownName = trim(($this->attributes['name'] ?? '') . ' ' . ($this->attributes['last_name'] ?? '') . ' ' . ($this->attributes['last_name2'] ?? ''));
         if ($this->seller_type === 'externo') {
-            $name = trim(($this->attributes['name'] ?? '') . ' ' . ($this->attributes['last_name'] ?? '') . ' ' . ($this->attributes['last_name2'] ?? ''));
-            return !empty($name) ? $name : 'Sin nombre';
+            return !empty($ownName) ? $ownName : 'Sin nombre';
         }
-        return $this->user ? $this->user->full_name : 'Sin nombre';
+        if ($this->user) {
+            return $this->user->full_name;
+        }
+        return !empty($ownName) ? $ownName : 'Sin nombre';
     }
 
     public function getStatusTextAttribute()
