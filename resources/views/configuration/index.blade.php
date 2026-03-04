@@ -253,6 +253,7 @@
         document.addEventListener('click', function(e) {
             var row = e.target.closest('tr.selectable-row');
             if (!row || !table.contains(row)) return;
+            if (row.classList.contains('entity-inactive')) return;
             var id = row.getAttribute('data-entity-id');
             if (!id) return;
             e.preventDefault();

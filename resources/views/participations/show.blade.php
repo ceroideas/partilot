@@ -97,6 +97,8 @@
 	                    			<label class="">Estado Actual</label> 
 	                    			@if($participation->status == 'vendida')
 	                    				<label class="badge badge-lg bg-success float-end">Vendida</label>
+	                    			@elseif($participation->status == 'pagada')
+	                    				<label class="badge badge-lg bg-info float-end">Pagada</label>
 	                    			@elseif($participation->status == 'disponible' && $participation->seller_id)
 	                    				<label class="badge badge-lg bg-primary float-end">Asignada</label>
 	                    			@elseif($participation->status == 'disponible')

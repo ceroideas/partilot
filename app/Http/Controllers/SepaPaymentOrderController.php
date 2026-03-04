@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\SepaPaymentOrder;
 use App\Models\SepaPaymentBeneficiary;
 use App\Models\Administration;
+use App\Models\Participation;
 use App\Models\ParticipationCollection;
+use App\Models\ParticipationCollectionItem;
 use App\Services\SepaXmlGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -186,10 +188,32 @@ class SepaPaymentOrderController extends Controller
 
     /**
      * Marcar la orden como Listo (pago realizado manualmente por el usuario).
+     * Actualiza a status "pagada" las participaciones vinculadas a esta orden (vía beneficiaries -> participation_collection -> items).
      */
     public function markAsReady(SepaPaymentOrder $sepaPaymentOrder)
     {
         $sepaPaymentOrder->update(['status' => 'listo']);
+
+        $participationIds = $sepaPaymentOrder->beneficiaries()
+            ->whereNotNull('participation_collection_id')
+            ->get()
+            ->pluck('participation_collection_id')
+            ->unique()
+            ->filter()
+            ->values();
+
+        if ($participationIds->isNotEmpty() && Schema::hasColumn('participations', 'status')) {
+            $ids = ParticipationCollectionItem::whereIn('collection_id', $participationIds)
+                ->pluck('participation_id')
+                ->unique()
+                ->filter()
+                ->values()
+                ->all();
+            if (!empty($ids)) {
+                Participation::whereIn('id', $ids)->update(['status' => 'pagada']);
+            }
+        }
+
         return back()->with('success', 'Orden marcada como Listo (pago realizado).');
     }
 

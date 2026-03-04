@@ -343,7 +343,7 @@
                                                                      <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                          <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
                                                                      </div>
-                                                                     <input class="form-control" type="text" value="{{ $participation->status == 'vendida' ? 'Pagado' : (($participation->seller_id && $participation->status == 'disponible') || $participation->status == 'disponible' ? 'Pendiente' : 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                                     <input class="form-control" type="text" value="{{ in_array($participation->status, ['vendida', 'pagada']) ? 'Pagado' : (($participation->seller_id && $participation->status == 'disponible') || $participation->status == 'disponible' ? 'Pendiente' : 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
                                                                  </div>
                                                              </div>
                                                          </div>

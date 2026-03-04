@@ -643,9 +643,12 @@ class DevolutionsController extends Controller
             return response()->json(['success' => true, 'entities' => []]);
         }
 
-        $entities = Entity::with('administration')
-            ->whereIn('id', $entityIds)
-            ->get()
+        $query = Entity::with('administration')->whereIn('id', $entityIds);
+        // En la app (API) solo se devuelven entidades activas; en la web se devuelven todas para mostrarlas y bloquear las inactivas
+        if (request()->is('api/*')) {
+            $query->where('status', 1);
+        }
+        $entities = $query->get()
             ->map(function ($entity) {
                 return [
                     'id' => $entity->id,
@@ -654,7 +657,7 @@ class DevolutionsController extends Controller
                     'province' => $entity->province ?? 'N/A',
                     'city' => $entity->city ?? 'N/A',
                     'administration_name' => $entity->administration->name ?? 'Sin administración',
-                    'status' => $entity->status ? 'activo' : 'inactivo',
+                    'status' => $entity->status == 1 ? 'activo' : ($entity->status == 0 ? 'inactivo' : 'pendiente'),
                 ];
             });
 
@@ -708,7 +711,7 @@ class DevolutionsController extends Controller
             ->whereHas('entities', function($query) use ($entityId) {
                 $query->where('entities.id', $entityId);
             })
-            ->whereIn('status', [\App\Models\Seller::STATUS_ACTIVE, \App\Models\Seller::STATUS_PENDING, \App\Models\Seller::STATUS_BLOCKED])
+            ->whereIn('status', [\App\Models\Seller::STATUS_ACTIVE/*, \App\Models\Seller::STATUS_PENDING, \App\Models\Seller::STATUS_BLOCKED*/])
             ->get()
             ->map(function($seller) {
                 $statusMap = [

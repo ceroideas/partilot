@@ -63,7 +63,8 @@
                 </thead>
                 <tbody>
                     @forelse($entities as $ent)
-                        <tr class="selectable-row" style="cursor: pointer;" data-entity-id="{{ $ent->id }}">
+                        @php $isActive = $ent->status == 1; @endphp
+                        <tr class="selectable-row {{ $isActive ? '' : 'entity-inactive' }}" style="cursor: {{ $isActive ? 'pointer' : 'not-allowed' }};" data-entity-id="{{ $ent->id }}" data-entity-status="{{ $ent->status }}">
                             <td>#EN{{ str_pad($ent->id, 4, '0', STR_PAD_LEFT) }}</td>
                             <td>{{ $ent->name }}</td>
                             <td>{{ $ent->province ?? '—' }}</td>
@@ -76,7 +77,7 @@
                             </td>
                             <td class="d-none">
                                 <label class="mb-0">
-                                    <input type="radio" name="entity_id_ope" value="{{ $ent->id }}" class="form-check-input"> Seleccionar
+                                    <input type="radio" name="entity_id_ope" value="{{ $ent->id }}" class="form-check-input" {{ $isActive ? '' : 'disabled' }}> Seleccionar
                                 </label>
                             </td>
                         </tr>

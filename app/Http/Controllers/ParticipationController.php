@@ -32,7 +32,7 @@ class ParticipationController extends Controller
             ->groupBy('status')
             ->pluck('c', 'status');
 
-        $sold = (int) ($counts['vendida'] ?? 0);
+        $sold = (int) ($counts['vendida'] ?? 0) + (int) ($counts['pagada'] ?? 0);
         $returned = (int) ($counts['devuelta'] ?? 0);
         $cancelled = (int) ($counts['anulada'] ?? 0);
 
@@ -110,6 +110,11 @@ class ParticipationController extends Controller
         $entity = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->findOrFail($request->entity_id);
+
+        if ($entity->status != 1) {
+            return redirect()->back()->with('error', 'Solo se puede seleccionar una entidad activa.');
+        }
+
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_entity_id', $entity->id);
 
@@ -238,11 +243,11 @@ class ParticipationController extends Controller
                 max(0, $totalParticipations - (($i - 1) * $participationsPerBook))
             );
 
-            // Estadísticas del taco por book_number (participation_number es global en BD)
+            // Estadísticas del taco por book_number (participation_number es global en BD); pagada = vendida
             $stats = \App\Models\Participation::where('set_id', $designFormat->set->id)
                 ->where('book_number', $i)
                 ->selectRaw('COUNT(*) as total_db')
-                ->selectRaw("SUM(CASE WHEN status = 'vendida' THEN 1 ELSE 0 END) as sold")
+                ->selectRaw("SUM(CASE WHEN status IN ('vendida', 'pagada') THEN 1 ELSE 0 END) as sold")
                 ->selectRaw("SUM(CASE WHEN status = 'devuelta' THEN 1 ELSE 0 END) as returned")
                 ->selectRaw("SUM(CASE WHEN status = 'anulada' THEN 1 ELSE 0 END) as cancelled")
                 ->selectRaw('MIN(participation_number) as min_number')
@@ -268,7 +273,7 @@ class ParticipationController extends Controller
             // Obtener el vendedor principal: primero el que más ha vendido; si no hay ventas, el que tiene más participaciones asignadas
             $mainSeller = \App\Models\Participation::where('set_id', $designFormat->set->id)
                 ->where('book_number', $i)
-                ->where('status', 'vendida')
+                ->whereIn('status', ['vendida', 'pagada'])
                 ->whereNotNull('seller_id')
                 ->select('seller_id', DB::raw('COUNT(*) as c'))
                 ->groupBy('seller_id')
@@ -568,10 +573,10 @@ class ParticipationController extends Controller
         $pricePerParticipation = (float) ($set->played_amount ?? 0);
         $now = now();
 
-        // Obtener TODAS las participaciones (asignada+vendida) del vendedor para este sorteo
+        // Obtener TODAS las participaciones (asignada+vendida+pagada) del vendedor para este sorteo
         $allParticipations = Participation::where('seller_id', $seller->id)
             ->whereHas('set.reserve', fn ($q) => $q->where('lottery_id', $lotteryId))
-            ->whereIn('status', ['asignada', 'vendida'])
+            ->whereIn('status', ['asignada', 'vendida', 'pagada'])
             ->with('set')
             ->get();
 
@@ -1135,6 +1140,7 @@ class ParticipationController extends Controller
             'id' => $participation->id,
             'referencia' => $referencia,
             'entidad' => $entity ? $entity->name : '—',
+            'entity_id' => $entity ? (int) $entity->id : null,
             'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
             'numero' => $participation->participation_number,
             'numeroReservado' => $numeroReservado,
@@ -1318,6 +1324,13 @@ class ParticipationController extends Controller
             return response()->json(['success' => false, 'message' => 'Ninguna participación válida para cobrar.'], 422);
         }
 
+        // Todas las participaciones deben ser de la misma entidad
+        $participations->load('set.entity');
+        $entityIds = $participations->map(fn ($p) => $p->set?->entity_id ?? $p->entity_id)->filter()->unique()->values();
+        if ($entityIds->count() > 1) {
+            return response()->json(['success' => false, 'message' => 'Solo puedes cobrar participaciones de la misma entidad.'], 422);
+        }
+
         // Usar el importe total enviado desde el frontend
         $importeTotal = (float) $request->importe_total;
 
@@ -1383,6 +1396,13 @@ class ParticipationController extends Controller
 
         if ($participations->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'Ninguna participación válida para donar.'], 422);
+        }
+
+        // Todas las participaciones deben ser de la misma entidad
+        $participations->load('set.entity');
+        $entityIds = $participations->map(fn ($p) => $p->set?->entity_id ?? $p->entity_id)->filter()->unique()->values();
+        if ($entityIds->count() > 1) {
+            return response()->json(['success' => false, 'message' => 'Solo puedes donar participaciones de la misma entidad.'], 422);
         }
 
         $importeDonacion = (float) $request->importe_donacion;
@@ -2051,6 +2071,7 @@ class ParticipationController extends Controller
 
         $entities = Entity::with('administration')
             ->whereIn('id', $entityIds)
+            ->where('status', 1)
             ->get()
             ->map(function ($entity) {
                 return [

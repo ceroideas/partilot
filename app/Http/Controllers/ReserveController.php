@@ -47,6 +47,10 @@ class ReserveController extends Controller
             ->forUser(auth()->user())
             ->findOrFail($request->entity_id);
 
+        if ($entity->status != 1) {
+            return redirect()->back()->with('error', 'Solo se puede seleccionar una entidad activa.');
+        }
+
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_entity_id', $entity->id);
 
@@ -71,6 +75,10 @@ class ReserveController extends Controller
         $entity = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->findOrFail($request->entity_id);
+
+        if ($entity->status != 1) {
+            return response()->json(['success' => false, 'message' => 'Solo se puede seleccionar una entidad activa.'], 422);
+        }
 
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_entity_id', $entity->id);

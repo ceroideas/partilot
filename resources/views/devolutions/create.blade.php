@@ -1272,16 +1272,18 @@ $(document).ready(function() {
                 { 
                     "data": "status",
                     "render": function(data, type, row) {
-                        const badgeClass = data === 'activo' ? 'bg-success' : 'bg-danger';
+                        const badgeClass = data === 'activo' ? 'bg-success' : (data === 'inactivo' ? 'bg-danger' : 'bg-secondary');
                         return `<span class="badge ${badgeClass}">${data}</span>`;
                     }
                 },
                 {
                     "data": null,
                     "render": function(data, type, row) {
+                        const isActive = row.status === 'activo';
+                        const disabled = isActive ? '' : ' disabled';
                         return `
                             <div class="form-check">
-                                <input class="form-check-input seleccionar-entidad" type="radio" name="entity_id" value="${row.id}" id="entity_${row.id}" data-entity-id="${row.id}">
+                                <input class="form-check-input seleccionar-entidad" type="radio" name="entity_id" value="${row.id}" id="entity_${row.id}" data-entity-id="${row.id}"${disabled}>
                                 <label class="form-check-label" for="entity_${row.id}">Seleccionar</label>
                             </div>
                         `;
@@ -1292,8 +1294,13 @@ $(document).ready(function() {
             "columnDefs": [
                 { "targets": -1, "className": "d-none" }
             ],
-            "createdRow": function(row) {
-                $(row).addClass('selectable-row').css('cursor', 'pointer');
+            "createdRow": function(row, data) {
+                $(row).addClass('selectable-row');
+                if (data.status !== 'activo') {
+                    $(row).addClass('entity-inactive').css('cursor', 'not-allowed');
+                } else {
+                    $(row).css('cursor', 'pointer');
+                }
             },
             "initComplete": function(settings, json) {
                 actualizarIndicadoresPasos(pasoActualGlobal);
@@ -1514,8 +1521,9 @@ $(document).ready(function() {
         $('#btn-siguiente-sorteo').prop('disabled', false);
     });
 
-    // Clic en fila para seleccionar (tablas con selectable-row)
+    // Clic en fila para seleccionar (tablas con selectable-row); no permitir seleccionar entidad inactiva
     $(document).on('click', '#tabla-entidades tbody tr.selectable-row', function(e) {
+        if ($(this).hasClass('entity-inactive')) return;
         if (!$(e.target).closest('.form-check').length) {
             $(this).find('.seleccionar-entidad').prop('checked', true).trigger('change');
         }

@@ -99,16 +99,21 @@
 				                    
 				                        <tbody>
 				                            @foreach($entities as $entity)
-				                            <tr class="selectable-row" style="cursor: pointer;">
+				                            @php $isActive = $entity->status == 1; @endphp
+				                            <tr class="selectable-row {{ $isActive ? '' : 'entity-inactive' }}" style="cursor: {{ $isActive ? 'pointer' : 'not-allowed' }};" data-entity-status="{{ $entity->status }}">
 				                                <td>#{{ $entity->id }}</td>
 				                                <td>{{ $entity->name }}</td>
 				                                <td>{{ $entity->province }}</td>
 				                                <td>{{ $entity->city }}</td>
 				                                <td>{{ $entity->administration->name ?? 'N/A' }}</td>
-				                                <td><label class="badge bg-success">Activo</label></td>
+				                                <td>
+				                                    <span class="badge bg-{{ $entity->status == 1 ? 'success' : ($entity->status == 0 ? 'danger' : 'secondary') }}">
+				                                        {{ $entity->status_text }}
+				                                    </span>
+				                                </td>
 				                                <td class="d-none">
                                                     <label>
-				                                        <input type="radio" name="entity_id" value="{{ $entity->id }}" class="form-check-input"> Seleccionar
+				                                        <input type="radio" name="entity_id" value="{{ $entity->id }}" class="form-check-input" {{ $isActive ? '' : 'disabled' }} {{ $isActive ? 'required' : '' }}> Seleccionar
                                                     </label>
 				                                </td>
 				                            </tr>
@@ -244,8 +249,9 @@ function initDatatable()
   $(document).ready(function() {
     initDatatable();
     
-    // Hacer las filas clickeables para seleccionar el radio button
+    // Hacer las filas clickeables para seleccionar el radio button (solo entidades activas)
     $(document).on('click', '#example2 tbody tr.selectable-row', function(e) {
+      if ($(this).hasClass('entity-inactive')) return;
       // No activar si se hace clic directamente en el radio button o su label
       if ($(e.target).is('input[type="radio"]') || $(e.target).is('label') || $(e.target).closest('label').length) {
         return;

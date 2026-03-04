@@ -99,6 +99,11 @@ class DesignController extends Controller
             abort(403, 'No tienes permisos para gestionar esta entidad.');
         }
 
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
+        if ($entity->status != 1) {
+            return redirect()->back()->with('error', 'Solo se puede seleccionar una entidad activa.');
+        }
+
         session(['design_entity_id' => $entity_id]);
         return redirect()->route('design.selectLottery');
     }

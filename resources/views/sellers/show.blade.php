@@ -1957,9 +1957,12 @@ function initDatatable()
          taco.participations.push(participation);
          taco.totalParticipations++;
          
-         // Aquí puedes agregar lógica para calcular ventas registradas, devoluciones, etc.
-         if (participation.status === 'asignada') {
+         if (participation.status === 'vendida' || participation.status === 'pagada') {
            taco.salesRegistered++;
+         } else if (participation.status === 'devuelta') {
+           taco.returnedParticipations++;
+         } else {
+           taco.availableParticipations++;
          }
        });
        
@@ -2112,6 +2115,9 @@ function initDatatable()
                 }
               }
               const saleTime = participation.sale_time ? participation.sale_time : 'N/A';
+              const status = participation.status || 'asignada';
+              const statusLabel = status === 'pagada' ? 'Pagada' : status === 'vendida' ? 'Vendida' : status === 'devuelta' ? 'Devuelta' : 'Asignada';
+              const statusClass = status === 'pagada' ? 'bg-info' : status === 'vendida' ? 'bg-primary' : status === 'devuelta' ? 'bg-warning text-dark' : 'bg-success';
               
               tbody.append(`
                 <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
@@ -2121,7 +2127,7 @@ function initDatatable()
                     </div>
                   </td>
                   <td>${participation.participation_code}</td>
-                  <td><label class="badge bg-success">Asignada</label></td>
+                  <td><label class="badge ${statusClass}">${statusLabel}</label></td>
                   <td>{{ $seller->name ?? 'N/A' }}</td>
                   <td>${saleDate}</td>
                   <td>${saleTime}</td>

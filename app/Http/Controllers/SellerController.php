@@ -118,6 +118,11 @@ class SellerController extends Controller
         $entity = Entity::with('administration')
             ->forUser(auth()->user())
             ->findOrFail($request->entity_id);
+
+        if ($entity->status != 1) {
+            return redirect()->back()->with('error', 'Solo se puede seleccionar una entidad activa.');
+        }
+
         session(['selected_entity' => $entity]);
 
         return redirect()->route('sellers.add-information');
@@ -171,6 +176,11 @@ class SellerController extends Controller
 
         if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
             abort(403, 'No tienes permisos para gestionar vendedores de esta entidad.');
+        }
+
+        $entity = Entity::find($request->entity_id);
+        if (!$entity || $entity->status != 1) {
+            return redirect()->route('sellers.add-information')->withErrors(['entity_id' => 'Solo se puede asignar un vendedor a una entidad activa.'])->withInput();
         }
 
         try {
@@ -244,6 +254,11 @@ class SellerController extends Controller
 
         if (!auth()->user()->canAccessEntity((int) $request->entity_id)) {
             abort(403, 'No tienes permisos para gestionar vendedores de esta entidad.');
+        }
+
+        $entity = Entity::find($request->entity_id);
+        if (!$entity || $entity->status != 1) {
+            return redirect()->route('sellers.add-information')->withErrors(['entity_id' => 'Solo se puede asignar un vendedor a una entidad activa.'])->withInput();
         }
 
         try {
@@ -509,7 +524,7 @@ class SellerController extends Controller
             return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
         }
 
-        $entities = $seller->entities()->select('entities.id', 'entities.name', 'entities.image')->get();
+        $entities = $seller->entities()->where('entities.status', 1)->select('entities.id', 'entities.name', 'entities.image')->get();
 
         return response()->json([
             'success' => true,
@@ -561,7 +576,7 @@ class SellerController extends Controller
         foreach ($sets as $set) {
             $participations = Participation::where('set_id', $set->id)
                 ->where('seller_id', $seller->id)
-                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta','pagada'])
                 ->get();
 
             if ($participations->isEmpty()) continue;
@@ -610,7 +625,7 @@ class SellerController extends Controller
                 $totalParticipations++;
                 $totalAmount += $pricePerParticipation;
 
-                if ($participation->status === 'vendida') {
+                if (in_array($participation->status, ['vendida', 'pagada'])) {
                     $tacosByBook[$bookNumber]['sales_registered']++;
                     $tacosByBook[$bookNumber]['sales_amount'] += $pricePerParticipation;
                     $salesRegistered++;
@@ -700,7 +715,7 @@ class SellerController extends Controller
         $participations = Participation::where('set_id', $setId)
             ->where('seller_id', $seller->id)
             ->whereBetween('participation_number', [$startParticipation, $endParticipation])
-            ->whereIn('status', ['disponible', 'asignada', 'vendida', 'devuelta'])
+            ->whereIn('status', ['disponible', 'asignada', 'vendida', 'devuelta', 'pagada'])
             ->orderBy('participation_number')
             ->get();
 
@@ -716,7 +731,7 @@ class SellerController extends Controller
 
         $formattedParticipations = $participations->map(function ($p) use ($set, $settlements, $lotteryId) {
             $paymentMethod = null;
-            if ($p->status === 'vendida') {
+            if (in_array($p->status, ['vendida', 'pagada'])) {
                 $paymentMethod = $p->payment_method ?? null;
                 if (($paymentMethod === null || $paymentMethod === '') && $p->sale_date) {
                     $saleDate = $p->sale_date->format('Y-m-d');
@@ -772,7 +787,7 @@ class SellerController extends Controller
         if (empty($entityIds)) {
             return response()->json(['success' => false, 'message' => 'No tienes entidades asignadas como gestor.'], 403);
         }
-        $entities = Entity::whereIn('id', $entityIds)->select('id', 'name', 'image')->get();
+        $entities = Entity::whereIn('id', $entityIds)->where('status', 1)->select('id', 'name', 'image')->get();
         return response()->json(['success' => true, 'entities' => $entities]);
     }
 
@@ -804,7 +819,7 @@ class SellerController extends Controller
         if (!empty($setIdsEntity)) {
             $counts = Participation::whereIn('seller_id', $sellerIds)
                 ->whereIn('set_id', $setIdsEntity)
-                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta', 'pagada'])
                 ->selectRaw('seller_id, count(*) as cnt')
                 ->groupBy('seller_id')
                 ->pluck('cnt', 'seller_id');
@@ -876,7 +891,7 @@ class SellerController extends Controller
         foreach ($sets as $set) {
             $participations = Participation::where('set_id', $set->id)
                 ->where('seller_id', $seller->id)
-                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta', 'pagada'])
                 ->get();
             if ($participations->isEmpty()) {
                 continue;
@@ -885,7 +900,7 @@ class SellerController extends Controller
             foreach ($participations as $p) {
                 $totalParticipations++;
                 $totalAmount += $pricePerParticipation;
-                if ($p->status === 'vendida') {
+                if (in_array($p->status, ['vendida', 'pagada'])) {
                     $salesRegistered++;
                     $salesAmount += $pricePerParticipation;
                 } elseif ($p->status === 'devuelta') {
@@ -1219,7 +1234,7 @@ class SellerController extends Controller
         foreach ($sets as $set) {
             $participations = Participation::where('set_id', $set->id)
                 ->whereIn('seller_id', $sellerIds)
-                ->whereIn('status', ['asignada', 'vendida', 'devuelta'])
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta','pagada'])
                 ->get();
             if ($participations->isEmpty()) continue;
             $pricePerParticipation = (float) ($set->played_amount ?? 0);
@@ -1260,7 +1275,7 @@ class SellerController extends Controller
                 $tacosByBookSeller[$key]['total_participations']++;
                 $totals['participations']++;
                 $totals['amount'] += $pricePerParticipation;
-                if ($p->status === 'vendida') {
+                if (in_array($p->status, ['vendida', 'pagada'])) {
                     $tacosByBookSeller[$key]['sales_registered']++;
                     $tacosByBookSeller[$key]['sales_amount'] += $pricePerParticipation;
                     $totals['sales']++;
@@ -1335,7 +1350,7 @@ class SellerController extends Controller
         $participations = Participation::where('set_id', $setId)
             ->where('seller_id', $sellerId)
             ->whereBetween('participation_number', [$startParticipation, $endParticipation])
-            ->whereIn('status', ['disponible', 'asignada', 'vendida', 'devuelta'])
+            ->whereIn('status', ['disponible', 'asignada', 'vendida', 'devuelta', 'pagada'])
             ->orderBy('participation_number')
             ->get();
         $lotteryId = $set->reserve->lottery_id ?? null;
@@ -1348,7 +1363,7 @@ class SellerController extends Controller
             ->get();
         $formattedParticipations = $participations->map(function ($p) use ($settlements) {
             $paymentMethod = null;
-            if ($p->status === 'vendida') {
+            if (in_array($p->status, ['vendida', 'pagada'])) {
                 $paymentMethod = $p->payment_method ?? null;
                 if (($paymentMethod === null || $paymentMethod === '') && $p->sale_date) {
                     $saleDate = $p->sale_date->format('Y-m-d');
@@ -2020,8 +2035,8 @@ class SellerController extends Controller
             $participations = DB::table('participations')
                 ->where('seller_id', $request->seller_id)
                 ->where('set_id', $request->set_id)
-                ->whereIn('status', ['asignada', 'vendida', 'disponible'])
-                ->select('id', 'participation_number as number', 'participation_code', 'set_id', 'sale_date', 'sale_time', 'updated_at', 'created_at')
+                ->whereIn('status', ['asignada', 'vendida', 'devuelta', 'pagada', 'disponible'])
+                ->select('id', 'participation_number as number', 'participation_code', 'set_id', 'status', 'sale_date', 'sale_time', 'updated_at', 'created_at')
                 ->orderBy('participation_number')
                 ->get();
 

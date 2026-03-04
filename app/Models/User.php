@@ -111,14 +111,16 @@ class User extends Authenticatable
         return $this->role === self::ROLE_ADMINISTRATION;
     }
 
+    /** True si el usuario tiene al menos un registro en la tabla managers (gestor/entidad). */
     public function isEntity(): bool
     {
-        return $this->role === self::ROLE_ENTITY;
+        return $this->managers()->exists();
     }
 
+    /** True si el usuario tiene al menos un registro en la tabla sellers (vendedor). */
     public function isSeller(): bool
     {
-        return $this->role === self::ROLE_SELLER;
+        return $this->sellers()->exists();
     }
 
     public function isClient(): bool
