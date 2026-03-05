@@ -166,7 +166,7 @@
                                             <td>{{$designFormat->set ? $designFormat->set->set_name : 'Sin set'}}</td>
                                             <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? $designFormat->set->reserve->lottery->name : 'Sin sorteo'}}</td>
                                             <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? implode(' - ', $designFormat->set->reserve->reservation_numbers ?? []) : 'Sin números'}}</td>
-                                            <td>{{$designFormat->set && $designFormat->set->reserve && $designFormat->set->reserve->lottery ? number_format($designFormat->set->reserve->lottery->ticket_price, 2) : '0,00'}}€</td>
+                                            <td>{{$designFormat->set ? number_format($designFormat->set->played_amount, 2) : '0,00'}}€</td>
                                             <td>{{$designFormat->set ? number_format($designFormat->set->donation_amount, 2) : '0,00'}}€</td>
                                             <td>{{$designFormat->set ? number_format($designFormat->set->total_amount, 2) : '0,00'}}€</td>
                                             <td>{{$designFormat->set ? $designFormat->set->total_participations : 0}}</td>

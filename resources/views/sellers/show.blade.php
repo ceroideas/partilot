@@ -257,7 +257,7 @@
                              <div class="form-card bs mb-3" id="entity-info-sidebar">
                                  <div class="row">
                                      <div class="col-4">
-                                         <div class="photo-preview-3 logo-round" style="width: 56px; height: 56px; min-width: 56px; min-height: 56px; @if($currentEntity && ($currentEntity->image ?? null)) background-image: url('{{ asset('uploads/' . $currentEntity->image) }}'); @endif">
+                                         <div class="photo-preview-3 logo-round" @if($currentEntity && ($currentEntity->image ?? null)) style="background-image: url('{{ asset('uploads/' . $currentEntity->image) }}'); background-size: cover;" @endif>
                                              @if(!$currentEntity || !($currentEntity->image ?? null))
                                                  <i class="ri-building-line"></i>
                                              @endif

@@ -53,6 +53,7 @@
                                     <th>Importe Donativo</th>
                                     <th>Importe Total</th>
                                     <th>Participaciones TOTAL</th>
+                                    <th>Tipo</th>
                                     <th>Entidad</th>
                                     <th>Provincia</th>
                                     <th class="no-filter"></th>
@@ -79,6 +80,15 @@
                                     <td>{{number_format($set->donation_amount ?? 0, 2)}}€</td>
                                     <td><b>{{number_format($set->total_amount, 2)}}€</b></td>
                                     <td>{{$set->total_participations}}</td>
+                                    <td>
+                                        @if(($set->physical_participations ?? 0) == 0)
+                                            <span class="badge bg-primary">Digital</span>
+                                        @elseif(($set->digital_participations ?? 0) == 0)
+                                            <span class="badge bg-secondary">Físico</span>
+                                        @else
+                                            <span class="badge bg-info">Mixto</span>
+                                        @endif
+                                    </td>
                                     <td>{{$set->entity->name ?? 'Sin entidad'}}</td>
                                     <td>{{$set->entity->province ?? 'Sin provincia'}}</td>
                                     <td class="no-click" style="cursor: default;">
@@ -319,8 +329,9 @@ function deleteItem(type, id) {
       $('#delete-modal').modal('hide');
       location.reload(); // Recargar la página
     },
-    error: function() {
-      alert('Error al eliminar el elemento.');
+    error: function(xhr) {
+      var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Error al eliminar el elemento.';
+      alert(msg);
     }
   });
 }

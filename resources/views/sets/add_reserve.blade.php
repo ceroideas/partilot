@@ -88,10 +88,10 @@
                                 <div class="row">
                                     <div class="col-4">
                                         
-                                        <div class="photo-preview-3">
-                                            
-                                            <i class="ri-account-circle-fill"></i>
-
+                                        <div class="photo-preview-3 logo-round" @if(session('selected_entity')->image ?? null) style="background-image: url('{{ asset('uploads/' . session('selected_entity')->image) }}'); background-size: cover;" @endif>
+                                            @if(!(session('selected_entity')->image ?? null))
+                                                <i class="ri-account-circle-fill"></i>
+                                            @endif
                                         </div>
                                         
                                         <div style="clear: both;"></div>
@@ -99,9 +99,9 @@
 
                                     <div class="col-8 text-center mt-2">
 
-                                        <h3 class="mt-2 mb-0">{{session('selected_entity')->name ?? 'Entidad'}}</h3>
+                                        <h3 class="mt-2 mb-0">{{ session('selected_entity')->name ?? 'Entidad' }}</h3>
 
-                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{session('selected_entity')->province ?? 'Sin provincia'}}
+                                        <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ session('selected_entity')->province ?? 'Sin provincia' }}
                                         
                                     </div>
                                 </div>

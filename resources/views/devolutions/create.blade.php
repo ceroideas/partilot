@@ -275,7 +275,7 @@
                             <div class="form-card bs mb-3" id="entity-info" style="display: none;">
                                 <div class="row">
                                     <div class="col-4">
-                                        <div class="photo-preview-3 logo-round" id="entity-info-image" style="width: 56px; height: 56px; min-width: 56px; min-height: 56px;">
+                                        <div class="photo-preview-3 logo-round" id="entity-info-image">
                                             <i class="ri-building-line"></i>
                                         </div>
                                     </div>

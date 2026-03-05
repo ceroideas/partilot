@@ -960,9 +960,12 @@ class ApiController extends Controller
             case 'set':
                 $set = \App\Models\Set::find($id);
                 if ($set) {
-                    if ($set->participations()->count() > 0) {
+                    $countBlocking = \App\Models\Participation::where('set_id', $set->id)
+                        ->whereIn('status', ['asignada', 'vendida', 'pagada'])
+                        ->count();
+                    if ($countBlocking > 0) {
                         $canDelete = false;
-                        $message = 'El set no se puede borrar porque tiene participaciones asociadas.';
+                        $message = 'No se puede eliminar el set: hay participaciones asignadas o vendidas. Debe realizar la devolución de todas ellas antes de poder eliminar el set.';
                     } elseif ($set->designFormats()->count() > 0) {
                         $canDelete = false;
                         $message = 'El set no se puede borrar porque tiene diseños asociados.';
@@ -1054,9 +1057,23 @@ class ApiController extends Controller
     public function deleteItem($type, $id)
     {
         switch ($type) {
-            case 'set':
-                \App\Models\Set::find($id)->delete();
+            case 'set': {
+                $set = \App\Models\Set::find($id);
+                if (!$set) {
+                    return response()->json(['success' => false, 'message' => 'Set no encontrado.'], 404);
+                }
+                $countBlocking = \App\Models\Participation::where('set_id', $set->id)
+                    ->whereIn('status', ['asignada', 'vendida', 'pagada'])
+                    ->count();
+                if ($countBlocking > 0) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se puede eliminar el set: hay participaciones asignadas o vendidas. Debe realizar la devolución de todas ellas antes de poder eliminar el set.'
+                    ], 422);
+                }
+                $set->delete();
                 break;
+            }
             case 'reserve':
                 \App\Models\Reserve::find($id)->delete();
                 break;

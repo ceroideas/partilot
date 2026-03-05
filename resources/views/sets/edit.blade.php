@@ -121,8 +121,11 @@
                                     <form action="{{ url('sets/update/' . $set->id) }}" method="POST">
                                         @csrf
                                         @method('PUT')
+                                        <div class="alert alert-info mb-3" role="alert">
+                                            <strong>Nota:</strong> Los sets creados no se pueden modificar, excepto la <strong>fecha límite de cierre de venta</strong>. El resto de datos son solo consulta.
+                                        </div>
                                         <h4 class="mb-0 mt-1">Configuración del Set</h4>
-                                        <small><i>Datos editables del set</i></small>
+                                        <small><i>Solo la fecha límite es editable</i></small>
                                         <br>
                                         <div class="row">
                                             <div class="col-6">
@@ -132,7 +135,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/19.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" name="set_name" type="text" value="{{$set->set_name}}" style="border-radius: 0 30px 30px 0;" required>
+                                                        <input class="form-control" type="text" value="{{$set->set_name}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -143,7 +146,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" id="played_amount" name="played_amount" type="number" step="0.01" value="{{$set->played_amount}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" type="number" step="0.01" value="{{$set->played_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -154,7 +157,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" id="donation_amount" name="donation_amount" type="number" step="0.01" value="{{$set->donation_amount}}" style="border-radius: 0 30px 30px 0;">
+                                                        <input class="form-control" type="number" step="0.01" value="{{$set->donation_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -165,7 +168,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" id="total_participation_amount" name="total_participation_amount" type="number" step="0.01" value="{{$set->total_participation_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                        <input class="form-control" type="number" step="0.01" value="{{$set->total_participation_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -176,7 +179,7 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/20.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" id="total_participations" name="total_participations" type="number" value="{{$set->total_participations}}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                        <input class="form-control" type="number" value="{{$set->total_participations}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -187,13 +190,13 @@
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
                                                         </div>
-                                                        <input class="form-control" id="total_amount" name="total_amount" type="number" step="0.01" value="{{$set->total_amount}}" style="border-radius: 0 30px 30px 0;" readonly max="{{ $availableAmount }}">
+                                                        <input class="form-control" type="number" step="0.01" value="{{$set->total_amount}}" style="border-radius: 0 30px 30px 0;" readonly>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="col-3">
                                                 <div class="form-group mt-2 mb-3">
-                                                    <label class="label-control">Fecha Límite</label>
+                                                    <label class="label-control">Fecha Límite de cierre de venta</label>
                                                     <div class="input-group input-group-merge group-form">
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                             <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
@@ -252,139 +255,22 @@
 
 <script>
 
-// Función para calcular el Importe Total Participación
-function calculateTotalParticipationAmount() {
-    const playedAmount = parseFloat($('#played_amount').val()) || 0;
-    const donationAmount = parseFloat($('#donation_amount').val()) || 0;
-    
-    // Obtener la cantidad de números reservados
-    const reservedNumbers = @json($set->reserve->reservation_numbers ?? []);
-    const numbersCount = reservedNumbers.length;
-    
-    let totalParticipationAmount;
-    
-    if (numbersCount <= 1) {
-        // Si hay 1 número o menos: Importe Jugado + Importe Donativo
-        totalParticipationAmount = playedAmount + donationAmount;
-    } else {
-        // Si hay 2 o más números: (Importe Jugado × Cantidad de números) + Importe Donativo
-        totalParticipationAmount = (playedAmount * numbersCount) + donationAmount;
-    }
-    
-    $('#total_participation_amount').val(totalParticipationAmount.toFixed(2));
-}
-
-// Función para calcular el Importe Total
-function calculateTotalAmount() {
-    const totalParticipations = parseInt($('#total_participations').val()) || 0;
-    const playedAmount = parseFloat($('#played_amount').val()) || 0;
-    const totalAmount = totalParticipations * playedAmount;
-    
-    $('#total_amount').val(totalAmount.toFixed(2));
-}
-
-// Función para calcular participaciones digitales cuando cambian las físicas
-function calculateDigitalParticipations() {
-    const totalParticipations = parseInt($('#total_participations').val()) || 0;
-    const physicalParticipations = parseInt($('#physical_participations').val()) || 0;
-    
-    if (physicalParticipations > totalParticipations) {
-        $('#physical_participations').val(totalParticipations);
-        $('#digital_participations').val(0);
-    } else {
-        const digitalParticipations = totalParticipations - physicalParticipations;
-        $('#digital_participations').val(digitalParticipations);
-    }
-}
-
-// Función para calcular participaciones físicas cuando cambian las digitales
-function calculatePhysicalParticipations() {
-    const totalParticipations = parseInt($('#total_participations').val()) || 0;
-    const digitalParticipations = parseInt($('#digital_participations').val()) || 0;
-    
-    if (digitalParticipations > totalParticipations) {
-        $('#digital_participations').val(totalParticipations);
-        $('#physical_participations').val(0);
-    } else {
-        const physicalParticipations = totalParticipations - digitalParticipations;
-        $('#physical_participations').val(physicalParticipations);
-    }
-}
-
-// Event listeners para los cálculos automáticos
 $(document).ready(function() {
-    
-    // Calcular Importe Total Participación cuando cambian Importe Jugado o Importe Donativo
-    $('#played_amount, #donation_amount').on('input', function() {
-        calculateTotalParticipationAmount();
-    });
-    
-    // Calcular Importe Total cuando cambian Participaciones Totales o Importe Jugado
-    $('#total_participations, #played_amount').on('input', function() {
-        calculateTotalAmount();
-        calculateDigitalParticipations();
-        calculatePhysicalParticipations();
-    });
-    
-    // Calcular participaciones digitales cuando cambian las físicas
-    $('#physical_participations').on('input', function() {
-        calculateDigitalParticipations();
-    });
-    
-    // Calcular participaciones físicas cuando cambian las digitales
-    $('#digital_participations').on('input', function() {
-        calculatePhysicalParticipations();
-    });
-    
-    // Validación adicional para Participaciones Totales
-    $('#total_participations').on('input', function() {
-        const totalParticipations = parseInt($(this).val()) || 0;
-        const physicalParticipations = parseInt($('#physical_participations').val()) || 0;
-        const digitalParticipations = parseInt($('#digital_participations').val()) || 0;
-        
-        // Si las participaciones físicas o digitales superan el total, ajustarlas
-        if (physicalParticipations > totalParticipations) {
-            $('#physical_participations').val(totalParticipations);
-            $('#digital_participations').val(0);
-        }
-        if (digitalParticipations > totalParticipations) {
-            $('#digital_participations').val(totalParticipations);
-            $('#physical_participations').val(0);
-        }
-    });
-    
-    // Calcular valores iniciales
-    calculateTotalParticipationAmount();
-    calculateTotalAmount();
-    
-    // Fecha límite: máximo el día anterior al sorteo (23:59)
+    // Fecha límite: máximo el día anterior al sorteo
     const lotteryDate = @json($set->reserve->lottery->draw_date ?? null);
     if (lotteryDate) {
         const lotteryDateObj = new Date(lotteryDate);
         lotteryDateObj.setDate(lotteryDateObj.getDate() - 1);
         const maxDate = lotteryDateObj.toISOString().split('T')[0];
         $('input[name="deadline_date"]').attr('max', maxDate);
-        
         $('input[name="deadline_date"]').on('change', function() {
             const selectedDate = new Date($(this).val());
             const maxDateObj = new Date(maxDate);
             if (selectedDate > maxDateObj) {
-                alert('La fecha límite debe ser como máximo el día anterior al sorteo (23:59).');
+                alert('La fecha límite debe ser como máximo el día anterior al sorteo.');
                 $(this).val('');
             }
         });
-    }
-    
-});
-
-// Validación de importe disponible antes de enviar
-$('form').on('submit', function(e) {
-    var maxAmount = parseFloat({{ $availableAmount }});
-    var totalAmount = parseFloat($('#total_amount').val()) || 0;
-    if (totalAmount > maxAmount) {
-        alert('El importe total supera el disponible para esta reserva (máx: ' + maxAmount.toFixed(2) + ' €)');
-        e.preventDefault();
-        return false;
     }
 });
 

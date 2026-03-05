@@ -594,15 +594,19 @@ class SellerController extends Controller
                 if (!isset($tacosByBook[$bookNumber])) {
                     $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
                     $endParticipation = min($bookNumber * $participationsPerBook, $set->total_participations ?? 1000);
-                    
+                    $endParticipation = max($startParticipation, $endParticipation);
                     $reservationNumbers = $set->reserve->reservation_numbers ?? [];
                     $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
 
+                    $physical = (int) ($set->physical_participations ?? 0);
+                    $digital = (int) ($set->digital_participations ?? 0);
+                    $setType = $physical === 0 ? 'digital' : ($digital === 0 ? 'fisico' : 'mixto');
                     $tacosByBook[$bookNumber] = [
                         'set_id' => $set->id,
                         'set_name' => $set->set_name,
                         'set_number' => $set->set_number ?? $set->id,
                         'book_number' => $bookNumber,
+                        'set_type' => $setType,
                         'reservation_numbers' => $reservationNumbers,
                         'reservation_numbers_display' => $reservationNumbersDisplay,
                         'lottery_id' => $set->reserve->lottery_id,
@@ -618,10 +622,14 @@ class SellerController extends Controller
                         'sales_amount' => 0,
                         'returned_amount' => 0,
                         'available_amount' => 0,
+                        '_min_pn' => $participation->participation_number,
+                        '_max_pn' => $participation->participation_number,
                     ];
                 }
 
                 $tacosByBook[$bookNumber]['total_participations']++;
+                $tacosByBook[$bookNumber]['_min_pn'] = min($tacosByBook[$bookNumber]['_min_pn'], $participation->participation_number);
+                $tacosByBook[$bookNumber]['_max_pn'] = max($tacosByBook[$bookNumber]['_max_pn'], $participation->participation_number);
                 $totalParticipations++;
                 $totalAmount += $pricePerParticipation;
 
@@ -662,6 +670,15 @@ class SellerController extends Controller
                     $tacosByBook[$bookNumber]['available_amount'] += $pricePerParticipation;
                     $availableParticipations++;
                     $availableAmount += $pricePerParticipation;
+                }
+            }
+
+            foreach ($tacosByBook as $bookNum => $taco) {
+                if (isset($taco['_min_pn'], $taco['_max_pn'])) {
+                    $tacosByBook[$bookNum]['start_participation'] = $taco['_min_pn'];
+                    $tacosByBook[$bookNum]['end_participation'] = $taco['_max_pn'];
+                    $tacosByBook[$bookNum]['participations_range'] = sprintf('%s/%05d-%s/%05d', $taco['set_number'] ?? $taco['set_id'], $taco['_min_pn'], $taco['set_number'] ?? $taco['set_id'], $taco['_max_pn']);
+                    unset($tacosByBook[$bookNum]['_min_pn'], $tacosByBook[$bookNum]['_max_pn']);
                 }
             }
 
@@ -759,6 +776,9 @@ class SellerController extends Controller
         $reservationNumbers = $set->reserve->reservation_numbers ?? [];
         $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
 
+        $physical = (int) ($set->physical_participations ?? 0);
+        $digital = (int) ($set->digital_participations ?? 0);
+        $setType = $physical === 0 ? 'digital' : ($digital === 0 ? 'fisico' : 'mixto');
         return response()->json([
             'success' => true,
             'taco_info' => [
@@ -766,12 +786,15 @@ class SellerController extends Controller
                 'set_name' => $set->set_name,
                 'set_number' => $set->set_number ?? $set->id,
                 'book_number' => $bookNumber,
+                'set_type' => $setType,
                 'reservation_numbers' => $reservationNumbers,
                 'reservation_numbers_display' => $reservationNumbersDisplay,
                 'lottery_name' => $set->reserve->lottery->name ?? '',
                 'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
                 'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
                 'price_per_participation' => (float) ($set->played_amount ?? 0),
+                'donation_per_participation' => (float) ($set->donation_amount ?? 0),
+                'total_per_participation' => (float) (($set->played_amount ?? 0) + ($set->donation_amount ?? 0)),
             ],
             'participations' => $formattedParticipations
         ]);
@@ -1253,6 +1276,9 @@ class SellerController extends Controller
                     $sellerName = $seller ? trim($seller->name . ' ' . ($seller->last_name ?? '')) : 'Vendedor';
                     $reservationNumbers = $set->reserve->reservation_numbers ?? [];
                     $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
+                    $physical = (int) ($set->physical_participations ?? 0);
+                    $digital = (int) ($set->digital_participations ?? 0);
+                    $setType = $physical === 0 ? 'digital' : ($digital === 0 ? 'fisico' : 'mixto');
                     $tacosByBookSeller[$key] = [
                         'set_id' => $set->id,
                         'set_name' => $set->set_name,
@@ -1260,6 +1286,7 @@ class SellerController extends Controller
                         'book_number' => $bookNumber,
                         'seller_id' => $p->seller_id,
                         'seller_name' => $sellerName,
+                        'set_type' => $setType,
                         'reservation_numbers' => $reservationNumbers,
                         'reservation_numbers_display' => $reservationNumbersDisplay,
                         'lottery_id' => $set->reserve->lottery_id,
@@ -1270,9 +1297,13 @@ class SellerController extends Controller
                         'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
                         'total_participations' => 0, 'sales_registered' => 0, 'returned_participations' => 0, 'available_participations' => 0,
                         'sales_amount' => 0, 'returned_amount' => 0, 'available_amount' => 0,
+                        '_min_pn' => $p->participation_number,
+                        '_max_pn' => $p->participation_number,
                     ];
                 }
                 $tacosByBookSeller[$key]['total_participations']++;
+                $tacosByBookSeller[$key]['_min_pn'] = min($tacosByBookSeller[$key]['_min_pn'], $p->participation_number);
+                $tacosByBookSeller[$key]['_max_pn'] = max($tacosByBookSeller[$key]['_max_pn'], $p->participation_number);
                 $totals['participations']++;
                 $totals['amount'] += $pricePerParticipation;
                 if (in_array($p->status, ['vendida', 'pagada'])) {
@@ -1296,6 +1327,14 @@ class SellerController extends Controller
                     $tacosByBookSeller[$key]['available_amount'] += $pricePerParticipation;
                     $totals['available']++;
                     $totals['availableAmount'] += $pricePerParticipation;
+                }
+            }
+            foreach ($tacosByBookSeller as $key => $taco) {
+                if (isset($taco['_min_pn'], $taco['_max_pn'])) {
+                    $tacosByBookSeller[$key]['start_participation'] = $taco['_min_pn'];
+                    $tacosByBookSeller[$key]['end_participation'] = $taco['_max_pn'];
+                    $tacosByBookSeller[$key]['participations_range'] = sprintf('%s/%05d-%s/%05d', $taco['set_number'] ?? $taco['set_id'], $taco['_min_pn'], $taco['set_number'] ?? $taco['set_id'], $taco['_max_pn']);
+                    unset($tacosByBookSeller[$key]['_min_pn'], $tacosByBookSeller[$key]['_max_pn']);
                 }
             }
             $tacos = array_merge($tacos, array_values($tacosByBookSeller));
@@ -1386,6 +1425,9 @@ class SellerController extends Controller
         $reservationNumbers = $set->reserve->reservation_numbers ?? [];
         $reservationNumbersDisplay = is_array($reservationNumbers) ? implode(', ', $reservationNumbers) : '';
         $sellerName = trim($seller->name . ' ' . ($seller->last_name ?? ''));
+        $physical = (int) ($set->physical_participations ?? 0);
+        $digital = (int) ($set->digital_participations ?? 0);
+        $setType = $physical === 0 ? 'digital' : ($digital === 0 ? 'fisico' : 'mixto');
         return response()->json([
             'success' => true,
             'taco_info' => [
@@ -1395,12 +1437,15 @@ class SellerController extends Controller
                 'book_number' => (int) $bookNumber,
                 'seller_id' => $sellerId,
                 'seller_name' => $sellerName,
+                'set_type' => $setType,
                 'reservation_numbers' => $reservationNumbers,
                 'reservation_numbers_display' => $reservationNumbersDisplay,
                 'lottery_name' => $set->reserve->lottery->name ?? '',
                 'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
                 'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
                 'price_per_participation' => (float) ($set->played_amount ?? 0),
+                'donation_per_participation' => (float) ($set->donation_amount ?? 0),
+                'total_per_participation' => (float) (($set->played_amount ?? 0) + ($set->donation_amount ?? 0)),
             ],
             'participations' => $formattedParticipations,
         ]);

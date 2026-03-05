@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Set;
 use App\Models\Entity;
 use App\Models\Reserve;
+use App\Models\Participation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -390,7 +391,7 @@ class SetController extends Controller
     }
 
     /**
-     * Actualizar set
+     * Actualizar set. Solo se puede modificar la fecha límite de cierre de venta.
      */
     public function update(Request $request, Set $set)
     {
@@ -399,51 +400,32 @@ class SetController extends Controller
         }
 
         $validated = $request->validate([
-            'set_name' => 'required|string|max:255',
-            'played_amount' => 'nullable|numeric|min:0',
-            'donation_amount' => 'nullable|numeric|min:0',
-            'total_participation_amount' => 'nullable|numeric|min:0',
-            'total_participations' => 'required|integer|min:1',
-            'total_amount' => 'required|numeric|min:0',
-            'physical_participations' => 'nullable|integer|min:0',
-            'digital_participations' => 'nullable|integer|min:0',
             'deadline_date' => ['nullable', 'date', new \App\Rules\DeadlineBeforeLottery($set->reserve_id)]
         ]);
 
-        // Total reserva = importe por número × cantidad de números
-        $reserve = $set->reserve;
-        $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;
-        $reserveTotalAmount = max(
-            (float) $reserve->total_amount,
-            $numNumbers > 0 ? round($numNumbers * (float) $reserve->reservation_amount, 2) : (float) $reserve->total_amount
-        );
-        $usedByOthers = (float) Set::where('reserve_id', $set->reserve_id)->where('id', '!=', $set->id)->sum('total_amount');
-        $availableAmount = $reserveTotalAmount - $usedByOthers;
-        if ($availableAmount < 0) {
-            $availableAmount = 0;
-        }
-        if ($validated['total_amount'] > $availableAmount) {
-            return back()->withInput()->withErrors(['total_amount' => 'El importe del set supera el disponible para esta reserva (máx: ' . number_format($availableAmount, 2) . ' €)']);
-        }
-
-        // Regenerar tickets manteniendo los existentes
-        $tickets = \App\Models\Set::generateTickets($set->entity_id, $set->reserve_id, $set->created_at, $validated['total_participations'], $set->tickets ?? []);
-
-        $set->update(array_merge($validated, [
-            'tickets' => $tickets
-        ]));
+        $set->update(['deadline_date' => $validated['deadline_date'] ?? null]);
 
         return redirect()->route('sets.show', $set->id)
-            ->with('success', 'Set actualizado exitosamente');
+            ->with('success', 'Fecha límite actualizada correctamente.');
     }
 
     /**
-     * Eliminar set
+     * Eliminar set. Solo se puede eliminar si no hay participaciones asignadas, vendidas o pagadas.
+     * Si las hay, el usuario debe realizar la devolución de todas ellas antes de poder eliminar.
      */
     public function destroy(Set $set)
     {
         if (!auth()->user()->canAccessEntity($set->entity_id)) {
             abort(403, 'No tienes permisos para eliminar este set.');
+        }
+
+        $countBlocking = Participation::where('set_id', $set->id)
+            ->whereIn('status', ['asignada', 'vendida', 'pagada'])
+            ->count();
+
+        if ($countBlocking > 0) {
+            return redirect()->back()
+                ->with('error', 'No se puede eliminar el set: hay participaciones asignadas o vendidas. Debe realizar la devolución de todas ellas antes de poder eliminar el set.');
         }
 
         $set->delete();

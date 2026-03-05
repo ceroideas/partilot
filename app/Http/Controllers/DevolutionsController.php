@@ -138,8 +138,26 @@ class DevolutionsController extends Controller
                 }
             }
 
-            // Obtener las participaciones seleccionadas para devolver (puede estar vacío)
-            $participationsToReturn = $data['liquidacion']['devolver'] ?? [];
+            // Participaciones a devolver: solo permitir asignada o disponible (nunca vendida ni pagada)
+            $requestedToReturn = $data['liquidacion']['devolver'] ?? [];
+            $allowedToReturn = Participation::forUser(auth()->user())
+                ->whereIn('id', $requestedToReturn)
+                ->whereIn('status', ['asignada', 'disponible'])
+                ->pluck('id')
+                ->toArray();
+            $vendidasOPagadas = array_diff($requestedToReturn, $allowedToReturn);
+            if (!empty($vendidasOPagadas)) {
+                $codigos = Participation::forUser(auth()->user())
+                    ->whereIn('id', $vendidasOPagadas)
+                    ->pluck('participation_code')
+                    ->toArray();
+                DB::rollback();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pueden devolver participaciones ya vendidas o pagadas: ' . implode(', ', $codigos)
+                ], 400);
+            }
+            $participationsToReturn = $allowedToReturn;
             $tipoDevolucion = $request->input('tipo_devolucion');
 
             // Calcular participaciones a vender
@@ -951,16 +969,15 @@ class DevolutionsController extends Controller
             });
         }
 
-        // Si hay seller_id, filtrar por vendedor (devolución de vendedor) - EXCLUIR ANULADAS
+        // Solo se pueden devolver participaciones asignadas o disponibles (nunca vendidas ni pagadas)
         if (isset($data['seller_id'])) {
             $query->where('participations.seller_id', $data['seller_id'])
-                  ->whereIn('participations.status', ['asignada', 'vendida','disponible']);
+                  ->whereIn('participations.status', ['asignada', 'disponible']);
         } else {
-            // Si no hay seller_id, mostrar participaciones asignadas o vendidas (devolución de entidad) - EXCLUIR ANULADAS
-            $query->whereIn('participations.status', ['asignada', 'vendida','disponible']);
+            $query->whereIn('participations.status', ['asignada', 'disponible']);
         }
 
-        // EXCLUIR EXPLÍCITAMENTE LAS PARTICIPACIONES ANULADAS
+        // EXCLUIR ANULADAS
         $query->where('participations.status', '!=', 'anulada');
 
         // Filtrar por rango
