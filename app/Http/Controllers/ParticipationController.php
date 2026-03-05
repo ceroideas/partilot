@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Entity;
 use App\Models\Participation;
@@ -1421,10 +1422,16 @@ class ParticipationController extends Controller
             ], 422);
         }
 
-        // Generar código de recarga si hay importe para código
+        // Generar código de recarga si hay importe para código (API externa prepago, usable en web de loterías)
         $codigoRecarga = null;
         if ($importeCodigo > 0) {
-            $codigoRecarga = $this->generarCodigoRecargaUnico();
+            $codigoRecarga = $this->generarCodigoPrepagoExterno($importeCodigo);
+            if ($codigoRecarga === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo generar el código de recarga. Compruebe la configuración del servicio de códigos prepago o intente de nuevo más tarde.'
+                ], 502);
+            }
         }
 
         // Determinar si es anónima (sin datos personales)
@@ -1468,25 +1475,50 @@ class ParticipationController extends Controller
     }
 
     /**
-     * Generar código de recarga único (10 caracteres alfanuméricos)
+     * Generar código de recarga prepago mediante API externa (usable en la web de loterías).
+     * Parámetro importe: mayor que 0; decimales con punto (ej: 1, 1.50, 20.25).
+     * Respuesta esperada: {"status":1,"codigos":["C-XXXXX"]} → se usa codigos[0].
      */
-    private function generarCodigoRecargaUnico(): string
+    private function generarCodigoPrepagoExterno(float $importe): ?string
     {
-        $caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        $intentos = 0;
-        do {
-            $codigo = '';
-            for ($i = 0; $i < 10; $i++) {
-                $codigo .= $caracteres[random_int(0, strlen($caracteres) - 1)];
-            }
-            $intentos++;
-        } while (ParticipationDonation::where('codigo_recarga', $codigo)->exists() && $intentos < 100);
-
-        if ($intentos >= 100) {
-            throw new \Exception('No se pudo generar un código único después de 100 intentos.');
+        $importe = round($importe, 2);
+        if ($importe <= 0) {
+            return null;
         }
 
-        return $codigo;
+        $url = config('services.prepago_codigos.url');
+        $apikey = config('services.prepago_codigos.apikey');
+        if (empty($url) || empty($apikey)) {
+            Log::warning('Prepago códigos: falta PREPAGO_CODIGOS_URL o PREPAGO_CODIGOS_APIKEY en .env');
+            return null;
+        }
+
+        // Decimales con punto; ej: 1, 1.50, 20.25
+        $importeStr = number_format($importe, 2, '.', '');
+        $importeStr = rtrim(rtrim($importeStr, '0'), '.'); // 1.00 → 1, 1.50 se queda
+
+        $response = Http::timeout(15)->get($url, [
+            'apikey' => $apikey,
+            'n_codigos' => config('services.prepago_codigos.n_codigos', 1),
+            'tamano_cadena' => config('services.prepago_codigos.tamano_cadena', 8),
+            'importe' => $importeStr,
+            'prefijo' => config('services.prepago_codigos.prefijo', 'c-'),
+            'accion' => config('services.prepago_codigos.accion', 'generarCodigosRnd'),
+        ]);
+
+        if (!$response->successful()) {
+            Log::warning('Prepago códigos: request fallido', ['status' => $response->status(), 'body' => $response->body()]);
+            return null;
+        }
+
+        $data = $response->json();
+        if (empty($data['status']) || (int) $data['status'] !== 1 || empty($data['codigos']) || !is_array($data['codigos'])) {
+            Log::warning('Prepago códigos: respuesta inválida', ['response' => $data]);
+            return null;
+        }
+
+        $codigo = $data['codigos'][0] ?? null;
+        return is_string($codigo) && $codigo !== '' ? $codigo : null;
     }
 
     /**
