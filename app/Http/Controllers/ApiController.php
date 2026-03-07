@@ -759,7 +759,7 @@ class ApiController extends Controller
                 
                 $ticket = [
                     'data' => [
-                        'participation_code' => $participation->participation_code, // El participation_code de la participación (1/00046)
+                        'participation_code' => $participation->display_participation_code,
                         'participation_number' => $ref, // La referencia original buscada (000100061758806276046)
                         'numbers' => $reservedNumbers,
                         'winning_numbers' => $winningNumbers

@@ -126,7 +126,8 @@ class DevolutionsController extends Controller
                 $anuladas = Participation::forUser(auth()->user())
                     ->whereIn('id', $allParticipationIds)
                     ->where('status', 'anulada')
-                    ->pluck('participation_code')
+                    ->get()
+                    ->map(fn ($p) => $p->display_participation_code)
                     ->toArray();
                 
                 if (!empty($anuladas)) {
@@ -149,7 +150,8 @@ class DevolutionsController extends Controller
             if (!empty($vendidasOPagadas)) {
                 $codigos = Participation::forUser(auth()->user())
                     ->whereIn('id', $vendidasOPagadas)
-                    ->pluck('participation_code')
+                    ->get()
+                    ->map(fn ($p) => $p->display_participation_code)
                     ->toArray();
                 DB::rollback();
                 return response()->json([
@@ -826,7 +828,9 @@ class DevolutionsController extends Controller
                 'sets.id',
                 'sets.set_name',
                 'sets.set_number',
-                'sets.reserve_id'
+                'sets.reserve_id',
+                'sets.digital_participations',
+                'sets.physical_participations'
             ])
             ->orderBy('sets.set_number')
             ->get();
@@ -1050,7 +1054,7 @@ class DevolutionsController extends Controller
             'participations' => [[
                 'id' => $participation->id,
                 'number' => $participation->participation_number,
-                'participation_code' => $participation->participation_code,
+                'participation_code' => $participation->display_participation_code,
                 'set_id' => $set->id,
                 'set_name' => $set->set_name ?? $set->name ?? 'Set ' . $set->set_number,
             ]]
@@ -1493,7 +1497,7 @@ class DevolutionsController extends Controller
             // VALIDAR: Rechazar participaciones que ya están anuladas
             $yaAnuladas = $participations->where('status', 'anulada');
             if ($yaAnuladas->count() > 0) {
-                $codigosAnulados = $yaAnuladas->pluck('participation_code')->toArray();
+                $codigosAnulados = $yaAnuladas->map(fn ($p) => $p->display_participation_code)->toArray();
                 return response()->json([
                     'success' => false,
                     'message' => 'Las siguientes participaciones ya están anuladas: ' . implode(', ', $codigosAnulados)

@@ -138,8 +138,13 @@ class DesignFormat extends Model
 
             // Obtener participaciones por taco desde el output
             $output = is_string($this->output) ? json_decode($this->output, true) : $this->output;
-            $participationsPerBook = $output['participations_per_book'] ?? 50;
-            
+            // Sets digitales: un solo taco (book_number = 1 para todas)
+            $isDigitalOnly = $this->set->digital_participations > 0 && (int) ($this->set->physical_participations ?? 0) === 0;
+            $participationsPerBook = $isDigitalOnly ? $totalParticipations : (int) ($output['participations_per_book'] ?? 50);
+            if ($participationsPerBook <= 0) {
+                $participationsPerBook = 50;
+            }
+
             \Log::info('Participaciones por taco: ' . $participationsPerBook);
 
             // Obtener número de set
@@ -159,6 +164,7 @@ class DesignFormat extends Model
             $participationRange = $this->set->getParticipationNumberRange();
             $globalStartNumber = $participationRange['start'];
             
+            $isDigitalOnly = $this->set->digital_participations > 0 && (int) ($this->set->physical_participations ?? 0) === 0;
             for ($participationNumber = 1; $participationNumber <= $totalParticipations; $participationNumber++) {
                 // Calcular a qué taco pertenece esta participación
                 $bookNumber = ceil($participationNumber / $participationsPerBook);
@@ -166,8 +172,12 @@ class DesignFormat extends Model
                 // Calcular el número global de participación
                 $globalParticipationNumber = $globalStartNumber + $participationNumber - 1;
                 
-                // Generar código de participación con numeración global
-                $participationCode = sprintf('%d/%05d', $setNumber, $globalParticipationNumber);
+                // Código de participación: digital usa "1D/00001" en BD (único) y se muestra como "1/00001"
+                if ($isDigitalOnly) {
+                    $participationCode = '1D/' . sprintf('%05d', $participationNumber);
+                } else {
+                    $participationCode = sprintf('%d/%05d', $setNumber, $globalParticipationNumber);
+                }
 
                 $participationData = [
                     'entity_id' => $this->entity_id,

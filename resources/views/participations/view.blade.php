@@ -54,7 +54,7 @@
                                         <div style="clear: both;"></div>
                                     </div>
                                     <div class="col-8 text-center mt-2">
-                                        <h3 class="mt-2 mb-0">{{ $participation->participation_code ?? 'N/A' }}</h3>
+                                        <h3 class="mt-2 mb-0">{{ $participation->display_participation_code ?? $participation->participation_code ?? 'N/A' }}</h3>
                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-ticket-line"></i> Participación
                                     </div>
                                 </div>
@@ -87,7 +87,7 @@
                                                              <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                  <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
                                                              </div>
-                                                             <input class="form-control" type="text" value="{{ $participation->participation_code ?? 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                             <input class="form-control" type="text" value="{{ $participation->display_participation_code ?? $participation->participation_code ?? 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
                                                          </div>
                                                      </div>
                                                  </div>

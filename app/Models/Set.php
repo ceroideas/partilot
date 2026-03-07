@@ -167,44 +167,43 @@ class Set extends Model
     {
         parent::boot();
 
-        // Asignar set_number automáticamente al crear
+        // Asignar set_number al crear: solo los sets FÍSICOS cuentan (1, 2, 3...). Los digitales siempre 1 (no cuentan).
         static::creating(function ($set) {
             if (empty($set->set_number)) {
-                $set->set_number = static::getNextSetNumber($set->reserve_id);
+                $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+                $set->set_number = $isDigitalOnly ? 1 : static::getNextSetNumberPhysical($set->reserve_id);
             }
         });
 
-        // Renumerar sets cuando se elimina uno
+        // Renumerar sets físicos cuando se elimina uno (los digitales siguen con set_number = 1)
         static::deleted(function ($deletedSet) {
             self::renumberSetsInReserve($deletedSet->reserve_id);
         });
     }
 
     /**
-     * Obtener el siguiente número de set para una reserva
+     * Siguiente número de set para una reserva (solo sets FÍSICOS; los digitales no cuentan).
      */
-    private static function getNextSetNumber($reserveId)
+    private static function getNextSetNumberPhysical($reserveId)
     {
-        $lastSet = self::where('reserve_id', $reserveId)
+        $lastPhysical = self::where('reserve_id', $reserveId)
+            ->where('physical_participations', '>', 0)
             ->orderBy('set_number', 'desc')
             ->first();
-        
-        return ($lastSet ? $lastSet->set_number : 0) + 1;
+
+        return ($lastPhysical ? $lastPhysical->set_number : 0) + 1;
     }
 
     /**
-     * Renumerar sets en una reserva después de eliminar uno
+     * Renumerar sets en una reserva después de eliminar uno: solo físicos (1, 2, 3...); digitales quedan en 1.
      */
     private static function renumberSetsInReserve($reserveId)
     {
-        // Obtener todos los sets de la reserva ordenados por ID (orden de creación)
-        $sets = self::where('reserve_id', $reserveId)
-            ->orderBy('id')
-            ->get();
-        
-        // Renumerar secuencialmente
-        foreach ($sets as $index => $set) {
-            $newNumber = $index + 1;
+        $sets = self::where('reserve_id', $reserveId)->orderBy('id')->get();
+        $physicalNumber = 0;
+        foreach ($sets as $set) {
+            $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+            $newNumber = $isDigitalOnly ? 1 : ++$physicalNumber;
             if ($set->set_number != $newNumber) {
                 $set->update(['set_number' => $newNumber]);
             }
@@ -212,34 +211,58 @@ class Set extends Model
     }
 
     /**
-     * Obtener el siguiente número de participación para una reserva específica
-     * Este método calcula el siguiente número basado en las participaciones existentes
-     * de la misma reserva, incluyendo las anuladas, para mantener la numeración secuencial por reserva
+     * Obtener el siguiente número de participación para una reserva (todos los sets).
+     * Usado cuando se necesita la consecución global histórica.
      */
     public static function getNextParticipationNumberForReserve($reserveId)
     {
-        // Obtener el mayor participation_number de las participaciones de esta reserva
-        $maxParticipationNumber = \App\Models\Participation::whereHas('set', function($query) use ($reserveId) {
+        $maxParticipationNumber = \App\Models\Participation::whereHas('set', function ($query) use ($reserveId) {
             $query->where('reserve_id', $reserveId);
         })->max('participation_number') ?? 0;
-        
+
         return $maxParticipationNumber + 1;
     }
 
     /**
-     * Obtener el rango de números de participación para un set
-     * Basado en el número de participaciones del set y el número de inicio por reserva
+     * Obtener el siguiente número de participación solo entre sets FÍSICOS de la reserva.
+     * Las participaciones digitales no comparten esta consecución; cada set digital empieza en 1.
+     */
+    public static function getNextParticipationNumberForReservePhysical($reserveId)
+    {
+        $maxParticipationNumber = \App\Models\Participation::whereHas('set', function ($query) use ($reserveId) {
+            $query->where('reserve_id', $reserveId)->where('physical_participations', '>', 0);
+        })->max('participation_number') ?? 0;
+
+        return $maxParticipationNumber + 1;
+    }
+
+    /**
+     * Obtener el rango de números de participación para un set.
+     * - Sets DIGITALES (solo digital_participations): numeración siempre 1..N por set (sin consecución global).
+     * - Sets FÍSICOS (o mixtos): consecución global solo entre sets físicos de la misma reserva (1-100, 101-200, ...).
      */
     public function getParticipationNumberRange()
     {
-        // Obtener el número de inicio basado en participaciones existentes de la misma reserva
-        $startNumber = static::getNextParticipationNumberForReserve($this->reserve_id);
-        $endNumber = $startNumber + $this->total_participations - 1;
-        
+        $total = (int) ($this->total_participations ?? 0);
+        $isDigitalOnly = $this->digital_participations > 0 && (int) ($this->physical_participations ?? 0) === 0;
+
+        if ($isDigitalOnly) {
+            // Digitales: siempre del 1 al total del set (cada set digital empieza en 1)
+            return [
+                'start' => 1,
+                'end' => $total,
+                'count' => $total,
+            ];
+        }
+
+        // Físicos (o mixtos): siguiente rango disponible solo entre sets físicos de la reserva
+        $startNumber = static::getNextParticipationNumberForReservePhysical($this->reserve_id);
+        $endNumber = $startNumber + $total - 1;
+
         return [
             'start' => $startNumber,
             'end' => $endNumber,
-            'count' => $this->total_participations
+            'count' => $total,
         ];
     }
 

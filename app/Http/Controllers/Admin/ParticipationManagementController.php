@@ -163,7 +163,7 @@ class ParticipationManagementController extends Controller
         ]);
 
         $participation = Participation::with(['entity', 'set', 'designFormat', 'seller.user'])
-            ->where('participation_code', $request->participation_code)
+            ->whereCodeOrDisplayCode($request->participation_code)
             ->first();
 
         if (!$participation) {

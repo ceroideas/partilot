@@ -221,6 +221,18 @@ class Participation extends Model
         $this->update(['status' => 'perdida']);
     }
 
+    /**
+     * Código de participación para mostrar en UI. Los digitales se guardan como 1D/00001 y se muestran como 1/00001.
+     */
+    public function getDisplayParticipationCodeAttribute()
+    {
+        $code = $this->participation_code ?? '';
+        if (str_starts_with($code, '1D/')) {
+            return '1/' . substr($code, 3);
+        }
+        return $code;
+    }
+
     // Método para obtener el estado en español
     public function getStatusTextAttribute()
     {
@@ -251,6 +263,21 @@ class Participation extends Model
         ];
 
         return $badges[$this->status] ?? 'bg-secondary';
+    }
+
+    /**
+     * Buscar por código de participación (acepta código de visualización 1/00001 → busca 1D/00001 para digital).
+     */
+    public function scopeWhereCodeOrDisplayCode($query, string $code)
+    {
+        $code = trim($code);
+        if (str_starts_with($code, '1/') && ! str_starts_with($code, '1D/')) {
+            $digitalCode = '1D/' . substr($code, 2);
+            return $query->where(function ($q) use ($code, $digitalCode) {
+                $q->where('participation_code', $code)->orWhere('participation_code', $digitalCode);
+            });
+        }
+        return $query->where('participation_code', $code);
     }
 
     /**

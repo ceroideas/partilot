@@ -424,6 +424,20 @@ class SellerController extends Controller
             ->orderBy('reservation_date', 'desc')
             ->get();
 
+        // Para sets digitales: disponibilidad = participaciones asignadas a este vendedor (disponibles para vender)
+        foreach ($reserves as $reserve) {
+            foreach ($reserve->sets as $set) {
+                $isDigital = ($set->digital_participations ?? 0) > 0 && (int) ($set->physical_participations ?? 0) === 0;
+                if ($isDigital) {
+                    $set->setAttribute('digital_available_to_seller', DB::table('participations')
+                        ->where('set_id', $set->id)
+                        ->where('seller_id', $seller->id)
+                        ->whereIn('status', ['disponible', 'asignada'])
+                        ->count());
+                }
+            }
+        }
+
         return response()->json([
             'success' => true,
             'reserves' => $reserves
@@ -764,7 +778,7 @@ class SellerController extends Controller
 
             return [
                 'id' => $p->id,
-                'participation_code' => $p->participation_code,
+                'participation_code' => $p->display_participation_code,
                 'participation_number' => $p->participation_number,
                 'status' => $p->status,
                 'payment_method' => $paymentMethod,
@@ -1414,7 +1428,7 @@ class SellerController extends Controller
             }
             return [
                 'id' => $p->id,
-                'participation_code' => $p->participation_code,
+                'participation_code' => $p->display_participation_code,
                 'participation_number' => $p->participation_number,
                 'status' => $p->status,
                 'payment_method' => $paymentMethod,
@@ -1654,7 +1668,7 @@ class SellerController extends Controller
             'message' => "Rango válido. {$participations->count()} participaciones listas para marcar como vendidas.",
             'count' => $participations->count(),
             'importe_total' => round($importeTotal, 2),
-            'participations' => $participations->map(fn ($p) => ['id' => $p->id, 'participation_code' => $p->participation_code])
+            'participations' => $participations->map(fn ($p) => ['id' => $p->id, 'participation_code' => $p->display_participation_code])
         ]);
     }
 
@@ -1789,16 +1803,23 @@ class SellerController extends Controller
     }
 
     /**
-     * Validar participaciones disponibles para asignación
+     * Validar participaciones disponibles para asignación.
+     * - Sets físicos: requiere desde/hasta (rango) o participación unidad (desde=hasta).
+     * - Sets digitales: requiere cantidad (número de participaciones a asignar de las disponibles).
      */
     public function validateParticipations(Request $request)
     {
-        $request->validate([
-            'desde' => 'required|integer|min:1',
-            'hasta' => 'required|integer|min:1',
+        $rules = [
             'set_id' => 'required|integer|exists:sets,id',
             'seller_id' => 'required|integer|exists:sellers,id'
-        ]);
+        ];
+        if ($request->has('cantidad') && $request->cantidad !== '' && $request->cantidad !== null) {
+            $rules['cantidad'] = 'required|integer|min:0';
+        } else {
+            $rules['desde'] = 'required|integer|min:1';
+            $rules['hasta'] = 'required|integer|min:1';
+        }
+        $request->validate($rules);
 
         try {
             if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
@@ -1819,7 +1840,52 @@ class SellerController extends Controller
                     'message' => 'Este set no tiene participaciones creadas (diseño)'
                 ]);
             }
+
+            // Asignación por cantidad: solo sets digitales (cantidad=0 solo devuelve disponibles)
+            $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+            if ($request->has('cantidad') && $request->cantidad !== '' && $request->cantidad !== null) {
+                if (!$isDigitalOnly) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Solo los sets digitales permiten asignar por cantidad.'
+                    ]);
+                }
+                $cantidad = (int) $request->cantidad;
+                // Participaciones disponibles para ASIGNAR: solo las que no están asignadas a nadie (gestor o web)
+                $disponiblesQuery = DB::table('participations')
+                    ->where('set_id', $request->set_id)
+                    ->where('status', '!=', 'anulada')
+                    ->where('status', 'disponible')
+                    ->whereNull('seller_id');
+                $totalDisponibles = (clone $disponiblesQuery)->count();
+                // cantidad=0: solo consultar disponibles (para app móvil)
+                if ($cantidad === 0) {
+                    return response()->json([
+                        'success' => true,
+                        'participations' => [],
+                        'disponibles_restantes' => $totalDisponibles,
+                    ]);
+                }
+                if ($cantidad > $totalDisponibles) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Solo hay {$totalDisponibles} participaciones disponibles. No puedes asignar {$cantidad}."
+                    ]);
+                }
+                $participations = (clone $disponiblesQuery)
+                    ->orderBy('participation_number')
+                    ->limit($cantidad)
+                    ->select('id', 'participation_number as number', 'participation_code', 'status')
+                    ->get();
+                $disponiblesRestantes = $totalDisponibles - $participations->count();
+                return response()->json([
+                    'success' => true,
+                    'participations' => $participations,
+                    'disponibles_restantes' => $disponiblesRestantes,
+                ]);
+            }
             
+            // Rango (sets físicos o mixtos)
             // Verificar que el rango solicitado existe en este set
             $minParticipation = DB::table('participations')
                 ->where('set_id', $request->set_id)
@@ -2075,7 +2141,7 @@ class SellerController extends Controller
                 abort(403, 'No tienes permisos para consultar este vendedor.');
             }
 
-            Set::forUser(auth()->user())->findOrFail($request->set_id);
+            $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
 
             $participations = DB::table('participations')
                 ->where('seller_id', $request->seller_id)
@@ -2085,10 +2151,19 @@ class SellerController extends Controller
                 ->orderBy('participation_number')
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'participations' => $participations
-            ]);
+            $payload = ['success' => true, 'participations' => $participations];
+            // Para sets digitales: incluir cantidad de participaciones disponibles (sin asignar) en el set
+            $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+            if ($isDigitalOnly) {
+                $payload['set_disponibles'] = DB::table('participations')
+                    ->where('set_id', $request->set_id)
+                    ->where('status', '!=', 'anulada')
+                    ->where('status', 'disponible')
+                    ->whereNull('seller_id')
+                    ->count();
+            }
+
+            return response()->json($payload);
 
         } catch (\Exception $e) {
             return response()->json([

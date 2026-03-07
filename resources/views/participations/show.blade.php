@@ -270,7 +270,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/22.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{ $participation->participation_code ?? 'N/A' }}" class="form-control" type="text" placeholder="1/0001" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $participation->display_participation_code ?? $participation->participation_code ?? 'N/A' }}" class="form-control" type="text" placeholder="1/0001" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>

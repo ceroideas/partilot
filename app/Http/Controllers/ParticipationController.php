@@ -91,11 +91,18 @@ class ParticipationController extends Controller
             if ($designFormat->set) {
                 $totalConfigured = (int) ($designFormat->set->total_participations ?? 0);
                 $designFormat->set_stats = $this->getSetStatusSummary((int) $designFormat->set->id, $totalConfigured);
+                // Sets digitales: cargar participaciones para mostrar directamente (taco implícito)
+                if ($designFormat->set->digital_participations > 0 && (int) ($designFormat->set->physical_participations ?? 0) === 0) {
+                    $designFormat->digital_participations_list = $this->getFormattedParticipationsForBook($designFormat->set->id, 1);
+                } else {
+                    $designFormat->digital_participations_list = null;
+                }
             } else {
                 $designFormat->set_stats = ['total' => 0, 'sold' => 0, 'returned' => 0, 'cancelled' => 0, 'available' => 0];
+                $designFormat->digital_participations_list = null;
             }
         }
-        
+
         return view('participations.add', compact('entity', 'designFormats'));
     }
 
@@ -130,8 +137,14 @@ class ParticipationController extends Controller
             if ($designFormat->set) {
                 $totalConfigured = (int) ($designFormat->set->total_participations ?? 0);
                 $designFormat->set_stats = $this->getSetStatusSummary((int) $designFormat->set->id, $totalConfigured);
+                if ($designFormat->set->digital_participations > 0 && (int) ($designFormat->set->physical_participations ?? 0) === 0) {
+                    $designFormat->digital_participations_list = $this->getFormattedParticipationsForBook($designFormat->set->id, 1);
+                } else {
+                    $designFormat->digital_participations_list = null;
+                }
             } else {
                 $designFormat->set_stats = ['total' => 0, 'sold' => 0, 'returned' => 0, 'cancelled' => 0, 'available' => 0];
+                $designFormat->digital_participations_list = null;
             }
         }
 
@@ -169,21 +182,22 @@ class ParticipationController extends Controller
         ->forUser(auth()->user())
         ->findOrFail($id);
         
-        // Buscar la referencia del ticket en el set
+        // Buscar la referencia del ticket en el set (tickets tienen n=1..N por set; participation_number puede ser global en físicos)
         $ticketReference = null;
         if ($participation->set && $participation->set->tickets) {
             $tickets = is_string($participation->set->tickets) ? json_decode($participation->set->tickets, true) : $participation->set->tickets;
-            
             if (is_array($tickets)) {
+                $minPn = $participation->set->participations()->min('participation_number');
+                $indexInSet = $minPn !== null ? ($participation->participation_number - $minPn + 1) : $participation->participation_number;
                 foreach ($tickets as $ticket) {
-                    if (isset($ticket['n']) && $ticket['n'] == $participation->participation_number) {
+                    if (isset($ticket['n']) && (int) $ticket['n'] === (int) $indexInSet) {
                         $ticketReference = $ticket['r'] ?? null;
                         break;
                     }
                 }
             }
         }
-        
+
         return view('participations.show', compact('participation', 'ticketReference'));
     }
 
@@ -226,11 +240,14 @@ class ParticipationController extends Controller
 
         // Obtener el número de participaciones por taco desde el JSON
         $output = is_string($designFormat->output) ? json_decode($designFormat->output, true) : $designFormat->output;
-        $participationsPerBook = $output['participations_per_book'] ?? 50;
-        
-        // Obtener el total de participaciones del set
         $totalParticipations = $designFormat->set->total_participations ?? 0;
-        
+        // Sets digitales: un solo "taco" (serie única), no múltiples talonarios
+        $isDigitalOnly = $designFormat->set->digital_participations > 0 && (int) ($designFormat->set->physical_participations ?? 0) === 0;
+        $participationsPerBook = $isDigitalOnly ? $totalParticipations : (int) ($output['participations_per_book'] ?? 50);
+        if ($participationsPerBook <= 0) {
+            $participationsPerBook = 50;
+        }
+
         // Calcular cuántos tacos necesitamos
         $totalBooks = ceil($totalParticipations / $participationsPerBook);
         
@@ -322,16 +339,12 @@ class ParticipationController extends Controller
     }
 
     /**
-     * Obtener el número de set basado en la fecha de creación
+     * Número de set para mostrar en tacos/participaciones.
+     * Usar el set_number del modelo (solo los físicos cuentan 1,2,3...; los digitales muestran 1).
      */
     private function getSetNumber($set)
     {
-        // Contar cuántos sets hay para la misma reserva, ordenados por fecha de creación
-        $setNumber = \App\Models\Set::where('reserve_id', $set->reserve_id)
-            ->where('created_at', '<=', $set->created_at)
-            ->count();
-        
-        return $setNumber;
+        return (int) ($set->set_number ?? 1);
     }
 
     /**
@@ -371,12 +384,12 @@ class ParticipationController extends Controller
             ->orderBy('participation_number')
             ->get();
         
-                 // Formatear las participaciones para la vista
+                 // Formatear las participaciones para la vista (display_participation_code: 1D/00001 → 1/00001)
          $formattedParticipations = [];
          foreach ($participations as $participation) {
              $formattedParticipations[] = [
                  'id' => $participation->id,
-                 'participation_number' => $participation->participation_code,
+                 'participation_number' => $participation->display_participation_code,
                  'status' => $participation->status_text,
                  'seller' => $participation->seller ? $participation->seller->full_name : 'Sin asignar',
                  'sale_date' => $participation->sale_date ? $participation->sale_date->format('d/m/Y') : '-',
@@ -388,6 +401,29 @@ class ParticipationController extends Controller
             'book' => $book,
             'participations' => $formattedParticipations
         ]);
+    }
+
+    /**
+     * Lista formateada de participaciones de un set/book (para vista server-side, p. ej. sets digitales).
+     */
+    private function getFormattedParticipationsForBook($set_id, $book_number)
+    {
+        $participations = \App\Models\Participation::where('set_id', $set_id)
+            ->where('book_number', $book_number)
+            ->with(['seller.user'])
+            ->orderBy('participation_number')
+            ->get();
+
+        return $participations->map(function ($participation) {
+            return [
+                'id' => $participation->id,
+                'participation_number' => $participation->display_participation_code,
+                'status' => $participation->status_text ?? $participation->status,
+                'seller' => $participation->seller ? $participation->seller->full_name : 'Sin asignar',
+                'sale_date' => $participation->sale_date ? $participation->sale_date->format('d/m/Y') : '-',
+                'sale_time' => $participation->sale_time ? $participation->sale_time->format('H:i') . 'h' : '-',
+            ];
+        })->values()->all();
     }
 
     /**
@@ -747,7 +783,7 @@ class ParticipationController extends Controller
                 'message' => 'Participación marcada como vendida.',
                 'participation' => [
                     'id' => $participation->id,
-                    'participation_code' => $participation->participation_code,
+                    'participation_code' => $participation->display_participation_code,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -860,7 +896,7 @@ class ParticipationController extends Controller
             'message' => 'Participación digitalizada correctamente.',
             'participation' => [
                 'id' => $participation->id,
-                'participation_code' => $participation->participation_code,
+                'participation_code' => $participation->display_participation_code,
                 'numero' => $participation->participation_number,
                 'referencia' => $request->referencia,
                 'entity_name' => $entity ? $entity->name : '—',
@@ -958,13 +994,15 @@ class ParticipationController extends Controller
                 }
             }
 
-            // Obtener número de referencia desde set.tickets
+            // Obtener número de referencia desde set.tickets (n en tickets es 1..N por set; participation_number puede ser global)
             $numeroReferencia = null;
             if ($set->tickets) {
                 $tickets = is_array($set->tickets) ? $set->tickets : json_decode($set->tickets, true);
                 if (is_array($tickets)) {
+                    $minPn = $set->participations()->min('participation_number');
+                    $indexInSet = $minPn !== null ? ($p->participation_number - $minPn + 1) : $p->participation_number;
                     foreach ($tickets as $ticket) {
-                        if (isset($ticket['n']) && $ticket['n'] == $p->participation_number) {
+                        if (isset($ticket['n']) && (int) $ticket['n'] === (int) $indexInSet) {
                             $numeroReferencia = $ticket['r'] ?? null;
                             break;
                         }
@@ -1003,7 +1041,7 @@ class ParticipationController extends Controller
                     'importeJugado' => $importeJugado,
                     'donativo' => $donativo > 0 ? $donativo : null,
                     'importeTotal' => $importeTotal,
-                    'numeroParticipacion' => $p->participation_code ?? $p->participation_number . '/' . str_pad($p->participation_number, 4, '0', STR_PAD_LEFT),
+                    'numeroParticipacion' => $p->display_participation_code ?? $p->participation_code ?? $p->participation_number . '/' . str_pad($p->participation_number, 4, '0', STR_PAD_LEFT),
                     'numeroReferencia' => $numeroReferencia ?? str_pad((string) $p->id, 19, '0', STR_PAD_LEFT),
                     'snapshotPath' => $snapshotPath,
                 ],
@@ -1126,8 +1164,10 @@ class ParticipationController extends Controller
         if ($set->tickets) {
             $tickets = is_array($set->tickets) ? $set->tickets : json_decode($set->tickets, true);
             if (is_array($tickets)) {
+                $minPn = $set->participations()->min('participation_number');
+                $indexInSet = $minPn !== null ? ($participation->participation_number - $minPn + 1) : $participation->participation_number;
                 foreach ($tickets as $ticket) {
-                    if (isset($ticket['n']) && $ticket['n'] == $participation->participation_number) {
+                    if (isset($ticket['n']) && (int) $ticket['n'] === (int) $indexInSet) {
                         $numeroReferencia = $ticket['r'] ?? $referencia;
                         break;
                     }
@@ -1149,7 +1189,7 @@ class ParticipationController extends Controller
             'importeJugado' => $importeJugado,
             'donativo' => $donativo,
             'importeTotal' => $importeTotal,
-            'numeroParticipacion' => $participation->participation_code ?? ($participation->participation_number . '/0001'),
+            'numeroParticipacion' => $participation->display_participation_code ?? $participation->participation_code ?? ($participation->participation_number . '/0001'),
             'numeroReferencia' => $numeroReferencia,
             'snapshot_path' => $snapshotPath,
         ];
@@ -2194,7 +2234,7 @@ class ParticipationController extends Controller
             }
             $out[] = [
                 'id' => $p->id,
-                'participation_code' => $p->participation_code,
+                'participation_code' => $p->display_participation_code,
                 'participation_number' => $p->participation_number,
                 'set_id' => $p->set_id,
                 'set_name' => $p->set->set_name ?? ('Set ' . ($p->set->set_number ?? '')),

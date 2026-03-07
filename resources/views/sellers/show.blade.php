@@ -620,8 +620,8 @@
                                                 <br>
 
                                                 <div class="row">
-                                                    <!-- Sección: Participaciones Por Rango -->
-                                                    <div class="col-md-12 mb-3">
+                                                    <!-- Bloque asignación física: por rango y por unidad (solo sets físicos) -->
+                                                    <div id="bloque-asignacion-fisica" class="col-md-12 mb-3">
                                                         <div class="form-card bs">
                                                             <div class="d-flex align-items-center p-3">
                                                                 <div class="me-3">
@@ -664,6 +664,37 @@
                                                                      </div>
                                                                      <div style="width: 50%;">
                                                                          <button type="button" class="btn btn-warning w-100" id="btn-asignar-participacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">
+                                                                            Asignar
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Bloque asignación digital: solo cantidad (solo sets digitales) -->
+                                                    <div id="bloque-cantidad-digital" class="col-md-12 mb-3" style="display: none;">
+                                                        <div class="form-card bs">
+                                                            <div class="d-flex align-items-center p-3">
+                                                                <div class="me-3">
+                                                                    <img src="{{url('icons_/participaciones.svg')}}" alt="" width="40px">
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <h4 class="m-0 fw-bold">Participaciones digitales</h4>
+                                                                    <small class="text-muted">Cantidad a asignar</small>
+                                                                </div>
+                                                                <div class="d-flex gap-2 align-items-end flex-wrap" style="width: 70%;">
+                                                                    <div class="flex-fill">
+                                                                        <label class="form-label small mb-1">Cantidad</label>
+                                                                        <div class="input-group input-group-merge group-form">
+                                                                            <input type="number" class="form-control" id="cantidad-digital" min="1" placeholder="Ej: 10, 20" style="border-radius: 30px;">
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="d-flex align-items-center">
+                                                                        <span class="text-muted me-2">Disponibles:</span>
+                                                                        <span id="disponibles-digital" class="fw-bold">0</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <button type="button" class="btn btn-warning" id="btn-asignar-cantidad-digital" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">
                                                                             Asignar
                                                                         </button>
                                                                     </div>
@@ -1119,6 +1150,7 @@ function initDatatable()
     let setSeleccionado = null;
     let participacionesAsignadas = [];
     let participacionesDisponibles = [];
+    let disponiblesDigitalSet = 0; // Para sets digitales: cantidad disponible en el set
     
     // Inicializar DataTables para las tablas de reservas y sets
     let tablaReservas = null;
@@ -1282,6 +1314,7 @@ function initDatatable()
             let datosSets = [];
             
             response.sets.forEach(set => {
+              const isDigital = (set.digital_participations > 0) && (!set.physical_participations || set.physical_participations === 0);
               datosSets.push([
                 `#SP${String(set.id).padStart(4, '0')}`,
                 set.set_name,
@@ -1291,7 +1324,7 @@ function initDatatable()
                 set.physical_participations || 0,
                 set.total_participations || 0,
                 `<div class="form-check">
-                   <input class="form-check-input seleccionar-set" type="radio" name="set_id" value="${set.id}" id="set_${set.id}" data-set-id="${set.id}">
+                   <input class="form-check-input seleccionar-set" type="radio" name="set_id" value="${set.id}" id="set_${set.id}" data-set-id="${set.id}" data-digital="${isDigital ? '1' : '0'}">
                    <label class="form-check-label" for="set_${set.id}">
                      Seleccionar
                    </label>
@@ -1368,22 +1401,26 @@ function initDatatable()
     $(document).on('change', '.seleccionar-set', function() {
       console.log('Set seleccionado (change)');
       const setId = $(this).data('set-id');
-      setSeleccionado = { id: setId };
-      console.log('Set seleccionado ID:', setId);
-      // Habilitar el botón siguiente
+      const isDigital = $(this).data('digital') === 1;
+      setSeleccionado = { id: setId, is_digital: isDigital };
+      console.log('Set seleccionado ID:', setId, 'digital:', isDigital);
       $('#btn-siguiente-sets').prop('disabled', false);
-      console.log('Botón siguiente sets habilitado');
     });
     
     // Botón siguiente para ir a asignación
     $(document).on('click', '#btn-siguiente-sets', function() {
-      console.log('Botón siguiente sets clickeado');
       if (setSeleccionado) {
-         // Limpiar participaciones asignadas al cambiar de set
          participacionesAsignadas = [];
-         // Cargar participaciones del set seleccionado
          cargarParticipacionesExistentes();
-        mostrarPaso('paso-asignacion');
+         mostrarPaso('paso-asignacion');
+         // Mostrar bloque según tipo de set (físico: rango/unidad; digital: cantidad)
+         if (setSeleccionado.is_digital) {
+           $('#bloque-asignacion-fisica').hide();
+           $('#bloque-cantidad-digital').show();
+         } else {
+           $('#bloque-asignacion-fisica').show();
+           $('#bloque-cantidad-digital').hide();
+         }
       }
     });
     
@@ -1416,19 +1453,20 @@ function initDatatable()
           },
           success: function(response) {
             if (response.success && response.participations) {
-              // Convertir las participaciones existentes al formato que usa la aplicación
               participacionesAsignadas = response.participations.map(participation => ({
                 id: participation.id,
                 number: participation.number,
                 participation_code: participation.participation_code,
                 set_id: participation.set_id,
-                assigned_at: participation.sale_date + 'T' + participation.sale_time,
-                updated_at: participation.updated_at,  // Agregar updated_at
-                created_at: participation.created_at   // Agregar created_at
+                assigned_at: participation.sale_date ? (participation.sale_date + 'T' + (participation.sale_time || '00:00:00')) : null,
+                updated_at: participation.updated_at,
+                created_at: participation.created_at
               }));
-              
-              // Actualizar el resumen con las participaciones existentes
               actualizarResumenAsignacion();
+            }
+            if (setSeleccionado && setSeleccionado.is_digital && response.set_disponibles !== undefined) {
+              disponiblesDigitalSet = response.set_disponibles;
+              $('#disponibles-digital').text(disponiblesDigitalSet);
             }
           },
           error: function(xhr, status, error) {
@@ -1460,6 +1498,33 @@ function initDatatable()
            },
            error: function(xhr, status, error) {
              reject('Error de conexión: ' + error);
+           }
+         });
+       });
+     }
+
+     // Validar y obtener N participaciones disponibles (solo sets digitales)
+     function validarParticipacionesDisponiblesCantidad(cantidad) {
+       return new Promise((resolve, reject) => {
+         $.ajax({
+           url: '{{ route("sellers.validate-participations") }}',
+           method: 'POST',
+           data: {
+             cantidad: cantidad,
+             set_id: setSeleccionado.id,
+             seller_id: {{ $seller->id }},
+             _token: '{{ csrf_token() }}'
+           },
+           success: function(response) {
+             if (response.success) {
+               participacionesDisponibles = response.participations || [];
+               resolve(response);
+             } else {
+               reject(response.message || 'Error al validar participaciones');
+             }
+           },
+           error: function(xhr, status, error) {
+             reject(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error de conexión: ' + error);
            }
          });
        });
@@ -1714,6 +1779,54 @@ function initDatatable()
        }
      });
 
+     // Asignar por cantidad (solo sets digitales)
+     $(document).on('click', '#btn-asignar-cantidad-digital', function() {
+       if (!setSeleccionado || !setSeleccionado.is_digital) return;
+       const cantidad = parseInt($('#cantidad-digital').val(), 10);
+       if (!cantidad || cantidad < 1) {
+         alert('Indica la cantidad de participaciones a asignar (mínimo 1).');
+         return;
+       }
+       if (cantidad > disponiblesDigitalSet) {
+         alert('La cantidad no puede ser mayor que las disponibles (' + disponiblesDigitalSet + ').');
+         return;
+       }
+       $('#btn-asignar-cantidad-digital').prop('disabled', true).text('Validando...');
+       validarParticipacionesDisponiblesCantidad(cantidad)
+         .then(function(response) {
+           if (response.participations && response.participations.length > 0) {
+             response.participations.forEach(function(participation) {
+               var existente = participacionesAsignadas.find(function(p) { return p.id === participation.id; });
+               if (!existente) {
+                 participacionesAsignadas.push({
+                   id: participation.id,
+                   number: participation.number,
+                   participation_code: participation.participation_code,
+                   set_id: setSeleccionado.id,
+                   assigned_at: new Date().toISOString(),
+                   updated_at: new Date().toISOString()
+                 });
+               }
+             });
+             if (response.disponibles_restantes !== undefined) {
+               disponiblesDigitalSet = response.disponibles_restantes;
+               $('#disponibles-digital').text(disponiblesDigitalSet);
+             }
+             actualizarResumenAsignacion();
+             mostrarMensaje('Participaciones asignadas correctamente', 'success');
+             $('#cantidad-digital').val('');
+           } else {
+             mostrarMensaje('No se obtuvieron participaciones', 'warning');
+           }
+         })
+         .catch(function(error) {
+           mostrarMensaje(error, 'error');
+         })
+         .always(function() {
+           $('#btn-asignar-cantidad-digital').prop('disabled', false).text('Asignar');
+         });
+     });
+
            // Event listener para terminar asignación
       $(document).on('click', '#btn-terminar-asignacion', function() {
         if (participacionesAsignadas.length === 0) {
@@ -1882,7 +1995,7 @@ function initDatatable()
               let setsProcessed = 0;
               
               response.sets.forEach(set => {
-                // Obtener las participaciones asignadas del vendedor para este set
+                const isDigital = (set.digital_participations > 0) && (!set.physical_participations || set.physical_participations === 0);
                 $.ajax({
                   url: '{{ route("sellers.get-assigned-participations") }}',
                   method: 'POST',
@@ -1893,17 +2006,16 @@ function initDatatable()
                   },
                   success: function(participationsResponse) {
                     setsProcessed++;
-                    
                     if (participationsResponse.success && participationsResponse.participations.length > 0) {
-                      // Calcular tacos basándose en las participaciones asignadas
-                      const tacos = calcularTacos(participationsResponse.participations, set);
-                      
-                      if (tacos.length > 0) {
-                        html += generarHTMLTacos(tacos, set);
+                      if (isDigital) {
+                        html += generarHTMLSetDigital(set, participationsResponse.participations);
+                      } else {
+                        const tacos = calcularTacos(participationsResponse.participations, set);
+                        if (tacos.length > 0) {
+                          html += generarHTMLTacos(tacos, set);
+                        }
                       }
                     }
-                    
-                    // Si todos los sets han sido procesados, mostrar el resultado
                     if (setsProcessed === response.sets.length) {
                       if (html) {
                         $('#contenedor-tacos').html(html);
@@ -1967,6 +2079,66 @@ function initDatatable()
        });
        
        return Array.from(tacos.values());
+     }
+
+     // Función para generar HTML de un set digital (serie completa, con desplegable como los tacos físicos)
+     function generarHTMLSetDigital(set, participations) {
+       const setNombre = set.set_name || ('Set #' + set.id);
+       let salesRegistered = 0, returnedParticipations = 0, availableParticipations = 0;
+       participations.forEach(p => {
+         if (p.status === 'vendida' || p.status === 'pagada') salesRegistered++;
+         else if (p.status === 'devuelta') returnedParticipations++;
+         else availableParticipations++;
+       });
+       const participationsJson = JSON.stringify(participations).replace(/'/g, '&#39;');
+       return `
+         <div class="form-card bs mb-2" style="margin: 5px;">
+           <table class="table table-striped table-condensed table nowrap w-100 mb-0">
+             <thead>
+               <tr style="font-size: 10px;">
+                 <th>Set</th>
+                 <th>Participaciones</th>
+                 <th>Nº Participaciones</th>
+                 <th>Ventas Registradas</th>
+                 <th>Participaciones Devueltas</th>
+                 <th>Participaciones Disponibles</th>
+                 <th></th>
+               </tr>
+               <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                 <td><strong>Set digital</strong> – ${setNombre}</td>
+                 <td>${participations.length}</td>
+                 <td>Serie completa</td>
+                 <td>${salesRegistered}</td>
+                 <td>${returnedParticipations}</td>
+                 <td>${availableParticipations}</td>
+                 <td>
+                   <a class="btn btn-sm btn-light show-details-taco" href="#" data-set-id="${set.id}" data-book-number="digital" data-participations='${participationsJson}'><img src="{{ url('assets/form-groups/eye.svg') }}" alt="" width="12"></a>
+                 </td>
+               </tr>
+             </thead>
+           </table>
+           <div class="part-information" style="height: 0px; overflow: hidden; transition: height 0.5s ease;">
+             <div style="height: 250px; overflow: auto;" id="list-participations-taco-${set.id}-digital" class="">
+               <table class="table table-striped table-condensed table nowrap w-100 mb-0">
+                 <thead>
+                   <tr style="font-size: 10px;">
+                     <th rowspan="2" style="border-color: transparent; width: 80px;"></th>
+                     <th>Nº Participación</th>
+                     <th>Estado</th>
+                     <th>Vendedor</th>
+                     <th>Fecha Venta</th>
+                     <th>Hora Venta</th>
+                     <th></th>
+                   </tr>
+                   <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                     <td></td><td></td><td></td><td></td><td></td><td></td>
+                   </tr>
+                 </thead>
+                 <tbody id="participations-body-${set.id}-digital"></tbody>
+               </table>
+             </div>
+           </div>
+         </div>`;
      }
 
            // Función para generar HTML de los tacos

@@ -90,7 +90,11 @@ class GenerateParticipations extends Command
 
             // Obtener participaciones por taco desde el designFormat
             $output = is_string($designFormat->output) ? json_decode($designFormat->output, true) : $designFormat->output;
-            $participationsPerBook = $output['participations_per_book'] ?? 50;
+            $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+            $participationsPerBook = $isDigitalOnly ? $totalParticipationsSet : (int) ($output['participations_per_book'] ?? 50);
+            if ($participationsPerBook <= 0) {
+                $participationsPerBook = 50;
+            }
 
             $this->info("  Total participaciones: {$totalParticipationsSet}");
             $this->info("  Participaciones por taco: {$participationsPerBook}");
@@ -112,8 +116,11 @@ class GenerateParticipations extends Command
                 // Calcular el número global de participación
                 $globalParticipationNumber = $globalStartNumber + $participationNumber - 1;
                 
-                // Generar código de participación con numeración global
-                $participationCode = sprintf('%d/%05d', $setNumber, $globalParticipationNumber);
+                if ($isDigitalOnly) {
+                    $participationCode = '1D/' . sprintf('%05d', $participationNumber);
+                } else {
+                    $participationCode = sprintf('%d/%05d', $setNumber, $globalParticipationNumber);
+                }
 
                 $participationsToCreate[] = [
                     'entity_id' => $set->entity_id,
@@ -158,15 +165,10 @@ class GenerateParticipations extends Command
     }
 
     /**
-     * Obtener el número de set basado en la fecha de creación
+     * Número de set para códigos (usar set_number del modelo: solo físicos 1,2,3...; digital 1).
      */
     private function getSetNumber($set)
     {
-        // Contar cuántos sets hay para la misma reserva, ordenados por fecha de creación
-        $setNumber = Set::where('reserve_id', $set->reserve_id)
-            ->where('created_at', '<=', $set->created_at)
-            ->count();
-        
-        return $setNumber;
+        return (int) ($set->set_number ?? 1);
     }
 }

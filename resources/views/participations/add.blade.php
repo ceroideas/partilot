@@ -263,7 +263,7 @@
                                                                 <td>20/10/2025</td>
                                                                 <td>21:00h</td>
                                                                 <td>
-                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light" target="_blank"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                                                 </td>
                                                             </tr>
                                                         </thead>
@@ -292,7 +292,7 @@
                                                                 <td>20/10/2025</td>
                                                                 <td>21:00h</td>
                                                                 <td>
-                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light" target="_blank"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                                                 </td>
                                                             </tr>
                                                         </thead>
@@ -321,7 +321,7 @@
                                                                 <td>20/10/2025</td>
                                                                 <td>21:00h</td>
                                                                 <td>
-                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                                                                    <a href="{{url('participations/view',1)}}" class="btn btn-sm btn-light" target="_blank"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
                                                                 </td>
                                                             </tr>
                                                         </thead>
@@ -334,7 +334,49 @@
 
                                                                                  <div style="height: 250px; overflow: auto;" id="list-participations" class="">
                                              
-                                             @if(isset($designFormat->books) && count($designFormat->books) > 0)
+                                             @php
+                                                 $isDigitalSet = $designFormat->set && $designFormat->set->digital_participations > 0 && (int)($designFormat->set->physical_participations ?? 0) === 0;
+                                             @endphp
+                                             @if($isDigitalSet)
+                                                 {{-- Set digital: solo lista de participaciones (taco implícito) --}}
+                                                 @if(!empty($designFormat->digital_participations_list))
+                                                     <div class="row"><div class="col-10 offset-2">
+                                                     @foreach($designFormat->digital_participations_list as $participation)
+                                                         <table class="table table-striped table-condensed table nowrap w-100 mb-0">
+                                                             <thead>
+                                                                 <tr style="font-size: 10px;">
+                                                                     <th rowspan="2" style="border-color: transparent; width: 100px">
+                                                                         <div style="background-color: #333; padding: 20px 10px; border-radius: 12px; text-align: center;">
+                                                                             <img src="{{ url('assets/ticket.svg') }}" alt="" width="50px">
+                                                                         </div>
+                                                                     </th>
+                                                                     <th>Nº Participación</th>
+                                                                     <th>Estado</th>
+                                                                     <th>Vendedor</th>
+                                                                     <th>Fecha Venta</th>
+                                                                     <th>Hora Venta</th>
+                                                                     <th></th>
+                                                                 </tr>
+                                                                 <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">
+                                                                     <td>{{ $participation['participation_number'] }}</td>
+                                                                     <td><label class="badge bg-success">{{ $participation['status'] }}</label></td>
+                                                                     <td>{{ $participation['seller'] }}</td>
+                                                                     <td>{{ $participation['sale_date'] }}</td>
+                                                                     <td>{{ $participation['sale_time'] }}</td>
+                                                                     <td>
+                                                                         <a target="_blank" href="{{ url('participations/view/' . $participation['id']) }}" class="btn btn-sm btn-light" title="Ver detalle"><img src="{{ url('assets/form-groups/eye.svg') }}" alt="" width="12"></a>
+                                                                     </td>
+                                                                 </tr>
+                                                             </thead>
+                                                         </table>
+                                                     @endforeach
+                                                     </div></div>
+                                                 @else
+                                                     <div class="text-center p-4">
+                                                         <p class="text-muted mb-0"><i>Set digital. Aún no hay participaciones generadas.</i></p>
+                                                     </div>
+                                                 @endif
+                                             @elseif(isset($designFormat->books) && count($designFormat->books) > 0)
                                                  @foreach($designFormat->books as $book)
                                                      <table id="" class="table table-striped table-condensed table nowrap w-100 mb-0">
                                                          <thead>
@@ -605,7 +647,7 @@
                                    '<td>' + participation.sale_date + '</td>' +
                                    '<td>' + participation.sale_time + '</td>' +
                                    '<td>' +
-                                       '<a href="{{url('/')}}/participations/view/' + participation.id + '" class="btn btn-sm btn-light"><img src="{{url('/')}}/assets/form-groups/eye.svg" alt="" width="12"></a>' +
+                                       '<a href="{{url('/')}}/participations/view/' + participation.id + '" class="btn btn-sm btn-light" target="_blank"><img src="{{url('/')}}/assets/form-groups/eye.svg" alt="" width="12"></a>' +
                                    '</td>' +
                                '</tr>' +
                            '</thead>' +

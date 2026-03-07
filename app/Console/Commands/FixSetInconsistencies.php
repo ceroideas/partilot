@@ -75,19 +75,18 @@ class FixSetInconsistencies extends Command
             $sets = Set::where('reserve_id', $reserve->id)
                 ->orderBy('created_at')
                 ->get();
-                
-            $expectedNumber = 1;
-            
+
+            $physicalNumber = 0;
             foreach ($sets as $set) {
+                $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+                $expectedNumber = $isDigitalOnly ? 1 : ++$physicalNumber;
                 if ($set->set_number != $expectedNumber) {
                     $this->warn("  Set ID {$set->id}: Número actual {$set->set_number}, esperado {$expectedNumber}");
-                    
                     if (!$dryRun) {
                         $set->update(['set_number' => $expectedNumber]);
                         $fixedCount++;
                     }
                 }
-                $expectedNumber++;
             }
         }
         
@@ -173,15 +172,16 @@ class FixSetInconsistencies extends Command
         $fixedCount = 0;
         
         foreach ($sets as $set) {
-            $setNumber = $set->set_number;
-            $participations = $set->participations;
-            
+            $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+            $participations = $set->participations->sortBy('participation_number')->values();
             foreach ($participations as $index => $participation) {
-                $expectedCode = sprintf('%d/%05d', $setNumber, $index + 1);
-                
+                if ($isDigitalOnly) {
+                    $expectedCode = '1D/' . sprintf('%05d', $index + 1);
+                } else {
+                    $expectedCode = sprintf('%d/%05d', $set->set_number, $participation->participation_number);
+                }
                 if ($participation->participation_code != $expectedCode) {
                     $this->warn("  Participación ID {$participation->id}: Código actual '{$participation->participation_code}', esperado '{$expectedCode}'");
-                    
                     if (!$dryRun) {
                         $participation->update(['participation_code' => $expectedCode]);
                         $fixedCount++;

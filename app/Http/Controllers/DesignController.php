@@ -216,6 +216,13 @@ class DesignController extends Controller
         $data['output'] = $data['blocks']['output'];
         $data['margins'] = $data['blocks']['margins'];
         $data['snapshot_path'] = $data['snapshot_path'] ?? null;
+
+        // Sets digitales: un solo "taco" (serie 1..N), no múltiples talonarios
+        $set = \App\Models\Set::find($data['set_id'] ?? null);
+        if ($set && $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0) {
+            $data['output']['participations_per_book'] = (int) $set->total_participations;
+        }
+
         // Tarea 1 tacos: generar taco_qrs (un QR por taco) para venta por QR de taco completo
         $data['output'] = DesignFormat::mergeTacoQrsIntoOutput($data['set_id'] ?? null, $data['output'] ?? []);
 
@@ -875,6 +882,11 @@ class DesignController extends Controller
                 if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
                 if (isset($data['output'])) {
                     $format->output = $data['output'];
+                    // Sets digitales: un solo taco (serie 1..N)
+                    $set = $format->set;
+                    if ($set && $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0) {
+                        $format->output['participations_per_book'] = (int) $set->total_participations;
+                    }
                     // Tarea 1 tacos: regenerar taco_qrs al guardar output (participations_per_book puede haber cambiado)
                     $format->output = DesignFormat::mergeTacoQrsIntoOutput($format->set_id, $format->output ?? []);
                 }

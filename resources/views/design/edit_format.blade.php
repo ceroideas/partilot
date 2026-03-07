@@ -514,6 +514,7 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        @if(!$set->digital_participations || ($set->physical_participations ?? 0) > 0)
                                         <h4 class="mb-0 mt-1">Participaciones por talonario</h4>
                                         <small><i>Elige la cantidad de participaciones por talonario</i></small>
                                         <div class="row mb-3">
@@ -523,6 +524,10 @@
                                             </div>
                                         </div>
                                         <br>
+                                        @else
+                                        <p class="text-muted mb-3"><i>Set digital: una sola serie (no hay talonarios).</i></p>
+                                        <input type="hidden" name="participations_per_book" id="participation_number" value="{{ $set->total_participations ?? 1 }}">
+                                        @endif
                                         <h4 class="mb-0 mt-1">Participaciones a generar</h4>
                                         <div class="form-group mb-3">
                                             <div class="form-check form-switch mt-3">
