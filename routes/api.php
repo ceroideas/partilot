@@ -14,6 +14,7 @@ use App\Http\Controllers\DevolutionsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\EntityController;
 use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\ScrutinyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +74,9 @@ Route::get('/notifications/firebase-config', [NotificationController::class, 'ge
 
 // Resultados de lotería (públicos, para pestaña Sorteos en app)
 Route::get('/lottery/results', [LotteryController::class, 'apiGetAllResults']);
+
+// Comprobar número (app móvil: escrutinio de un número)
+Route::post('/scrutiny/generate', [ScrutinyController::class, 'generateScrutiny']);
 
 // ============================================================================
 // RUTAS DE AUTENTICACIÓN

@@ -38,7 +38,8 @@ class ScrutinyController extends Controller
             'per_page' => 'nullable|integer|min:1|max:1000',
             'start_range' => 'nullable|integer|min:0|max:99999',
             'end_range' => 'nullable|integer|min:0|max:99999',
-            'sort_order' => 'nullable|in:asc,desc'
+            'sort_order' => 'nullable|in:asc,desc',
+            'premio_al_decimo' => 'nullable|boolean'
         ]);
 
         $lottery = Lottery::with(['lotteryType', 'result'])->findOrFail($request->lottery_id);
@@ -87,6 +88,17 @@ class ScrutinyController extends Controller
         $total = count($scrutinyResults);
         $offset = ($page - 1) * $perPage;
         $paginatedResults = array_slice($scrutinyResults, $offset, $perPage);
+
+        // Si se pide premio al décimo (1/10 del premio a la serie), convertir importes
+        if ($request->boolean('premio_al_decimo')) {
+            foreach ($paginatedResults as &$result) {
+                $result['total_prize'] = round($result['total_prize'] / 10, 2);
+                foreach ($result['prizes'] as &$prize) {
+                    $prize['amount'] = round($prize['amount'] / 10, 2);
+                }
+            }
+            unset($result, $prize);
+        }
         
         \Log::info("=== TOTAL PREMIOS CALCULADO: {$totalPrizes} ===");
         
