@@ -12,6 +12,33 @@ class ApiController extends Controller
 {
     public function test()
     {
+        Schema::create('design_external_invitations', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('entity_id');
+            $table->unsignedBigInteger('lottery_id');
+            $table->unsignedBigInteger('set_id');
+            $table->unsignedBigInteger('created_by_user_id');
+            $table->text('comment')->nullable();
+            $table->string('email');
+            $table->string('token', 64)->unique();
+            $table->string('status', 20)->default('pending'); // pending, sent, in_progress, completed
+            $table->timestamp('sent_at')->nullable();
+            $table->unsignedBigInteger('design_format_id')->nullable(); // cuando el invitado guarda el diseño
+            $table->string('orden_id', 32)->nullable(); // ej. #EN9802 para listado
+            $table->timestamps();
+        });
+
+        Schema::create('design_external_invitation_files', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('design_external_invitation_id');
+            $table->string('path');
+            $table->string('original_name')->nullable();
+            $table->timestamps();
+
+            $table->foreign('design_external_invitation_id', 'deif_invitation_fk')
+                ->references('id')->on('design_external_invitations')->onDelete('cascade');
+        });
+        
         // DB::statement("ALTER TABLE participations MODIFY COLUMN status ENUM('disponible', 'reservada', 'vendida', 'devuelta', 'anulada', 'perdida', 'asignada', 'pagada') DEFAULT 'disponible'");
 
         // DB::statement("ALTER TABLE participation_activity_logs MODIFY COLUMN activity_type ENUM(

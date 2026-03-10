@@ -41,40 +41,6 @@
     }
 @endphp
 
-@if(isset($design) && $design)
-@php
-    $blocks = is_array($design->blocks ?? null) ? $design->blocks : [];
-    $loadParticipation = $design->participation_html ?? ($blocks['participation_html'] ?? null);
-    $loadCover = $design->cover_html ?? ($blocks['cover_html'] ?? null);
-    $loadBack = $design->back_html ?? ($blocks['back_html'] ?? null);
-@endphp
-<script>
-window.__designId = {{ $design->id }};
-window.__designLoad = {!! json_encode([
-    'format' => $design->format,
-    'page' => $design->page,
-    'rows' => $design->rows,
-    'cols' => $design->cols,
-    'orientation' => $design->orientation,
-    'margin_up' => $design->margin_up,
-    'margin_right' => $design->margin_right,
-    'margin_left' => $design->margin_left,
-    'margin_top' => $design->margin_top,
-    'identation' => $design->identation,
-    'matrix_box' => $design->matrix_box,
-    'margin_custom' => $design->margin_custom,
-    'page_rigth' => $design->page_rigth,
-    'page_bottom' => $design->page_bottom,
-    'participation_html' => $loadParticipation,
-    'cover_html' => $loadCover,
-    'back_html' => $loadBack,
-    'backgrounds' => $design->backgrounds,
-]) !!};
-</script>
-@else
-<script> window.__designId = null; window.__designLoad = null; </script>
-@endif
-
 <style>
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
@@ -111,19 +77,6 @@ window.__designLoad = {!! json_encode([
     }
     .elements.element-critical {
         z-index: 10000 !important;
-    }
-    /* Área de arrastre: span del QR y primer span de texto ocupan el elemento para handle: 'span' */
-    .elements.qr > span {
-        display: block;
-        width: 100%;
-        height: 100%;
-        min-width: 100%;
-        min-height: 100%;
-    }
-    .elements.text > span:first-child {
-        display: block;
-        min-height: 100%;
-        min-width: 1px;
     }
 
     .format-box-btn .btn i {
@@ -216,7 +169,6 @@ window.__designLoad = {!! json_encode([
 
                             </div>
 
-                            @if(!($isDigitalSet ?? false))
                             <div class="form-wizard-element" style="width: 200px;" id="bc-step-3">
                                 
                                 <span style="top: -4px; margin-right: 8px;">
@@ -252,7 +204,6 @@ window.__designLoad = {!! json_encode([
                                 </label>
 
                             </div>
-                            @endif
                             
                         </div>
 
@@ -503,12 +454,11 @@ window.__designLoad = {!! json_encode([
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                {{-- Tarea 6: barra centrada y que no se salga del ancho de pantalla --}}
-                                <div class="format-box-btn" style="max-width: 100%; width: 270mm; height: 54px; margin: auto; padding: 0 10px; box-sizing: border-box;">
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group format-btn-group" style="max-width: 100%; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="2"><i class="ri-zoom-out-line"></i></button>
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="2"><i class="ri-zoom-in-line"></i></button>
                                         <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -541,19 +491,17 @@ window.__designLoad = {!! json_encode([
                                 </div>
                                 <div class="design-zoom-scroll">
                                     <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
-                                        @php
-                                            $matrixBoxMm = (isset($design) && $design) ? (float)($design->matrix_box ?? 40) : 40;
-                                        @endphp
-                                        @if($isDigitalSet ?? false)
-                                        {{-- En digital: contenedor con ancho solo de la participación (sin matriz); .format-box se alinea a la derecha para que la matriz quede fuera --}}
-                                        <div class="format-box-digital-wrap" style="width: calc(200mm - {{ $matrixBoxMm }}mm); height: 92mm; margin: auto; position: relative; overflow: hidden;">
-                                        @endif
-                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; @if($isDigitalSet ?? false) right: {{ $matrixBoxMm }}mm; @endif margin: auto; position: relative;">
-                                        {{-- Guías de márgenes y matriz --}}
+                                        <div class="format-box" style="border:1px solid #c8c8c8; width: 200mm; height: 92mm; margin: auto; position: relative;">
+
+                                        {{-- margen izquierdo --}}
                                         <div class="margen-izquierdo guide2" style="opacity: 1; z-index:1;position: absolute; height: 100%; border-left: 1px solid purple; left: 2.5mm;"></div>
+                                        {{-- margen arriba --}}
                                         <div class="margen-arriba guide2" style="opacity: 1; z-index:1;position: absolute; width: 100%; border-top: 1px solid purple; top: 2.5mm;"></div>
+                                        {{-- margen derecho --}}
                                         <div class="margen-derecho guide2" style="opacity: 1; z-index:1;position: absolute; height: 100%; border-right: 1px solid purple; right: 2.5mm;"></div>
+                                        {{-- margen abajo --}}
                                         <div class="margen-abajo guide2" style="opacity: 1; z-index:1;position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
+                                        {{-- caja matriz --}}
                                         <div class="caja-matriz guide2" style="opacity: 1; z-index:1;position: absolute; width: 40mm; border-right: 1px solid purple; height: 100%; left: 2.5mm;"></div>
 
                                         <div id="containment-wrapper2" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;"> 
@@ -617,19 +565,12 @@ window.__designLoad = {!! json_encode([
                                         </div>
 
                                         </div>
-                                        @if($isDigitalSet ?? false)
-                                        </div>
-                                        @endif
                                     </div>
                                 </div>
-
-                                {{-- Tarea 6: información de dimensiones (participación) --}}
-                                <div class="mt-2 p-2 small text-muted border-top" id="dimensions-info-step2"></div>
 
                                 {{-- </div> --}}
                             </div>
 
-                            @if(!($isDigitalSet ?? false))
                             <div class="form-card fade bs d-none" id="step-3" style="min-height: 658px;">
                                 <h4 class="mb-0 mt-1">
                                     Configuración de Formato
@@ -640,17 +581,17 @@ window.__designLoad = {!! json_encode([
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="max-width: 100%; width: 270mm; height: 54px; margin: auto; padding: 0 10px; box-sizing: border-box;">
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group format-btn-group" style="max-width: 100%; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="3"><i class="ri-zoom-out-line"></i></button>
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="3"><i class="ri-zoom-in-line"></i></button>
                                         <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
                                         <button title="Agregar texto" class="btn btn-sm btn-dark add-text" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-edit-line"></i></button>
                                         <button title="Agregar imagen" class="btn btn-sm btn-dark add-image" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-image-line"></i></button>
-                                        <button title="Indicador QR (donde se colocará el QR para lectura del taco)" class="btn btn-sm btn-dark add-qr" data-id="3" type="button" style="padding-left: 12px; padding-right: 12px;"><i class="ri-qr-code-line"></i></button>
+                                        {{-- <button class="btn btn-sm btn-dark add-qr" data-id="3" type="button">QR</button> --}}
                                         {{-- <label class="btn btn-sm btn-dark color" style="position: relative;" data-id="3" type="button">
                                             Fondo<input type="color" style="left: 0; opacity: 0; position: absolute; top: 0;">
                                         </label> --}}
@@ -691,12 +632,11 @@ window.__designLoad = {!! json_encode([
                                         <div class="margen-abajo guide3" style="opacity: 1; z-index: 1; position: absolute; width: 100%; border-bottom: 1px solid purple; bottom: 2.5mm;"></div>
 
                                         <div id="containment-wrapper3" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;"> 
-                                            {{-- Cuadro blanco QR portada: se reemplazará por el QR del taco en el PDF; más arriba para no chocar con la barra inferior --}}
-                                            <div class="elements element-critical qr cover-taco-qr" style="resize: both; overflow: hidden; position: absolute; bottom: 50px; right: 15px; width: 60px; height: 60px; min-width: 60px; min-height: 60px; background: #fff; border: 2px solid #ccc; z-index: 5;"><span></span></div>
+
                                             <div class="elements text ui-draggable" style="padding: 10px; width: 351px; height: 93px; resize: both; overflow: hidden; position: absolute; top: 59.8295px; left: 378.71px;">
                                                 <span class="ui-draggable-handle"><h4><span style="color:hsl(0,0%,0%);" class="ui-draggable-handle"><u>&nbsp; Nombre: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</u></span></h4></span>
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
-                                            </div><div class="elements context ui-draggable" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; inset: 294.67px 0px 20px 2.83209px; margin: auto; background-color: rgb(223, 223, 223); border: 2px solid #333;"><span style="padding: 20px; display: block;" class="ui-draggable-handle"></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 49.7045px; left: 25.7074px; width: 90px; height: 36px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('logo.svg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div><div class="elements text ui-draggable" style="padding: 10px; width: 203px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 29.4034px; left: 106.426px;">
+                                            </div><div class="elements context ui-draggable" style="width: calc(100% - 60px); border-radius: 10px; height: 10%; resize: both; overflow: hidden; position: absolute; inset: 294.67px 0px 20px 2.83209px; margin: auto; background-color: rgb(223, 223, 223);"><span style="padding: 20px; display: block;" class="ui-draggable-handle"></span></div><div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 49.7045px; left: 25.7074px; width: 90px; height: 36px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('logo.svg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div><div class="elements text ui-draggable" style="padding: 10px; width: 203px; height: 78px; resize: both; overflow: hidden; position: absolute; top: 29.4034px; left: 106.426px;">
                                                 <span class="ui-draggable-handle"><h1><span style="font-size:38px;" class="ui-draggable-handle"><strong>PARTI</strong></span><span style="color:hsl(36,100%,48%);font-size:38px;" class="ui-draggable-handle"><strong>LOT</strong></span></h1></span>
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
                                             </div><div class="elements text ui-draggable" style="padding: 10px; width: 257px; height: 165px; resize: both; overflow: hidden; position: absolute; top: 107.724px; left: 24.7074px;">
@@ -709,9 +649,6 @@ window.__designLoad = {!! json_encode([
                                         </div>
                                     </div>
                                 </div>
-
-                                {{-- Tarea 6: información de dimensiones (portada) --}}
-                                <div class="mt-2 p-2 small text-muted border-top" id="dimensions-info-step3"></div>
 
                                 {{-- </div> --}}
                             </div>
@@ -726,11 +663,11 @@ window.__designLoad = {!! json_encode([
 
                                 {{-- <div style="overflow: auto; height: 658px; width: 100%;"> --}}
 
-                                <div class="format-box-btn" style="max-width: 100%; width: 270mm; height: 54px; margin: auto; padding: 0 10px; box-sizing: border-box;">
+                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
 
                                     <br>
 
-                                    <div class="btn-group format-btn-group" style="max-width: 100%; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="4"><i class="ri-zoom-out-line"></i></button>
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="4"><i class="ri-zoom-in-line"></i></button>
                                         <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -778,9 +715,8 @@ window.__designLoad = {!! json_encode([
                                         {{-- caja matriz --}}
                                         {{-- <div class="caja-matriz-2 guide4" style="opacity: 1; z-index:1;position: absolute; width: 40mm; border-left: 1px solid purple; height: 100%; right: 2.5mm;"></div> --}}
 
-                                        {{-- Tarea 5: imagen de fondo solo hasta el límite matrix-box (identation+matrix desde la derecha) --}}
-                                        <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm); position: relative;">
-                                            <div id="design-back-bg" style="position: absolute; left: 0; top: 0; right: 42.5mm; bottom: 0; z-index: 0; pointer-events: none; background-color: #dfdfdf; background-size: cover; background-position: center;"></div>
+                                        <div id="containment-wrapper4" style="width: 100%; height: calc(100% - 0mm); background-size: cover; background-position: center;"> 
+
                                             <div class="elements images ui-draggable" style="resize: both; overflow: hidden; position: absolute; top: 38.7969px; left: 44.8125px; width: 111px; height: 74px;"><span class="ui-draggable-handle"><img style="width: 100%; height: 100%" src="{{url('logo.svg')}}" alt=""></span><button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button></div><div class="elements text ui-draggable" style="padding: 10px; width: 380px; height: 140px; resize: both; overflow: hidden; position: absolute; top: 17.5938px; left: 173px;">
                                                 <span class="ui-draggable-handle"><h3><strong>Descargate la APP</strong><br><strong>PARTILOT</strong><br><strong>Y Comprueba tu Participación</strong></h3></span>
                                                 <button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>
@@ -790,9 +726,6 @@ window.__designLoad = {!! json_encode([
                                         </div>
                                     </div>
                                 </div>
-
-                                {{-- Tarea 6: información de dimensiones (trasera) --}}
-                                <div class="mt-2 p-2 small text-muted border-top" id="dimensions-info-step4"></div>
 
                                 {{-- </div> --}}
                             </div>
@@ -948,7 +881,6 @@ window.__designLoad = {!! json_encode([
                                     </div>
                                 </div>
                             </div>
-                            @endif
 
                             <div class="row">
 
@@ -957,13 +889,11 @@ window.__designLoad = {!! json_encode([
                                         <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
                                 </div>
                                 <div class="col-6 text-end">
-                                    {{-- Un solo botón a la derecha: Siguiente o Guardar (mismo hueco, solo uno visible) --}}
-                                    <div class="d-inline-block position-relative" style="min-width: 200px; min-height: 46px;">
-                                        <button id="step" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 next-step">Siguiente
-                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
-                                        <button id="save-step" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: absolute; left: 0;" class="btn btn-md btn-light mt-2 d-none">Guardar
-                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
-                                    </div>
+                                    <button id="step" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 next-step">Siguiente
+                                        <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+
+                                    <button id="save-step" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 d-none">Guardar
+                                <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
                                 </div>
 
                             </div>
@@ -1280,8 +1210,7 @@ $(document).ready(function() {
   });
 
   function setBgToContainment(color, img) {
-    var $cont = (step === 4) ? $('#design-back-bg') : $('#containment-wrapper'+step);
-    if (!$cont.length) $cont = $('#containment-wrapper'+step);
+    const $cont = $('#containment-wrapper'+step);
     $cont.css('background-color', color);
     if(img) {
       $cont.css('background-image', 'url('+img+')');
@@ -1526,23 +1455,13 @@ $('#format').change(function (e) {
   }
 
   var step = 1;
-  var isDigitalSet = {{ ($isDigitalSet ?? false) ? 'true' : 'false' }};
   var selectedElement = null;
-
-  // Reaplicar position/right/top/margin al .format-box del paso 2 en digital (el JS que actualiza width/height lo sobrescribe)
-  function applyDigitalFormatBoxStep2() {
-    if (!isDigitalSet) return;
-    var $fb = $('#step-2 .format-box');
-    if (!$fb.length) return;
-    var matrixMm = parseFloat($('#matrix-box').val()) || 40;
-    $fb.css({ position: 'absolute', right: '0', top: '0', margin: '0' });
-  }
 
   $('.prev-step').click(function (e) {
       e.preventDefault();
 
       if (step == 1) {
-        window.location.href = '{{ route('design.showChooseType') }}';
+        window.open('{{url('design/add/select')}}','_self');
       }else{
         step -=1;
         
@@ -1584,15 +1503,11 @@ $('#format').change(function (e) {
         }, 100);
 
         if ($('#containment-wrapper'+step).length) {
-            var $bgEl = (step === 4) ? $('#design-back-bg') : $('#containment-wrapper'+step);
-            if ($bgEl.length) {
-              if(localStorage.getItem('bg-step'+step)){
-                $bgEl.css('background-color', localStorage.getItem('bg-step'+step));
-                $bgEl.css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
-              } else {
-                $bgEl.css('background-color', '#dfdfdf');
-                $bgEl.css('background-image', 'none');
-              }
+            if(localStorage.getItem('bg-step'+step)){
+                $('#containment-wrapper'+step).css('background-color', localStorage.getItem('bg-step'+step));
+                $('#containment-wrapper'+step).css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
+            }else{
+                $('#containment-wrapper'+step).css('background-color', '#dfdfdf');
             }
         }
 
@@ -1614,7 +1529,7 @@ $('#format').change(function (e) {
   $('.next-step').click(function (e) {
       e.preventDefault();
 
-      if (step == 5 || (isDigitalSet && step == 2)) {
+      if (step == 5) {
         e.preventDefault();
           const data = collectDesignData();
           console.log(data);
@@ -1679,7 +1594,6 @@ $('#format').change(function (e) {
               }
             });
           }
-          if (step === 3) ensurePortadaQrPlaceholder();
 
           setupDraggable();
         setupResizeObserver();
@@ -1695,16 +1609,13 @@ $('#format').change(function (e) {
           }, 100); // Pequeño delay para asegurar que todo esté cargado
 
           if ($('#containment-wrapper'+step).length) {
-              var $bgEl = (step === 4) ? $('#design-back-bg') : $('#containment-wrapper'+step);
-              if ($bgEl.length) {
-                if(localStorage.getItem('bg-step'+step)){
-                  $bgEl.css('background-color', localStorage.getItem('bg-step'+step));
-                  $bgEl.css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
-                } else {
-                  $bgEl.css('background-color', '#dfdfdf');
-                  $bgEl.css('background-image', 'none');
-                }
+              if(localStorage.getItem('bg-step'+step)){
+                  $('#containment-wrapper'+step).css('background-color', localStorage.getItem('bg-step'+step));
+                  $('#containment-wrapper'+step).css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
+              }else{
+                  $('#containment-wrapper'+step).css('background-color', '#dfdfdf');
               }
+
               if(localStorage.getItem('guide-step'+step)){
                   $('.guide'+step).css('border-color', localStorage.getItem('guide-step'+step));
               }else{
@@ -1718,16 +1629,6 @@ $('#format').change(function (e) {
           configMargins();
           addEventsElement();
           if (typeof applyPendingRescaleIfStep2 === 'function') applyPendingRescaleIfStep2();
-          if (step === 2 && typeof applyDigitalFormatBoxStep2 === 'function') applyDigitalFormatBoxStep2();
-
-          // Si hay un diseño cargado (base) y estamos en paso 2, generar thumbnail de participación sin tener que tocar nada
-          if (step === 2 && window.__designLoad && snapshot_path === null && document.querySelector('#step-2 .format-box')) {
-            setTimeout(function() {
-              if (snapshot_path !== null) return;
-              showDesignLoading('Generando vista previa de participación...');
-              generateParticipationSnapshot(function() {});
-            }, 600);
-          }
 
           $('.up-layer').unbind('click');
           $('.up-layer').click(function(e) {
@@ -1796,11 +1697,10 @@ $('#format').change(function (e) {
             redo();
           });
 
-          // Deseleccionar al hacer clic fuera (no si un modal está abierto)
+          // Deseleccionar al hacer clic fuera
           $('body').unbind('click.deselect');
           $('body').bind('click.deselect', function(e) {
-            if ($('#imagen-modal').hasClass('show') || $('#ckeditor-modal').hasClass('show') || $('#qr-modal').hasClass('show') || $('#position-modal').hasClass('show') || $('#bar-options-modal').hasClass('show')) return;
-            if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn, #bar-options-modal').length) {
+            if (!$(e.target).closest('.elements').length && !$(e.target).closest('.up-layer, .down-layer, .text-style-btn, .delete-element-btn, .undo-btn').length) {
               $('.elements').removeClass('selected');
               selectedElement = null;
               $('.up-layer, .down-layer, .text-style-btn, .delete-element-btn').prop('disabled', true);
@@ -1842,7 +1742,6 @@ $('#format').change(function (e) {
                 height: h+'mm'
             });
             $('.format-box-btn').css('width', '250mm');
-            if (typeof applyDigitalFormatBoxStep2 === 'function') applyDigitalFormatBoxStep2();
         }
         let matrix = $('#matrix-box').val() ?? 40;
         $('#containment-wrapper4').css('padding-right', matrix+'mm');
@@ -1944,58 +1843,12 @@ $('#format').change(function (e) {
   // Compensación de arrastre con zoom: offset del clic en coordenadas lógicas
   var dragClickOffsetX, dragClickOffsetY;
 
-  // Límites = borde morado (identation / Sangres). Trasera: derecho = matrix-box (no pasar de la matriz)
-  function getMarginBoundsPx() {
-    var $box = $('#step-' + step + ' .format-box');
-    if (!$box.length) return null;
-    var r = $box[0].getBoundingClientRect();
-    var boxW = r.width, boxH = r.height;
-    var ticketW = parseFloat($('#ticket-size').data('w')) || 200;
-    var ticketH = parseFloat($('#ticket-size').data('h')) || 92;
-    var scaleX = boxW / ticketW, scaleY = boxH / ticketH;
-    var identation = parseFloat($('#identation').val()) || 2.5;
-    var matrix = parseFloat($('#matrix-box').val()) || 40;
-    var minLeft = identation * scaleX;
-    var minTop = identation * scaleY;
-    var maxBottom = boxH - identation * scaleY;
-    var maxRight;
-    if (step === 4) {
-      maxRight = boxW - (identation + matrix) * scaleX;
-    } else {
-      maxRight = boxW - identation * scaleX;
-    }
-    return {
-      minLeft: minLeft,
-      minTop: minTop,
-      maxRight: maxRight,
-      maxBottom: maxBottom
-    };
-  }
-  function clampElementToMargins(el) {
-    if (step === 1 || step === 5) return;
-    var bounds = getMarginBoundsPx();
-    if (!bounds) return;
-    var $el = $(el);
-    var left = parseFloat($el.css('left')) || 0;
-    var top = parseFloat($el.css('top')) || 0;
-    var w = $el.outerWidth() || 0;
-    var h = $el.outerHeight() || 0;
-    left = Math.max(bounds.minLeft, Math.min(bounds.maxRight - w, left));
-    top = Math.max(bounds.minTop, Math.min(bounds.maxBottom - h, top));
-    $el.css({ left: left + 'px', top: top + 'px' });
-  }
-
   // Función auxiliar para configurar draggable con guardado de estado
   function setupDraggable() {
-    // Solo en pasos con canvas (2, 3, 4): step 1 no tiene containment-wrapper1 y rompe el init
-    if (step < 2 || step > 4) return;
-    var $cont = $('#containment-wrapper'+step);
-    if (!$cont.length) return;
-
-    $('.elements').draggable({
-      handle: 'span',
-      containment: '#containment-wrapper'+step,
-      scroll: false,
+    $( ".elements" ).draggable({ 
+      handle: 'span', 
+      containment: "#containment-wrapper"+step, 
+      scroll: false, 
       start: function(event, ui){
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
@@ -2018,15 +1871,8 @@ $('#format').change(function (e) {
             ui.position.top = mouseLogicalY - dragClickOffsetY;
           }
         }
-        var bounds = getMarginBoundsPx();
-        if (bounds && step >= 2 && step <= 4) {
-          var w = $(ui.helper).outerWidth() || 0, h = $(ui.helper).outerHeight() || 0;
-          ui.position.left = Math.max(bounds.minLeft, Math.min(bounds.maxRight - w, ui.position.left));
-          ui.position.top = Math.max(bounds.minTop, Math.min(bounds.maxBottom - h, ui.position.top));
-        }
       },
-      stop: function(event, ui) {
-        if (step >= 2 && step <= 4) clampElementToMargins(ui.helper[0]);
+      stop: function() {
         console.log('Draggable stop - saving state');
         saveHistoryState(); // Guardar estado después de mover
       }
@@ -2389,8 +2235,8 @@ $('#format').change(function (e) {
       e.preventDefault();
 
       localStorage.setItem('bg-step'+step,$(this).val());
-      var $bg = (step === 4) ? $('#design-back-bg') : $('#containment-wrapper'+step);
-      if ($bg.length) $bg.css('background-color', $(this).val());
+
+      $('#containment-wrapper'+step).css('background-color', $(this).val());
   });
 
   function addEventsElement()
@@ -2420,49 +2266,6 @@ $('#format').change(function (e) {
     if (m) return '#' + [1,2,3].map(function(x) { return ('0'+parseInt(m[x],10).toString(16)).slice(-2); }).join('');
     return '#dfdfdf';
   }
-
-  // Doble clic en barra superior/inferior: abrir modal para color y borde
-  var barModalElement = null;
-  $(document).off('dblclick.barcontext').on('dblclick.barcontext', '.elements.context', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    barModalElement = $(this);
-    $('#bar-modal-bg').val(rgbToHex(barModalElement.css('background-color')) || '#dfdfdf');
-    var bw = parseInt(barModalElement.css('border-width'), 10);
-    $('#bar-modal-border-width').val(isNaN(bw) || bw < 0 ? 0 : Math.min(20, bw));
-    $('#bar-modal-border-color').val(rgbToHex(barModalElement.css('border-color')) || '#333333');
-    $('#bar-options-modal').modal('show');
-    return false;
-  });
-  $('#bar-modal-bg, #bar-modal-border-width, #bar-modal-border-color').on('input change', function() {
-    if (!barModalElement || !barModalElement.length) return;
-    var bg = $('#bar-modal-bg').val();
-    var bw = parseInt($('#bar-modal-border-width').val(), 10) || 0;
-    var bc = $('#bar-modal-border-color').val();
-    barModalElement.css('background-color', bg);
-    if (bw > 0) {
-      barModalElement.css('border-width', bw + 'px');
-      barModalElement.css('border-style', 'solid');
-      barModalElement.css('border-color', bc);
-    } else {
-      barModalElement.css('border-width', '0');
-      barModalElement.css('border-style', 'none');
-      barModalElement.css('border-color', 'transparent');
-    }
-    if (typeof saveHistoryState === 'function') saveHistoryState();
-  });
-  $('#bar-modal-delete').off('click').on('click', function() {
-    if (!barModalElement || !barModalElement.length) return;
-    if (!confirm('¿Eliminar esta barra?')) return;
-    barModalElement.remove();
-    barModalElement = null;
-    $('#bar-options-modal').modal('hide');
-    selectedElement = null;
-    $('.up-layer, .down-layer, .delete-element-btn').prop('disabled', true);
-    $('.text-style-btn').prop('disabled', true);
-    if (typeof saveHistoryState === 'function') saveHistoryState();
-    if (typeof updateUndoRedoButtons === 'function') updateUndoRedoButtons();
-  });
 
   $(document).on('input change', '.bar-bg-color, .bar-border-width, .bar-border-color', function() {
     if (!selectedElement || !selectedElement.hasClass('context')) return;
@@ -2552,49 +2355,6 @@ $('#format').change(function (e) {
   }
 
   var snapshot_path = null;
-
-  // Genera y sube el thumbnail de la participación (reutilizable al cargar diseño existente o al guardar paso 2)
-  // Físico y digital: capturar .format-box y recortar la matriz (sangría + ancho matriz) por la izquierda
-  function generateParticipationSnapshot(onSuccess) {
-    var el = document.querySelector('#step-2 .format-box');
-    if (!el) { if (onSuccess) onSuccess(); return; }
-    html2canvas(el).then(function(canvas) {
-      // Recorte de la matriz por la izquierda (igual para físico y digital)
-      var identationMm = parseFloat($('#identation').val()) || 2.5;
-      var matrixMm = parseFloat($('#matrix-box').val()) || 40;
-      var boxWidthMm = 200;
-      var leftStripMm = identationMm + matrixMm;
-      var cropRatio = Math.min(1, Math.max(0, leftStripMm / boxWidthMm));
-      var cropX = Math.floor(canvas.width * cropRatio);
-      var cropW = canvas.width - cropX;
-      if (cropW > 0 && cropX < canvas.width) {
-        var cropped = document.createElement('canvas');
-        cropped.width = cropW;
-        cropped.height = canvas.height;
-        var ctx = cropped.getContext('2d');
-        ctx.drawImage(canvas, cropX, 0, cropW, canvas.height, 0, 0, cropW, canvas.height);
-        canvas = cropped;
-      }
-      var imageData = canvas.toDataURL('image/png');
-      var formData = new FormData();
-      formData.append('design_id', {{ $set->id }});
-      formData.append('snapshot', imageData);
-      $.ajax({
-        type: 'POST',
-        url: '{{ url("/api/design/save-snapshot") }}',
-        data: formData,
-        contentType: false,
-        processData: false,
-        success: function (response) {
-          snapshot_path = response.path;
-          if (typeof onSuccess === 'function') onSuccess();
-        },
-        error: function () { alert('Error al guardar vista previa'); },
-        complete: function() { hideDesignLoading(); }
-      });
-    }).catch(function() { hideDesignLoading(); if (typeof onSuccess === 'function') onSuccess(); });
-  }
-
   $('#save-step').click(function(event) {
 
     // Deseleccionar cualquier elemento seleccionado
@@ -2604,14 +2364,45 @@ $('#format').change(function (e) {
 
     if (step != 1) {
 
-        if(step == 2) {
+        let guardarSnapshotTriggered = false;
+        
+        if(step == 2 && !guardarSnapshotTriggered) {
+            guardarSnapshotTriggered = true;
             showDesignLoading('Guardando vista previa...');
-            generateParticipationSnapshot(function() {
-              var html = $('#containment-wrapper'+step).html();
-              localStorage.setItem('step'+step, html);
-              $('#step').removeClass('d-none');
-              $('#save-step').addClass('d-none');
-            });
+            html2canvas(document.querySelector('#step-2 .format-box')).then(function(canvas) {
+                let imageData = canvas.toDataURL('image/png');
+                
+                var formData = new FormData();
+
+                formData.append('design_id', {{ $set->id }});
+                formData.append('snapshot', imageData);
+
+                $.ajax({
+                    type: "POST",
+                    url: "{{url('/')}}/api/design/save-snapshot",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        
+                        snapshot_path = response.path;
+                        console.log(snapshot_path);
+
+                        guardarSnapshotTriggered = false;
+                        let html = $('#containment-wrapper'+step).html();
+
+                        localStorage.setItem('step'+step,html);
+
+                        $('#step').removeClass('d-none');
+                        $('#save-step').addClass('d-none');
+                    },error: function (response) {
+                        console.log(response);
+                        guardarSnapshotTriggered = false;
+                        alert('Error al guardar snapshot');
+                    },
+                    complete: function() { hideDesignLoading(); }
+                });
+            }).catch(function() { guardarSnapshotTriggered = false; hideDesignLoading(); });
         } else {
             let html = $('#containment-wrapper'+step).html();
 
@@ -2636,50 +2427,6 @@ $('#format').change(function (e) {
     $('.caja-matriz').css('width',matrix+'mm')
     $('.caja-matriz-2').css('right',identation+'mm')
     $('.caja-matriz-2').css('width',matrix+'mm')
-    if ($('#containment-wrapper4').length && !$('#design-back-bg').length) {
-      var identationMm = $('#identation').val() || 2.5;
-      var matrixMm = $('#matrix-box').val() || 40;
-      var rightMm = parseFloat(identationMm) + parseFloat(matrixMm);
-      var $wrap = $('#containment-wrapper4');
-      var bgColor = $wrap.css('background-color') || '#dfdfdf';
-      var bgImg = $wrap.css('background-image');
-      $wrap.prepend('<div id="design-back-bg" style="position:absolute;left:0;top:0;right:'+rightMm+'mm;bottom:0;z-index:0;pointer-events:none;background-color:'+bgColor+';background-size:cover;background-position:center;"></div>');
-      if (bgImg && bgImg !== 'none') $('#design-back-bg').css('background-image', bgImg);
-      $wrap.css('background-color','').css('background-image','none');
-    }
-    var identationMm = $('#identation').val() || 2.5;
-    $('#design-back-bg').css('right', (parseFloat(identationMm) + parseFloat(matrix)) + 'mm');
-    if (step >= 2 && step <= 4) {
-      $('#containment-wrapper'+step+' .elements').each(function() { clampElementToMargins(this); });
-    }
-    updateDimensionsInfo();
-  }
-
-  // Tarea 6: rellenar información de dimensiones en pasos 2, 3, 4
-  function updateDimensionsInfo() {
-    var format = $('#format').val() || '';
-    var page = $('#page').val() || '';
-    var orientation = $('#orientation').val() || '';
-    var rows = parseInt($('#rows').val(), 10) || 0;
-    var cols = parseInt($('#cols').val(), 10) || 0;
-    var sheetText = $('#sheet-size').text() || '';
-    var ticketText = $('#ticket-size').text() || '';
-    var marginTop = parseFloat($('#margin-top').val()) || 0;
-    var marginUp = parseFloat($('#margin-up').val()) || 0;
-    var marginLeft = parseFloat($('#margin-left').val()) || 0;
-    var marginRight = parseFloat($('#margin-right').val()) || 0;
-    var identation = parseFloat($('#identation').val()) || 2.5;
-    var matrix = parseFloat($('#matrix-box').val()) || 40;
-    var marginCustom = parseFloat($('#margin-custom').val()) || 0;
-    var pageRight = parseFloat($('#page-rigth').val()) || 0;
-    var pageBottom = parseFloat($('#page-bottom').val()) || 0;
-    var formatLabel = format === 'a3-h-3x2' ? 'A3 (297 x 420) apaisado 3 x 2' : (format === 'a3-h-4x2' ? 'A3 (297 x 420) apaisado 4 x 2' : (format === 'a4-v-3x1' ? 'A4 (210 x 297) vertical 3 x 1' : (format === 'a4-v-4x1' ? 'A4 (210 x 297) vertical 4 x 1' : (sheetText || 'Personalizado'))));
-    var html = '<strong>Formato:</strong> ' + formatLabel + ' &nbsp;|&nbsp; <strong>Participación:</strong> ' + ticketText +
-      ' &nbsp;|&nbsp; <strong>Márgenes página:</strong> sup ' + marginTop + 'mm, inf ' + marginUp + 'mm, izq ' + marginLeft + 'mm, der ' + marginRight + 'mm';
-    if (marginCustom) html += ' &nbsp;|&nbsp; <strong>Sangres:</strong> ' + marginCustom + 'mm';
-    html += ' &nbsp;|&nbsp; <strong>Matriz:</strong> ' + matrix + 'mm (indent. ' + identation + 'mm)';
-    html += ' &nbsp;|&nbsp; <strong>Espaciado por página:</strong> horiz. ' + pageRight + 'mm, vert. ' + pageBottom + 'mm';
-    $('#dimensions-info-step2, #dimensions-info-step3, #dimensions-info-step4').html(html);
   }
 
           $('.up-z').click(function (e) {
@@ -2859,7 +2606,7 @@ $('#format').change(function (e) {
           }
       }
 
-      $('#ticket-size').text(ticketText__).data('w', ticketW).data('h', ticketH);
+      $('#ticket-size').text(ticketText__);
 
       // Actualizar tamaño de la caja de diseño y reescalar elementos si cambió el grid (Tarea 8)
       var prevW = lastTicketDimensions.w, prevH = lastTicketDimensions.h;
@@ -2893,80 +2640,12 @@ $('#format').change(function (e) {
           }
       }
       lastTicketDimensions = { w: ticketW, h: ticketH };
-      if (typeof applyDigitalFormatBoxStep2 === 'function') applyDigitalFormatBoxStep2();
-      if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo();
-  }
-
-  function ensurePortadaQrPlaceholder() {
-    if (!$('#containment-wrapper3').length || $('#containment-wrapper3 .elements.qr').length > 0) return;
-    var qrHtml = '<div class="elements element-critical qr cover-taco-qr" style="resize:both;overflow:hidden;position:absolute;bottom:50px;right:15px;width:60px;height:60px;min-width:60px;min-height:60px;background:#fff;border:2px solid #ccc;z-index:5;"><span></span></div>';
-    $('#containment-wrapper3').append(qrHtml);
-  }
-
-  // Tarea 7: aplicar diseño cargado por reserva
-  function applyLoadedDesign() {
-    if (typeof window.__designLoad === 'undefined' || !window.__designLoad) return;
-    var d = window.__designLoad;
-    if (d.format != null) $('#format').val(d.format);
-    if (d.page != null) $('#page').val(d.page);
-    if (d.rows != null) $('#rows').val(d.rows);
-    if (d.cols != null) $('#cols').val(d.cols);
-    if (d.orientation != null) $('#orientation').val(d.orientation);
-    if (d.margin_up != null) $('#margin-up').val(d.margin_up);
-    if (d.margin_right != null) $('#margin-right').val(d.margin_right);
-    if (d.margin_left != null) $('#margin-left').val(d.margin_left);
-    if (d.margin_top != null) $('#margin-top').val(d.margin_top);
-    if (d.identation != null) $('#identation').val(d.identation);
-    if (d.matrix_box != null) $('#matrix-box').val(d.matrix_box);
-    if (d.margin_custom != null) $('#margin-custom').val(d.margin_custom);
-    if (d.page_rigth != null) $('#page-rigth').val(d.page_rigth);
-    if (d.page_bottom != null) $('#page-bottom').val(d.page_bottom);
-    if (d.participation_html && $('#step-2 .format-box').length) {
-      $('#step-2 .format-box').first().replaceWith(d.participation_html);
-      $('#step-2 .format-box .elements').each(function() { $(this).css('resize', 'both').css('overflow', 'hidden'); });
-      var inner = $('#step-2 #containment-wrapper2').html();
-      if (inner) localStorage.setItem('step2', inner);
-    }
-    if (d.cover_html && $('#step-3 .format-box').length) {
-      $('#step-3 .format-box').first().replaceWith(d.cover_html);
-      $('#step-3 .format-box .elements').each(function() { $(this).css('resize', 'both').css('overflow', 'hidden'); });
-      ensurePortadaQrPlaceholder();
-      var inner3 = $('#step-3 #containment-wrapper3').html();
-      if (inner3) localStorage.setItem('step3', inner3);
-    }
-    if (d.back_html && $('#step-4 .format-box').length) {
-      $('#step-4 .format-box').first().replaceWith(d.back_html);
-      $('#step-4 .format-box .elements').each(function() { $(this).css('resize', 'both').css('overflow', 'hidden'); });
-      var inner4 = $('#step-4 #containment-wrapper4').html();
-      if (inner4) localStorage.setItem('step4', inner4);
-    }
-    if (d.backgrounds && typeof d.backgrounds === 'object') {
-      [2, 3, 4].forEach(function(i) {
-        var step = 'step' + i;
-        if (d.backgrounds[step]) {
-          var color = d.backgrounds[step].color || '#dfdfdf';
-          var img = (d.backgrounds[step].image != null && d.backgrounds[step].image !== '') ? d.backgrounds[step].image : '';
-          localStorage.setItem('bg-step' + i, color);
-          localStorage.setItem('bgimg-step' + i, img);
-          var $cont = (i === 4) ? $('#design-back-bg') : $('#containment-wrapper' + i);
-          if ($cont.length) {
-            $cont.css('background-color', color);
-            $cont.css('background-image', img ? 'url(' + img + ')' : 'none');
-          }
-        }
-      });
-    }
-    updateTicketInfo();
-    if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo();
-    configMargins();
   }
 
   // Llamar al cargar y al cambiar cualquier campo relevante
   $(document).ready(function() {
-      applyLoadedDesign();
       updateTicketInfo();
       $('#format,#page,#rows,#cols,#orientation').on('change keyup', updateTicketInfo);
-      $('#margin-top,#margin-up,#margin-left,#margin-right,#identation,#matrix-box,#margin-custom,#page-rigth,#page-bottom').on('change keyup', function() { if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo(); });
   });
   // === FIN BLOQUE NUEVO ===
 
@@ -3008,33 +2687,20 @@ $('#format').change(function (e) {
     const cover_html = $('#step-3 .format-box')[0]?.outerHTML || '';
     const back_html = $('#step-4 .format-box')[0]?.outerHTML || '';
 
-    // Fondos: leer del DOM (lo que ve el usuario) para guardar siempre los valores reales
-    function getBackgroundFromDom(stepNum) {
-      var $el = (stepNum === 4) ? $('#design-back-bg') : $('#containment-wrapper' + stepNum);
-      if (!$el.length) return { color: '#dfdfdf', image: null };
-      var color = $el.css('background-color');
-      if (!color || color === 'rgba(0, 0, 0, 0)' || color === 'transparent') color = '#dfdfdf';
-      if (color.indexOf('rgb') === 0) color = rgbToHex(color) || '#dfdfdf';
-      var bgImage = $el.css('background-image');
-      var image = null;
-      if (bgImage && bgImage !== 'none') {
-        var m = bgImage.match(/url\s*\(\s*['"]?([^'")]+)['"]?\s*\)/);
-        if (m && m[1]) image = m[1].trim();
-      }
-      return { color: color, image: image };
-    }
-    function rgbToHex(rgb) {
-      var m = rgb.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
-      if (!m) return null;
-      var r = ('0' + parseInt(m[1], 10).toString(16)).slice(-2);
-      var g = ('0' + parseInt(m[2], 10).toString(16)).slice(-2);
-      var b = ('0' + parseInt(m[3], 10).toString(16)).slice(-2);
-      return '#' + r + g + b;
-    }
+    // Fondos y colores de cada paso
     const backgrounds = {
-      step2: getBackgroundFromDom(2),
-      step3: getBackgroundFromDom(3),
-      step4: getBackgroundFromDom(4)
+      step2: {
+        color: localStorage.getItem('bg-step2') || '#dfdfdf',
+        image: localStorage.getItem('bgimg-step2') || ''
+      },
+      step3: {
+        color: localStorage.getItem('bg-step3') || '#dfdfdf',
+        image: localStorage.getItem('bgimg-step3') || ''
+      },
+      step4: {
+        color: localStorage.getItem('bg-step4') || '#dfdfdf',
+        image: localStorage.getItem('bgimg-step4') || ''
+      }
     };
 
     // Paso 5: Configuración de salida
@@ -3050,7 +2716,6 @@ $('#format').change(function (e) {
 
     return {
       set_id: {{ $set->id ?? 'null' }},
-      design_id: (typeof window.__designId !== 'undefined' && window.__designId) ? window.__designId : null,
       format,
       page,
       rows,

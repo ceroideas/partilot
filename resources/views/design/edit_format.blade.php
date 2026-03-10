@@ -193,6 +193,7 @@
                                     <span style="top: -4px; margin-right: 8px;">2</span>
                                     <label>Diseñar <br> Participación</label>
                                 </div>
+                                @if(!($isDigitalSet ?? false))
                                 <div class="form-wizard-element" style="width: 200px;" id="bc-step-3">
                                     <span style="top: -4px; margin-right: 8px;">3</span>
                                     <label>Diseñar <br> Portada</label>
@@ -205,6 +206,7 @@
                                     <span style="top: -4px; margin-right: 8px;">5</span>
                                     <label>Configurar <br> Salida</label>
                                 </div>
+                                @endif
                             </div>
                         </h4>
                         <div class="row">
@@ -396,10 +398,34 @@
                                 </div>
                                 <div class="design-zoom-scroll">
                                     <div class="design-zoom-container" id="design-zoom-wrapper-2" style="transform-origin: top center;">
+                                        @if($isDigitalSet ?? false)
+                                        @php $matrixBoxMmEdit = (float)($format->matrix_box ?? 40); @endphp
+                                        <div class="format-box-digital-wrap" style="width: calc(200mm - {{ $matrixBoxMmEdit }}mm); height: 92mm; margin: auto; position: relative; overflow: hidden;">
+                                        @endif
                                         {!! $format->participation_html ?? '' !!}
+                                        @if($isDigitalSet ?? false)
+                                        </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
+                            @if($isDigitalSet ?? false)
+                            <div class="row mt-3 mb-3">
+                                <div class="col-6 text-start">
+                                    <a href="javascript:;" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 prev-step">
+                                        <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <div class="d-inline-block position-relative" style="min-width: 200px; min-height: 46px;">
+                                        <button type="button" id="step-edit-next" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2 next-step">Siguiente
+                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></button>
+                                        <button type="button" id="save-step" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: absolute; left: 0; top: 8px;" class="btn btn-md btn-light mt-2 d-none">Guardar
+                                            <i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-save-line"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            @if(!($isDigitalSet ?? false))
                             <div class="form-card fade bs d-none" id="step-3" style="min-height: 658px;">
                                 <h4 class="mb-0 mt-1">Diseñar Portada</h4>
                                 <small><i>Edita el diseño de la portada</i></small>
@@ -585,6 +611,7 @@
                                   </div>
                               </div>
                             </div>
+                            @endif
                         </div>
                     </div> <!-- end card body-->
                 </div> <!-- end card -->
@@ -746,6 +773,7 @@
 
 @section('scripts')
 <script>
+window.__formatBackgrounds = @json($format->backgrounds ?? []);
 // --- Funciones de edición visual (copiadas de la vista original) ---
 function editelements(event) {
     if (event) {
@@ -803,6 +831,7 @@ function deleteElements(event) {
         element.remove();
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
+        $('#step-edit-next').addClass('d-none');
         saveHistoryState();
         updateUndoRedoButtons();
     }
@@ -992,9 +1021,19 @@ $('#format').change(function (e) {
   }
 
 var step = 1;
+var isDigitalSet = {{ ($isDigitalSet ?? false) ? 'true' : 'false' }};
 var editor;
 var actualElement;
 var selectedElement = null;
+
+// Reaplicar position/right/top/margin al .format-box del paso 2 en digital (el JS que actualiza width/height lo sobrescribe)
+function applyDigitalFormatBoxStep2() {
+  if (!isDigitalSet) return;
+  var $fb = $('#step-2 .format-box');
+  if (!$fb.length) return;
+  var matrixMm = parseFloat($('#matrix-box').val()) || 40;
+  $fb.css({ position: 'absolute', right: '0', top: '0', margin: '0' });
+}
 
 // Sistema de Undo/Redo limitado
 var historyStates = [];
@@ -1148,6 +1187,7 @@ function uploadImage(file) {
       if (input) input.value = null;
       $('#step').addClass('d-none');
       $('#save-step').removeClass('d-none');
+      $('#step-edit-next').addClass('d-none');
       saveHistoryState();
       updateUndoRedoButtons();
       // Re-vincular eventos después de cambiar imagen
@@ -1174,10 +1214,14 @@ function showStep(newStep) {
     } else {
         $('#step').removeClass('d-none');
         $('#save-step').addClass('d-none');
+        $('#step-edit-next').removeClass('d-none');
     }
     // Aplicar zoom al cambiar de paso
     if (typeof applyDesignZoom === 'function') {
         applyDesignZoom();
+    }
+    if (newStep === 2 && typeof applyDigitalFormatBoxStep2 === 'function') {
+        applyDigitalFormatBoxStep2();
     }
     // Tarea 8: aplicar reescalado pendiente al entrar en paso 2 (participación)
     if (newStep === 2 && pendingRescale && $('#step-2 .format-box .elements').length > 0) {
@@ -1315,6 +1359,25 @@ var snapshot_path = null;
         if(step == 2 && !guardarSnapshotTriggered) {
             guardarSnapshotTriggered = true;
             html2canvas(document.querySelector('#step-2 .format-box')).then(function(canvas) {
+                // Thumbnail solo zona participación (sin la matriz), igual que en format; set digital sin recorte
+                var isDigitalSet = {{ ($set->digital_participations > 0 && (int)($set->physical_participations ?? 0) === 0) ? 'true' : 'false' }};
+                if (!isDigitalSet) {
+                    var identationMm = parseFloat($('#identation').val()) || 2.5;
+                    var matrixMm = parseFloat($('#matrix-box').val()) || 40;
+                    var boxWidthMm = 200;
+                    var leftStripMm = identationMm + matrixMm;
+                    var cropRatio = Math.min(1, Math.max(0, leftStripMm / boxWidthMm));
+                    var cropX = Math.floor(canvas.width * cropRatio);
+                    var cropW = canvas.width - cropX;
+                    if (cropW > 0 && cropX < canvas.width) {
+                        var cropped = document.createElement('canvas');
+                        cropped.width = cropW;
+                        cropped.height = canvas.height;
+                        var ctx = cropped.getContext('2d');
+                        ctx.drawImage(canvas, cropX, 0, cropW, canvas.height, 0, 0, cropW, canvas.height);
+                        canvas = cropped;
+                    }
+                }
                 let imageData = canvas.toDataURL('image/png');
                 
                 var formData = new FormData();
@@ -1341,6 +1404,7 @@ var snapshot_path = null;
 
                         $('#step').removeClass('d-none');
                         $('#save-step').addClass('d-none');
+                        $('#step-edit-next').removeClass('d-none');
                     },error: function (response) {
                         console.log(response);
                         guardarSnapshotTriggered = false;
@@ -1355,6 +1419,7 @@ var snapshot_path = null;
 
             $('#step').removeClass('d-none');
             $('#save-step').addClass('d-none');
+            $('#step-edit-next').removeClass('d-none');
         }
 
     }
@@ -1362,7 +1427,36 @@ var snapshot_path = null;
 
 /**/
 
-function configMargins()
+function getMarginBoundsPx() {
+    var $box = $('#step-' + step + ' .format-box');
+    if (!$box.length) return null;
+    var r = $box[0].getBoundingClientRect();
+    var boxW = r.width, boxH = r.height;
+    var ticketW = parseFloat($('#ticket-size').data('w')) || 200;
+    var ticketH = parseFloat($('#ticket-size').data('h')) || 92;
+    var scaleX = boxW / ticketW, scaleY = boxH / ticketH;
+    var identation = parseFloat($('#identation').val()) || 2.5;
+    var matrix = parseFloat($('#matrix-box').val()) || 40;
+    var minLeft = identation * scaleX;
+    var minTop = identation * scaleY;
+    var maxBottom = boxH - identation * scaleY;
+    var maxRight = (step === 4) ? (boxW - (identation + matrix) * scaleX) : (boxW - identation * scaleX);
+    return { minLeft: minLeft, minTop: minTop, maxRight: maxRight, maxBottom: maxBottom };
+  }
+  function clampElementToMargins(el) {
+    if (step === 1 || step === 5) return;
+    var bounds = getMarginBoundsPx();
+    if (!bounds) return;
+    var $el = $(el);
+    var left = parseFloat($el.css('left')) || 0;
+    var top = parseFloat($el.css('top')) || 0;
+    var w = $el.outerWidth() || 0;
+    var h = $el.outerHeight() || 0;
+    left = Math.max(bounds.minLeft, Math.min(bounds.maxRight - w, left));
+    top = Math.max(bounds.minTop, Math.min(bounds.maxBottom - h, top));
+    $el.css({ left: left + 'px', top: top + 'px' });
+  }
+  function configMargins()
   {
     let identation = $('#identation').val() ?? 2.5;
     let matrix = $('#matrix-box').val() ?? 40;
@@ -1374,6 +1468,19 @@ function configMargins()
     $('.caja-matriz').css('width',matrix+'mm')
     $('.caja-matriz-2').css('right',identation+'mm')
     $('.caja-matriz-2').css('width',matrix+'mm')
+    if ($('#containment-wrapper4').length && !$('#design-back-bg').length) {
+      var rightMm = parseFloat(identation) + parseFloat(matrix);
+      var $wrap = $('#containment-wrapper4');
+      var bgColor = $wrap.css('background-color') || '#dfdfdf';
+      var bgImg = $wrap.css('background-image');
+      $wrap.prepend('<div id="design-back-bg" style="position:absolute;left:0;top:0;right:'+rightMm+'mm;bottom:0;z-index:0;pointer-events:none;background-color:'+bgColor+';background-size:cover;background-position:center;"></div>');
+      if (bgImg && bgImg !== 'none') $('#design-back-bg').css('background-image', bgImg);
+      $wrap.css('background-color','').css('background-image','none');
+    }
+    $('#design-back-bg').css('right', (parseFloat(identation) + parseFloat(matrix)) + 'mm');
+    if (step >= 2 && step <= 4) {
+      $('#containment-wrapper'+step+' .elements').each(function() { clampElementToMargins(this); });
+    }
   }
 
   $('.up-z').click(function (e) {
@@ -1532,7 +1639,7 @@ function configMargins()
           }
       }
 
-      $('#ticket-size').text(ticketText__);
+      $('#ticket-size').text(ticketText__).data('w', ticketW).data('h', ticketH);
 
       // Actualizar tamaño de la caja de diseño y reescalar elementos si cambió el grid (Tarea 8)
       var prevW = lastTicketDimensions.w, prevH = lastTicketDimensions.h;
@@ -1566,6 +1673,7 @@ function configMargins()
           }
       }
       lastTicketDimensions = { w: ticketW, h: ticketH };
+      if (typeof applyDigitalFormatBoxStep2 === 'function') applyDigitalFormatBoxStep2();
   }
 
   // Llamar al cargar y al cambiar cualquier campo relevante
@@ -1610,20 +1718,33 @@ function collectDesignData() {
   const cover_html = $('#step-3 .format-box')[0]?.outerHTML || '';
   const back_html = $('#step-4 .format-box')[0]?.outerHTML || '';
 
-  // Fondos y colores de cada paso
-  const backgrounds = {
-    step2: {
-      color: localStorage.getItem('bg-step2') || '#dfdfdf',
-      image: localStorage.getItem('bgimg-step2') || ''
-    },
-    step3: {
-      color: localStorage.getItem('bg-step3') || '#dfdfdf',
-      image: localStorage.getItem('bgimg-step3') || ''
-    },
-    step4: {
-      color: localStorage.getItem('bg-step4') || '#dfdfdf',
-      image: localStorage.getItem('bgimg-step4') || ''
+  // Fondos: leer del DOM (lo que ve el usuario) para guardar siempre los valores reales
+  function getBackgroundFromDom(stepNum) {
+    var $el = (stepNum === 4) ? $('#design-back-bg') : $('#containment-wrapper' + stepNum);
+    if (!$el.length) return { color: '#dfdfdf', image: null };
+    var color = $el.css('background-color');
+    if (!color || color === 'rgba(0, 0, 0, 0)' || color === 'transparent') color = '#dfdfdf';
+    if (color.indexOf('rgb') === 0) color = rgbToHex(color) || '#dfdfdf';
+    var bgImage = $el.css('background-image');
+    var image = null;
+    if (bgImage && bgImage !== 'none') {
+      var m = bgImage.match(/url\s*\(\s*['"]?([^'")]+)['"]?\s*\)/);
+      if (m && m[1]) image = m[1].trim();
     }
+    return { color: color, image: image };
+  }
+  function rgbToHex(rgb) {
+    var m = rgb.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if (!m) return null;
+    var r = ('0' + parseInt(m[1], 10).toString(16)).slice(-2);
+    var g = ('0' + parseInt(m[2], 10).toString(16)).slice(-2);
+    var b = ('0' + parseInt(m[3], 10).toString(16)).slice(-2);
+    return '#' + r + g + b;
+  }
+  const backgrounds = {
+    step2: getBackgroundFromDom(2),
+    step3: getBackgroundFromDom(3),
+    step4: getBackgroundFromDom(4)
   };
 
   // Paso 5: Configuración de salida
@@ -1752,8 +1873,20 @@ $('#edit-format-form').on('submit', function(e) {
 });
 
 $(document).ready(function() {
+    if (window.__formatBackgrounds && typeof window.__formatBackgrounds === 'object') {
+      [2, 3, 4].forEach(function(i) {
+        var stepKey = 'step' + i;
+        if (window.__formatBackgrounds[stepKey]) {
+          var color = window.__formatBackgrounds[stepKey].color || '#dfdfdf';
+          var img = (window.__formatBackgrounds[stepKey].image != null && window.__formatBackgrounds[stepKey].image !== '') ? window.__formatBackgrounds[stepKey].image : '';
+          localStorage.setItem('bg-step' + i, color);
+          localStorage.setItem('bgimg-step' + i, img);
+        }
+      });
+    }
     showStep(step);
-    
+    if (typeof configMargins === 'function') configMargins();
+    loadExistingBackgrounds();
     // Vincular eventos inicialmente cuando se carga el contenido HTML
     setTimeout(function() {
         reapplyElementEvents();
@@ -1773,6 +1906,10 @@ $(document).ready(function() {
     {{-- $('#save-step').attr('type', 'submit'); --}}
     $('.next-step').click(function(e) {
         e.preventDefault();
+        if (step === 2 && isDigitalSet) {
+            $('#edit-format-form').submit();
+            return;
+        }
         if (step < 5) {
             step++;
             showStep(step);
@@ -1991,6 +2128,7 @@ $(document).ready(function() {
         $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').prop('disabled', true);
         $('#save-step').removeClass('d-none');
         $('#step').addClass('d-none');
+        $('#step-edit-next').addClass('d-none');
         saveHistoryState();
         updateUndoRedoButtons();
       }
@@ -2088,6 +2226,7 @@ $(document).ready(function() {
             if (actualElement) actualElement.remove();
             $('#step').addClass('d-none');
             $('#save-step').removeClass('d-none');
+            $('#step-edit-next').addClass('d-none');
         }
     });
     // Suprimir / Backspace: eliminar elemento seleccionado (salvo en inputs)
@@ -2108,6 +2247,7 @@ $(document).ready(function() {
             $('.up-layer, .down-layer, .delete-element-btn, .text-style-btn').prop('disabled', true);
             $('#step').addClass('d-none');
             $('#save-step').removeClass('d-none');
+            $('#step-edit-next').addClass('d-none');
             saveHistoryState();
             updateUndoRedoButtons();
         }
@@ -2122,6 +2262,7 @@ $(document).ready(function() {
         $('#ckeditor-modal').modal('hide');
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
+        $('#step-edit-next').addClass('d-none');
         saveHistoryState();
         updateUndoRedoButtons();
         // Re-vincular eventos después de editar
@@ -2170,6 +2311,7 @@ $(document).ready(function() {
                 $('#qr-text').val("");
                 $('#step').addClass('d-none');
                 $('#save-step').removeClass('d-none');
+                $('#step-edit-next').addClass('d-none');
             }
         })
         .catch(error => console.error('Error al subir la imagen:', error))
@@ -2200,6 +2342,7 @@ function reapplyElementEvents() {
       start: function(event, ui){
         $('#step').addClass('d-none');
         $('#save-step').removeClass('d-none');
+        $('#step-edit-next').addClass('d-none');
         if (typeof designZoom !== 'undefined' && designZoom !== 1) {
           var el = ui.helper[0];
           var r = el.getBoundingClientRect();
@@ -2220,8 +2363,15 @@ function reapplyElementEvents() {
             ui.position.top = mouseLogicalY - dragClickOffsetY;
           }
         }
+        var bounds = getMarginBoundsPx();
+        if (bounds && step >= 2 && step <= 4) {
+          var w = $(ui.helper).outerWidth() || 0, h = $(ui.helper).outerHeight() || 0;
+          ui.position.left = Math.max(bounds.minLeft, Math.min(bounds.maxRight - w, ui.position.left));
+          ui.position.top = Math.max(bounds.minTop, Math.min(bounds.maxBottom - h, ui.position.top));
+        }
       },
-      stop: function() {
+      stop: function(event, ui) {
+        if (step >= 2 && step <= 4 && ui && ui.helper && ui.helper[0]) clampElementToMargins(ui.helper[0]);
         saveHistoryState();
         updateUndoRedoButtons();
       }
@@ -2315,7 +2465,8 @@ $(document).on('click', '#apply-bg', function() {
   localStorage.setItem('bg-step'+step, color);
 });
 function setBgToContainment(color, img) {
-  const $cont = $('#containment-wrapper'+step);
+  var $cont = (step === 4) ? $('#design-back-bg') : $('#containment-wrapper'+step);
+  if (!$cont.length) $cont = $('#containment-wrapper'+step);
   $cont.css('background-color', color);
   if(img) {
     // Asegurar que la URL de la imagen sea absoluta
@@ -2348,7 +2499,8 @@ function loadExistingBackgrounds() {
     const img = localStorage.getItem('bgimg-step' + i);
     
     if (img || color !== '#dfdfdf') {
-      const $cont = $('#containment-wrapper' + i);
+      var $cont = (i === 4) ? $('#design-back-bg') : $('#containment-wrapper' + i);
+      if (!$cont.length) $cont = $('#containment-wrapper' + i);
       if ($cont.length) {
         $cont.css('background-color', color);
         if (img) {
@@ -2360,16 +2512,15 @@ function loadExistingBackgrounds() {
           $cont.css('background-size', 'cover');
           $cont.css('background-position', 'center');
           $cont.css('background-repeat', 'no-repeat');
+        } else {
+          $cont.css('background-image', 'none');
         }
       }
     }
   }
 }
 
-// Ejecutar al cargar la página
-$(document).ready(function() {
-  loadExistingBackgrounds();
-});
+// loadExistingBackgrounds() se llama en el document.ready principal (tras configMargins)
 
 // Función para debuggear problemas con imágenes de fondo
 function debugBackgroundImage(step) {

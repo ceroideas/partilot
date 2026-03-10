@@ -8,8 +8,11 @@ use App\Models\Lottery;
 use App\Models\Set;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\DesignFormat;
+use App\Models\DesignExternalInvitation;
+use App\Models\DesignExternalInvitationFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 use App\Services\ImageOptimizationService;
 use App\Services\QrCodeService;
 
@@ -72,6 +75,165 @@ class DesignController extends Controller
         return view('design.add_set', compact('entity', 'lottery', 'sets', 'reserve'));
     }
 
+    /**
+     * Elegir tipo: Diseño (propio) o Diseño e impresión externo (tarea 9).
+     * POST desde add_set con set_id.
+     */
+    public function chooseType(Request $request)
+    {
+        $request->validate(['set_id' => 'required|integer|exists:sets,id']);
+        $entity_id = session('design_entity_id');
+        if (!auth()->user()->canAccessEntity((int) $entity_id)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+        session(['design_set_id' => $request->set_id]);
+        return redirect()->route('design.showChooseType');
+    }
+
+    /**
+     * Mostrar pantalla de elección: Diseño vs Diseño externo.
+     */
+    public function showChooseType()
+    {
+        $entity_id = session('design_entity_id');
+        $lottery_id = session('design_lottery_id');
+        $set_id = session('design_set_id');
+        if (!$entity_id || !$lottery_id || !$set_id) {
+            return redirect()->route('design.selectSet')->with('error', 'Debes seleccionar un set.');
+        }
+        if (!auth()->user()->canAccessEntity((int) $entity_id)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+        $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
+        $lottery = Lottery::findOrFail($lottery_id);
+        $set = Set::forUser(auth()->user())->findOrFail($set_id);
+        return view('design.choose_type', compact('entity', 'lottery', 'set'));
+    }
+
+    /**
+     * Paso 1 diseño externo: Indicaciones / Archivos.
+     */
+    public function externalStep1()
+    {
+        $this->ensureDesignSession();
+        $entity = Entity::forUser(auth()->user())->findOrFail(session('design_entity_id'));
+        $lottery = Lottery::findOrFail(session('design_lottery_id'));
+        $set = Set::forUser(auth()->user())->findOrFail(session('design_set_id'));
+        $invitation = null;
+        if (session('design_external_invitation_id')) {
+            $invitation = DesignExternalInvitation::with('files')->where('created_by_user_id', auth()->id())->find(session('design_external_invitation_id'));
+        }
+        return view('design.external_step1', compact('entity', 'lottery', 'set', 'invitation'));
+    }
+
+    /**
+     * Paso 2 diseño externo: Invitación (email).
+     */
+    public function externalStep2()
+    {
+        $this->ensureDesignSession();
+        $invitationId = session('design_external_invitation_id');
+        if (!$invitationId) {
+            return redirect()->route('design.external.step1')->with('error', 'Completa primero el paso de indicaciones y archivos.');
+        }
+        $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail($invitationId);
+        $entity = $invitation->entity;
+        $lottery = $invitation->lottery;
+        $set = $invitation->set;
+        return view('design.external_step2', compact('entity', 'lottery', 'set', 'invitation'));
+    }
+
+    /**
+     * Guardar paso 1 (comentario + archivos) y redirigir a paso 2.
+     */
+    public function externalStoreStep1(Request $request)
+    {
+        $this->ensureDesignSession();
+        $request->validate([
+            'comment' => 'nullable|string|max:5000',
+            'files.*' => 'nullable|file|max:20480',
+        ]);
+        $invitationId = session('design_external_invitation_id');
+        if ($invitationId) {
+            $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->find($invitationId);
+            if ($invitation && $invitation->status === DesignExternalInvitation::STATUS_PENDING) {
+                $invitation->update(['comment' => $request->comment]);
+            } else {
+                $invitation = null;
+            }
+        }
+        if (!isset($invitation) || !$invitation) {
+            $invitation = DesignExternalInvitation::create([
+                'entity_id' => session('design_entity_id'),
+                'lottery_id' => session('design_lottery_id'),
+                'set_id' => session('design_set_id'),
+                'created_by_user_id' => auth()->id(),
+                'comment' => $request->comment,
+                'token' => DesignExternalInvitation::generateToken(),
+                'orden_id' => DesignExternalInvitation::generateOrdenId(),
+                'status' => DesignExternalInvitation::STATUS_PENDING,
+            ]);
+        }
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $path = $file->store('design_external/' . $invitation->id, 'public');
+                DesignExternalInvitationFile::create([
+                    'design_external_invitation_id' => $invitation->id,
+                    'path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                ]);
+            }
+        }
+        session(['design_external_invitation_id' => $invitation->id]);
+        return redirect()->route('design.external.step2');
+    }
+
+    /**
+     * Enviar invitación por email (paso 2).
+     */
+    public function externalSendInvitation(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail(session('design_external_invitation_id'));
+        $invitation->update(['email' => $request->email]);
+        // TODO: enviar email con enlace route('design.external.invite', ['token' => $invitation->token])
+        $invitation->update(['status' => DesignExternalInvitation::STATUS_SENT, 'sent_at' => now()]);
+        session()->forget('design_external_invitation_id');
+        return redirect()->route('design.external.list')->with('success', 'Invitación enviada a ' . $request->email);
+    }
+
+    /**
+     * Listado de invitaciones de diseño externo (tabla como en captura).
+     */
+    public function externalList()
+    {
+        $entity_id = session('design_entity_id');
+        $invitations = DesignExternalInvitation::where('created_by_user_id', auth()->id())
+            ->when($entity_id, fn ($q) => $q->where('entity_id', $entity_id))
+            ->with(['entity', 'set', 'lottery'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('design.external_list', compact('invitations'));
+    }
+
+    public function externalDestroy($id)
+    {
+        $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail($id);
+        foreach ($invitation->files as $f) {
+            Storage::disk('public')->delete($f->path);
+        }
+        $invitation->files()->delete();
+        $invitation->delete();
+        return redirect()->route('design.external.list')->with('success', 'Invitación eliminada.');
+    }
+
+    private function ensureDesignSession()
+    {
+        if (!session('design_entity_id') || !session('design_lottery_id') || !session('design_set_id')) {
+            abort(redirect()->route('design.selectSet')->with('error', 'Sesión de diseño perdida. Selecciona de nuevo el set.'));
+        }
+    }
+
     // Paso 4: Mostrar formato final
     public function format(Request $request)
     {
@@ -84,7 +246,59 @@ class DesignController extends Controller
         $lottery = Lottery::findOrFail(session('design_lottery_id'));
         $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
         $reservation_numbers = $set->reserve ? $set->reserve->reservation_numbers : [];
-        return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers'));
+        $isDigitalSet = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+        // Tarea 7 y 8: diseño por reserva o diseño elegido del listado. "Ir a diseñar" = nuevo (new_design=1)
+        $design = null;
+        if ($request->filled('design_id')) {
+            $design = DesignFormat::where('id', $request->design_id)->where('entity_id', $entityId)->first();
+        }
+        if (! $design && ! $request->filled('new_design')) {
+            $reserveId = $set->reserve_id ?? null;
+            if ($reserveId) {
+                $design = DesignFormat::where('entity_id', $entityId)
+                    ->whereHas('set', fn ($q) => $q->where('reserve_id', $reserveId))
+                    ->first();
+            }
+        }
+        // Al cargar un diseño (propio o desde list-formats): usar blocks si las columnas HTML están vacías y normalizar URLs
+        if ($design) {
+            $blocks = is_array($design->blocks ?? null) ? $design->blocks : [];
+            if (empty($design->participation_html) && !empty($blocks['participation_html'])) {
+                $design->participation_html = $blocks['participation_html'];
+            }
+            if (empty($design->cover_html) && !empty($blocks['cover_html'])) {
+                $design->cover_html = $blocks['cover_html'];
+            }
+            if (empty($design->back_html) && !empty($blocks['back_html'])) {
+                $design->back_html = $blocks['back_html'];
+            }
+            $design->participation_html = $this->ensureAbsoluteUrlsInHtml($design->participation_html ?? '');
+            $design->cover_html = $this->ensureAbsoluteUrlsInHtml($design->cover_html ?? '');
+            $design->back_html = $this->ensureAbsoluteUrlsInHtml($design->back_html ?? '');
+            // Usar blocks.backgrounds si la columna backgrounds está vacía
+            if (empty($design->backgrounds) && ! empty($blocks['backgrounds']) && is_array($blocks['backgrounds'])) {
+                $design->backgrounds = $blocks['backgrounds'];
+            }
+        }
+        return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers', 'isDigitalSet', 'design'));
+    }
+
+    // Tarea 8: listado de diseños de la entidad para reutilizar
+    public function listFormats(Request $request)
+    {
+        $entityId = session('design_entity_id');
+        if (! $entityId || ! auth()->user()->canAccessEntity((int) $entityId)) {
+            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        }
+        $request->validate(['set_id' => 'required|integer|exists:sets,id']);
+        $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
+        session(['design_set_id' => $set->id]);
+        $designs = DesignFormat::where('entity_id', $entityId)
+            ->with('set.reserve')
+            ->orderByDesc('updated_at')
+            ->limit(100)
+            ->get();
+        return view('design.list_formats', compact('designs', 'set'));
     }
 
     // Guardar selección de entidad en sesión y redirigir a selección de sorteo
@@ -172,6 +386,7 @@ class DesignController extends Controller
     public function saveFormat(Request $request)
     {
         $data = $request->validate([
+            'design_id' => 'nullable|integer|exists:design_formats,id',
             'format' => 'nullable|string',
             'page' => 'nullable|string',
             'rows' => 'nullable|integer',
@@ -191,43 +406,63 @@ class DesignController extends Controller
             'snapshot_path' => 'nullable|string',
         ]);
 
-        // return response()->json([$request->design_lottery_id,$request->design_entity_id],422);
-
         $data['set_id'] = $request->input('set_id', 1);
-
         $data['entity_id'] = $request->design_entity_id ?? 1;
         $data['lottery_id'] = $request->design_lottery_id ?? 1;
 
+        // Asegurar backgrounds desde el request (validación puede devolver array asociativo)
+        $requestBackgrounds = $request->input('backgrounds');
+        if (is_array($requestBackgrounds) && ! empty($requestBackgrounds)) {
+            $data['backgrounds'] = $requestBackgrounds;
+        } elseif (! is_array($data['backgrounds'] ?? null)) {
+            $data['backgrounds'] = [];
+        }
         // Guardar los bloques de diseño y configuración en el campo blocks (JSON)
         $data['blocks'] = [
             'participation_html' => $data['participation_html'] ?? '',
             'cover_html' => $data['cover_html'] ?? '',
             'back_html' => $data['back_html'] ?? '',
-            'backgrounds' => $data['backgrounds'] ?? [],
+            'backgrounds' => $data['backgrounds'],
             'output' => $data['output'] ?? [],
             'margins' => $data['margins'] ?? [],
         ];
-
-        // Guardar también en columnas explícitas
         $data['participation_html'] = $data['blocks']['participation_html'];
         $data['cover_html'] = $data['blocks']['cover_html'];
         $data['back_html'] = $data['blocks']['back_html'];
-        $data['backgrounds'] = $data['blocks']['backgrounds'];
         $data['output'] = $data['blocks']['output'];
         $data['margins'] = $data['blocks']['margins'];
         $data['snapshot_path'] = $data['snapshot_path'] ?? null;
 
-        // Sets digitales: un solo "taco" (serie 1..N), no múltiples talonarios
-        $set = \App\Models\Set::find($data['set_id'] ?? null);
+        $set = Set::find($data['set_id'] ?? null);
         if ($set && $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0) {
             $data['output']['participations_per_book'] = (int) $set->total_participations;
         }
-
-        // Tarea 1 tacos: generar taco_qrs (un QR por taco) para venta por QR de taco completo
         $data['output'] = DesignFormat::mergeTacoQrsIntoOutput($data['set_id'] ?? null, $data['output'] ?? []);
 
-        $designFormat = DesignFormat::create($data);
+        // Solo actualizar si el design_id es del MISMO set que estamos guardando (re-guardar el mismo diseño).
+        // Si copiamos un diseño de otro set (ej. set 1 → set 2), NO actualizar el original: crear uno nuevo para el set actual.
+        $designId = $request->input('design_id');
+        if ($designId && $set) {
+            $existing = DesignFormat::find($designId);
+            if ($existing && (int) $existing->entity_id === (int) $data['entity_id'] && (int) $existing->set_id === (int) $data['set_id']) {
+                    $existing->format = $data['format'] ?? $existing->format;
+                    $existing->page = $data['page'] ?? $existing->page;
+                    $existing->rows = $data['rows'] ?? $existing->rows;
+                    $existing->cols = $data['cols'] ?? $existing->cols;
+                    $existing->orientation = $data['orientation'] ?? $existing->orientation;
+                    $existing->blocks = $data['blocks'];
+                    $existing->participation_html = $data['participation_html'];
+                    $existing->cover_html = $data['cover_html'];
+                    $existing->back_html = $data['back_html'];
+                    $existing->backgrounds = $data['backgrounds'];
+                    $existing->output = $data['output'];
+                    $existing->snapshot_path = $data['snapshot_path'];
+                    $existing->save();
+                    return response()->json(['success' => true, 'id' => $existing->id]);
+            }
+        }
 
+        $designFormat = DesignFormat::create($data);
         return response()->json(['success' => true, 'id' => $designFormat->id]);
     }
 
@@ -823,6 +1058,18 @@ class DesignController extends Controller
             },
             $html
         );
+        // <img src="path" o src='path'>: si path no es absoluto (http/https) ni empieza por /, prefijar base
+        $html = preg_replace_callback(
+            '/<img(\s[^>]*)\ssrc=[\'"](?!https?:\\/\\/)([^\'"]+)[\'"]/i',
+            function ($m) use ($base) {
+                $path = $m[2];
+                if (strpos($path, '/') === 0) {
+                    return $m[0];
+                }
+                return '<img' . $m[1] . ' src="' . $base . '/' . $path . '"';
+            },
+            $html
+        );
         return $html;
     }
 
@@ -835,9 +1082,14 @@ class DesignController extends Controller
         $format->participation_html = $this->ensureAbsoluteUrlsInHtml($format->participation_html ?? '');
         $format->cover_html = $this->ensureAbsoluteUrlsInHtml($format->cover_html ?? '');
         $format->back_html = $this->ensureAbsoluteUrlsInHtml($format->back_html ?? '');
+        $blocks = is_array($format->blocks ?? null) ? $format->blocks : [];
+        if (empty($format->backgrounds) && ! empty($blocks['backgrounds']) && is_array($blocks['backgrounds'])) {
+            $format->backgrounds = $blocks['backgrounds'];
+        }
         $set = $format->set_id ? Set::find($format->set_id) : null;
         $reservation_numbers = $set && $set->reserve ? $set->reserve->reservation_numbers : [];
-        return view('design.edit_format', compact('format', 'set', 'reservation_numbers'));
+        $isDigitalSet = $set && $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+        return view('design.edit_format', compact('format', 'set', 'reservation_numbers', 'isDigitalSet'));
     }
 
     /**
@@ -881,14 +1133,14 @@ class DesignController extends Controller
                 if (isset($data['margins'])) $format->margins = $data['margins'];
                 if (isset($data['backgrounds'])) $format->backgrounds = $data['backgrounds'];
                 if (isset($data['output'])) {
-                    $format->output = $data['output'];
+                    $output = $data['output'];
                     // Sets digitales: un solo taco (serie 1..N)
                     $set = $format->set;
                     if ($set && $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0) {
-                        $format->output['participations_per_book'] = (int) $set->total_participations;
+                        $output['participations_per_book'] = (int) $set->total_participations;
                     }
                     // Tarea 1 tacos: regenerar taco_qrs al guardar output (participations_per_book puede haber cambiado)
-                    $format->output = DesignFormat::mergeTacoQrsIntoOutput($format->set_id, $format->output ?? []);
+                    $format->output = DesignFormat::mergeTacoQrsIntoOutput($format->set_id, $output ?? []);
                 }
                 $format->save();
                 

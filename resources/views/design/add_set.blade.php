@@ -102,7 +102,7 @@
                     	</div>
                     	<div class="col-md-9">
                     		<div class="form-card bs" style="min-height: 658px;">
-                    			<form action="{{ route('design.format') }}" method="POST" id="setSelectForm">
+                    			<form action="{{ route('design.chooseType') }}" method="POST" id="setSelectForm">
                                     @csrf
                     				<h4 class="mb-0 mt-1">
                     					Set en el que asignar participaciones
@@ -121,6 +121,7 @@
                     								<th>Importe TOTAL</th>
                     								<th>Participaciones Físicas</th>
                     								<th>Participaciones Disponibles</th>
+                    								<th>Tipo</th>
                     								<th class="d-none">Seleccionar</th>
                     							</tr>
                     						</thead>
@@ -134,6 +135,15 @@
                     								<td>{{number_format($set->total_amount, 2)}}€</td>
                     								<td>{{$set->physical_participations}}</td>
                     								<td>{{$set->total_participations}}</td>
+                    								<td>
+                    									@if(($set->physical_participations ?? 0) == 0)
+                    										<span class="badge bg-primary">Digital</span>
+                    									@elseif(($set->digital_participations ?? 0) == 0)
+                    										<span class="badge bg-secondary">Físico</span>
+                    									@else
+                    										<span class="badge bg-info">Mixto</span>
+                    									@endif
+                    								</td>
                     								<td class="d-none">
                     									<div class="form-check">
                     										<input class="form-check-input" type="radio" name="set_id" value="{{$set->id}}" id="set_{{$set->id}}" required>

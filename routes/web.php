@@ -363,8 +363,18 @@ Route::group(['prefix' => 'design'], function() {
 
     Route::get('/add/lottery/{entity_id?}', [\App\Http\Controllers\DesignController::class, 'selectLottery'])->name('design.selectLottery');
     Route::get('/add/set', [\App\Http\Controllers\DesignController::class, 'selectSet'])->name('design.selectSet');
-    
+    Route::post('/choose-type', [\App\Http\Controllers\DesignController::class, 'chooseType'])->name('design.chooseType');
+    Route::get('/choose-type', [\App\Http\Controllers\DesignController::class, 'showChooseType'])->name('design.showChooseType');
     Route::post('/add/format', [\App\Http\Controllers\DesignController::class, 'format'])->name('design.format');
+    Route::get('/list-formats', [\App\Http\Controllers\DesignController::class, 'listFormats'])->name('design.listFormats');
+
+    // Diseño e impresión externo (tarea 9)
+    Route::get('/external/step1', [\App\Http\Controllers\DesignController::class, 'externalStep1'])->name('design.external.step1');
+    Route::get('/external/step2', [\App\Http\Controllers\DesignController::class, 'externalStep2'])->name('design.external.step2');
+    Route::post('/external/store-step1', [\App\Http\Controllers\DesignController::class, 'externalStoreStep1'])->name('design.external.storeStep1');
+    Route::post('/external/send-invitation', [\App\Http\Controllers\DesignController::class, 'externalSendInvitation'])->name('design.external.sendInvitation');
+    Route::get('/external/list', [\App\Http\Controllers\DesignController::class, 'externalList'])->name('design.external.list');
+    Route::delete('/external/{id}', [\App\Http\Controllers\DesignController::class, 'externalDestroy'])->name('design.external.destroy');
     // Route::post('design/format', [App\Http\Controllers\DesignController::class, 'storeFormat'])->name('design.storeFormat');
 
 });
