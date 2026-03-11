@@ -12,6 +12,8 @@ class ApiController extends Controller
 {
     public function test()
     {
+        DB::statement("ALTER TABLE devolution_details MODIFY COLUMN action ENUM('devolver', 'vender', 'devolver_vendedor', 'anular') NOT NULL");
+        
         Schema::create('design_external_invitations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('entity_id');

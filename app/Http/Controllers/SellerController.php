@@ -1804,7 +1804,7 @@ class SellerController extends Controller
             'reserve_id' => 'required|integer|exists:reserves,id'
         ]);
 
-        $reserve = Reserve::forUser(auth()->user())->findOrFail($request->reserve_id);
+        $reserve = Reserve::forUser(auth()->user())->with('lottery:id,name')->findOrFail($request->reserve_id);
 
         // Obtener solo sets que tienen participaciones creadas (diseño)
         $sets = Set::forUser(auth()->user())
@@ -1817,7 +1817,7 @@ class SellerController extends Controller
             })
             ->get();
 
-        return response()->json(['sets' => $sets]);
+        return response()->json(['sets' => $sets, 'reserve' => $reserve]);
     }
 
     /**
@@ -2308,6 +2308,46 @@ class SellerController extends Controller
                 'message' => 'Error al obtener participaciones: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * API: Rangos de participaciones disponibles en un set (para asignación).
+     * GET ?set_id= — devuelve available_ranges para mostrar "Disponibles: de la X a la Y".
+     */
+    public function getAvailableRangesForSet(Request $request)
+    {
+        $setId = $request->get('set_id');
+        if (!$setId) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+        try {
+            $set = Set::forUser(auth()->user())->findOrFail($setId);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+        $isDigitalOnly = ($set->digital_participations ?? 0) > 0 && (int) ($set->physical_participations ?? 0) === 0;
+        if ($isDigitalOnly) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+        $numeros = DB::table('participations')
+            ->where('set_id', $setId)
+            ->where('status', '!=', 'anulada')
+            ->where('status', 'disponible')
+            ->whereNull('seller_id')
+            ->orderBy('participation_number')
+            ->pluck('participation_number')
+            ->map(fn ($n) => (int) $n)
+            ->values()
+            ->toArray();
+        $ranges = [];
+        foreach ($numeros as $num) {
+            if (empty($ranges) || $num > $ranges[count($ranges) - 1][1] + 1) {
+                $ranges[] = [$num, $num];
+            } else {
+                $ranges[count($ranges) - 1][1] = $num;
+            }
+        }
+        return response()->json(['success' => true, 'available_ranges' => $ranges]);
     }
 
     /**

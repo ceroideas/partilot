@@ -573,6 +573,8 @@
 
                                                  <br>
 
+                                                <div id="reserva-paso-sets-text" class="mb-2 small text-muted" style="display: none;"></div>
+
                                                                                                    <div style="min-height: 656px;">
                                                       <table id="tabla-sets" class="table table-striped nowrap w-100">
                                                           <thead class="">
@@ -1311,7 +1313,14 @@ function initDatatable()
         success: function(response) {
           // Limpiar datos existentes
           tablaSets.clear();
-          
+          const $reservaText = $('#reserva-paso-sets-text');
+          if (response.reserve) {
+            const ref = '#RS' + String(response.reserve.id).padStart(4, '0');
+            const sorteo = response.reserve.lottery && response.reserve.lottery.name ? response.reserve.lottery.name : '';
+            $reservaText.html('Reserva: <strong>' + ref + '</strong>' + (sorteo ? ' – Sorteo: ' + sorteo : '')).show();
+          } else {
+            $reservaText.hide().empty();
+          }
           if (response.sets && response.sets.length > 0) {
             let datosSets = [];
             

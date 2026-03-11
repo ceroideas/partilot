@@ -843,7 +843,7 @@ class DevolutionsController extends Controller
         }
 
         // Obtener sets que tienen participaciones disponibles o asignadas (no devueltas completamente)
-        $sets = Set::with(['reserve'])
+        $sets = Set::with(['reserve.lottery:id,name'])
             ->forUser(auth()->user())
             ->where('entity_id', $entityId)
             ->whereHas('reserve', function($query) use ($lotteryId) {
@@ -925,6 +925,72 @@ class DevolutionsController extends Controller
         return response()->json([
             'success' => true,
             'reserves' => $reserves,
+        ]);
+    }
+
+    /**
+     * Rangos de participaciones disponibles para devolver en una reserva (numeración global de la reserva).
+     * Para devolución vendedor: participaciones asignadas a ese vendedor en la reserva.
+     * Sin seller_id: no se devuelven rangos (o se podrían devolver participaciones disponibles de la entidad).
+     */
+    public function getAvailableRangesForReserve(Request $request)
+    {
+        $reserveId = $request->get('reserve_id');
+        $sellerId = $request->get('seller_id');
+
+        if (!$reserveId) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+
+        $reserve = Reserve::forUser(auth()->user())->find($reserveId);
+        if (!$reserve) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+
+        if ($sellerId && !auth()->user()->canAccessSeller((int) $sellerId)) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+
+        $sets = $reserve->sets()->orderBy('set_number')->orderBy('id')->get();
+        if ($sets->isEmpty()) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+
+        $offsetBySet = [];
+        $running = 1;
+        foreach ($sets as $set) {
+            $offsetBySet[$set->id] = $running;
+            $running += (int) ($set->total_participations ?? 0);
+        }
+
+        $query = Participation::query()
+            ->whereIn('set_id', $sets->pluck('id'))
+            ->where('status', '!=', 'anulada');
+
+        if ($sellerId) {
+            $query->where('seller_id', $sellerId)->where('status', 'asignada');
+        } else {
+            $query->where('status', 'disponible')->whereNull('seller_id');
+        }
+
+        $numeros = $query->get()->map(function ($p) use ($offsetBySet) {
+            $offset = $offsetBySet[$p->set_id] ?? 0;
+            return $offset + (int) $p->participation_number;
+        })->sort()->values()->toArray();
+
+        $ranges = [];
+        foreach ($numeros as $num) {
+            $n = (int) $num;
+            if (empty($ranges) || $n > $ranges[count($ranges) - 1][1] + 1) {
+                $ranges[] = [$n, $n];
+            } else {
+                $ranges[count($ranges) - 1][1] = $n;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'available_ranges' => $ranges,
         ]);
     }
 
