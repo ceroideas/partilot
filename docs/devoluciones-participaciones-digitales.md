@@ -85,3 +85,5 @@
    - Comprobar que la reserva/set tenga suficientes participaciones digitales asignadas/devolubles antes de crear la devolución.
 
 Si quieres, el siguiente paso puede ser bajar esto a cambios concretos en `DevolutionsController`, rutas y en `create.blade.php` (y en la app) para la Opción A.
+
+Nota: Me encaja hacer la opcion A sin opcionales teniendo en cuenta lo siguiente también: tenemos 2 flujos de devoluciones, la de vendedor a entidad y la de entidad a administración. En la primera hay que tener en cuenta que las participaciones, sean fisicas o digitales que se devuelvan pasan a estar disponibles para reasignarlas y las restantes siguen con su status normal. Cuando es de entidad a administración las devueltas si cambian a devueltas y las restantes se deberan liquidar ya que se consideran vendidas.
