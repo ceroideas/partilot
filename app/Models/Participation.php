@@ -233,7 +233,7 @@ class Participation extends Model
         return $code;
     }
 
-    // Método para obtener el estado en español
+    // Método para obtener el estado en español (si último log es returned_by_seller y status disponible → "DISPONIBLE DV")
     public function getStatusTextAttribute()
     {
         $statuses = [
@@ -243,8 +243,18 @@ class Participation extends Model
             'devuelta' => 'Devuelta',
             'anulada' => 'Anulada',
             'perdida' => 'Perdida',
+            'asignada' => 'Asignada',
             'pagada' => 'Pagada',
         ];
+
+        if ($this->status === 'disponible') {
+            $lastLog = $this->relationLoaded('activityLogs')
+                ? $this->activityLogs->sortByDesc('created_at')->first()
+                : $this->activityLogs()->orderBy('created_at', 'desc')->first();
+            if ($lastLog && $lastLog->activity_type === 'returned_by_seller') {
+                return 'DISPONIBLE DV';
+            }
+        }
 
         return $statuses[$this->status] ?? $this->status;
     }

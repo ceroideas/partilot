@@ -137,7 +137,7 @@
                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                 <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
                                                             </div>
-                                                            <input class="form-control" type="text" value="{{ $participation->seller_id && $participation->status == 'disponible' ? 'Asignada' : ucfirst($participation->status ?? 'N/A') }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                            <input class="form-control" type="text" value="{{ $participation->seller_id && $participation->status == 'disponible' ? 'Asignada' : ($participation->status_text ?? ucfirst($participation->status ?? 'N/A')) }}" style="border-radius: 0 30px 30px 0;" readonly>
                                                         </div>
                                                     </div>
                                                 </div>

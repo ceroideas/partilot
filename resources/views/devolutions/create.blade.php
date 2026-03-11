@@ -516,24 +516,24 @@
                                             <br>
 
                                             <div class="row">
-                                                <!-- Sección: Selección de Set -->
-                                                <div class="col-md-12 mb-3">
+                                                <!-- Sección: Selección de Reserva (si hay más de una se muestra el selector) -->
+                                                <div class="col-md-12 mb-3" id="wrapper-seleccion-reserva">
                                                     <div class="form-card bs">
                                                         <div class="d-flex align-items-center p-3">
                                                             <div class="me-3">
                                                                 <img src="{{url('icons_/sets.svg')}}" alt="" width="40px">
                                                             </div>
                                                             <div class="flex-grow-1">
-                                                                <h4 class="m-0 fw-bold">Seleccionar Set</h4>
-                                                                <small class="text-muted">Elige el set de participaciones</small>
+                                                                <h4 class="m-0 fw-bold">Seleccionar Reserva</h4>
+                                                                <small class="text-muted">Elige la reserva de participaciones</small>
                                                                 <br>
-                                                                <small class="text-info"><i class="ri-information-line"></i> Puedes cambiar de set sin perder las selecciones anteriores</small>
+                                                                <small class="text-info"><i class="ri-information-line"></i> Si solo hay una reserva se selecciona automáticamente</small>
                                                             </div>
-                                                            <div style="width: 40%;">
-                                                                <label class="form-label small mb-1">Set</label>
+                                                            <div style="width: 40%;" id="contenedor-selector-reserva">
+                                                                <label class="form-label small mb-1">Reserva</label>
                                                                 <div class="input-group input-group-merge group-form">
-                                                                    <select class="form-select" id="selector-set" style="border-radius: 30px;">
-                                                                        <option value="">Seleccionar set...</option>
+                                                                    <select class="form-select" id="selector-reserva" style="border-radius: 30px;">
+                                                                        <option value="">Seleccionar reserva...</option>
                                                                     </select>
                                                                 </div>
                                                             </div>
@@ -634,9 +634,14 @@
                                                 <span id="total-sets" class="fw-bold fs-4">0</span>
                                             </div>
                                         </div>
-                                        <button type="button" class="btn btn-warning" id="btn-terminar-asignacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold; padding: 10px 30px;">
-                                            Siguiente
-                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn" id="btn-aceptar-solo-devolucion" style="border-radius: 30px; background-color: #333; color: #fff; font-weight: bold; padding: 10px 30px;">
+                                                Aceptar
+                                            </button>
+                                            <button type="button" class="btn btn-warning" id="btn-terminar-asignacion" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold; padding: 10px 30px;">
+                                                Siguiente
+                                            </button>
+                                        </div>
                                     </div>
                                                 </div>
 
@@ -994,9 +999,11 @@
                                                                             <small class="text-muted">Pendiente</small>
                                                                             <div class="h5" id="total-pendiente">0,00€</div>
                                                                         </div>
-                                                                        <button type="button" class="btn btn-warning" id="btn-aceptar-liquidacion" style="border-radius: 30px; width: 100%;">
-                                                                            Aceptar Liquidación
-                                                                        </button>
+                                                                        <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                                                            <button type="button" class="btn btn-warning" id="btn-aceptar-liquidacion" style="border-radius: 30px;">
+                                                                                Aceptar Liquidación
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1026,7 +1033,8 @@ $(document).ready(function() {
     // Variables globales
     let entidadSeleccionada = null;
     let sorteoSeleccionado = null;
-    let setSeleccionado = null;
+    let setSeleccionado = null; // legacy / anulacion
+    let reservaSeleccionada = null; // para asignación/devolución por reserva
     let participacionesAsignadas = [];
     let tipoDevolucion = null; // 'vendedor' o 'administracion'
     let vendedorSeleccionado = null;
@@ -1593,9 +1601,9 @@ $(document).ready(function() {
             mostrarPaso('paso-participaciones');
             // Cargar sets según el tipo de devolución
             if (tipoDevolucion === 'vendedor') {
-                cargarSetsVendedor();
+                cargarReservasVendedor();
             } else {
-            cargarSetsEntidad();
+            cargarReservasEntidad();
             }
         }
     });
@@ -1629,8 +1637,8 @@ $(document).ready(function() {
         if (participacionesAsignadas.length === 0) {
             $('#estado-vacio-resumen').removeClass('d-none');
             $('#lista-participaciones-asignadas').hide();
-            // Mostrar botón para continuar sin participaciones si hay set seleccionado
-            if (setSeleccionado) {
+            // Mostrar botón para continuar sin participaciones si hay reserva o set seleccionado
+            if (reservaSeleccionada || setSeleccionado) {
                 $('#btn-continuar-sin-participaciones-container').show();
             } else {
                 $('#btn-continuar-sin-participaciones-container').hide();
@@ -1717,11 +1725,12 @@ $(document).ready(function() {
         console.log('Enviando IDs de participaciones:', participationIds);
         console.log('Set seleccionado:', setSeleccionado);
 
-        // Preparar datos para el resumen
+        // Preparar datos para el resumen (reserve_id o set_id según flujo)
         const datosResumen = {
             entity_id: entidadSeleccionada.id,
             lottery_id: sorteoSeleccionado.id,
             set_id: setSeleccionado ? setSeleccionado.id : null,
+            reserve_id: reservaSeleccionada ? reservaSeleccionada.id : null,
             participations: participationIds
         };
 
@@ -1766,129 +1775,123 @@ $(document).ready(function() {
         });
     }
 
-    // Función para cargar sets de la entidad
-    function cargarSetsEntidad() {
+    // Función para cargar reservas de la entidad (asignación/devolución por reserva)
+    function cargarReservasEntidad() {
         if (!entidadSeleccionada || !sorteoSeleccionado) return;
         
         $.ajax({
-            url: "{{ route('devolutions.sets-by-entity') }}",
+            url: "{{ route('devolutions.reserves-by-entity') }}",
             method: 'GET',
             data: {
                 entity_id: entidadSeleccionada.id,
                 lottery_id: sorteoSeleccionado.id
             },
             success: function(response) {
-                const selector = $('#selector-set');
-                selector.empty().append('<option value="">Seleccionar set...</option>');
+                const selector = $('#selector-reserva');
+                selector.empty().append('<option value="">Seleccionar reserva...</option>');
+                reservaSeleccionada = null;
                 
-                if (response.success && response.sets && response.sets.length > 0) {
-                    response.sets.forEach(set => {
-                        // Obtener los números de reserva desde la relación reserve
-                        let reservationNumbers = '';
-                        if (set.reserve && set.reserve.reservation_numbers && Array.isArray(set.reserve.reservation_numbers) && set.reserve.reservation_numbers.length > 0) {
-                            reservationNumbers = set.reserve.reservation_numbers.join(' - ');
-                        } else {
-                            reservationNumbers = set.reserve_id.toString().padStart(5, '0');
-                        }
-                        
-                        const setNumber = set.set_number.toString().padStart(2, '0');
-                        const displayText = `${set.set_name} (${reservationNumbers} - ${setNumber})`;
-                        
-                        selector.append(`<option value="${set.id}" data-played-amount="${set.played_amount || 0}" data-set-name="${set.set_name}">${displayText}</option>`);
+                if (response.success && response.reserves && response.reserves.length > 0) {
+                    response.reserves.forEach(reserve => {
+                        selector.append(`<option value="${reserve.id}" data-display-label="${reserve.display_label}">${reserve.display_label}</option>`);
                     });
+                    if (response.reserves.length === 1) {
+                        reservaSeleccionada = { id: response.reserves[0].id, display_label: response.reserves[0].display_label };
+                        selector.val(reservaSeleccionada.id);
+                        $('#wrapper-seleccion-reserva').addClass('d-none');
+                    } else {
+                        $('#wrapper-seleccion-reserva').removeClass('d-none');
+                        $('#contenedor-selector-reserva').removeClass('d-none');
+                    }
                 } else {
-                    mostrarMensaje('No hay sets disponibles para devolver en este sorteo', 'warning');
+                    $('#wrapper-seleccion-reserva').removeClass('d-none');
+                    $('#contenedor-selector-reserva').removeClass('d-none');
+                    mostrarMensaje('No hay reservas disponibles para este sorteo', 'warning');
                 }
-                
-                // NO reiniciar las participaciones asignadas al cargar sets
                 actualizarResumenAsignacion();
             },
             error: function(xhr, status, error) {
-                console.error('Error al cargar sets:', error);
-                mostrarMensaje('Error al cargar los sets de la entidad', 'error');
+                console.error('Error al cargar reservas:', error);
+                mostrarMensaje('Error al cargar las reservas de la entidad', 'error');
             }
         });
     }
 
-    // Función para cargar sets del vendedor
-    function cargarSetsVendedor() {
+    // Función para cargar reservas del vendedor (devolución vendedor → entidad)
+    function cargarReservasVendedor() {
         if (!entidadSeleccionada || !sorteoSeleccionado || !vendedorSeleccionado) return;
         
         $.ajax({
-            url: "{{ route('devolutions.sets-by-entity') }}",
+            url: "{{ route('devolutions.reserves-by-entity') }}",
             method: 'GET',
             data: {
                 entity_id: entidadSeleccionada.id,
                 lottery_id: sorteoSeleccionado.id,
-                seller_id: vendedorSeleccionado.id  // Filtrar por vendedor
+                seller_id: vendedorSeleccionado.id
             },
             success: function(response) {
-                const selector = $('#selector-set');
-                selector.empty().append('<option value="">Seleccionar set...</option>');
+                const selector = $('#selector-reserva');
+                selector.empty().append('<option value="">Seleccionar reserva...</option>');
+                reservaSeleccionada = null;
                 
-                if (response.success && response.sets && response.sets.length > 0) {
-                    response.sets.forEach(set => {
-                        // Obtener los números de reserva desde la relación reserve
-                        let reservationNumbers = '';
-                        if (set.reserve && set.reserve.reservation_numbers && Array.isArray(set.reserve.reservation_numbers) && set.reserve.reservation_numbers.length > 0) {
-                            reservationNumbers = set.reserve.reservation_numbers.join(' - ');
-                        } else {
-                            reservationNumbers = set.reserve_id.toString().padStart(5, '0');
-                        }
-                        
-                        const setNumber = set.set_number.toString().padStart(2, '0');
-                        const displayText = `${set.set_name} (${reservationNumbers} - ${setNumber})`;
-                        
-                        selector.append(`<option value="${set.id}" data-played-amount="${set.played_amount || 0}" data-set-name="${set.set_name}">${displayText}</option>`);
+                if (response.success && response.reserves && response.reserves.length > 0) {
+                    response.reserves.forEach(reserve => {
+                        selector.append(`<option value="${reserve.id}" data-display-label="${reserve.display_label}">${reserve.display_label}</option>`);
                     });
+                    if (response.reserves.length === 1) {
+                        reservaSeleccionada = { id: response.reserves[0].id, display_label: response.reserves[0].display_label };
+                        selector.val(reservaSeleccionada.id);
+                        $('#wrapper-seleccion-reserva').addClass('d-none');
+                    } else {
+                        $('#wrapper-seleccion-reserva').removeClass('d-none');
+                        $('#contenedor-selector-reserva').removeClass('d-none');
+                    }
                 } else {
-                    mostrarMensaje('No hay sets disponibles para devolver de este vendedor', 'warning');
+                    $('#wrapper-seleccion-reserva').removeClass('d-none');
+                    $('#contenedor-selector-reserva').removeClass('d-none');
+                    mostrarMensaje('No hay reservas con participaciones de este vendedor', 'warning');
                 }
-                
-                // NO reiniciar las participaciones asignadas al cargar sets
                 actualizarResumenAsignacion();
             },
             error: function(xhr, status, error) {
-                console.error('Error al cargar sets del vendedor:', error);
-                mostrarMensaje('Error al cargar los sets del vendedor', 'error');
+                console.error('Error al cargar reservas del vendedor:', error);
+                mostrarMensaje('Error al cargar las reservas del vendedor', 'error');
             }
         });
     }
 
-    // Event listener para selección de set
-    $('#selector-set').on('change', function() {
-        const setId = $(this).val();
+    // Event listener para selección de reserva
+    $('#selector-reserva').on('change', function() {
+        const reserveId = $(this).val();
         const selectedOption = $(this).find('option:selected');
         
-        if (setId) {
-            setSeleccionado = {
-                id: setId,
-                name: selectedOption.text(),
-                set_name: selectedOption.data('set-name') || selectedOption.text(),
-                played_amount: parseFloat(selectedOption.data('played-amount')) || 0
+        if (reserveId) {
+            reservaSeleccionada = {
+                id: reserveId,
+                display_label: selectedOption.data('display-label') || selectedOption.text()
             };
         } else {
-            setSeleccionado = null;
+            reservaSeleccionada = null;
         }
-        
-        console.log('Set seleccionado actualizado:', setSeleccionado);
-        
-        // NO reiniciar las participaciones asignadas para permitir selección de múltiples sets
         actualizarResumenAsignacion();
     });
 
-    // Función para validar participaciones
+    // Función para validar participaciones (por reserva o por set legacy)
     function validarParticipacionesDisponibles(desde, hasta, participationId) {
         return new Promise((resolve, reject) => {
             const datosValidacion = {
                     entity_id: entidadSeleccionada.id,
                     lottery_id: sorteoSeleccionado.id,
-                    set_id: setSeleccionado.id,
                     desde: desde,
                     hasta: hasta,
                     participation_id: participationId,
                     _token: '{{ csrf_token() }}'
             };
+            if (reservaSeleccionada) {
+                datosValidacion.reserve_id = reservaSeleccionada.id;
+            } else if (setSeleccionado) {
+                datosValidacion.set_id = setSeleccionado.id;
+            }
 
             // Agregar seller_id si es devolución de vendedor
             if (tipoDevolucion === 'vendedor' && vendedorSeleccionado) {
@@ -1913,16 +1916,17 @@ $(document).ready(function() {
         });
     }
 
-    // Event listener para asignar participaciones
+    // Event listener para asignar participaciones (requiere reserva o set seleccionado)
     $('#btn-asignar-participacion').click(function() {
-        if (!setSeleccionado) {
-            mostrarMensaje('Por favor selecciona un set antes de asignar participaciones', 'warning');
+        if (!reservaSeleccionada && !setSeleccionado) {
+            mostrarMensaje('Por favor selecciona una reserva antes de asignar participaciones', 'warning');
             return;
         }
 
         const desde = $('#rango-desde').val();
         const hasta = $('#rango-hasta').val();
         const unidad = $('#participacion-unidad').val();
+        const displayName = reservaSeleccionada ? reservaSeleccionada.display_label : (setSeleccionado ? setSeleccionado.name : '');
 
         if (desde && hasta) {
             $('#btn-asignar-participacion').prop('disabled', true).text('Validando...');
@@ -1937,8 +1941,8 @@ $(document).ready(function() {
                                     id: participation.id,
                                     number: participation.number,
                                     participation_code: participation.participation_code,
-                                    set_id: setSeleccionado.id,
-                                    set_name: setSeleccionado.name,
+                                    set_id: participation.set_id || (setSeleccionado && setSeleccionado.id),
+                                    set_name: participation.set_name || displayName,
                                     assigned_at: new Date().toISOString()
                                 });
                             }
@@ -1971,8 +1975,8 @@ $(document).ready(function() {
                                 id: participation.id,
                                 number: participation.number,
                                 participation_code: participation.participation_code,
-                                set_id: setSeleccionado.id,
-                                set_name: setSeleccionado.name,
+                                set_id: participation.set_id || (setSeleccionado && setSeleccionado.id),
+                                set_name: participation.set_name || displayName,
                                 assigned_at: new Date().toISOString()
                             });
                             actualizarResumenAsignacion();
@@ -2241,6 +2245,55 @@ $(document).ready(function() {
     
     // Event listeners para actualizar total al cambiar montos
     $('.payment-input').on('input', actualizarTotalPagado);
+
+    // Event listener para solo devolución (sin liquidar) — botón "Aceptar" #333
+    $('#btn-aceptar-solo-devolucion').click(function() {
+        if (participacionesAsignadas.length === 0) {
+            mostrarMensaje('Selecciona al menos una participación para devolver', 'warning');
+            return;
+        }
+        const liquidacionData = {
+            entity_id: entidadSeleccionada.id,
+            lottery_id: sorteoSeleccionado.id,
+            return_reason: tipoDevolucion === 'vendedor' ? 'Devolución de vendedor a entidad' : 'Devolución de entidad a administración',
+            tipo_devolucion: tipoDevolucion,
+            solo_devolucion: true,
+            liquidacion: {
+                devolver: participacionesAsignadas.map(p => p.id),
+                vender: [],
+                pagos: []
+            },
+            _token: '{{ csrf_token() }}'
+        };
+        if (tipoDevolucion === 'vendedor' && vendedorSeleccionado) {
+            liquidacionData.seller_id = vendedorSeleccionado.id;
+        }
+        $(this).prop('disabled', true).text('Procesando...');
+        $.ajax({
+            url: "{{ route('devolutions.store') }}",
+            method: 'POST',
+            data: liquidacionData,
+            success: function(response) {
+                if (response.success) {
+                    mostrarMensaje('Devolución registrada correctamente (sin liquidar)', 'success');
+                    if (response.devolution_id) {
+                        window.location.href = "{{ route('devolutions.index') }}/" + response.devolution_id;
+                    } else {
+                        setTimeout(() => { window.location.href = "{{ route('devolutions.index') }}"; }, 1500);
+                    }
+                } else {
+                    mostrarMensaje(response.message || 'Error al registrar la devolución', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en solo devolución:', error);
+                mostrarMensaje(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error al registrar la devolución', 'error');
+            },
+            complete: function() {
+                $('#btn-aceptar-solo-devolucion').prop('disabled', false).text('Aceptar');
+            }
+        });
+    });
 
     // Event listener para aceptar liquidación
     $('#btn-aceptar-liquidacion').click(function() {

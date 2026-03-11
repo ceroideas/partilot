@@ -101,12 +101,10 @@
 	                    				<label class="badge badge-lg bg-info float-end">Pagada</label>
 	                    			@elseif($participation->status == 'disponible' && $participation->seller_id)
 	                    				<label class="badge badge-lg bg-primary float-end">Asignada</label>
-	                    			@elseif($participation->status == 'disponible')
-	                    				<label class="badge badge-lg bg-info float-end">Disponible</label>
-	                    			@elseif($participation->status == 'devuelta')
-	                    				<label class="badge badge-lg bg-danger float-end">Devuelta</label>
+	                    			@elseif($participation->status == 'disponible' || $participation->status == 'devuelta')
+	                    				<label class="badge badge-lg {{ $participation->status == 'devuelta' ? 'bg-danger' : 'bg-info' }} float-end">{{ $participation->status_text }}</label>
 	                    			@else
-	                    				<label class="badge badge-lg bg-warning float-end">{{ ucfirst($participation->status ?? 'Sin estado') }}</label>
+	                    				<label class="badge badge-lg bg-warning float-end">{{ $participation->status_text }}</label>
 	                    			@endif
 	                    			<div style="clear: both;"></div>
                     			</div>

@@ -518,7 +518,7 @@
                                                  <div class="d-flex justify-content-between align-items-center">
                                                      <div>
                                                          <h4 class="mb-0 mt-1">
-                                                             Participaciones
+                                                          Reserva en la que Asignar participaciones
                                                          </h4>
                                                          <small><i>Selecciona una reserva para continuar</i></small>
                                                      </div>
@@ -584,6 +584,7 @@
                                                                   <th>Importe TOTAL</th>
                                                                   <th>Participaciones <br> Físicas</th>
                                                                   <th>Participaciones <br> Disponibles</th>
+                                                                  <th>Tipo</th>
                                                                   <th class="d-none">Seleccionar</th>
                                                               </tr>
                                                           </thead>
@@ -623,6 +624,7 @@
                                                     <!-- Bloque asignación física: por rango y por unidad (solo sets físicos) -->
                                                     <div id="bloque-asignacion-fisica" class="col-md-12 mb-3">
                                                         <div class="form-card bs">
+                                                            <div id="rango-disponibles-fisico" class="px-3 pt-3 small text-muted" style="display: none;"></div>
                                                             <div class="d-flex align-items-center p-3">
                                                                 <div class="me-3">
                                                                     <img src="{{url('icons_/participaciones.svg')}}" alt="" width="40px">
@@ -1315,6 +1317,7 @@ function initDatatable()
             
             response.sets.forEach(set => {
               const isDigital = (set.digital_participations > 0) && (!set.physical_participations || set.physical_participations === 0);
+              const tipoSet = isDigital ? 'Set digital' : 'Set físico';
               datosSets.push([
                 `#SP${String(set.id).padStart(4, '0')}`,
                 set.set_name,
@@ -1323,6 +1326,7 @@ function initDatatable()
                 `<b>${parseFloat(set.total_amount || 0).toFixed(2)}€</b>`,
                 set.physical_participations || 0,
                 set.total_participations || 0,
+                `<span class="badge ${isDigital ? 'bg-info' : 'bg-secondary'}">${tipoSet}</span>`,
                 `<div class="form-check">
                    <input class="form-check-input seleccionar-set" type="radio" name="set_id" value="${set.id}" id="set_${set.id}" data-set-id="${set.id}" data-digital="${isDigital ? '1' : '0'}">
                    <label class="form-check-label" for="set_${set.id}">
@@ -1334,7 +1338,7 @@ function initDatatable()
             
             tablaSets.rows.add(datosSets).draw();
           } else {
-            tablaSets.rows.add([['No hay sets disponibles para esta reserva', '', '', '', '', '', '', '']]).draw();
+            tablaSets.rows.add([['No hay sets disponibles para esta reserva', '', '', '', '', '', '', '', '']]).draw();
           }
           
           console.log('Sets cargados correctamente con DataTable');
@@ -1344,7 +1348,7 @@ function initDatatable()
           
           // Limpiar datos y mostrar error
           tablaSets.clear();
-          tablaSets.rows.add([['Error al cargar los sets', '', '', '', '', '', '', '']]).draw();
+          tablaSets.rows.add([['Error al cargar los sets', '', '', '', '', '', '', '', '']]).draw();
         }
       });
     }
@@ -1467,6 +1471,18 @@ function initDatatable()
             if (setSeleccionado && setSeleccionado.is_digital && response.set_disponibles !== undefined) {
               disponiblesDigitalSet = response.set_disponibles;
               $('#disponibles-digital').text(disponiblesDigitalSet);
+            }
+            // Sets físicos: mostrar rangos disponibles (de la X a la Y)
+            if (setSeleccionado && !setSeleccionado.is_digital && response.available_ranges !== undefined) {
+              const $rango = $('#rango-disponibles-fisico');
+              if (response.available_ranges && response.available_ranges.length > 0) {
+                const txt = response.available_ranges.map(r => r[0] === r[1] ? `de la ${r[0]}` : `de la ${r[0]} a la ${r[1]}`).join(', ');
+                $rango.html('<strong>Disponibles:</strong> ' + txt + '.').show();
+              } else {
+                $rango.html('No hay participaciones disponibles en este set.').show();
+              }
+            } else {
+              $('#rango-disponibles-fisico').hide().empty();
             }
           },
           error: function(xhr, status, error) {
@@ -2288,8 +2304,8 @@ function initDatatable()
               }
               const saleTime = participation.sale_time ? participation.sale_time : 'N/A';
               const status = participation.status || 'asignada';
-              const statusLabel = status === 'pagada' ? 'Pagada' : status === 'vendida' ? 'Vendida' : status === 'devuelta' ? 'Devuelta' : 'Asignada';
-              const statusClass = status === 'pagada' ? 'bg-info' : status === 'vendida' ? 'bg-primary' : status === 'devuelta' ? 'bg-warning text-dark' : 'bg-success';
+              const statusLabel = participation.status_text || (status === 'pagada' ? 'Pagada' : status === 'vendida' ? 'Vendida' : status === 'devuelta' ? 'Devuelta' : 'Asignada');
+              const statusClass = status === 'pagada' ? 'bg-info' : status === 'vendida' ? 'bg-primary' : status === 'devuelta' ? 'bg-warning text-dark' : (participation.status_text === 'DISPONIBLE DV' ? 'bg-info' : 'bg-success');
               
               tbody.append(`
                 <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">

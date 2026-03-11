@@ -53,38 +53,59 @@ class DevolutionsController extends Controller
         try {
             DB::beginTransaction();
 
+            // Normalizar solo_devolucion para que la validación boolean acepte "true"/"1" del front
+            $request->merge([
+                'solo_devolucion' => filter_var($request->input('solo_devolucion', false), FILTER_VALIDATE_BOOLEAN)
+            ]);
+
             $data = $request->validate([
                 'entity_id' => 'required|exists:entities,id',
                 'lottery_id' => 'required|exists:lotteries,id',
                 'seller_id' => 'nullable|exists:sellers,id', // Ahora es opcional
                 'set_id' => 'nullable|exists:sets,id', // Para liquidar set completo sin devoluciones
-                'participations' => 'nullable|array', // Cambiado a nullable para permitir devoluciones sin participaciones
+                'solo_devolucion' => 'nullable|boolean', // Solo devolver participaciones, sin liquidar
+                'participations' => 'nullable|array',
                 'participations.*' => 'nullable|integer|exists:participations,id',
                 'return_reason' => 'nullable|string|max:255',
                 'liquidacion' => 'required|array',
-                'liquidacion.devolver' => 'nullable|array', // Cambiado a nullable para permitir devoluciones sin devolver
-                'liquidacion.vender' => 'nullable|array', // Cambiado a nullable
-                'liquidacion.pagos' => 'nullable|array', // Array de pagos múltiples
-                'liquidacion.pagos.*.payment_method' => 'required|string',
-                'liquidacion.pagos.*.amount' => 'required|numeric'
+                'liquidacion.devolver' => 'nullable|array',
+                'liquidacion.vender' => 'nullable|array',
+                'liquidacion.pagos' => 'nullable|array',
+                'liquidacion.pagos.*.payment_method' => 'required_with:liquidacion.pagos.*|string',
+                'liquidacion.pagos.*.amount' => 'required_with:liquidacion.pagos.*|numeric'
             ]);
 
-            // Como en la web: al menos un pago con importe para completar la devolución
-            $pagos = $data['liquidacion']['pagos'] ?? [];
-            if (empty($pagos) || !is_array($pagos)) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Debes registrar al menos un pago para completar la liquidación.'
-                ], 422);
+            $soloDevolucion = !empty($data['solo_devolucion']);
+
+            if ($soloDevolucion) {
+                $devolver = $data['liquidacion']['devolver'] ?? [];
+                if (empty($devolver) || !is_array($devolver)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Selecciona al menos una participación para devolver.'
+                    ], 422);
+                }
             }
-            $tieneImporte = collect($pagos)->contains(fn ($p) => (float) ($p['amount'] ?? 0) > 0);
-            if (!$tieneImporte) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Debes registrar al menos un pago con importe.'
-                ], 422);
+
+            // Si no es solo devolución: exigir al menos un pago con importe para completar la liquidación
+            if (!$soloDevolucion) {
+                $pagos = $data['liquidacion']['pagos'] ?? [];
+                if (empty($pagos) || !is_array($pagos)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Debes registrar al menos un pago para completar la liquidación.'
+                    ], 422);
+                }
+                $tieneImporte = collect($pagos)->contains(fn ($p) => (float) ($p['amount'] ?? 0) > 0);
+                if (!$tieneImporte) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Debes registrar al menos un pago con importe.'
+                    ], 422);
+                }
             }
 
             if (!auth()->user()->canAccessEntity((int) $data['entity_id'])) {
@@ -223,6 +244,11 @@ class DevolutionsController extends Controller
                 }
             }
 
+            // Solo devolución: no marcar ninguna como vendida ni liquidar
+            if ($soloDevolucion) {
+                $participationsToSell = [];
+            }
+
             $now = Carbon::now();
             $userId = auth()->id();
 
@@ -294,6 +320,10 @@ class DevolutionsController extends Controller
             } else {
                 // Sin set ni participaciones a devolver: usar conteo de las procesadas
                 $totalParticipations = count($participationsToReturn) + count($participationsToSell);
+                $totalLiquidation = 0;
+            }
+
+            if ($soloDevolucion) {
                 $totalLiquidation = 0;
             }
 
@@ -842,6 +872,63 @@ class DevolutionsController extends Controller
     }
 
     /**
+     * Obtener reservas por entidad y sorteo (para asignación/devolución por reserva).
+     * Si solo hay una reserva, el front puede preseleccionarla.
+     * Opcional: seller_id para devolución vendedor→entidad (solo reservas con participaciones de ese vendedor).
+     */
+    public function getReservesByEntityAndLottery(Request $request)
+    {
+        $entityId = $request->get('entity_id');
+        $lotteryId = $request->get('lottery_id');
+        $sellerId = $request->get('seller_id');
+
+        if (!$entityId || !$lotteryId) {
+            return response()->json(['success' => true, 'reserves' => []]);
+        }
+
+        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+            return response()->json(['success' => true, 'reserves' => []]);
+        }
+
+        if ($sellerId && !auth()->user()->canAccessSeller((int) $sellerId)) {
+            return response()->json(['success' => true, 'reserves' => []]);
+        }
+
+        $reservesQuery = Reserve::forUser(auth()->user())
+            ->where('entity_id', $entityId)
+            ->where('lottery_id', $lotteryId)
+            ->whereHas('sets', function ($q) use ($sellerId) {
+                $q->whereHas('participations', function ($p) use ($sellerId) {
+                    $p->whereIn('status', ['disponible', 'asignada'])
+                      ->where('status', '!=', 'anulada');
+                    if ($sellerId) {
+                        $p->where('seller_id', $sellerId);
+                    }
+                });
+            })
+            ->orderBy('id');
+
+        $reserves = $reservesQuery->get()->map(function ($reserve) {
+            $nums = $reserve->reservation_numbers;
+            if (is_array($nums) && count($nums) > 0) {
+                $label = implode(' - ', $nums);
+            } else {
+                $label = 'Reserva #' . str_pad((string) $reserve->id, 5, '0', STR_PAD_LEFT);
+            }
+            return [
+                'id' => $reserve->id,
+                'reservation_numbers' => $reserve->reservation_numbers,
+                'display_label' => $label,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'reserves' => $reserves,
+        ]);
+    }
+
+    /**
      * Obtener participaciones de un vendedor en un sorteo
      */
     public function getParticipationsBySellerAndLottery(Request $request)
@@ -909,7 +996,8 @@ class DevolutionsController extends Controller
             'seller_id' => 'nullable|exists:sellers,id', // Ahora es opcional
             'entity_id' => 'nullable|exists:entities,id', // Para devoluciones de entidad
             'lottery_id' => 'required|exists:lotteries,id',
-            'set_id' => 'nullable|exists:sets,id', // Opcional si se envía referencia
+            'set_id' => 'nullable|exists:sets,id', // Opcional si se envía reserve_id o referencia
+            'reserve_id' => 'nullable|exists:reserves,id', // Alternativa a set_id: participaciones de toda la reserva
             'desde' => 'nullable|integer',
             'hasta' => 'nullable|integer',
             'participation_id' => 'nullable|integer', // Número de participación, no ID de base de datos
@@ -939,21 +1027,33 @@ class DevolutionsController extends Controller
             );
         }
 
-        if (empty($data['set_id'])) {
-            return response()->json(['success' => false, 'message' => 'Falta set_id o referencia.'], 422);
+        if (empty($data['set_id']) && empty($data['reserve_id'])) {
+            return response()->json(['success' => false, 'message' => 'Falta set_id, reserve_id o referencia.'], 422);
         }
 
-        Set::forUser(auth()->user())->findOrFail($data['set_id']);
+        if (!empty($data['set_id'])) {
+            Set::forUser(auth()->user())->findOrFail($data['set_id']);
+        }
+        if (!empty($data['reserve_id'])) {
+            Reserve::forUser(auth()->user())->findOrFail($data['reserve_id']);
+        }
 
         $query = Participation::select([
                 'participations.id',
                 'participations.participation_number as number',
-                'participations.participation_code'
+                'participations.participation_code',
+                'participations.set_id',
+                'sets.set_name'
             ])
             ->join('sets', 'participations.set_id', '=', 'sets.id')
             ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
-            ->where('reserves.lottery_id', $data['lottery_id'])
-            ->where('participations.set_id', $data['set_id']);
+            ->where('reserves.lottery_id', $data['lottery_id']);
+
+        if (!empty($data['set_id'])) {
+            $query->where('participations.set_id', $data['set_id']);
+        } else {
+            $query->where('reserves.id', $data['reserve_id']);
+        }
 
         // Filtro de acceso (mismo criterio que Participation::forUser, con columnas calificadas para evitar ambigüedad con sets.entity_id)
         $user = auth()->user();

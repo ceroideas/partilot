@@ -436,6 +436,7 @@ Route::get('devolutions/lotteries', [DevolutionsController::class, 'getLotteries
 Route::get('devolutions/sellers', [DevolutionsController::class, 'getSellersByEntity'])->name('devolutions.sellers');
 Route::get('devolutions/sets', [DevolutionsController::class, 'getSetsBySellerAndLottery'])->name('devolutions.sets');
 Route::get('devolutions/sets-by-entity', [DevolutionsController::class, 'getSetsByEntityAndLottery'])->name('devolutions.sets-by-entity');
+Route::get('devolutions/reserves-by-entity', [DevolutionsController::class, 'getReservesByEntityAndLottery'])->name('devolutions.reserves-by-entity');
 Route::get('devolutions/participations', [DevolutionsController::class, 'getParticipationsBySellerAndLottery'])->name('devolutions.participations');
 Route::post('devolutions/validate', [DevolutionsController::class, 'validateParticipations'])->name('devolutions.validate');
 Route::get('devolutions/liquidation-summary', [DevolutionsController::class, 'getLiquidationSummary'])->name('devolutions.liquidation-summary');

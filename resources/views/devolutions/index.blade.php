@@ -74,6 +74,7 @@
                                         <th>ID</th>
                                         <th>Entidad</th>
                                         <th>Sorteo</th>
+                                        <th>Tipo</th>
                                         <th>Set / Reserva</th>
                                         <th>Total Part.</th>
                                         <th>Part. Devueltas</th>
@@ -99,6 +100,8 @@
                                                         });
                                                 $totalPagos = $devolution->payments->sum('amount');
                                                 $participacionesAnuladas = $devolution->details()->where('action', 'anular')->count();
+                                                $partDevueltas = $devolution->details()->whereIn('action', ['devolver', 'devolver_vendedor'])->count();
+                                                $tipoDevolucion = $devolution->seller_id ? 'Vendedor → Entidad' : 'Entidad → Administración';
                                                 
                                                 // Obtener información del set y reserva
                                                 $setInfo = '';
@@ -129,9 +132,10 @@
                                                 <td><a href="{{ route('devolutions.show', $devolution->id) }}">#DEV{{ str_pad($devolution->id, 4, '0', STR_PAD_LEFT) }}</a></td>
                                                 <td>{{ $devolution->entity->name ?? 'N/A' }}</td>
                                                 <td>{{ $devolution->lottery->name ?? 'N/A' }}</td>
+                                                <td><span class="badge bg-secondary">{{ $tipoDevolucion }}</span></td>
                                                 <td>{!! $setInfo !!}</td>
                                                 <td>{{ $devolution->total_participations }}</td>
-                                                <td>{{ $devolution->details()->where('action', 'devolver')->count() }}</td>
+                                                <td>{{ $partDevueltas }}</td>
                                                 <td>{{ $participacionesAnuladas }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($devolution->devolution_date)->format('d/m/Y') }}</td>
                                                 <td>

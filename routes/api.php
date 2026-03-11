@@ -399,6 +399,8 @@ Route::middleware('auth.api')->group(function () {
             Route::get('/sellers', [DevolutionsController::class, 'getSellersByEntity']);
             Route::get('/sets', [DevolutionsController::class, 'getSetsBySellerAndLottery']);
             Route::get('/sets-by-entity', [DevolutionsController::class, 'getSetsByEntityAndLottery']);
+            // Nuevo: reservas por entidad y sorteo (igual que en la web) para permitir devoluciones por reserva en la app
+            Route::get('/reserves-by-entity', [DevolutionsController::class, 'getReservesByEntityAndLottery']);
             Route::get('/participations', [DevolutionsController::class, 'getParticipationsBySellerAndLottery']);
             Route::post('/validate', [DevolutionsController::class, 'validateParticipations']);
             Route::get('/liquidation-summary', [DevolutionsController::class, 'getLiquidationSummary']);

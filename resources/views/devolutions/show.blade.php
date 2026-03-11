@@ -12,26 +12,50 @@
         border-color: #333;
     }
 
-    /* Estilos para el resumen de devolución */
+    /* Estilos para el resumen de devolución (formato compacto como resumen vendedor) */
     .resumen-devolucion {
-        background: #f8f9fa;
+        background: #fff;
+        border: 1px solid #e9ecef;
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 20px;
     }
 
-    .resumen-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #e9ecef;
+    .resumen-devolucion .resumen-titulo {
+        font-weight: bold;
+        margin-bottom: 4px;
     }
 
-    .resumen-item:last-child {
+    .resumen-devolucion .resumen-subtitulo {
+        color: #6c757d;
+        font-size: 0.95em;
+        margin-bottom: 16px;
+    }
+
+    .resumen-linea {
+        padding: 6px 0;
+        border-bottom: 1px solid #e9ecef;
+        line-height: 1.5;
+    }
+
+    .resumen-linea:last-child {
         border-bottom: none;
-        font-weight: bold;
-        font-size: 1.1em;
+    }
+
+    .resumen-linea .resumen-etiqueta {
+        font-weight: 500;
+        color: #495057;
+        margin-right: 6px;
+    }
+
+    .resumen-linea .resumen-valor {
+        font-weight: 600;
+    }
+
+    .resumen-linea .resumen-importe {
+        color: #6c757d;
+        font-weight: normal;
+        margin-left: 4px;
     }
 
     /* Estilos para las participaciones */
@@ -144,41 +168,55 @@
 
                     <br>
 
-                    <!-- Información de la devolución -->
+                    <!-- Resumen de la devolución (formato compacto como captura resumen vendedor) -->
+                    @php
+                        $devueltas = $devolution->details()->whereIn('action', ['devolver', 'devolver_vendedor'])->count();
+                        $ventasRegistradas = $devolution->details()->where('action', 'vender')->count();
+                        $disponibles = $devolution->total_participations - $devueltas - $ventasRegistradas;
+                        // Precio por participación = played_amount (ej. 3€) + donation_amount (ej. 1€). Son importes POR participación, no del set completo.
+                        $precioPorParticipacion = null;
+                        $primerSet = $devolution->details()->with('participation.set')->first()?->participation?->set;
+                        if ($primerSet) {
+                            $precioPorParticipacion = (float) ($primerSet->played_amount ?? 0) + (float) ($primerSet->donation_amount ?? 0);
+                            if ($precioPorParticipacion <= 0) {
+                                $precioPorParticipacion = null;
+                            }
+                        }
+                        $fmt = function($n) use ($precioPorParticipacion) {
+                            $importe = $precioPorParticipacion !== null ? $n * $precioPorParticipacion : null;
+                            return $importe !== null ? $n . ' (' . number_format($importe, 2, ',', '.') . '€)' : (string) $n;
+                        };
+                    @endphp
                     <div class="resumen-devolucion">
-                        <h5>Información General</h5>
-                        <div class="resumen-item">
-                            <span>ID Devolución:</span>
-                            <span>{{ $devolution->id }}</span>
+                        <div class="resumen-titulo">Resumen Devolución</div>
+                        <div class="resumen-subtitulo">{{ $devolution->seller_id ? 'Resumen Devolución Vendedor' : 'Resumen Devolución Entidad' }}</div>
+
+                        <div class="resumen-linea">
+                            <span class="resumen-etiqueta">Total Participaciones:</span>
+                            <span class="resumen-valor">{{ $fmt($devolution->total_participations) }}</span>
                         </div>
-                        <div class="resumen-item">
-                            <span>Entidad:</span>
-                            <span>{{ $devolution->entity->name ?? 'N/A' }}</span>
+                        <div class="resumen-linea">
+                            <span class="resumen-etiqueta">Participaciones Devueltas:</span>
+                            <span class="resumen-valor text-danger">{{ $fmt($devueltas) }}</span>
                         </div>
-                        <div class="resumen-item">
-                            <span>Sorteo:</span>
-                            <span>{{ $devolution->lottery->name ?? 'N/A' }}</span>
+                        <div class="resumen-linea">
+                            <span class="resumen-etiqueta">Ventas registradas:</span>
+                            <span class="resumen-valor text-success">{{ $fmt($ventasRegistradas) }}</span>
                         </div>
-                        <div class="resumen-item">
-                            <span>Vendedor:</span>
-                            <span>{{ $devolution->seller->name ?? 'Sin vendedor' }}</span>
+                        <div class="resumen-linea">
+                            <span class="resumen-etiqueta">Disponibles:</span>
+                            <span class="resumen-valor text-info">{{ $fmt($disponibles) }}</span>
                         </div>
-                        <div class="resumen-item">
-                            <span>Fecha de Procesamiento:</span>
-                            <span>{{ \Carbon\Carbon::parse($devolution->devolution_date)->format('d/m/Y') }}</span>
-                        </div>
-                        <div class="resumen-item">
-                            <span>Total Participaciones:</span>
-                            <span>{{ $devolution->total_participations }}</span>
-                        </div>
-                        <div class="resumen-item">
-                            <span>Participaciones Devueltas:</span>
-                            <span class="text-danger">{{ $devolution->details()->where('action', 'devolver')->count() }}</span>
-                        </div>
-                        <div class="resumen-item">
-                            <span>Ventas registradas:</span>
-                            <span class="text-success">{{ $devolution->total_participations - $devolution->details()->where('action', 'devolver')->count() }}</span>
-                        </div>
+                    </div>
+
+                    <!-- Datos adicionales en bloque compacto -->
+                    <div class="resumen-devolucion mt-3">
+                        <div class="resumen-titulo mb-2">Información general</div>
+                        <div class="resumen-linea"><span class="resumen-etiqueta">ID Devolución:</span> <span class="resumen-valor">{{ $devolution->id }}</span></div>
+                        <div class="resumen-linea"><span class="resumen-etiqueta">Entidad:</span> <span class="resumen-valor">{{ $devolution->entity->name ?? 'N/A' }}</span></div>
+                        <div class="resumen-linea"><span class="resumen-etiqueta">Sorteo:</span> <span class="resumen-valor">{{ $devolution->lottery->name ?? 'N/A' }}</span></div>
+                        <div class="resumen-linea"><span class="resumen-etiqueta">Vendedor:</span> <span class="resumen-valor">{{ $devolution->seller ? ($devolution->seller->full_name ?: $devolution->seller->name) : 'Sin vendedor' }}</span></div>
+                        <div class="resumen-linea"><span class="resumen-etiqueta">Fecha de Procesamiento:</span> <span class="resumen-valor">{{ \Carbon\Carbon::parse($devolution->devolution_date)->format('d/m/Y') }}</span></div>
                     </div>
 
                     <!-- Resumen de Pagos -->

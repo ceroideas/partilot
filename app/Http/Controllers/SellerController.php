@@ -11,6 +11,7 @@ use App\Models\Participation;
 use App\Models\Lottery;
 use App\Models\SellerSettlement;
 use App\Models\SellerSettlementPayment;
+use App\Models\ParticipationActivityLog;
 use App\Models\DesignFormat;
 use App\Services\SellerService;
 use Illuminate\Http\Request;
@@ -41,8 +42,23 @@ class SellerController extends Controller
         $sellerIds = $sellers->pluck('id')->toArray();
         $deudas = $this->getPendingLiquidationBySellers($sellerIds);
 
+        // Participaciones devueltas también desde participation_activity_logs (returned_by_seller):
+        // cuando la devolución deja la participación como "disponible", no queda status=devuelta pero sí queda el log
+        $devueltasDesdeLog = [];
+        if (!empty($sellerIds)) {
+            $devueltasDesdeLog = ParticipationActivityLog::query()
+                ->where('activity_type', 'returned_by_seller')
+                ->whereIn('seller_id', $sellerIds)
+                ->selectRaw('seller_id, COUNT(DISTINCT participation_id) as total')
+                ->groupBy('seller_id')
+                ->pluck('total', 'seller_id')
+                ->toArray();
+        }
+
         foreach ($sellers as $seller) {
             $seller->setAttribute('deuda_pendiente', $deudas[$seller->id] ?? 0);
+            $extraDevueltas = (int) ($devueltasDesdeLog[$seller->id] ?? 0);
+            $seller->setAttribute('participaciones_devueltas', ($seller->participaciones_devueltas ?? 0) + $extraDevueltas);
         }
 
         return view('sellers.index', compact('sellers'));
@@ -743,7 +759,8 @@ class SellerController extends Controller
         $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
         $endParticipation = $bookNumber * $participationsPerBook;
 
-        $participations = Participation::where('set_id', $setId)
+        $participations = Participation::with('activityLogs')
+            ->where('set_id', $setId)
             ->where('seller_id', $seller->id)
             ->whereBetween('participation_number', [$startParticipation, $endParticipation])
             ->whereIn('status', ['disponible', 'asignada', 'vendida', 'devuelta', 'pagada'])
@@ -781,6 +798,7 @@ class SellerController extends Controller
                 'participation_code' => $p->display_participation_code,
                 'participation_number' => $p->participation_number,
                 'status' => $p->status,
+                'status_text' => $p->status_text,
                 'payment_method' => $paymentMethod,
                 'sale_date' => $p->sale_date ? $p->sale_date->format('d/m/Y') : null,
                 'sale_time' => $p->sale_time ? $p->sale_time->format('H:i') : null,
@@ -1810,7 +1828,8 @@ class SellerController extends Controller
     public function validateParticipations(Request $request)
     {
         $rules = [
-            'set_id' => 'required|integer|exists:sets,id',
+            'set_id' => 'nullable|integer|exists:sets,id',
+            'reserve_id' => 'nullable|integer|exists:reserves,id',
             'seller_id' => 'required|integer|exists:sellers,id'
         ];
         if ($request->has('cantidad') && $request->cantidad !== '' && $request->cantidad !== null) {
@@ -1821,23 +1840,106 @@ class SellerController extends Controller
         }
         $request->validate($rules);
 
+        if (empty($request->set_id) && empty($request->reserve_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Se requiere set_id o reserve_id.'
+            ], 422);
+        }
+
         try {
             if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
                 abort(403, 'No tienes permisos para gestionar este vendedor.');
             }
 
-            // Obtener el set
-            $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
-            
+            $setId = $request->set_id;
+            $reserveId = $request->reserve_id;
+
+            if ($reserveId) {
+                $reserve = Reserve::forUser(auth()->user())->findOrFail($reserveId);
+                $sets = $reserve->sets()->orderBy('set_number')->orderBy('id')->get();
+                if ($sets->isEmpty()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Esta reserva no tiene sets.'
+                    ]);
+                }
+                $totalInReserve = $sets->sum(fn ($s) => (int) ($s->total_participations ?? 0));
+                if ($totalInReserve === 0) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Esta reserva no tiene participaciones creadas (diseño).'
+                    ]);
+                }
+                $set = $sets->first();
+                $setId = $set->id;
+            } else {
+                $set = Set::forUser(auth()->user())->findOrFail($setId);
+            }
+
             // Verificar que el set tiene participaciones creadas
             $totalParticipationsInSet = DB::table('participations')
-                ->where('set_id', $request->set_id)
+                ->where('set_id', $setId)
                 ->count();
-                
-            if ($totalParticipationsInSet === 0) {
+
+            if ($totalParticipationsInSet === 0 && !$reserveId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Este set no tiene participaciones creadas (diseño)'
+                ]);
+            }
+
+            // Rango por reserva (varios sets): cuando se envía reserve_id y desde/hasta
+            if ($reserveId && $request->has('desde') && $request->has('hasta')) {
+                $desde = (int) $request->desde;
+                $hasta = (int) $request->hasta;
+                if ($hasta < $desde) {
+                    return response()->json(['success' => false, 'message' => 'El rango hasta debe ser mayor o igual que desde.']);
+                }
+                $offset = 1;
+                $segments = [];
+                foreach ($sets as $s) {
+                    $total = (int) ($s->total_participations ?? 0);
+                    if ($total <= 0) {
+                        continue;
+                    }
+                    $end = $offset + $total - 1;
+                    if ($hasta >= $offset && $desde <= $end) {
+                        $localFrom = max(1, $desde - $offset + 1);
+                        $localTo = min($total, $hasta - $offset + 1);
+                        $segments[] = ['set_id' => $s->id, 'from' => $localFrom, 'to' => $localTo];
+                    }
+                    $offset = $end + 1;
+                }
+                $participationsCollect = collect();
+                foreach ($segments as $seg) {
+                    $rows = DB::table('participations')
+                        ->where('set_id', $seg['set_id'])
+                        ->whereBetween('participation_number', [$seg['from'], $seg['to']])
+                        ->where('status', '!=', 'anulada')
+                        ->where(function ($q) use ($request) {
+                            $q->where('status', 'disponible')->whereNull('seller_id')
+                              ->orWhere(function ($q2) use ($request) {
+                                  $q2->where('status', 'asignada')->where('seller_id', $request->seller_id);
+                              });
+                        })
+                        ->select('id', 'participation_number as number', 'participation_code', 'status', 'set_id')
+                        ->get();
+                    foreach ($rows as $r) {
+                        $r->set_id = $seg['set_id'];
+                        $participationsCollect->push($r);
+                    }
+                }
+                $expected = $hasta - $desde + 1;
+                if ($participationsCollect->count() < $expected) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Solo hay {$participationsCollect->count()} participaciones disponibles en el rango {$desde}-{$hasta}. Se esperaban {$expected}."
+                    ]);
+                }
+                return response()->json([
+                    'success' => true,
+                    'participations' => $participationsCollect->toArray(),
                 ]);
             }
 
@@ -1853,7 +1955,7 @@ class SellerController extends Controller
                 $cantidad = (int) $request->cantidad;
                 // Participaciones disponibles para ASIGNAR: solo las que no están asignadas a nadie (gestor o web)
                 $disponiblesQuery = DB::table('participations')
-                    ->where('set_id', $request->set_id)
+                    ->where('set_id', $setId)
                     ->where('status', '!=', 'anulada')
                     ->where('status', 'disponible')
                     ->whereNull('seller_id');
@@ -1885,14 +1987,14 @@ class SellerController extends Controller
                 ]);
             }
             
-            // Rango (sets físicos o mixtos)
+            // Rango (sets físicos o mixtos) — un solo set
             // Verificar que el rango solicitado existe en este set
             $minParticipation = DB::table('participations')
-                ->where('set_id', $request->set_id)
+                ->where('set_id', $setId)
                 ->min('participation_number');
                 
             $maxParticipation = DB::table('participations')
-                ->where('set_id', $request->set_id)
+                ->where('set_id', $setId)
                 ->max('participation_number');
                 
             if ($request->desde < $minParticipation || $request->hasta > $maxParticipation) {
@@ -1904,14 +2006,14 @@ class SellerController extends Controller
             
             // Obtener todas las participaciones del set en el rango especificado (para debug)
             $allParticipationsInRange = DB::table('participations')
-                ->where('set_id', $request->set_id)
+                ->where('set_id', $setId)
                 ->whereBetween('participation_number', [$request->desde, $request->hasta])
                 ->select('id', 'participation_number as number', 'status', 'seller_id')
                 ->get();
 
             // Debug: Mostrar todas las participaciones en el rango
             \Log::info('Debug participaciones en rango:', [
-                'set_id' => $request->set_id,
+                'set_id' => $setId,
                 'range' => "{$request->desde} - {$request->hasta}",
                 'participations' => $allParticipationsInRange->toArray()
             ]);
@@ -1919,7 +2021,7 @@ class SellerController extends Controller
             // Obtener las participaciones disponibles del set en el rango especificado
             // EXCLUIR explícitamente las participaciones anuladas
             $participations = DB::table('participations')
-                ->where('set_id', $request->set_id)
+                ->where('set_id', $setId)
                 ->whereBetween('participation_number', [$request->desde, $request->hasta])
                 ->where('status', '!=', 'anulada') // Excluir participaciones anuladas
                 ->where(function($query) use ($request) {
@@ -1956,7 +2058,7 @@ class SellerController extends Controller
                     'success' => false,
                     'message' => $message,
                     'debug' => [
-                        'set_id' => $request->set_id,
+                        'set_id' => $setId,
                         'total_in_range' => $totalParticipations,
                         'available' => $availableParticipations,
                         'assigned_to_others' => $assignedToOthers->count(),
@@ -1970,8 +2072,9 @@ class SellerController extends Controller
             return response()->json([
                 'success' => true,
                 'participations' => $participations,
+                'set_id' => $setId,
                 'debug' => [
-                    'set_id' => $request->set_id,
+                    'set_id' => $setId,
                     'range' => "{$request->desde} - {$request->hasta}",
                     'total_in_range' => $totalParticipations,
                     'available' => $availableParticipations,
@@ -2143,13 +2246,26 @@ class SellerController extends Controller
 
             $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
 
-            $participations = DB::table('participations')
+            $participations = Participation::with('activityLogs')
                 ->where('seller_id', $request->seller_id)
                 ->where('set_id', $request->set_id)
                 ->whereIn('status', ['asignada', 'vendida', 'devuelta', 'pagada', 'disponible'])
-                ->select('id', 'participation_number as number', 'participation_code', 'set_id', 'status', 'sale_date', 'sale_time', 'updated_at', 'created_at')
                 ->orderBy('participation_number')
-                ->get();
+                ->get()
+                ->map(function ($p) {
+                    return [
+                        'id' => $p->id,
+                        'number' => $p->participation_number,
+                        'participation_code' => $p->participation_code,
+                        'set_id' => $p->set_id,
+                        'status' => $p->status,
+                        'status_text' => $p->status_text,
+                        'sale_date' => $p->sale_date?->format('Y-m-d'),
+                        'sale_time' => $p->sale_time?->format('H:i:s'),
+                        'updated_at' => $p->updated_at?->toIso8601String(),
+                        'created_at' => $p->created_at?->toIso8601String(),
+                    ];
+                });
 
             $payload = ['success' => true, 'participations' => $participations];
             // Para sets digitales: incluir cantidad de participaciones disponibles (sin asignar) en el set
@@ -2161,6 +2277,27 @@ class SellerController extends Controller
                     ->where('status', 'disponible')
                     ->whereNull('seller_id')
                     ->count();
+            } else {
+                // Para sets físicos: rangos de participaciones disponibles (de la X a la Y)
+                $numeros = DB::table('participations')
+                    ->where('set_id', $request->set_id)
+                    ->where('status', '!=', 'anulada')
+                    ->where('status', 'disponible')
+                    ->whereNull('seller_id')
+                    ->orderBy('participation_number')
+                    ->pluck('participation_number')
+                    ->map(fn ($n) => (int) $n)
+                    ->values()
+                    ->toArray();
+                $ranges = [];
+                foreach ($numeros as $num) {
+                    if (empty($ranges) || $num > $ranges[count($ranges) - 1][1] + 1) {
+                        $ranges[] = [$num, $num];
+                    } else {
+                        $ranges[count($ranges) - 1][1] = $num;
+                    }
+                }
+                $payload['available_ranges'] = $ranges;
             }
 
             return response()->json($payload);
