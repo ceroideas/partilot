@@ -193,6 +193,7 @@ Route::middleware('auth.api')->group(function () {
     Route::prefix('sellers')->group(function () {
         // Reservas y sets del vendedor autenticado (para app móvil)
         Route::get('/me/reserves', [SellerController::class, 'apiGetMyReserves']);
+        Route::get('/me/digital-available', [SellerController::class, 'apiGetTotalDigitalAvailable']);
         Route::post('/me/validate-sale', [SellerController::class, 'apiValidateSale']);
         
         // Participaciones asignadas del vendedor autenticado

@@ -71,13 +71,18 @@ Esas participaciones son las que luego se envían como “a devolver” en el st
 
 ---
 
-## 4. Resumen de liquidación
+## 4. Resumen de liquidación y participaciones disponibles para devolver
 
 **GET** `/api/devolutions/liquidation-summary`
 
-Query: `entity_id`, `lottery_id`, `set_id` (opcional si hay participaciones), `participations[]` = array de IDs de participación (las seleccionadas a devolver).
+Query: `entity_id`, `lottery_id`, `reserve_id` (recomendado) o `set_id`, `participations[]` = array de IDs (opcional). Para devolución vendedor: `seller_id`, `tipo_devolucion=vendedor`.
 
-Sirve para mostrar total participaciones, ventas registradas, devueltas y total a pagar antes de confirmar.
+- **Sin participaciones y con reserve_id:** La respuesta incluye totales de la reserva y, en particular:
+  - `summary.available_to_return`: número de participaciones que se pueden devolver (estado disponible o asignada; excluye vendidas, devueltas, anuladas).
+  - `summary.available_to_return_fisicas`: desglose físicas.
+  - `summary.available_to_return_digitales`: desglose digitales.
+  La app debe mostrar estos valores en la pantalla de devolución (p. ej. “Participaciones disponibles para devolver: X (Y físicas, Z digitales). No se pueden devolver las vendidas, donadas ni cobradas.”).
+- **Con participaciones:** Sirve para el resumen antes de confirmar (total participaciones, ventas, devueltas, total a pagar).
 
 ---
 

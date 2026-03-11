@@ -83,7 +83,7 @@ class SellerController extends Controller
             FROM (
                 SELECT t.seller_id, (t.total_to_liquidate - COALESCE(ss.total_paid, 0)) as pending
                 FROM (
-                    SELECT p.seller_id, r.lottery_id, SUM(s.played_amount) as total_to_liquidate
+                    SELECT p.seller_id, r.lottery_id, SUM(s.total_participation_amount) as total_to_liquidate
                     FROM participations p
                     INNER JOIN sets s ON p.set_id = s.id
                     INNER JOIN reserves r ON s.reserve_id = r.id
@@ -435,7 +435,7 @@ class SellerController extends Controller
                 $q->where('status', 1)
                   ->whereHas('designFormats')
                   ->whereHas('participations', fn ($pq) => $pq->where('seller_id', $seller->id))
-                  ->select('sets.id', 'sets.reserve_id', 'sets.set_name', 'sets.total_participations', 'sets.played_amount', 'sets.physical_participations', 'sets.digital_participations');
+                  ->select('sets.id', 'sets.reserve_id', 'sets.set_name', 'sets.total_participations', 'sets.total_participation_amount as played_amount', 'sets.physical_participations', 'sets.digital_participations');
             }])
             ->orderBy('reservation_date', 'desc')
             ->get();
@@ -540,6 +540,55 @@ class SellerController extends Controller
     }
 
     /**
+     * API: Total de participaciones digitales disponibles (pool de la entidad + sorteo).
+     * Las digitales no se asignan; todos los vendedores de la entidad venden del mismo pool.
+     */
+    public function apiGetTotalDigitalAvailable(Request $request)
+    {
+        $request->validate([
+            'entity_id' => 'required|integer|exists:entities,id',
+            'lottery_id' => 'required|integer|exists:lotteries,id',
+        ]);
+
+        $user = $request->user();
+        if (!$user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (!$seller || !$seller->entities()->where('entities.id', $request->entity_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+
+        $total = Participation::query()
+            ->join('sets', 'participations.set_id', '=', 'sets.id')
+            ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
+            ->where('participations.entity_id', $request->entity_id)
+            ->where('reserves.lottery_id', $request->lottery_id)
+            ->where('sets.physical_participations', '<=', 0)
+            ->whereRaw('sets.digital_participations > 0')
+            ->whereRaw("participations.participation_code LIKE '1D/%'")
+            ->where('participations.status', 'disponible')
+            ->count();
+
+        $priceSet = Set::query()
+            ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
+            ->where('reserves.entity_id', $request->entity_id)
+            ->where('reserves.lottery_id', $request->lottery_id)
+            ->where('sets.physical_participations', '<=', 0)
+            ->whereRaw('sets.digital_participations > 0')
+            ->select('sets.total_participation_amount as played_amount')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'total_digital_available' => $total,
+            'price_per_participation' => $priceSet ? (float) $priceSet->played_amount : 0,
+        ]);
+        return;
+    }
+
+    /**
      * API: Obtener entidades del vendedor autenticado
      */
     public function apiGetMyEntities(Request $request)
@@ -611,7 +660,7 @@ class SellerController extends Controller
 
             if ($participations->isEmpty()) continue;
 
-            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            $pricePerParticipation = (float) ($set->total_participation_amount ?? 0);
             $designFormat = $set->designFormats->first();
             $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
             $participationsPerBook = $output['participations_per_book'] ?? 50;
@@ -824,9 +873,9 @@ class SellerController extends Controller
                 'lottery_name' => $set->reserve->lottery->name ?? '',
                 'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
                 'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
-                'price_per_participation' => (float) ($set->played_amount ?? 0),
+                'price_per_participation' => (float) ($set->total_participation_amount ?? 0),
                 'donation_per_participation' => (float) ($set->donation_amount ?? 0),
-                'total_per_participation' => (float) (($set->played_amount ?? 0) + ($set->donation_amount ?? 0)),
+                'total_per_participation' => (float) (($set->total_participation_amount ?? 0) + ($set->donation_amount ?? 0)),
             ],
             'participations' => $formattedParticipations
         ]);
@@ -951,7 +1000,7 @@ class SellerController extends Controller
             if ($participations->isEmpty()) {
                 continue;
             }
-            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            $pricePerParticipation = (float) ($set->total_participation_amount ?? 0);
             foreach ($participations as $p) {
                 $totalParticipations++;
                 $totalAmount += $pricePerParticipation;
@@ -1040,7 +1089,7 @@ class SellerController extends Controller
             ->where('r.entity_id', $entityId)
             ->where('p.seller_id', $sellerId)
             ->whereIn('p.status', ['asignada', 'vendida'])
-            ->selectRaw('r.lottery_id, COALESCE(SUM(s.played_amount), 0) as total_to_liquidate')
+            ->selectRaw('r.lottery_id, COALESCE(SUM(s.total_participation_amount), 0) as total_to_liquidate')
             ->groupBy('r.lottery_id')
             ->get();
 
@@ -1111,8 +1160,8 @@ class SellerController extends Controller
                 ->get();
 
             $totalParticipations = $participations->count();
-            $pricePerParticipation = $participations->first()->set->played_amount ?? 0;
-            $totalAmount = $participations->sum(fn ($p) => (float) ($p->set->played_amount ?? 0));
+            $pricePerParticipation = $participations->first()->set->total_participation_amount ?? 0;
+            $totalAmount = $participations->sum(fn ($p) => (float) ($p->set->total_participation_amount ?? 0));
 
             $previousPaid = SellerSettlement::where('seller_id', $seller->id)
                 ->where('lottery_id', $data['lottery_id'])
@@ -1292,7 +1341,7 @@ class SellerController extends Controller
                 ->whereIn('status', ['asignada', 'vendida', 'devuelta','pagada'])
                 ->get();
             if ($participations->isEmpty()) continue;
-            $pricePerParticipation = (float) ($set->played_amount ?? 0);
+            $pricePerParticipation = (float) ($set->total_participation_amount ?? 0);
             $designFormat = $set->designFormats->first();
             $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
             $participationsPerBook = $output['participations_per_book'] ?? 50;
@@ -1475,9 +1524,9 @@ class SellerController extends Controller
                 'lottery_name' => $set->reserve->lottery->name ?? '',
                 'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
                 'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
-                'price_per_participation' => (float) ($set->played_amount ?? 0),
+                'price_per_participation' => (float) ($set->total_participation_amount ?? 0),
                 'donation_per_participation' => (float) ($set->donation_amount ?? 0),
-                'total_per_participation' => (float) (($set->played_amount ?? 0) + ($set->donation_amount ?? 0)),
+                'total_per_participation' => (float) (($set->total_participation_amount ?? 0) + ($set->donation_amount ?? 0)),
             ],
             'participations' => $formattedParticipations,
         ]);
@@ -1547,7 +1596,7 @@ class SellerController extends Controller
                 'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
                 'rangos_disponibles' => [],
                 'total_disponibles' => 0,
-                'importe_por_participacion' => (float) ($set->played_amount ?? 0),
+                'importe_por_participacion' => (float) ($set->total_participation_amount ?? 0),
                 'importe_total' => 0,
                 'primera_referencia' => null,
                 'message' => 'No tienes participaciones disponibles en este taco (ya vendidas o no asignadas).',
@@ -1557,7 +1606,7 @@ class SellerController extends Controller
         $numbers = $participations->pluck('participation_number')->sort()->values()->all();
         $rangos = $this->buildConsecutiveRanges($numbers);
 
-        $pricePerParticipation = (float) ($set->played_amount ?? 0);
+        $pricePerParticipation = (float) ($set->total_participation_amount ?? 0);
         $totalDisponibles = $participations->count();
         $importeTotal = round($totalDisponibles * $pricePerParticipation, 2);
 
@@ -1678,7 +1727,7 @@ class SellerController extends Controller
         }
 
         $set = Set::find($request->set_id);
-        $importeTotal = $participations->count() * ($set->played_amount ?? 0);
+        $importeTotal = $participations->count() * ($set->total_participation_amount ?? 0);
 
         return response()->json([
             'success' => true,
@@ -1806,10 +1855,11 @@ class SellerController extends Controller
 
         $reserve = Reserve::forUser(auth()->user())->with('lottery:id,name')->findOrFail($request->reserve_id);
 
-        // Obtener solo sets que tienen participaciones creadas (diseño)
+        // Solo sets FÍSICOS (asignación: no se muestran sets digitales)
         $sets = Set::forUser(auth()->user())
             ->where('reserve_id', $reserve->id)
-            ->where('status', 1) // activos
+            ->where('status', 1)
+            ->where('physical_participations', '>', 0)
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                       ->from('participations')
@@ -2514,7 +2564,7 @@ class SellerController extends Controller
         
         // Calcular el total a liquidar (suma del precio de cada participación)
         $totalAmount = $participations->sum(function($participation) {
-            return $participation->set->played_amount ?? 0;
+            return $participation->set->total_participation_amount ?? 0;
         });
 
         // Obtener liquidaciones previas para este vendedor y sorteo
@@ -2527,7 +2577,7 @@ class SellerController extends Controller
         $pendingAmount = $totalAmount - $totalPaid;
 
         // Calcular participaciones liquidadas (pagos / precio por participación)
-        $pricePerParticipation = $participations->first()->set->played_amount ?? 1;
+        $pricePerParticipation = $participations->first()->set->total_participation_amount ?? 1;
         $liquidatedParticipations = $pricePerParticipation > 0 ? ($totalPaid / $pricePerParticipation) : 0;
 
         \Log::info('Resumen calculado:', [
@@ -2585,9 +2635,9 @@ class SellerController extends Controller
                 ->get();
 
             $totalParticipations = $participations->count();
-            $pricePerParticipation = $participations->first()->set->played_amount ?? 0;
+            $pricePerParticipation = $participations->first()->set->total_participation_amount ?? 0;
             $totalAmount = $participations->sum(function($participation) {
-                return $participation->set->played_amount ?? 0;
+                return $participation->set->total_participation_amount ?? 0;
             });
 
             // Obtener liquidaciones previas

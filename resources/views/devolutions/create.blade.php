@@ -347,9 +347,9 @@
                                                     <h4 class="mb-0 mt-1">Seleccionar Tipo de Devolución</h4>
                                                     <small><i>Elige el tipo de devolución a realizar</i></small>
                                                 </div>
-                                                <div class="d-none" id="back-to-option-buttons">
-                                                    <button class="btn btn-sm btn-light" id="back-option-button" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">
-                                                        <i class="ri-arrow-left-line"></i>
+                                                <div id="back-to-option-buttons">
+                                                    <button type="button" class="btn btn-secondary btn-sm" id="back-option-button" style="border-radius: 30px;">
+                                                        <i class="ri-arrow-left-line"></i> Volver a entidades
                                                     </button>
                                                 </div>
                                             </div>
@@ -465,8 +465,8 @@
                                                     <h4 class="mb-0 mt-1">Seleccionar Sorteo</h4>
                                                     <small><i>Elige el sorteo para la devolución</i></small>
                                                 </div>
-                                                <button id="btn-volver-entidad" class="btn btn-secondary btn-sm">
-                                                    <i class="ri-arrow-left-line"></i> Volver a Entidades
+                                                <button id="btn-volver-desde-sorteo" class="btn btn-secondary btn-sm">
+                                                    <i class="ri-arrow-left-line"></i> <span id="btn-volver-desde-sorteo-text">Volver a Opciones</span>
                                                 </button>
                                             </div>
 
@@ -536,6 +536,27 @@
                                                                         <option value="">Seleccionar reserva...</option>
                                                                     </select>
                                                                 </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Participaciones disponibles para devolver (entidad o vendedor) -->
+                                                <div class="col-md-12 mb-3" id="bloque-disponibles-devolver" style="display: none;">
+                                                    <div class="form-card bs border-primary">
+                                                        <div class="d-flex align-items-center p-3">
+                                                            <div class="me-3">
+                                                                <i class="ri-information-line text-primary" style="font-size: 1.5rem;"></i>
+                                                            </div>
+                                                            <div class="flex-grow-1">
+                                                                <h5 class="m-0 fw-bold text-dark">Participaciones disponibles para devolver</h5>
+                                                                <small class="text-muted" id="texto-tipo-disponibles">Como entidad en esta reserva</small>
+                                                                <div class="mt-2">
+                                                                    <span id="disponibles-devolver-total" class="fw-bold fs-5 text-primary">0</span>
+                                                                    <span class="text-muted"> total</span>
+                                                                    <span class="ms-2 text-muted">(<span id="disponibles-devolver-fisicas">0</span> físicas, <span id="disponibles-devolver-digitales">0</span> digitales)</span>
+                                                                </div>
+                                                                <small class="text-muted d-block mt-1">No se pueden devolver las vendidas, donadas ni cobradas.</small>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1162,6 +1183,16 @@ $(document).ready(function() {
         // Actualizar indicadores de pasos con lógica de progreso
         actualizarIndicadoresPasos(pasoId);
         
+        // En paso sorteo: texto del botón volver según tipo (Vendedor → Vendedores, Administración/Anulación → Opciones)
+        if (pasoId === 'paso-sorteo') {
+            const textoVolver = tipoDevolucion === 'vendedor' ? 'Volver a Vendedores' : 'Volver a Opciones';
+            $('#btn-volver-desde-sorteo-text').text(textoVolver);
+        }
+        // En paso participaciones: actualizar conteo de disponibles para devolver (entidad o vendedor)
+        if (pasoId === 'paso-participaciones' && typeof actualizarDisponiblesParaDevolver === 'function') {
+            actualizarDisponiblesParaDevolver();
+        }
+        
         // Inicializar DataTables según el paso
         if (pasoId === 'paso-entidad' && !tablaEntidades) {
             inicializarDataTableEntidades();
@@ -1613,8 +1644,21 @@ $(document).ready(function() {
         mostrarPaso('paso-entidad');
     });
 
+    // Desde paso sorteo: volver a vendedores (si tipo vendedor) o a opciones (si administración/anulación)
+    $('#btn-volver-desde-sorteo').click(function() {
+        if (tipoDevolucion === 'vendedor') {
+            mostrarPaso('paso-vendedor');
+        } else {
+            mostrarPaso('paso-opcion');
+        }
+    });
+
     $('#btn-volver-opcion').click(function() {
         mostrarPaso('paso-opcion');
+    });
+
+    $('#back-option-button').click(function() {
+        mostrarPaso('paso-entidad');
     });
 
     $('#btn-volver-sorteo-desde-participaciones').click(function() {
@@ -1622,8 +1666,9 @@ $(document).ready(function() {
     });
 
     $('#btn-volver-participaciones-final').click(function() {
-        if (tipoDevolucion === 'vendedor') {
-            mostrarPaso('paso-vendedor');
+        // Siempre volver a participaciones (vendedor) o a opciones (administración), según el texto del botón
+        if ($('#btn-volver-text').text().indexOf('Opciones') !== -1) {
+            mostrarPaso('paso-opcion');
         } else {
             mostrarPaso('paso-participaciones');
         }
@@ -1725,11 +1770,11 @@ $(document).ready(function() {
         console.log('Enviando IDs de participaciones:', participationIds);
         console.log('Set seleccionado:', setSeleccionado);
 
-        // Preparar datos para el resumen (reserve_id o set_id según flujo)
+        // Preparar datos para el resumen: con reserva usamos solo reserve_id para que los totales sean siempre de la reserva completa
         const datosResumen = {
             entity_id: entidadSeleccionada.id,
             lottery_id: sorteoSeleccionado.id,
-            set_id: setSeleccionado ? setSeleccionado.id : null,
+            set_id: reservaSeleccionada ? null : (setSeleccionado ? setSeleccionado.id : null),
             reserve_id: reservaSeleccionada ? reservaSeleccionada.id : null,
             participations: participationIds
         };
@@ -1809,6 +1854,7 @@ $(document).ready(function() {
                     mostrarMensaje('No hay reservas disponibles para este sorteo', 'warning');
                 }
                 actualizarResumenAsignacion();
+                if (typeof actualizarDisponiblesParaDevolver === 'function') actualizarDisponiblesParaDevolver();
             },
             error: function(xhr, status, error) {
                 console.error('Error al cargar reservas:', error);
@@ -1852,6 +1898,7 @@ $(document).ready(function() {
                     mostrarMensaje('No hay reservas con participaciones de este vendedor', 'warning');
                 }
                 actualizarResumenAsignacion();
+                if (typeof actualizarDisponiblesParaDevolver === 'function') actualizarDisponiblesParaDevolver();
             },
             error: function(xhr, status, error) {
                 console.error('Error al cargar reservas del vendedor:', error);
@@ -1874,7 +1921,54 @@ $(document).ready(function() {
             reservaSeleccionada = null;
         }
         actualizarResumenAsignacion();
+        actualizarDisponiblesParaDevolver();
     });
+
+    // Actualizar bloque "Participaciones disponibles para devolver" (entidad o vendedor en la reserva)
+    function actualizarDisponiblesParaDevolver() {
+        const $bloque = $('#bloque-disponibles-devolver');
+        if (!reservaSeleccionada || !entidadSeleccionada || !sorteoSeleccionado) {
+            $bloque.hide();
+            return;
+        }
+        if (tipoDevolucion === 'vendedor' && !vendedorSeleccionado) {
+            $bloque.hide();
+            return;
+        }
+        const datos = {
+            entity_id: entidadSeleccionada.id,
+            lottery_id: sorteoSeleccionado.id,
+            reserve_id: reservaSeleccionada.id,
+            participations: []
+        };
+        if (tipoDevolucion === 'vendedor' && vendedorSeleccionado) {
+            datos.seller_id = vendedorSeleccionado.id;
+            datos.tipo_devolucion = 'vendedor';
+        }
+        $('#texto-tipo-disponibles').text(tipoDevolucion === 'vendedor' ? 'Como vendedor en esta reserva' : 'Como entidad en esta reserva');
+        $.ajax({
+            url: "{{ route('devolutions.liquidation-summary') }}",
+            method: 'GET',
+            data: datos,
+            success: function(response) {
+                if (response.success && response.summary) {
+                    const s = response.summary;
+                    const total = s.available_to_return !== undefined ? s.available_to_return : s.available_participations;
+                    const fisicas = s.available_to_return_fisicas !== undefined ? s.available_to_return_fisicas : (s.total_fisicas || 0);
+                    const digitales = s.available_to_return_digitales !== undefined ? s.available_to_return_digitales : (s.total_digitales || 0);
+                    $('#disponibles-devolver-total').text(total);
+                    $('#disponibles-devolver-fisicas').text(fisicas);
+                    $('#disponibles-devolver-digitales').text(digitales);
+                    $bloque.show();
+                } else {
+                    $bloque.hide();
+                }
+            },
+            error: function() {
+                $bloque.hide();
+            }
+        });
+    }
 
     // Función para validar participaciones (por reserva o por set legacy)
     function validarParticipacionesDisponibles(desde, hasta, participationId) {
@@ -2059,7 +2153,7 @@ $(document).ready(function() {
             cargarParticipacionesParaLiquidacion();
             actualizarResumenLiquidacion();
         } else {
-            // Liquidación de administración
+            // Liquidación de administración: volver a participaciones (igual que vendedor)
             $('#liquidacion-titulo').text('Liquidación de Administración');
             $('#liquidacion-subtitulo').html('<i>Procesa la liquidación de participaciones</i>');
             $('#liquidacion-resumen-subtitulo').text('Resumen Devolución Administración');
@@ -2142,18 +2236,23 @@ $(document).ready(function() {
             }
         });
 
-        // Enviar datos al servidor (sin seller_id)
+        // Enviar datos al servidor: liquidacion.devolver y liquidacion.vender desde los radios; reserve_id si hay reserva
+        const payload = {
+            entity_id: entidadSeleccionada.id,
+            lottery_id: sorteoSeleccionado.id,
+            participations: participacionesAsignadas.map(p => p.id),
+            return_reason: 'Devolución de entidad a administración',
+            tipo_devolucion: tipoDevolucion || 'administracion',
+            liquidacion: liquidacion,
+            _token: '{{ csrf_token() }}'
+        };
+        if (reservaSeleccionada) payload.reserve_id = reservaSeleccionada.id;
+        // El backend exige liquidacion.pagos con al menos un pago con importe; si no hay, enviar array vacío y el backend puede rechazar
+        if (!payload.liquidacion.pagos) payload.liquidacion.pagos = [];
         $.ajax({
             url: "{{ route('devolutions.store') }}",
             method: 'POST',
-            data: {
-                entity_id: entidadSeleccionada.id,
-                lottery_id: sorteoSeleccionado.id,
-                participations: participacionesAsignadas.map(p => p.id),
-                return_reason: 'Devolución de entidad a administración',
-                liquidacion: liquidacion,
-                _token: '{{ csrf_token() }}'
-            },
+            data: payload,
             success: function(response) {
                 if (response.success) {
                     mostrarMensaje('Liquidación procesada correctamente', 'success');
@@ -2333,13 +2432,15 @@ $(document).ready(function() {
             return;
         }
 
-        // Preparar datos para la liquidación (solo liquidacion.devolver para las IDs; no duplicar en participations)
+        // Preparar datos para la liquidación: liquidacion.devolver con las IDs a devolver; reserve_id si hay reserva
         const liquidacionData = {
             entity_id: entidadSeleccionada.id,
             lottery_id: sorteoSeleccionado.id,
-            set_id: setSeleccionado ? setSeleccionado.id : null,
+            set_id: reservaSeleccionada ? null : (setSeleccionado ? setSeleccionado.id : null),
+            reserve_id: reservaSeleccionada ? reservaSeleccionada.id : null,
             return_reason: tipoDevolucion === 'vendedor' ? 'Devolución de vendedor a entidad' : 'Devolución de entidad a administración',
             tipo_devolucion: tipoDevolucion,
+            participations: participacionesAsignadas.map(p => p.id),
             liquidacion: {
                 pagos: pagos,
                 devolver: participacionesAsignadas.map(p => p.id),
@@ -2719,7 +2820,8 @@ $(document).ready(function() {
             data: { set_id: setId },
             success: function(response) {
                 if (response.success) {
-                    callback(response.played_amount || 0);
+                    // Precio para liquidación = total_participation_amount (jugado + donación)
+                    callback(parseFloat(response.total_participation_amount) || parseFloat(response.played_amount) || 0);
                 } else {
                     callback(0);
                 }
@@ -2744,13 +2846,10 @@ $(document).ready(function() {
         $('#anulacion-set-nombre').text(setSeleccionado ? `Set #${setSeleccionado.id}` : '-');
         $('#anulacion-total-participaciones').text(participacionesAsignadas.length);
 
-        // Calcular monto liberado usando el campo correcto (played_amount)
+        // Precio para liquidación = total_participation_amount (jugado + donación)
         let precioPorParticipacion = 0;
-        
         if (setSeleccionado) {
-            precioPorParticipacion = parseFloat(setSeleccionado.played_amount) || 0;
-            console.log('Set seleccionado completo:', setSeleccionado);
-            console.log('played_amount del set:', setSeleccionado.played_amount);
+            precioPorParticipacion = parseFloat(setSeleccionado.total_participation_amount) || (parseFloat(setSeleccionado.played_amount) + parseFloat(setSeleccionado.donation_amount || 0)) || 0;
         }
         
         // Si no tenemos precio, intentar obtenerlo del backend

@@ -655,9 +655,11 @@ class SetController extends Controller
         try {
             $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
             
+            $totalParticipation = $set->total_participation_amount ?? (($set->played_amount ?? 0) + ($set->donation_amount ?? 0));
             return response()->json([
                 'success' => true,
                 'played_amount' => $set->played_amount ?? 0,
+                'total_participation_amount' => (float) $totalParticipation,
                 'set_name' => $set->set_name
             ]);
         } catch (\Exception $e) {

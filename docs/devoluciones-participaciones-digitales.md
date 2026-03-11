@@ -1,6 +1,23 @@
-# Devoluciones de participaciones digitales – Propuesta
+# Participaciones digitales – Modelo actual
 
-## Situación actual
+## Reglas vigentes (implementadas)
+
+- **Las participaciones digitales NO se asignan** a vendedores. Todos los vendedores de la entidad pueden vender participaciones digitales mientras haya disponibilidad (pool común; si hay 2+ sets digitales se suman las disponibilidades).
+- **Asignación (web y app):** Solo se muestran sets **físicos** (no se listan sets digitales). La disponibilidad mostrada es solo la de sets físicos.
+- **Devolución (backend):**
+  - Lo que el usuario devuelve son **participaciones físicas** (las que no devuelve se marcan como vendidas/liquidadas).
+  - **Participaciones digitales no vendidas** del vendedor (mismo entity + lottery) se tratan aparte: se marcan **todas como devueltas** en la misma devolución (sin que el usuario las seleccione). No se liquidan; pasan a `disponible` y se registran en `devolution_details` con `action` = `devolver_vendedor`.
+  - Al marcar “las que no devuelvo como vendidas” solo se consideran participaciones **físicas** (se excluyen `participation_code LIKE '1D/%'`).
+
+## Pendiente (venta digital en app)
+
+- En la pantalla de “vender participaciones digitales” debe mostrarse la **cantidad total disponible** (suma de disponibles de todos los sets digitales de la entidad/sorteo), sin selección de set.
+
+---
+
+# Devoluciones de participaciones digitales – Propuesta (anterior)
+
+## Situación actual (referencia)
 
 - **Devoluciones (web/app):** El flujo está pensado para participaciones **físicas**:
   - Se elige reserva → se introducen **rango** (desde/hasta) o **una participación** por número/QR.

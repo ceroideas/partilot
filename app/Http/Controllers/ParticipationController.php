@@ -507,12 +507,14 @@ class ParticipationController extends Controller
 
     /**
      * API: Vender participaciones digitales a un usuario existente.
-     * Solo vendedores. El usuario debe existir (por email). Las participaciones se vinculan a su cartera (buyer_name).
+     * Acepta set_id (venta por set asignado) O entity_id + lottery_id (pool: cualquier vendedor de la entidad vende del total disponible).
      */
     public function apiSellDigital(Request $request)
     {
         $request->validate([
-            'set_id' => 'required|integer|exists:sets,id',
+            'set_id' => 'nullable|integer|exists:sets,id',
+            'entity_id' => 'nullable|integer|exists:entities,id',
+            'lottery_id' => 'nullable|integer|exists:lotteries,id',
             'quantity' => 'required|integer|min:1',
             'buyer_email' => 'required|email',
             'payment_method' => 'nullable|string|in:efectivo,bizum,transferencia,omitir,otro',
@@ -536,23 +538,51 @@ class ParticipationController extends Controller
             return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
         }
 
-        $set = \App\Models\Set::with('reserve')->findOrFail($request->set_id);
-        if (($set->digital_participations ?? 0) <= 0) {
-            return response()->json(['success' => false, 'message' => 'Este set no es de participaciones digitales.'], 422);
+        $usePool = $request->filled('entity_id') && $request->filled('lottery_id');
+        if ($usePool) {
+            if (!$seller->entities()->where('entities.id', $request->entity_id)->exists()) {
+                return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+            }
+            $ids = Participation::query()
+                ->join('sets', 'participations.set_id', '=', 'sets.id')
+                ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
+                ->where('participations.entity_id', $request->entity_id)
+                ->where('reserves.lottery_id', $request->lottery_id)
+                ->where('sets.physical_participations', '<=', 0)
+                ->whereRaw('sets.digital_participations > 0')
+                ->whereRaw("participations.participation_code LIKE '1D/%'")
+                ->where('participations.status', 'disponible')
+                ->select('participations.id')
+                ->orderBy('participations.id')
+                ->limit($request->quantity)
+                ->pluck('participations.id');
+            $participations = Participation::with('set.reserve')->whereIn('id', $ids)->orderBy('id')->get();
+        } else {
+            if (!$request->filled('set_id')) {
+                return response()->json(['success' => false, 'message' => 'Indica set_id o entity_id + lottery_id.'], 422);
+            }
+            $set = \App\Models\Set::with('reserve')->findOrFail($request->set_id);
+            if (($set->digital_participations ?? 0) <= 0) {
+                return response()->json(['success' => false, 'message' => 'Este set no es de participaciones digitales.'], 422);
+            }
+            $participations = Participation::where('set_id', $request->set_id)
+                ->where('seller_id', $seller->id)
+                ->where('status', 'asignada')
+                ->orderBy('participation_number')
+                ->limit($request->quantity)
+                ->get();
         }
-
-        $participations = Participation::where('set_id', $request->set_id)
-            ->where('seller_id', $seller->id)
-            ->where('status', 'asignada')
-            ->orderBy('participation_number')
-            ->limit($request->quantity)
-            ->get();
 
         if ($participations->count() < $request->quantity) {
             return response()->json([
                 'success' => false,
                 'message' => 'No hay suficientes participaciones digitales disponibles. Disponibles: ' . $participations->count(),
             ], 422);
+        }
+
+        $set = $participations->first()->set ?? \App\Models\Set::with('reserve')->find($participations->first()->set_id);
+        if (!$set) {
+            return response()->json(['success' => false, 'message' => 'Error al obtener el set.'], 500);
         }
 
         $pricePerParticipation = (float) ($set->played_amount ?? 0);
@@ -1177,6 +1207,9 @@ class ParticipationController extends Controller
         $importeJugado = (float) ($set->played_amount ?? 0);
         $donativo = (float) ($set->donation_amount ?? 0);
         $importeTotal = $importeJugado + $donativo;
+        $participationCode = $participation->participation_code ?? '';
+        $isDigital = str_starts_with($participationCode, '1D/');
+
         return [
             'id' => $participation->id,
             'referencia' => $referencia,
@@ -1192,6 +1225,7 @@ class ParticipationController extends Controller
             'numeroParticipacion' => $participation->display_participation_code ?? $participation->participation_code ?? ($participation->participation_number . '/0001'),
             'numeroReferencia' => $numeroReferencia,
             'snapshot_path' => $snapshotPath,
+            'is_digital' => $isDigital,
         ];
     }
 
