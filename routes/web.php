@@ -108,6 +108,12 @@ Route::get('firebase-messaging-sw.js', function () {
 Route::get('/sellers/confirm/accept/{token}', [SellerController::class, 'confirmAccept'])->name('sellers.confirm-accept');
 Route::get('/sellers/confirm/reject/{token}', [SellerController::class, 'confirmReject'])->name('sellers.confirm-reject');
 
+// Diseño externo por invitación (público, sin login; acceso solo por enlace)
+Route::get('/design/external/invite/{token}', [\App\Http\Controllers\DesignController::class, 'externalInviteByToken'])->name('design.external.invite');
+Route::get('/design/external/editor', [\App\Http\Controllers\DesignController::class, 'externalEditor'])->name('design.external.editor');
+Route::post('/design/external/save-format', [\App\Http\Controllers\DesignController::class, 'externalSaveFormat'])->name('design.external.saveFormat');
+Route::get('/design/external/thank-you', [\App\Http\Controllers\DesignController::class, 'externalThankYou'])->name('design.external.thankYou');
+
 // Rutas protegidas por autenticación
 Route::middleware(['auth'])->group(function () {
     

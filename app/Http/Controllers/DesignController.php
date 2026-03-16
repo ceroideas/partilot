@@ -13,6 +13,7 @@ use App\Models\DesignExternalInvitationFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
+use App\Mail\DesignExternalInvitationMail;
 use App\Services\ImageOptimizationService;
 use App\Services\QrCodeService;
 
@@ -169,6 +170,7 @@ class DesignController extends Controller
                 'set_id' => session('design_set_id'),
                 'created_by_user_id' => auth()->id(),
                 'comment' => $request->comment,
+                'email' => null, // se rellena en el paso 2 (enviar invitación)
                 'token' => DesignExternalInvitation::generateToken(),
                 'orden_id' => DesignExternalInvitation::generateOrdenId(),
                 'status' => DesignExternalInvitation::STATUS_PENDING,
@@ -196,7 +198,14 @@ class DesignController extends Controller
         $request->validate(['email' => 'required|email']);
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail(session('design_external_invitation_id'));
         $invitation->update(['email' => $request->email]);
-        // TODO: enviar email con enlace route('design.external.invite', ['token' => $invitation->token])
+
+        try {
+            Mail::to($request->email)->send(new DesignExternalInvitationMail($invitation));
+        } catch (\Throwable $e) {
+            \Log::warning('Error enviando invitación diseño externo: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'No se pudo enviar el correo. Comprueba la configuración de correo (MAIL_*) en .env.');
+        }
+
         $invitation->update(['status' => DesignExternalInvitation::STATUS_SENT, 'sent_at' => now()]);
         session()->forget('design_external_invitation_id');
         return redirect()->route('design.external.list')->with('success', 'Invitación enviada a ' . $request->email);
@@ -231,6 +240,129 @@ class DesignController extends Controller
         return redirect()->route('design.external.list')->with('success', 'Invitación eliminada.');
     }
 
+    /**
+     * Entrada por enlace de invitación (token). Pública; si no está logueado redirige a login.
+     */
+    public function externalInviteByToken(string $token)
+    {
+        $invitation = DesignExternalInvitation::where('token', $token)->first();
+
+        if (!$invitation) {
+            abort(404, 'Invitación no encontrada o enlace caducado.');
+        }
+
+        session([
+            'design_entity_id' => $invitation->entity_id,
+            'design_lottery_id' => $invitation->lottery_id,
+            'design_set_id' => $invitation->set_id,
+            'design_external_invitation_id' => $invitation->id,
+        ]);
+
+        if (in_array($invitation->status, [DesignExternalInvitation::STATUS_PENDING, DesignExternalInvitation::STATUS_SENT], true)) {
+            $invitation->update(['status' => DesignExternalInvitation::STATUS_IN_PROGRESS]);
+        }
+
+        return redirect()->route('design.external.editor');
+    }
+
+    /**
+     * Editor de diseño para invitado (usa sesión de invitación).
+     */
+    public function externalEditor()
+    {
+        $invitationId = session('design_external_invitation_id');
+        if (!$invitationId) {
+            return redirect()->to(url('/'))->with('error', 'Sesión de invitación no encontrada. Use el enlace que recibió por correo.');
+        }
+
+        $invitation = DesignExternalInvitation::with(['entity', 'set', 'lottery'])->find($invitationId);
+        if (!$invitation) {
+            session()->forget(['design_entity_id', 'design_lottery_id', 'design_set_id', 'design_external_invitation_id']);
+            return redirect()->to(url('/'))->with('error', 'Invitación no encontrada o expirada.');
+        }
+
+        $entity = $invitation->entity;
+        $lottery = $invitation->lottery;
+        $set = $invitation->set;
+        if (!$entity || !$lottery || !$set) {
+            return redirect()->to(url('/'))->with('error', 'Datos de la invitación incompletos.');
+        }
+
+        $reservation_numbers = $set->reserve ? $set->reserve->reservation_numbers : [];
+        $isDigitalSet = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+        $entityId = $entity->id;
+        $design = null;
+        $reserveId = $set->reserve_id ?? null;
+        if ($reserveId) {
+            $design = DesignFormat::where('entity_id', $entityId)
+                ->whereHas('set', fn ($q) => $q->where('reserve_id', $reserveId))
+                ->first();
+        }
+        if ($design) {
+            $blocks = is_array($design->blocks ?? null) ? $design->blocks : [];
+            if (empty($design->participation_html) && !empty($blocks['participation_html'])) {
+                $design->participation_html = $blocks['participation_html'];
+            }
+            if (empty($design->cover_html) && !empty($blocks['cover_html'])) {
+                $design->cover_html = $blocks['cover_html'];
+            }
+            if (empty($design->back_html) && !empty($blocks['back_html'])) {
+                $design->back_html = $blocks['back_html'];
+            }
+            $design->participation_html = $this->ensureAbsoluteUrlsInHtml($design->participation_html ?? '');
+            $design->cover_html = $this->ensureAbsoluteUrlsInHtml($design->cover_html ?? '');
+            $design->back_html = $this->ensureAbsoluteUrlsInHtml($design->back_html ?? '');
+            if (empty($design->backgrounds) && !empty($blocks['backgrounds']) && is_array($blocks['backgrounds'])) {
+                $design->backgrounds = $blocks['backgrounds'];
+            }
+        }
+
+        return view('design.format', [
+            'entity' => $entity,
+            'lottery' => $lottery,
+            'set' => $set,
+            'reservation_numbers' => $reservation_numbers,
+            'isDigitalSet' => $isDigitalSet,
+            'design' => $design,
+            'layout' => 'layouts.layout_external_design',
+            'save_format_url' => route('design.external.saveFormat'),
+            'redirect_after_save' => route('design.external.thankYou'),
+        ]);
+    }
+
+    /**
+     * Guardar diseño desde invitación (ruta pública; valida sesión de invitación).
+     */
+    public function externalSaveFormat(Request $request)
+    {
+        $invitationId = session('design_external_invitation_id');
+        if (!$invitationId) {
+            return response()->json(['success' => false, 'message' => 'Sesión de invitación no encontrada.'], 403);
+        }
+        $invitation = DesignExternalInvitation::find($invitationId);
+        if (!$invitation) {
+            return response()->json(['success' => false, 'message' => 'Invitación no válida.'], 403);
+        }
+        // Asegurar que el request tenga entity/set de la invitación (por si el front no los manda)
+        $request->merge([
+            'design_entity_id' => $request->input('design_entity_id') ?: $invitation->entity_id,
+            'design_lottery_id' => $request->input('design_lottery_id') ?: $invitation->lottery_id,
+        ]);
+        if (!$request->has('set_id')) {
+            $request->merge(['set_id' => $invitation->set_id]);
+        }
+        return $this->saveFormat($request);
+    }
+
+    /**
+     * Página de agradecimiento tras guardar el diseño por invitación.
+     */
+    public function externalThankYou()
+    {
+        session()->forget(['design_entity_id', 'design_lottery_id', 'design_set_id', 'design_external_invitation_id']);
+        return view('design.external_thank_you');
+    }
+
     private function ensureDesignSession()
     {
         if (!session('design_entity_id') || !session('design_lottery_id') || !session('design_set_id')) {
@@ -242,13 +374,24 @@ class DesignController extends Controller
     public function format(Request $request)
     {
         $entityId = session('design_entity_id');
-        if (!auth()->user()->canAccessEntity((int) $entityId)) {
-            abort(403, 'No tienes permisos para gestionar esta entidad.');
+        $byInvitation = (bool) session('design_external_invitation_id');
+
+        if ($byInvitation) {
+            $invitation = DesignExternalInvitation::find(session('design_external_invitation_id'));
+            if (!$invitation || $invitation->entity_id != $entityId || $invitation->set_id != (int) $request->set_id) {
+                abort(403, 'Invitación no válida para este diseño.');
+            }
+            $entity = Entity::findOrFail($entityId);
+            $set = Set::findOrFail($request->set_id);
+        } else {
+            if (!auth()->user()->canAccessEntity((int) $entityId)) {
+                abort(403, 'No tienes permisos para gestionar esta entidad.');
+            }
+            $entity = Entity::forUser(auth()->user())->findOrFail($entityId);
+            $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
         }
 
-        $entity = Entity::forUser(auth()->user())->findOrFail($entityId);
         $lottery = Lottery::findOrFail(session('design_lottery_id'));
-        $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
         $reservation_numbers = $set->reserve ? $set->reserve->reservation_numbers : [];
         $isDigitalSet = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
         // Tarea 7 y 8: diseño por reserva o diseño elegido del listado. "Ir a diseñar" = nuevo (new_design=1)
@@ -462,12 +605,32 @@ class DesignController extends Controller
                     $existing->output = $data['output'];
                     $existing->snapshot_path = $data['snapshot_path'];
                     $existing->save();
+                    $this->linkInvitationToDesignIfNeeded($existing->id);
                     return response()->json(['success' => true, 'id' => $existing->id]);
             }
         }
 
         $designFormat = DesignFormat::create($data);
+        $this->linkInvitationToDesignIfNeeded($designFormat->id);
         return response()->json(['success' => true, 'id' => $designFormat->id]);
+    }
+
+    /**
+     * Si el diseño se guarda desde una invitación externa, vincular invitación y marcar completada.
+     */
+    private function linkInvitationToDesignIfNeeded(int $designFormatId): void
+    {
+        $invitationId = session('design_external_invitation_id');
+        if (!$invitationId) {
+            return;
+        }
+        $invitation = DesignExternalInvitation::find($invitationId);
+        if ($invitation) {
+            $invitation->update([
+                'design_format_id' => $designFormatId,
+                'status' => DesignExternalInvitation::STATUS_COMPLETED,
+            ]);
+        }
     }
 
     // PDF: Participación

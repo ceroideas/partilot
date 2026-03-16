@@ -44,7 +44,7 @@
                                         <td>{{ $inv->orden_id ?? '#EN' . $inv->id }}</td>
                                         <td>{{ $inv->email }}</td>
                                         <td>{{ $inv->sent_at ? $inv->sent_at->format('d/m/Y') : '—' }}</td>
-                                        <td>{{ $inv->sent_at ? $inv->sent_at->format('H.i') }}h</td>
+                                        <td>{{ $inv->sent_at ? $inv->sent_at->format('H.i') . 'h' : '—' }}</td>
                                         <td>
                                             @if($inv->status === \App\Models\DesignExternalInvitation::STATUS_COMPLETED && $inv->design_format_id)
                                                 <span class="badge bg-success rounded-pill">Completado</span>

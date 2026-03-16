@@ -44,6 +44,8 @@ return [
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN'),
+            // Desactivar verificación SSL del certificado (solo en desarrollo si falla; en producción usar true)
+            'verify_peer' => env('MAIL_VERIFY_SSL', true),
         ],
 
         'ses' => [

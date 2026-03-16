@@ -2062,7 +2062,7 @@ $(document).ready(function() {
         $('#background-color').val(color);
         $('#background-image').val('');
         if(img) {
-          $('#bg-preview').css('background-image', 'url('+img+')');
+          $('#bg-preview').css('background-image', bgImageCssUrl(img));
         } else {
           $('#bg-preview').css('background-image', 'none');
         }
@@ -2418,6 +2418,10 @@ function reapplyElementEvents() {
 }
 
 // --- Funciones para el fondo de ticket (copiadas de format.blade.php) ---
+function bgImageCssUrl(url) {
+  if (!url) return 'none';
+  return 'url("' + String(url).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")';
+}
 $(document).on('input', '#background-color', function() {
   $('#bg-preview').css('background-color', $(this).val());
 });
@@ -2425,7 +2429,7 @@ $(document).on('change', '#background-image', function(e) {
   if(this.files && this.files[0]) {
     const reader = new FileReader();
     reader.onload = function(ev) {
-      $('#bg-preview').css('background-image', 'url('+ev.target.result+')');
+      $('#bg-preview').css('background-image', bgImageCssUrl(ev.target.result));
     };
     reader.readAsDataURL(this.files[0]);
   }
@@ -2469,19 +2473,15 @@ function setBgToContainment(color, img) {
   if (!$cont.length) $cont = $('#containment-wrapper'+step);
   $cont.css('background-color', color);
   if(img) {
-    // Asegurar que la URL de la imagen sea absoluta
     let imageUrl = img;
     if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
       imageUrl = '/' + imageUrl;
     }
-    
-    $cont.css('background-image', 'url('+imageUrl+')');
+    $cont.css('background-image', bgImageCssUrl(imageUrl));
     $cont.css('background-size', 'cover');
     $cont.css('background-position', 'center');
     $cont.css('background-repeat', 'no-repeat');
-    
-    // Forzar repaint del elemento
-    $cont[0].offsetHeight;
+    if ($cont[0]) $cont[0].offsetHeight;
   } else {
     $cont.css('background-image', 'none');
   }
@@ -2508,7 +2508,7 @@ function loadExistingBackgrounds() {
           if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
             imageUrl = '/' + imageUrl;
           }
-          $cont.css('background-image', 'url(' + imageUrl + ')');
+          $cont.css('background-image', bgImageCssUrl(imageUrl));
           $cont.css('background-size', 'cover');
           $cont.css('background-position', 'center');
           $cont.css('background-repeat', 'no-repeat');

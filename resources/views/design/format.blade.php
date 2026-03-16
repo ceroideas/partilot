@@ -1,4 +1,4 @@
-@extends('layouts.layout')
+@extends($layout ?? 'layouts.layout')
 
 @section('title','Diseño e Impresión')
 
@@ -1208,6 +1208,11 @@ $(document).ready(function() {
     alert('Márgenes aplicados. Se guardarán con el diseño al finalizar.');
   });
 
+  // URL con espacios/caracteres especiales debe ir entre comillas en CSS url()
+  function bgImageCssUrl(url) {
+    if (!url) return 'none';
+    return 'url("' + String(url).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")';
+  }
   // Botón para abrir el modal
   $(document).on('click', '#open-bg-modal', function() {
     // Cargar valores actuales
@@ -1216,7 +1221,7 @@ $(document).ready(function() {
     $('#background-color').val(color);
     $('#background-image').val('');
     if(img) {
-      $('#bg-preview').css('background-image', 'url('+img+')');
+      $('#bg-preview').css('background-image', bgImageCssUrl(img));
     } else {
       $('#bg-preview').css('background-image', 'none');
     }
@@ -1234,7 +1239,7 @@ $(document).ready(function() {
     if(this.files && this.files[0]) {
       const reader = new FileReader();
       reader.onload = function(ev) {
-        $('#bg-preview').css('background-image', 'url('+ev.target.result+')');
+        $('#bg-preview').css('background-image', bgImageCssUrl(ev.target.result));
       };
       reader.readAsDataURL(this.files[0]);
     }
@@ -1284,7 +1289,7 @@ $(document).ready(function() {
     if (!$cont.length) $cont = $('#containment-wrapper'+step);
     $cont.css('background-color', color);
     if(img) {
-      $cont.css('background-image', 'url('+img+')');
+      $cont.css('background-image', bgImageCssUrl(img));
       $cont.css('background-size', 'cover');
       $cont.css('background-position', 'center');
     } else {
@@ -1299,6 +1304,7 @@ $(document).ready(function() {
 
 function initDatatable() 
   {
+    if (!$("#example2").length || typeof $.fn.DataTable === 'undefined') return;
     $("#example2").DataTable({
 
       "select":{style:"single"},
@@ -1388,7 +1394,7 @@ function initDatatable()
   initDatatable();
 
   setTimeout(()=>{
-    $('.filters .inline-fields:first').trigger('keyup');
+    if ($('.filters .inline-fields:first').length) $('.filters .inline-fields:first').trigger('keyup');
   },100);
 
 
@@ -1588,7 +1594,7 @@ $('#format').change(function (e) {
             if ($bgEl.length) {
               if(localStorage.getItem('bg-step'+step)){
                 $bgEl.css('background-color', localStorage.getItem('bg-step'+step));
-                $bgEl.css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
+                $bgEl.css('background-image', bgImageCssUrl(localStorage.getItem('bgimg-step'+step)));
               } else {
                 $bgEl.css('background-color', '#dfdfdf');
                 $bgEl.css('background-image', 'none');
@@ -1619,7 +1625,9 @@ $('#format').change(function (e) {
           const data = collectDesignData();
           console.log(data);
           showDesignLoading('Guardando diseño...');
-          fetch('{{url('/api/design/save-format')}}', {
+          var saveUrl = @json($save_format_url ?? url('/api/design/save-format'));
+          var redirectAfterSave = @json($redirect_after_save ?? null);
+          fetch(saveUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1631,7 +1639,9 @@ $('#format').change(function (e) {
           .then(result => {
             if(result.success) {
               hideDesignLoading();
-              if (result.id) {
+              if (redirectAfterSave) {
+                window.location.href = redirectAfterSave;
+              } else if (result.id) {
                 window.location.href = '{{ url("design/summary") }}/' + result.id;
               } else {
                 window.location.href = '{{ route("design.index") }}';
@@ -1699,7 +1709,7 @@ $('#format').change(function (e) {
               if ($bgEl.length) {
                 if(localStorage.getItem('bg-step'+step)){
                   $bgEl.css('background-color', localStorage.getItem('bg-step'+step));
-                  $bgEl.css('background-image', 'url('+localStorage.getItem('bgimg-step'+step)+')');
+                  $bgEl.css('background-image', bgImageCssUrl(localStorage.getItem('bgimg-step'+step)));
                 } else {
                   $bgEl.css('background-color', '#dfdfdf');
                   $bgEl.css('background-image', 'none');
@@ -2951,7 +2961,7 @@ $('#format').change(function (e) {
           var $cont = (i === 4) ? $('#design-back-bg') : $('#containment-wrapper' + i);
           if ($cont.length) {
             $cont.css('background-color', color);
-            $cont.css('background-image', img ? 'url(' + img + ')' : 'none');
+            $cont.css('background-image', img ? 'url("' + String(img).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")' : 'none');
           }
         }
       });
