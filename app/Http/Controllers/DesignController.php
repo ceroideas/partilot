@@ -204,12 +204,13 @@ class DesignController extends Controller
 
     /**
      * Listado de invitaciones de diseño externo (tabla como en captura).
+     * Solo se muestran invitaciones de entidades accesibles por el usuario (respeta rol contexto).
      */
     public function externalList()
     {
-        $entity_id = session('design_entity_id');
+        $entityIds = auth()->user()->accessibleEntityIds();
         $invitations = DesignExternalInvitation::where('created_by_user_id', auth()->id())
-            ->when($entity_id, fn ($q) => $q->where('entity_id', $entity_id))
+            ->whereIn('entity_id', $entityIds)
             ->with(['entity', 'set', 'lottery'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -219,6 +220,9 @@ class DesignController extends Controller
     public function externalDestroy($id)
     {
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $invitation->entity_id)) {
+            abort(403, 'No tienes permisos para gestionar esta invitación.');
+        }
         foreach ($invitation->files as $f) {
             Storage::disk('public')->delete($f->path);
         }
@@ -470,6 +474,9 @@ class DesignController extends Controller
     public function generatePdfParticipation($id)
     {
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         $html = $design->participation_html;
         return $this->renderPdfFromHtml($html, 'participation.pdf');
     }
@@ -478,6 +485,9 @@ class DesignController extends Controller
     public function generatePdfCover($id)
     {
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         $html = $design->cover_html;
         return $this->renderPdfFromHtml($html, 'cover.pdf');
     }
@@ -486,6 +496,9 @@ class DesignController extends Controller
     public function generatePdfBack($id)
     {
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         $html = $design->back_html;
         return $this->renderPdfFromHtml($html, 'back.pdf');
     }
@@ -689,6 +702,9 @@ class DesignController extends Controller
         ini_set('memory_limit', '1024M');   // 1GB
         
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         
         // Cache del HTML procesado para evitar reprocesar
         $cacheKey = 'participation_html_' . $id;
@@ -803,6 +819,9 @@ class DesignController extends Controller
         ini_set('memory_limit', '1024M');
         
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         
         // Verificar que ambas existan
         if (empty($design->cover_html) || empty($design->back_html)) {
@@ -993,6 +1012,9 @@ class DesignController extends Controller
         ini_set('memory_limit', '1024M');
         
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         
         // Procesar HTML sin caché para aplicar cambios inmediatamente
         $html = $design->$htmlField;
@@ -1079,6 +1101,9 @@ class DesignController extends Controller
     public function editFormat($id)
     {
         $format = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $format->entity_id)) {
+            abort(403, 'No tienes permisos para editar este diseño.');
+        }
         $format->participation_html = $this->ensureAbsoluteUrlsInHtml($format->participation_html ?? '');
         $format->cover_html = $this->ensureAbsoluteUrlsInHtml($format->cover_html ?? '');
         $format->back_html = $this->ensureAbsoluteUrlsInHtml($format->back_html ?? '');
@@ -1098,6 +1123,9 @@ class DesignController extends Controller
     public function summary($id)
     {
         $design = DesignFormat::with(['set', 'lottery', 'entity'])->findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para ver este diseño.');
+        }
         return view('design.summary', compact('design'));
     }
 
@@ -1109,6 +1137,9 @@ class DesignController extends Controller
         // return $request->all();
 
         $format = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $format->entity_id)) {
+            abort(403, 'No tienes permisos para actualizar este diseño.');
+        }
         // Procesar el JSON enviado desde el frontend (campo 'data')
         // if ($request->has('data')) {
             // $data = json_decode($request->input('data'), true);
@@ -1263,6 +1294,9 @@ class DesignController extends Controller
     public function exportParticipationPdfAsync($id)
     {
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         
         // Para PDFs muy grandes (>1000 participaciones), usar procesamiento asíncrono
         $set = $design->set_id ? Set::select('id', 'total_participations')->find($design->set_id) : null;
@@ -1525,6 +1559,9 @@ class DesignController extends Controller
     private function generateOptimizedPdfAsync($id, $htmlField, $filename)
     {
         $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
         
         // Para PDFs simples, usar procesamiento asíncrono solo si es muy grande
         $html = $design->$htmlField;

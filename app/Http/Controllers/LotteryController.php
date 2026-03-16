@@ -233,7 +233,8 @@ class LotteryController extends Controller
             $apiUrl = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva={$dateFrom}&fechaFinInclusiva={$dateTo}";
 
             // Realizar petición HTTP usando Guzzle
-            $response = Http::withHeaders([
+            $response = Http::withOptions(['verify' => config('app.http_verify_ssl')])
+            ->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept' => 'application/json, text/plain, */*',
                 'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.8',
@@ -404,7 +405,9 @@ class LotteryController extends Controller
             $lottery = Lottery::findOrFail($request->lottery_id);
 
             // Realizar petición a la API
-            $response = Http::timeout(30)->get($request->api_url);
+            $response = Http::withOptions(['verify' => config('app.http_verify_ssl')])
+                ->timeout(30)
+                ->get($request->api_url);
 
             if (!$response->successful()) {
                 return response()->json([
@@ -456,7 +459,8 @@ class LotteryController extends Controller
             $lottery = Lottery::findOrFail($request->lottery_id);
 
             // Realizar petición a la API
-            $response = Http::withHeaders([
+            $response = Http::withOptions(['verify' => config('app.http_verify_ssl')])
+            ->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept' => 'application/json, text/plain, */*',
                 'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.8',

@@ -21,7 +21,8 @@ class NavidadScrapingService
             $url = "https://www.loteriasyapuestas.es/es/loteria-nacional/tablas-y-alambres?drawId=$drawId";
             
             // Realizar petición HTTP
-            $response = Http::withHeaders([
+            $response = Http::withOptions(['verify' => config('app.http_verify_ssl')])
+            ->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language' => 'es-ES,es;q=0.9,en;q=0.8',

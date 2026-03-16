@@ -61,6 +61,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | HTTP client SSL verification
+    |--------------------------------------------------------------------------
+    | En local (XAMPP/Windows) puede fallar cURL con "unable to get local
+    | issuer certificate". Pon HTTP_VERIFY_SSL=false en .env solo en desarrollo.
+    | En producción déjalo true o no lo definas.
+    */
+    'http_verify_ssl' => env('HTTP_VERIFY_SSL', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
