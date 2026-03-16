@@ -25,8 +25,8 @@ class EnsureUserHasRole
         if (empty($roles)) {
             return $next($request);
         }
-
-        if (!$user->hasAnyRole($roles)) {
+        
+        if (!$user->hasAnyRole($roles)) { // Comprueba si tiene algun rol de los especificados
             abort(403, 'No tienes permisos para acceder a esta sección.');
         }
 

@@ -76,14 +76,33 @@ class User extends Authenticatable
 
     public function hasRole(string $role): bool
     {
+        // Si no es super admin, ni administración, ni tiene registros como gestor,
+        // lo consideramos usuario final (vendedor/cliente) y no debe pasar chequeos
+        // de rol dentro de la web.
+        if (!$this->isSuperAdmin() && !$this->isAdministration() && !$this->managers()->exists()) {
+            return false;
+        }
+
+        // Super admin: acceso a todo menos al rol "client"
         if ($this->role === self::ROLE_SUPER_ADMIN && $role !== self::ROLE_CLIENT) {
             return true;
         }
 
+        // Rol virtual "manager": cualquier registro en managers
         if ($role === self::ROLE_MANAGER) {
             return $this->managers()->exists();
         }
 
+        // Administración / entidad basados en managers, dando prioridad a administración
+        if ($role === self::ROLE_ADMINISTRATION) {
+            return $this->isAdministration();
+        }
+
+        if ($role === self::ROLE_ENTITY) {
+            return $this->isEntity();
+        }
+
+        // Resto de casos: comparamos contra el campo role
         return $this->role === $role;
     }
 
@@ -108,13 +127,52 @@ class User extends Authenticatable
 
     public function isAdministration(): bool
     {
-        return $this->role === self::ROLE_ADMINISTRATION;
+        // Si el contexto actual fuerza "gestor de entidades", este helper debe devolver false
+        $contextRole = session('context_role');
+        if ($contextRole === 'entity') {
+            return false;
+        }
+
+        return $this->hasAdministrationManagers();
     }
 
-    /** True si el usuario tiene al menos un registro en la tabla managers (gestor/entidad). */
+    /**
+     * True si el usuario es gestor de entidad.
+     * Si tiene alguna administración asociada, se prioriza el rol de administración,
+     * salvo que el contexto fuerce explícitamente entrar como gestor de entidades.
+     */
     public function isEntity(): bool
     {
-        return $this->managers()->exists();
+        $contextRole = session('context_role');
+
+        // Si el contexto fuerza administración, este helper debe devolver false
+        if ($contextRole === 'administration') {
+            return false;
+        }
+
+        // Por defecto, si tiene administración asociada, se prioriza esa vista
+        // if ($this->hasAdministrationManagers()) {
+        //     return false;
+        // }
+
+        return $this->hasEntityManagers();
+    }
+
+    /**
+     * Helpers internos para no mezclar lógica de contexto con la consulta base.
+     */
+    protected function hasAdministrationManagers(): bool
+    {
+        return $this->managers()
+            ->whereNotNull('administration_id')
+            ->exists();
+    }
+
+    protected function hasEntityManagers(): bool
+    {
+        return $this->managers()
+            ->whereNotNull('entity_id')
+            ->exists();
     }
 
     /** True si el usuario tiene al menos un registro en la tabla sellers (vendedor). */

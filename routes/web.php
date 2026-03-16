@@ -20,6 +20,7 @@ use App\Http\Controllers\ParticipationActivityLogController;
 use App\Http\Controllers\DevolutionsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ContextController;
 use App\Http\Controllers\SepaPaymentOrderController;
 use App\Models\Administration;
 /*
@@ -111,6 +112,9 @@ Route::get('/sellers/confirm/reject/{token}', [SellerController::class, 'confirm
 Route::middleware(['auth'])->group(function () {
     
     Route::get('dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+
+    // Selector de contexto de gestor (administración / entidad)
+    Route::post('context/set-role', [ContextController::class, 'setRole'])->name('context.set-role');
 
 Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin'], function() {
     //
