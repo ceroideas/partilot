@@ -1744,10 +1744,15 @@ class DesignController extends Controller
 
     /**
      * Mostrar todos los formatos de diseño.
+     * Filtra por entidades accesibles del usuario (respeta rol contexto: gestor administración / gestor entidad).
      */
     public function index()
     {
-        $designs = DesignFormat::with(['entity', 'lottery', 'set'])->orderByDesc('id')->get();
+        $entityIds = auth()->user()->accessibleEntityIds();
+        $designs = DesignFormat::with(['entity', 'lottery', 'set'])
+            ->whereIn('entity_id', $entityIds)
+            ->orderByDesc('id')
+            ->get();
         return view('design.index', compact('designs'));
     }
 
