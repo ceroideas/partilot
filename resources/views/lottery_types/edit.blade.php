@@ -115,7 +115,7 @@
                                                     <div class="input-group input-group-merge group-form">
 
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                            <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+                                                            <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                         </div>
 
                                                         <input class="form-control" name="series" value="{{ $lotteryType->series }}" type="number" placeholder="Ej: 100" style="border-radius: 0 30px 30px 0;" required>
@@ -132,7 +132,7 @@
                                                     <div class="input-group input-group-merge group-form">
 
                                                         <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                            <img src="{{url('assets/form-groups/admin/15.svg')}}" alt="">
+                                                            <img src="{{url('assets/form-groups/admin/14.svg')}}" alt="">
                                                         </div>
 
                                                         <input class="form-control" name="billetes_serie" value="{{ $lotteryType->billetes_serie }}" type="number" placeholder="Ej: 1000" style="border-radius: 0 30px 30px 0;" required>
