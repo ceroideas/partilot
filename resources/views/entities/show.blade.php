@@ -358,6 +358,15 @@
 
 			                    	<div class="tab-pane fade" id="datos_contacto">
                     					<div class="form-card bs" style="min-height: 658px;">
+			                    			@if(!empty($entityPanelUser))
+			                    			<h4 class="mb-0 mt-1">Acceso al panel web</h4>
+			                    			<small><i>La cuenta de acceso no aparece en el listado de gestores. Email y contraseña se gestionan desde la edición de la entidad.</i></small>
+			                    			<div class="alert alert-info mt-3">
+			                    				<strong>Usuario (email):</strong> {{ $entity->email }}<br>
+			                    				<strong>Nombre en panel:</strong> {{ $entityPanelUser->name }}<br>
+			                    				<a href="{{ route('entities.edit', $entity->id) }}" class="btn btn-sm btn-dark mt-2">Editar entidad y contraseña del panel</a>
+			                    			</div>
+			                    			@else
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos de gestor
 
@@ -570,6 +579,7 @@
 			                    				</div>
 
 			                    			</div>
+			                    			@endif
 
 			                    		</div>
                     				</div>
@@ -600,7 +610,7 @@
 							                    
 							                    
 							                        <tbody>
-							                            @forelse($entity->managers as $manager)
+							                            @forelse($managersVisible ?? $entity->managers as $manager)
 							                            <tr>
 							                                <td>#GE{{ str_pad($manager->id, 4, '0', STR_PAD_LEFT) }}</td>
 							                                <td>{{ $manager->user->name ?? '' }} {{ $manager->user->last_name ?? '' }}</td>
@@ -701,7 +711,13 @@
 							                            </tr>
 							                            @empty
 							                            <tr>
-							                                <td colspan="6" class="text-center">No hay gestores asignados</td>
+							                                <td colspan="6" class="text-center">
+									@if(!empty($entityPanelUser))
+										No hay gestores adicionales. La cuenta de acceso al panel de la entidad no se muestra en esta lista. Use <strong>Añadir</strong> para invitar gestores secundarios.
+									@else
+										No hay gestores asignados
+									@endif
+								</td>
 							                            </tr>
 							                            @endforelse
 							                        </tbody>
@@ -861,6 +877,7 @@
 
 												                                    <input class="form-control invite-email" type="email" name="invite_email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 												                                </div>
+												                                <small id="invite-email-error" class="text-danger d-none d-block mt-2">Ese email corresponde a una cuenta de acceso al panel (administración o entidad) y no puede invitarse como gestor.</small>
 
 												                                <button type="submit" disabled style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3" id="invite-button">Invitar</button>
 					                    										
@@ -1219,7 +1236,14 @@ $('.invite-email').keyup(function(event) {
 				email: email
 			},
 			success: function(response) {
-				if (response.exists) {
+				if (response.is_panel_account) {
+					$('#invite-user-id').val('');
+					$('#invite-email-error').removeClass('d-none');
+					$('#invite-button').prop('disabled', true);
+					return;
+				}
+				$('#invite-email-error').addClass('d-none');
+				if (response.exists && response.user_id) {
 					$('#invite-user-id').val(response.user_id);
 				} else {
 					$('#invite-user-id').val('');
@@ -1228,6 +1252,7 @@ $('.invite-email').keyup(function(event) {
 		});
 	} else {
 		$('#invite-button').prop('disabled', true);
+		$('#invite-email-error').addClass('d-none');
 	}
 });
 

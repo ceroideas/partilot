@@ -378,6 +378,28 @@
                     				</div>
                     			</div>
 
+								@php
+									$adminPanelUser = \App\Models\User::where('panel_account_type', 'administration')->where('panel_account_id', $administration->id)->first();
+								@endphp
+								@if($adminPanelUser)
+								<h4 class="mb-0 mt-1 mt-3">Acceso al panel web</h4>
+								<small class="text-muted">Deje en blanco para no cambiar la contraseña. El usuario del panel es el email de la administración.</small>
+								<div class="row mt-2">
+									<div class="col-md-6">
+										<div class="form-group mb-3">
+											<label class="label-control">Nueva contraseña del panel</label>
+											<input class="form-control" type="password" name="panel_password" autocomplete="new-password" style="border-radius: 30px;">
+										</div>
+									</div>
+									<div class="col-md-6">
+										<div class="form-group mb-3">
+											<label class="label-control">Confirmar contraseña</label>
+											<input class="form-control" type="password" name="panel_password_confirmation" autocomplete="new-password" style="border-radius: 30px;">
+										</div>
+									</div>
+								</div>
+								@endif
+
 								<br>
 								<br>
 

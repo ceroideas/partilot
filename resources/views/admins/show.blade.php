@@ -199,7 +199,7 @@
 
 			                    						<h4 class="mt-3 mb-0">{{$administration->name ?? 'Sin nombre'}}</h4>
 
-			                    						<small>{{$administration->manager->user->name ?? ''}} {{$administration->manager->user->last_name ?? ''}}</small> <br>
+			                    						<small>@if($administration->manager?->user?->isPanelAccount())Acceso al panel @else {{$administration->manager->user->name ?? ''}} {{$administration->manager->user->last_name ?? ''}}@endif</small> <br>
 			                    						
 			                    					</div>
 			                    				</div>
@@ -436,6 +436,10 @@
 
                     				<div class="tab-pane fade" id="datos_contacto">
                     					<div class="form-card bs" style="min-height: 658px;">
+			                    			@php
+			                    				$adminPanelUserShow = $administration->manager?->user && $administration->manager->user->isPanelAccount();
+			                    			@endphp
+			                    			
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos de contacto
 
@@ -634,6 +638,7 @@
 			                    				</div>
 
 			                    			</div>
+			                    			
 
 			                    		</div>
                     				</div>

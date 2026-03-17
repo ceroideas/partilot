@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Seller;
+use App\Models\Manager;
 use App\Http\Controllers\ParticipationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +19,8 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::all();
+        $users = User::whereNull('panel_account_type')->orderBy('name')->get();
+
         return view('users.index', compact('users'));
     }
 
@@ -214,6 +216,10 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        if ($user->isPanelAccount()) {
+            return back()->with('error', 'No se puede eliminar una cuenta de acceso al panel (administración o entidad).');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -255,7 +261,7 @@ class UserController extends Controller
      */
     public function data(Request $request)
     {
-        $query = User::query();
+        $query = User::query()->whereNull('panel_account_type');
 
         // Aplicar filtros
         if ($request->filled('province')) {

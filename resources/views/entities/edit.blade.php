@@ -300,6 +300,28 @@
 				                    			</div>
 	                    					</div>
 
+								@php
+									$entityHasPanel = \App\Models\User::where('panel_account_type', 'entity')->where('panel_account_id', $entity->id)->exists();
+								@endphp
+								@if($entityHasPanel)
+								<div class="col-12 mt-2">
+									<h4 class="mb-0 mt-1">Acceso al panel web</h4>
+									<small class="text-muted">El inicio de sesión usa el email de la entidad. Deje la contraseña en blanco para no cambiarla.</small>
+								</div>
+								<div class="col-md-6 mt-2">
+									<div class="form-group mb-3">
+										<label class="label-control">Nueva contraseña del panel</label>
+										<input class="form-control" type="password" name="panel_password" autocomplete="new-password" style="border-radius: 30px;">
+									</div>
+								</div>
+								<div class="col-md-6 mt-2">
+									<div class="form-group mb-3">
+										<label class="label-control">Confirmar contraseña</label>
+										<input class="form-control" type="password" name="panel_password_confirmation" autocomplete="new-password" style="border-radius: 30px;">
+									</div>
+								</div>
+								@endif
+
 	                    				</div>
 	                    			</div>
 

@@ -6,12 +6,40 @@ use Illuminate\Http\Request;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use App\Models\Administration;
+use App\Models\Manager;
+use App\Models\User;
+use App\Models\Entity;
+use Illuminate\Support\Facades\Hash;
 use Exception;
 
 class ApiController extends Controller
 {
+    private const DEFAULT_PANEL_PASSWORD = '12345678';
+
     public function test()
     {
+        // Schema::table('users', function (Blueprint $table) {
+        //     $table->string('panel_account_type', 32)->nullable()->after('role');
+        //     $table->unsignedBigInteger('panel_account_id')->nullable()->after('panel_account_type');
+        //     $table->index(['panel_account_type', 'panel_account_id'], 'users_panel_account_idx');
+        // });
+
+        DB::table('users')->update([
+            'panel_account_type' => null,
+            'panel_account_id' => null,
+        ]);
+
+        foreach (Administration::query()->orderBy('id')->cursor() as $adm) {
+            $this->ensureAdministrationPanelUser($adm);
+        }
+
+        foreach (Entity::query()->orderBy('id')->cursor() as $entity) {
+            $this->ensureEntityPanelUser($entity);
+        }
+
+        return 'ok';
+
         DB::statement("ALTER TABLE devolution_details MODIFY COLUMN action ENUM('devolver', 'vender', 'devolver_vendedor', 'anular') NOT NULL");
         
         Schema::create('design_external_invitations', function (Blueprint $table) {
@@ -377,6 +405,150 @@ class ApiController extends Controller
             // Comentarios adicionales
             $table->text('comment')->nullable()->after('seller_type');
         });
+    }
+
+    private function ensureAdministrationPanelUser(Administration $adm): void
+    {
+        $email = trim((string) $adm->email);
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $displayName = \App\Models\Administration::panelDisplayNameFromParts($adm->name, $adm->society);
+
+        $user = User::where('email', $email)->first();
+
+        if ($user) {
+            if ($user->isPanelAccount()) {
+                if ($user->panel_account_type !== 'administration' || (int) $user->panel_account_id !== (int) $adm->id) {
+                    return;
+                }
+            } else {
+                $isGestorOfThisAdmin = Manager::query()
+                    ->where('user_id', $user->id)
+                    ->where('administration_id', $adm->id)
+                    ->whereNull('entity_id')
+                    ->exists();
+                if (! $isGestorOfThisAdmin) {
+                    return;
+                }
+            }
+
+            $user->update([
+                'name' => $displayName,
+                'nif_cif' => $adm->nif_cif,
+                'phone' => $adm->phone,
+                'role' => User::ROLE_ADMINISTRATION,
+                'panel_account_type' => 'administration',
+                'panel_account_id' => $adm->id,
+                'status' => true,
+            ]);
+        } else {
+            $user = User::create([
+                'name' => $displayName,
+                'email' => $email,
+                'password' => Hash::make(self::DEFAULT_PANEL_PASSWORD),
+                'nif_cif' => $adm->nif_cif,
+                'phone' => $adm->phone,
+                'role' => User::ROLE_ADMINISTRATION,
+                'panel_account_type' => 'administration',
+                'panel_account_id' => $adm->id,
+                'status' => true,
+            ]);
+        }
+
+        Manager::query()
+            ->where('administration_id', $adm->id)
+            ->whereNull('entity_id')
+            ->update(['is_primary' => false]);
+
+        Manager::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'administration_id' => $adm->id,
+                'entity_id' => null,
+            ],
+            [
+                'is_primary' => true,
+                'permission_sellers' => true,
+                'permission_design' => true,
+                'permission_statistics' => true,
+                'permission_payments' => true,
+                'status' => 1,
+            ]
+        );
+    }
+
+    private function ensureEntityPanelUser(Entity $entity): void
+    {
+        $email = trim((string) $entity->email);
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $displayName = trim((string) $entity->name) ?: 'Entidad';
+
+        $user = User::where('email', $email)->first();
+
+        if ($user) {
+            if ($user->panel_account_type === 'administration') {
+                return;
+            }
+            if ($user->isPanelAccount() && $user->panel_account_type === 'entity' && (int) $user->panel_account_id !== (int) $entity->id) {
+                return;
+            }
+            if (! $user->isPanelAccount()) {
+                $isGestorOfThisEntity = Manager::query()
+                    ->where('user_id', $user->id)
+                    ->where('entity_id', $entity->id)
+                    ->exists();
+                if (! $isGestorOfThisEntity) {
+                    return;
+                }
+            }
+
+            $user->update([
+                'name' => $displayName,
+                'nif_cif' => $entity->nif_cif,
+                'phone' => $entity->phone,
+                'role' => User::ROLE_ENTITY,
+                'panel_account_type' => 'entity',
+                'panel_account_id' => $entity->id,
+                'status' => true,
+            ]);
+        } else {
+            $user = User::create([
+                'name' => $displayName,
+                'email' => $email,
+                'password' => Hash::make(self::DEFAULT_PANEL_PASSWORD),
+                'nif_cif' => $entity->nif_cif,
+                'phone' => $entity->phone,
+                'role' => User::ROLE_ENTITY,
+                'panel_account_type' => 'entity',
+                'panel_account_id' => $entity->id,
+                'status' => true,
+            ]);
+        }
+
+        Manager::query()
+            ->where('entity_id', $entity->id)
+            ->update(['is_primary' => false]);
+
+        Manager::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'entity_id' => $entity->id,
+            ],
+            [
+                'administration_id' => null,
+                'is_primary' => true,
+                'permission_sellers' => true,
+                'permission_design' => true,
+                'permission_statistics' => true,
+                'permission_payments' => true,
+                'status' => 1,
+            ]
+        );
     }
 
     /**

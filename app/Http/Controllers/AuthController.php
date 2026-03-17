@@ -45,10 +45,13 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
 
-            if (Auth::user()->isClient() || (Auth::user()->isSeller() && !Auth::user()->isEntity())) {
+            $user = Auth::user();
+            // Solo superadmin o cuenta de panel (administración/entidad) acceden al panel web
+            if (! $user->isSuperAdmin() && ! $user->isPanelAccount()) {
                 Auth::logout();
+
                 return back()->withErrors([
-                    'email' => 'Tu cuenta no tiene acceso al panel.',
+                    'email' => 'Tu cuenta no tiene acceso al panel. Use el email y contraseña de su administración o entidad.',
                 ])->withInput($request->only('email'));
             }
 

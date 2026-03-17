@@ -777,37 +777,6 @@
                                         <h6 class="text-overflow m-0">Welcome !</h6>
                                     </div>
 
-                                    @php
-                                        $user = Auth::user();
-                                        $contextRole = session('context_role');
-                                        $canBeAdministration = $user && $user->managers()->whereNotNull('administration_id')->exists();
-                                        $canBeEntity = $user && $user->managers()->whereNotNull('entity_id')->exists();
-                                    @endphp
-
-                                    @if($user && ($canBeAdministration || $canBeEntity))
-                                        <div class="px-3 py-2 border-bottom">
-                                            <form method="POST" action="{{ route('context.set-role') }}">
-                                                @csrf
-                                                <label class="form-label mb-1 small text-muted">Entrar como</label>
-                                                <select name="context_role" class="form-select form-select-sm" onchange="this.form.submit()">
-                                                    <option value="" {{ $contextRole === null ? 'selected' : '' }}>
-                                                        Modo por defecto
-                                                    </option>
-                                                    @if($canBeAdministration)
-                                                        <option value="administration" {{ $contextRole === 'administration' ? 'selected' : '' }}>
-                                                            Gestor de Administración
-                                                        </option>
-                                                    @endif
-                                                    @if($canBeEntity)
-                                                        <option value="entity" {{ $contextRole === 'entity' ? 'selected' : '' }}>
-                                                            Gestor de Entidad
-                                                        </option>
-                                                    @endif
-                                                </select>
-                                            </form>
-                                        </div>
-                                    @endif
-
                                     <!-- item-->
                                     <a href="javascript:void(0);" class="dropdown-item notify-item">
                                         <i class="fe-user"></i>

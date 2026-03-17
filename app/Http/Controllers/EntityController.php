@@ -7,6 +7,7 @@ use App\Models\Entity;
 use App\Models\Administration;
 use App\Models\Manager;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class EntityController extends Controller
 {
@@ -168,75 +169,51 @@ class EntityController extends Controller
      */
     public function store_manager(Request $request)
     {
-        // Guardar en sesión para persistencia (como en administrations)
-        $request->session()->put('entity_manager', [
-            'manager_name' => $request->input('manager_name', ''),
-            'manager_last_name' => $request->input('manager_last_name', ''),
-            'manager_last_name2' => $request->input('manager_last_name2', ''),
-            'manager_nif_cif' => $request->input('manager_nif_cif', ''),
-            'manager_birthday' => $request->input('manager_birthday', ''),
-            'manager_email' => $request->input('manager_email', ''),
-            'manager_phone' => $request->input('manager_phone', ''),
+        $request->validate([
+            'panel_password' => 'required|string|min:8|confirmed',
+        ], [
+            'panel_password.required' => 'Debe definir una contraseña de acceso al panel para la entidad.',
+            'panel_password.min' => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
 
-        // Buscar usuario primero para excluirlo de la validación unique si existe
-        $user = User::where('email', $request->manager_email)->first();
-        $userId = $user ? $user->id : null;
-
-        $validated = $request->validate([
-            'manager_name' => 'required|string|max:255',
-            'manager_last_name' => 'required|string|max:255',
-            'manager_last_name2' => 'nullable|string|max:255',
-            'manager_nif_cif' => ['nullable', 'string', 'max:20', new \App\Rules\EntityDocument, 'unique:users,nif_cif' . ($userId ? ',' . $userId : '')],
-            'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
-            'manager_email' => 'required|email|max:255',
-            'manager_phone' => 'nullable|string|max:20',
-            'manager_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-        if (!$user) {
-            $user = new User;
-            $user->name = $validated['manager_name'] . ' ' . $validated['manager_last_name'];
-            $user->email = $validated['manager_email'];
-            $user->password = bcrypt(12345678);
-            $user->save();
-        }
-
-        // Actualizar datos del usuario si es necesario
-        $user->update([
-            'name' => $validated['manager_name'],
-            'last_name' => $validated['manager_last_name'],
-            'last_name2' => $validated['manager_last_name2'],
-            'nif_cif' => $validated['manager_nif_cif'],
-            'birthday' => $validated['manager_birthday'],
-            'phone' => $validated['manager_phone'],
-            'role' => User::ROLE_ENTITY,
-        ]);
-
-        // Manejo de imagen del manager
-        if ($request->hasFile('manager_image')) {
-            $file = $request->file('manager_image');
-            $filename = $file->hashName();
-            $file->move(public_path('manager'), $filename);
-            $user->update(['image' => $filename]);
-        }
-
-        // Obtener datos de sesión
         $administration = $request->session()->get('selected_administration');
         $entityInformation = $request->session()->get('entity_information');
 
-        if (!$administration || !auth()->user()->canAccessAdministration($administration->id) || !$entityInformation) {
+        if (! $administration || ! auth()->user()->canAccessAdministration($administration->id) || ! $entityInformation) {
             return redirect()->route('entities.create')
                 ->with('error', 'Sesión expirada o permisos insuficientes. Por favor, vuelva a empezar.');
         }
 
-        // Crear entidad
+        $email = $entityInformation['email'] ?? null;
+        if (! $email || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return redirect()->route('entities.add-information')
+                ->with('error', 'La entidad debe tener un email de contacto válido para el acceso al panel.');
+        }
+
+        if (User::where('email', $email)->exists()) {
+            return back()->withErrors([
+                'panel_password' => 'Ya existe un usuario con el email de la entidad. Cambie el email en el paso anterior.',
+            ])->withInput();
+        }
+
         $entityData = array_merge($entityInformation, [
-            'administration_id' => $administration->id,
+            'administration_id' => is_object($administration) ? $administration->id : ($administration['id'] ?? null),
         ]);
 
         $entity = Entity::create($entityData);
 
-        // Crear la relación manager-entity (primer gestor es siempre principal con todos los permisos)
+        $user = User::create([
+            'name' => trim((string) ($entityInformation['name'] ?? '')) ?: 'Entidad',
+            'email' => $email,
+            'password' => Hash::make($request->panel_password),
+            'role' => User::ROLE_ENTITY,
+            'panel_account_type' => 'entity',
+            'panel_account_id' => $entity->id,
+            'status' => true,
+            'phone' => $entityInformation['phone'] ?? null,
+            'nif_cif' => $entityInformation['nif_cif'] ?? null,
+        ]);
+
         Manager::create([
             'user_id' => $user->id,
             'entity_id' => $entity->id,
@@ -245,10 +222,9 @@ class EntityController extends Controller
             'permission_design' => true,
             'permission_statistics' => true,
             'permission_payments' => true,
-            'status' => 1, // Activo por defecto para el gestor principal
+            'status' => 1,
         ]);
 
-        // Limpiar sesión
         $request->session()->forget(['selected_administration', 'entity_information', 'entity_manager']);
 
         return redirect()->route('entities.index')
@@ -269,10 +245,20 @@ class EntityController extends Controller
         // Buscar si existe un usuario con ese email
         $user = User::where('email', $email)->first();
         
+        if ($user && $user->isPanelAccount()) {
+            return response()->json([
+                'exists' => true,
+                'user_id' => null,
+                'is_panel_account' => true,
+                'manager_name' => null,
+            ]);
+        }
+
         return response()->json([
             'exists' => $user ? true : false,
             'user_id' => $user ? $user->id : null,
-            'manager_name' => $user ? $user->name . ' ' . $user->last_name : null
+            'is_panel_account' => false,
+            'manager_name' => $user ? trim(($user->name ?? '') . ' ' . ($user->last_name ?? '')) : null,
         ]);
     }
 
@@ -291,6 +277,12 @@ class EntityController extends Controller
         ]);
 
         $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
+
+        $invited = User::findOrFail($request->user_id);
+        if ($invited->isPanelAccount()) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'No se puede asignar como gestor a la cuenta de acceso al panel de una administración o entidad.');
+        }
 
         // Verificar si ya existe un manager con este usuario para esta entidad
         $existingManager = Manager::where('user_id', $request->user_id)
@@ -330,10 +322,19 @@ class EntityController extends Controller
     {
         $entity = Entity::forUser(auth()->user())->findOrFail($id);
 
+        if (User::where('email', $request->manager_email)->whereNotNull('panel_account_type')->exists()) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'Ese email corresponde a una cuenta de acceso al panel (administración o entidad) y no puede usarse como gestor.');
+        }
+
         // Buscar usuario primero para excluirlo de la validación unique si existe
         $user = User::where('email', $request->manager_email)->first();
+        if ($user && $user->isPanelAccount()) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'Ese usuario es una cuenta de acceso al panel y no puede añadirse como gestor.');
+        }
         $userId = $user ? $user->id : null;
-        
+
         $validated = $request->validate([
             'manager_name' => 'required|string|max:255',
             'manager_last_name' => 'required|string|max:255',
@@ -347,7 +348,7 @@ class EntityController extends Controller
             'permission_statistics' => 'nullable|boolean',
             'permission_payments' => 'nullable|boolean',
         ]);
-        if (!$user) {
+        if (! $user) {
             $user = new User;
             $user->name = $validated['manager_name'] . ' ' . $validated['manager_last_name'];
             $user->email = $validated['manager_email'];
@@ -485,7 +486,21 @@ class EntityController extends Controller
         $entity = Entity::with(['administration', 'manager.user', 'managers.user'])
             ->forUser(auth()->user())
             ->findOrFail($id);
-        return view('entities.show', compact('entity'));
+
+        $managersVisible = $entity->managers->filter(function ($m) use ($entity) {
+            $u = $m->user;
+            if (! $u) {
+                return true;
+            }
+
+            return ! ($u->panel_account_type === 'entity' && (int) $u->panel_account_id === (int) $entity->id);
+        })->values();
+
+        $entityPanelUser = User::where('panel_account_type', 'entity')
+            ->where('panel_account_id', $entity->id)
+            ->first();
+
+        return view('entities.show', compact('entity', 'managersVisible', 'entityPanelUser'));
     }
 
     /**
@@ -495,7 +510,8 @@ class EntityController extends Controller
     {
         $entity = Entity::forUser(auth()->user())->findOrFail($id);
         $administrations = Administration::forUser(auth()->user())->get();
-        $users = User::all();
+        $users = User::whereNull('panel_account_type')->orderBy('name')->get();
+
         return view('entities.edit', compact('entity', 'administrations', 'users'));
     }
 
@@ -519,7 +535,8 @@ class EntityController extends Controller
             'comments' => 'nullable|string|max:1000',
             'status' => 'nullable|in:-1,0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'remove_image' => 'nullable|in:0,1'
+            'remove_image' => 'nullable|in:0,1',
+            'panel_password' => 'nullable|string|min:8|confirmed',
         ]);
 
         // Convertir status: -1 = null (pendiente), 1 = activo, 0 = inactivo
@@ -543,8 +560,33 @@ class EntityController extends Controller
             $validated['image'] = $filename;
         }
 
-        unset($validated['remove_image']);
+        unset($validated['remove_image'], $validated['panel_password']);
+
+        $panelUser = User::where('panel_account_type', 'entity')
+            ->where('panel_account_id', $entity->id)
+            ->first();
+
+        if ($panelUser && ! empty($validated['email']) && $validated['email'] !== $panelUser->email) {
+            if (User::where('email', $validated['email'])->where('id', '!=', $panelUser->id)->exists()) {
+                return back()->withInput()
+                    ->withErrors(['email' => 'Ese email ya está en uso por otro usuario.']);
+            }
+        }
+
         $entity->update($validated);
+        $entity->refresh();
+
+        if ($panelUser) {
+            $panelUser->update([
+                'email' => $entity->email,
+                'name' => trim((string) $entity->name) ?: 'Entidad',
+                'phone' => $entity->phone,
+                'nif_cif' => $entity->nif_cif,
+            ]);
+            if ($request->filled('panel_password')) {
+                $panelUser->update(['password' => Hash::make($request->panel_password)]);
+            }
+        }
 
         return redirect()->route('entities.show', $entity->id)
             ->with('success', 'Entidad actualizada exitosamente.');
@@ -723,12 +765,25 @@ class EntityController extends Controller
         ]);
 
         $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
-        
+
+        $panelUser = User::where('panel_account_type', 'entity')
+            ->where('panel_account_id', $entity->id)
+            ->first();
+        if ($panelUser) {
+            $panelManager = Manager::where('entity_id', $entity->id)
+                ->where('user_id', $panelUser->id)
+                ->first();
+            if ($panelManager && (int) $request->new_primary_manager_id !== (int) $panelManager->id) {
+                return redirect()->route('entities.show', $entity->id)
+                    ->with('error', 'El gestor principal es la cuenta de acceso al panel de la entidad. No puede sustituirse por otro; añada gestores secundarios con los permisos necesarios.');
+            }
+        }
+
         // Buscar gestor principal actual (puede no existir)
         $currentPrimary = Manager::where('entity_id', $entity->id)
             ->where('is_primary', true)
             ->first();
-        
+
         $newPrimary = Manager::where('id', $request->new_primary_manager_id)
             ->where('entity_id', $entity->id)
             ->firstOrFail();
@@ -821,7 +876,14 @@ class EntityController extends Controller
         $manager = Manager::where('id', $manager_id)
             ->where('entity_id', $entity_id)
             ->firstOrFail();
-        
+
+        $manager->load('user');
+        if ($manager->user && $manager->user->panel_account_type === 'entity'
+            && (int) $manager->user->panel_account_id === (int) $entity_id) {
+            return redirect()->route('entities.show', $entity_id)
+                ->with('error', 'No se puede eliminar la cuenta de acceso al panel de la entidad.');
+        }
+
         // Verificar que no se está eliminando el gestor principal si es el único
         if ($manager->is_primary) {
             $totalManagers = Manager::where('entity_id', $entity_id)->count();

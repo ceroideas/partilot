@@ -14,6 +14,11 @@ class ManagerController extends Controller
     public function edit($id)
     {
         $manager = Manager::with('user')->findOrFail($id);
+        if ($manager->user && $manager->user->isPanelAccount()) {
+            return redirect()->back()
+                ->with('error', 'La cuenta de acceso al panel no se edita como gestor; use la ficha de administración o entidad.');
+        }
+
         return view('managers.edit', compact('manager'));
     }
 
@@ -101,8 +106,12 @@ class ManagerController extends Controller
      */
     public function destroy($id)
     {
-        $manager = Manager::findOrFail($id);
-        
+        $manager = Manager::with('user')->findOrFail($id);
+        if ($manager->user && $manager->user->isPanelAccount()) {
+            return redirect()->back()
+                ->with('error', 'No se puede eliminar la relación de la cuenta de acceso al panel.');
+        }
+
         // Eliminar imagen del usuario si existe
         $user = $manager->user;
         if ($user && $user->image && file_exists(public_path('manager/' . $user->image))) {

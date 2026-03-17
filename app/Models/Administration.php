@@ -46,6 +46,21 @@ class Administration extends Model
     }
 
     /**
+     * Nombre para la cuenta de usuario del panel: solo nombre comercial.
+     * Si falta, se usa sociedad; si ambos faltan, "Administración".
+     */
+    public static function panelDisplayNameFromParts(?string $commercialName, ?string $society): string
+    {
+        $name = trim((string) $commercialName);
+        if ($name !== '') {
+            return $name;
+        }
+        $soc = trim((string) $society);
+
+        return $soc !== '' ? $soc : 'Administración';
+    }
+
+    /**
      * Relación con los escrutinios de lotería de esta administración
      */
     public function lotteryScrutinies()

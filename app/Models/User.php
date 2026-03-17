@@ -42,6 +42,8 @@ class User extends Authenticatable
         'image',
         'status',
         'role',
+        'panel_account_type',
+        'panel_account_id',
         'password',
         'fcm_token',
     ];
@@ -73,6 +75,18 @@ class User extends Authenticatable
      */
     /** Rol virtual: usuario con registro en tabla managers (gestor en la app). */
     public const ROLE_MANAGER = 'manager';
+
+    /** Cuenta de acceso al panel web vinculada a una administración o entidad. */
+    public function isPanelAccount(): bool
+    {
+        return $this->panel_account_type !== null && $this->panel_account_type !== ''
+            && $this->panel_account_id !== null;
+    }
+
+    public function scopeWithoutPanelAccount($query)
+    {
+        return $query->whereNull('panel_account_type');
+    }
 
     public function hasRole(string $role): bool
     {
@@ -127,33 +141,33 @@ class User extends Authenticatable
 
     public function isAdministration(): bool
     {
-        // Si el contexto actual fuerza "gestor de entidades", este helper debe devolver false
-        $contextRole = session('context_role');
-        if ($contextRole === 'entity') {
+        if ($this->isSuperAdmin()) {
+            return false;
+        }
+        if ($this->panel_account_type === 'administration') {
+            return true;
+        }
+        if ($this->panel_account_type === 'entity') {
             return false;
         }
 
-        return $this->hasAdministrationManagers();
+        return $this->hasAdministrationManagers() && ! $this->hasEntityManagers();
     }
 
     /**
-     * True si el usuario es gestor de entidad.
-     * Si tiene alguna administración asociada, se prioriza el rol de administración,
-     * salvo que el contexto fuerce explícitamente entrar como gestor de entidades.
+     * True si el usuario es gestor de entidad o cuenta panel de entidad.
      */
     public function isEntity(): bool
     {
-        $contextRole = session('context_role');
-
-        // Si el contexto fuerza administración, este helper debe devolver false
-        if ($contextRole === 'administration') {
+        if ($this->isSuperAdmin()) {
             return false;
         }
-
-        // Por defecto, si tiene administración asociada, se prioriza esa vista
-        // if ($this->hasAdministrationManagers()) {
-        //     return false;
-        // }
+        if ($this->panel_account_type === 'entity') {
+            return true;
+        }
+        if ($this->panel_account_type === 'administration') {
+            return false;
+        }
 
         return $this->hasEntityManagers();
     }
@@ -254,6 +268,10 @@ class User extends Authenticatable
 
         if ($this->isSuperAdmin()) {
             return $this->cachedEntityIds = Entity::pluck('id')->all();
+        }
+
+        if ($this->panel_account_type === 'entity' && $this->panel_account_id) {
+            return $this->cachedEntityIds = [(int) $this->panel_account_id];
         }
 
         if ($this->isAdministration()) {
