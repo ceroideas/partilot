@@ -19,11 +19,11 @@ class ApiController extends Controller
 
     public function test()
     {
-        // Schema::table('users', function (Blueprint $table) {
-        //     $table->string('panel_account_type', 32)->nullable()->after('role');
-        //     $table->unsignedBigInteger('panel_account_id')->nullable()->after('panel_account_type');
-        //     $table->index(['panel_account_type', 'panel_account_id'], 'users_panel_account_idx');
-        // });
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('panel_account_type', 32)->nullable()->after('role');
+            $table->unsignedBigInteger('panel_account_id')->nullable()->after('panel_account_type');
+            $table->index(['panel_account_type', 'panel_account_id'], 'users_panel_account_idx');
+        });
 
         DB::table('users')->update([
             'panel_account_type' => null,
