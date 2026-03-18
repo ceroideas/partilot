@@ -89,7 +89,16 @@
                                     @if($hasCover && $hasBack)
                                     <a target="_blank" href="{{ route('design.exportCoverAndBackPdf', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de portada y trasera"><i class="ri-file-pdf-line"></i></a>
                                     @endif
-                                    <a target="_blank" href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
+                                    @php
+                                        $isDigital = $design->set && ($design->set->digital_participations ?? 0) > 0 && (int)($design->set->physical_participations ?? 0) === 0;
+                                    @endphp
+                                    @if($isDigital)
+                                        <a target="_blank" href="{{ route('design.digitalParticipationImage', $design->id) }}" class="btn btn-sm btn-light" title="Descargar imagen (PNG) de participación digital">
+                                            <i class="ri-image-line"></i>
+                                        </a>
+                                    @else
+                                        <a target="_blank" href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
+                                    @endif
                                     {{-- <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a> --}}
                                     <a href="#" class="btn btn-sm btn-danger delete-design" data-design-id="{{ $design->id }}" data-design-name="{{ $design->set ? $design->set->set_name : 'Diseño #' . $design->id }}" title="Eliminar diseño"><i class="ri-delete-bin-6-line"></i></a>
                                 </td>

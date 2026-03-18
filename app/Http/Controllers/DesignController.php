@@ -1299,6 +1299,34 @@ class DesignController extends Controller
     }
 
     /**
+     * Vista para sets digitales: renderiza el HTML de la participación y permite descargarlo como imagen.
+     * (Solo aplica a sets digitales; para físicos se usa PDF.)
+     */
+    public function digitalParticipationImage($id)
+    {
+        $design = DesignFormat::with(['set.reserve', 'lottery', 'entity'])->findOrFail($id);
+        if (! auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para ver este diseño.');
+        }
+
+        $set = $design->set;
+        $isDigitalSet = $set && $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
+        if (! $isDigitalSet) {
+            abort(404, 'Este diseño no es de participaciones digitales.');
+        }
+
+        $reservation_numbers = $set && $set->reserve ? $set->reserve->reservation_numbers : [];
+        $html = $this->ensureAbsoluteUrlsInHtml($design->participation_html ?? '');
+
+        return view('design.digital_participation_image', [
+            'design' => $design,
+            'set' => $set,
+            'reservation_numbers' => $reservation_numbers,
+            'html' => $html,
+        ]);
+    }
+
+    /**
      * Muestra el formulario para editar un formato existente.
      */
     public function editFormat($id)
