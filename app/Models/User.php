@@ -83,6 +83,36 @@ class User extends Authenticatable
             && $this->panel_account_id !== null;
     }
 
+    /**
+     * Imagen de administración o entidad para el header (cuenta panel).
+     */
+    public function panelAccountHeaderImageUrl(): ?string
+    {
+        if (! $this->isPanelAccount() || ! $this->panel_account_id) {
+            return null;
+        }
+
+        if ($this->panel_account_type === 'administration') {
+            $adm = Administration::query()->find($this->panel_account_id);
+            if ($adm && $adm->image && is_file(public_path('images/'.$adm->image))) {
+                return asset('images/'.$adm->image);
+            }
+
+            return null;
+        }
+
+        if ($this->panel_account_type === 'entity') {
+            $entity = Entity::query()->find($this->panel_account_id);
+            if ($entity && $entity->image && is_file(public_path('uploads/'.$entity->image))) {
+                return asset('uploads/'.$entity->image);
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     public function scopeWithoutPanelAccount($query)
     {
         return $query->whereNull('panel_account_type');

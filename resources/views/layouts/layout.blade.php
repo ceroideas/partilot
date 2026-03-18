@@ -173,7 +173,8 @@
 
                     <!-- User box -->
                     <div class="user-box text-center">
-                        <img src="{{url('default')}}/assets/images/users/user-1.jpg" alt="user-img" title="{{ Auth::user()->name ?? 'Usuario' }}" class="rounded-circle avatar-md">
+                        @php $panelHeaderImg = Auth::user()?->panelAccountHeaderImageUrl(); @endphp
+                        <img src="{{ $panelHeaderImg ?? url('default').'/assets/images/users/user-1.jpg' }}" alt="" title="{{ Auth::user()->name ?? 'Usuario' }}" class="rounded-circle avatar-md" @if($panelHeaderImg) style="object-fit:cover;width:64px;height:64px;" @endif>
                         <div class="dropdown">
                             <a href="javascript: void(0);" class="dropdown-toggle h5 mb-1 d-block" data-bs-toggle="dropdown">{{ Auth::user()->name ?? 'Usuario' }}</a>
                             <div class="dropdown-menu user-pro-dropdown">
@@ -765,9 +766,10 @@
 
                             <!-- User Dropdown -->
                             <li class="dropdown">
-                                <a class="nav-link dropdown-toggle nav-user me-0 waves-effect waves-light" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-                                    <img src="{{url('default')}}/assets/images/users/user-1.jpg" alt="user-image" class="rounded-circle">
-                                    <span class="ms-1 d-none d-md-inline-block">
+                                <a class="nav-link dropdown-toggle nav-user me-0 waves-effect waves-light d-flex align-items-center" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                                    @php $panelHeaderImgTop = Auth::user()?->panelAccountHeaderImageUrl(); @endphp
+                                    <img src="{{ $panelHeaderImgTop ?? url('default').'/assets/images/users/user-1.jpg' }}" alt="" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;">
+                                    <span class="ms-2 d-none d-md-inline-block">
                                         {{ Auth::user()->name ?? 'Usuario' }} <i class="mdi mdi-chevron-down"></i>
                                     </span>
                                 </a>
