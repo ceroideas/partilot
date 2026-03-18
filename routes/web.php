@@ -113,6 +113,7 @@ Route::get('/design/external/invite/{token}', [\App\Http\Controllers\DesignContr
 Route::get('/design/external/editor', [\App\Http\Controllers\DesignController::class, 'externalEditor'])->name('design.external.editor');
 Route::post('/design/external/save-format', [\App\Http\Controllers\DesignController::class, 'externalSaveFormat'])->name('design.external.saveFormat');
 Route::get('/design/external/thank-you', [\App\Http\Controllers\DesignController::class, 'externalThankYou'])->name('design.external.thankYou');
+Route::get('/design/external/file/{id}/download', [\App\Http\Controllers\DesignController::class, 'externalDownloadFileSession'])->name('design.external.downloadFile');
 
 // Rutas protegidas por autenticación
 Route::middleware(['auth'])->group(function () {
@@ -384,6 +385,7 @@ Route::group(['prefix' => 'design'], function() {
     Route::post('/external/store-step1', [\App\Http\Controllers\DesignController::class, 'externalStoreStep1'])->name('design.external.storeStep1');
     Route::post('/external/send-invitation', [\App\Http\Controllers\DesignController::class, 'externalSendInvitation'])->name('design.external.sendInvitation');
     Route::get('/external/list', [\App\Http\Controllers\DesignController::class, 'externalList'])->name('design.external.list');
+    Route::get('/external/{invitation}/file/{file}/download', [\App\Http\Controllers\DesignController::class, 'externalDownloadFileAuth'])->name('design.external.downloadFileAuth');
     Route::delete('/external/{id}', [\App\Http\Controllers\DesignController::class, 'externalDestroy'])->name('design.external.destroy');
     // Route::post('design/format', [App\Http\Controllers\DesignController::class, 'storeFormat'])->name('design.storeFormat');
 

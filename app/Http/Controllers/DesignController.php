@@ -152,7 +152,11 @@ class DesignController extends Controller
         $this->ensureDesignSession();
         $request->validate([
             'comment' => 'nullable|string|max:5000',
-            'files.*' => 'nullable|file|max:20480',
+            'files' => 'nullable|array|max:20',
+            'files.*' => 'nullable|file|max:51200|mimes:pdf,doc,docx,jpg,jpeg,png,gif,webp,zip',
+        ], [
+            'files.*.max' => 'Cada archivo puede pesar como máximo 50 MB.',
+            'files.*.mimes' => 'Formatos permitidos: PDF, Word, imágenes (jpg, png, gif, webp) y ZIP.',
         ]);
         $invitationId = session('design_external_invitation_id');
         if ($invitationId) {
@@ -176,15 +180,16 @@ class DesignController extends Controller
                 'status' => DesignExternalInvitation::STATUS_PENDING,
             ]);
         }
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $file) {
-                $path = $file->store('design_external/' . $invitation->id, 'public');
-                DesignExternalInvitationFile::create([
-                    'design_external_invitation_id' => $invitation->id,
-                    'path' => $path,
-                    'original_name' => $file->getClientOriginalName(),
-                ]);
+        foreach ($request->file('files', []) as $file) {
+            if (! $file || ! $file->isValid()) {
+                continue;
             }
+            $path = $file->store('design_external/'.$invitation->id, 'public');
+            DesignExternalInvitationFile::create([
+                'design_external_invitation_id' => $invitation->id,
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+            ]);
         }
         session(['design_external_invitation_id' => $invitation->id]);
         return redirect()->route('design.external.step2');
@@ -220,7 +225,7 @@ class DesignController extends Controller
         $entityIds = auth()->user()->accessibleEntityIds();
         $invitations = DesignExternalInvitation::where('created_by_user_id', auth()->id())
             ->whereIn('entity_id', $entityIds)
-            ->with(['entity', 'set', 'lottery'])
+            ->with(['entity', 'set', 'lottery', 'files'])
             ->orderBy('created_at', 'desc')
             ->get();
         return view('design.external_list', compact('invitations'));
@@ -275,8 +280,8 @@ class DesignController extends Controller
             return redirect()->to(url('/'))->with('error', 'Sesión de invitación no encontrada. Use el enlace que recibió por correo.');
         }
 
-        $invitation = DesignExternalInvitation::with(['entity', 'set', 'lottery'])->find($invitationId);
-        if (!$invitation) {
+        $invitation = DesignExternalInvitation::with(['entity', 'set', 'lottery', 'files'])->find($invitationId);
+        if (! $invitation) {
             session()->forget(['design_entity_id', 'design_lottery_id', 'design_set_id', 'design_external_invitation_id']);
             return redirect()->to(url('/'))->with('error', 'Invitación no encontrada o expirada.');
         }
@@ -327,7 +332,42 @@ class DesignController extends Controller
             'layout' => 'layouts.layout_external_design',
             'save_format_url' => route('design.external.saveFormat'),
             'redirect_after_save' => route('design.external.thankYou'),
+            'externalInvitation' => $invitation,
         ]);
+    }
+
+    /**
+     * Descarga de archivo adjunto (diseñador con sesión de invitación activa).
+     */
+    public function externalDownloadFileSession(int $id)
+    {
+        $file = DesignExternalInvitationFile::findOrFail($id);
+        $invitationId = session('design_external_invitation_id');
+        if (! $invitationId || (int) $file->design_external_invitation_id !== (int) $invitationId) {
+            abort(403, 'No autorizado.');
+        }
+        if (! Storage::disk('public')->exists($file->path)) {
+            abort(404, 'Archivo no encontrado.');
+        }
+
+        return Storage::disk('public')->download($file->path, $file->original_name ?: basename($file->path));
+    }
+
+    /**
+     * Descarga de archivo adjunto (quien creó la invitación, desde el panel).
+     */
+    public function externalDownloadFileAuth(int $invitation, int $file)
+    {
+        $inv = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail($invitation);
+        if (! auth()->user()->canAccessEntity((int) $inv->entity_id)) {
+            abort(403);
+        }
+        $row = $inv->files()->where('id', $file)->firstOrFail();
+        if (! Storage::disk('public')->exists($row->path)) {
+            abort(404, 'Archivo no encontrado.');
+        }
+
+        return Storage::disk('public')->download($row->path, $row->original_name ?: basename($row->path));
     }
 
     /**

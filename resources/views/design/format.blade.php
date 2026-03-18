@@ -4,6 +4,37 @@
 
 @section('content')
 
+@if(!empty($externalInvitation))
+<div class="card border-warning shadow-sm mb-3">
+    <div class="card-header bg-warning bg-opacity-25 d-flex align-items-center gap-2 py-2">
+        <i class="ri-folder-user-line fs-5"></i>
+        <strong>Indicaciones y archivos del cliente</strong>
+    </div>
+    <div class="card-body py-3">
+        @if(filled($externalInvitation->comment))
+            <div class="mb-3">
+                <span class="text-muted small d-block mb-1">Comentarios</span>
+                <div class="border rounded p-3 bg-light small">{!! nl2br(e($externalInvitation->comment)) !!}</div>
+            </div>
+        @endif
+        @if($externalInvitation->files->isNotEmpty())
+            <span class="text-muted small d-block mb-2">Archivos de referencia — descarga para usar en el diseño</span>
+            <ul class="list-unstyled mb-0 d-flex flex-wrap gap-2">
+                @foreach($externalInvitation->files as $f)
+                    <li>
+                        <a href="{{ route('design.external.downloadFile', $f->id) }}" class="btn btn-sm btn-outline-dark">
+                            <i class="ri-download-2-line"></i> {{ $f->original_name ?: basename($f->path) }}
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <p class="text-muted small mb-0">No se adjuntaron archivos en el pedido.</p>
+        @endif
+    </div>
+</div>
+@endif
+
 @php
     if (!function_exists('getNumberFontSize')) {
         function getNumberFontSize($numbers) {

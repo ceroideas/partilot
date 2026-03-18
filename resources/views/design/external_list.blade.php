@@ -35,6 +35,7 @@
                                     <th>Fecha Envio</th>
                                     <th>Hora Envio</th>
                                     <th>Status</th>
+                                    <th>Archivos</th>
                                     <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -56,6 +57,15 @@
                                                 <span class="badge bg-secondary rounded-pill">Pendiente</span>
                                             @endif
                                         </td>
+                                        <td class="small">
+                                            @forelse($inv->files as $f)
+                                                <a href="{{ route('design.external.downloadFileAuth', ['invitation' => $inv->id, 'file' => $f->id]) }}" class="d-block text-truncate" style="max-width: 220px;" title="{{ $f->original_name }}">
+                                                    <i class="ri-download-line"></i> {{ \Illuminate\Support\Str::limit($f->original_name ?? basename($f->path), 28) }}
+                                                </a>
+                                            @empty
+                                                <span class="text-muted">—</span>
+                                            @endforelse
+                                        </td>
                                         <td class="text-end">
                                             <form action="{{ route('design.external.destroy', $inv->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar esta invitación?');">
                                                 @csrf
@@ -66,7 +76,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No hay invitaciones de diseño externo.</td>
+                                        <td colspan="7" class="text-center text-muted py-4">No hay invitaciones de diseño externo.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
