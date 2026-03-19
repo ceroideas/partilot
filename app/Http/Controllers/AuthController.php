@@ -48,8 +48,52 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
-            // Solo superadmin o cuenta de panel (administración/entidad) acceden al panel web
-            if (! $user->isSuperAdmin() && ! $user->isPanelAccount()) {
+
+            // Bloquear login si la administración/entidad asociada está pendiente o inactiva.
+            // Regla: solo se permite acceso si el panel asociado tiene status == 1 (Activo).
+            if (! $user->isSuperAdmin()) {
+                $hasActiveAccess = false;
+
+                if ($user->isPanelAccount()) {
+                    if ($user->panel_account_type === 'administration') {
+                        $hasActiveAccess = \App\Models\Administration::query()
+                            ->whereKey($user->panel_account_id)
+                            ->where('status', 1)
+                            ->exists();
+                    } elseif ($user->panel_account_type === 'entity') {
+                        $hasActiveAccess = \App\Models\Entity::query()
+                            ->whereKey($user->panel_account_id)
+                            ->where('status', 1)
+                            ->exists();
+                    }
+                } else {
+                    // Gestores (managers) sin panel_account_type.
+                    if ($user->isAdministration()) {
+                        $hasActiveAccess = $user->managers()
+                            ->where('status', 1)
+                            ->whereHas('administration', fn ($q) => $q->where('status', 1))
+                            ->exists();
+                    }
+
+                    if (! $hasActiveAccess && $user->isEntity()) {
+                        $hasActiveAccess = $user->managers()
+                            ->where('status', 1)
+                            ->whereHas('entity', fn ($q) => $q->where('status', 1))
+                            ->exists();
+                    }
+                }
+
+                if (! $hasActiveAccess) {
+                    Auth::logout();
+                    return back()->withErrors([
+                        'email' => 'Tu administración o entidad asociada no está activa (pendiente o inactiva).',
+                    ])->withInput($request->only('email'));
+                }
+            }
+
+            // Superadmin, cuentas panel (administración/entidad) y gestores de entidad (tienen entity_id)
+            // acceden al panel web.
+            if (! $user->isSuperAdmin() && ! $user->isPanelAccount() && ! $user->isEntity()) {
                 Auth::logout();
 
                 return back()->withErrors([

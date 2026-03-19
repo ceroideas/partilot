@@ -1,0 +1,24 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('managers', function (Blueprint $table) {
+            $table->string('confirmation_token', 80)->nullable()->after('permission_payments');
+            $table->timestamp('confirmation_sent_at')->nullable()->after('confirmation_token');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('managers', function (Blueprint $table) {
+            $table->dropColumn(['confirmation_token', 'confirmation_sent_at']);
+        });
+    }
+};
+

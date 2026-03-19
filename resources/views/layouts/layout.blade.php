@@ -176,7 +176,7 @@
                         @php $panelHeaderImg = Auth::user()?->panelAccountHeaderImageUrl(); @endphp
                         <img src="{{ $panelHeaderImg ?? url('default').'/assets/images/users/user-1.jpg' }}" alt="" title="{{ Auth::user()->name ?? 'Usuario' }}" class="rounded-circle avatar-md" @if($panelHeaderImg) style="object-fit:cover;width:64px;height:64px;" @endif>
                         <div class="dropdown">
-                            <a href="javascript: void(0);" class="dropdown-toggle h5 mb-1 d-block" data-bs-toggle="dropdown">{{ Auth::user()->name ?? 'Usuario' }}</a>
+                            <a href="javascript: void(0);" class="dropdown-toggle h5 mb-1 d-block" data-bs-toggle="dropdown">{{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }}</a>
                             <div class="dropdown-menu user-pro-dropdown">
 
                                 <!-- item-->
@@ -217,7 +217,17 @@
                         $selected = null;
                         $canSeeAdminModules = $currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration());
                         $canSeeEntityModules = $currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration() || $currentUser->isEntity());
-                        $canSeeSellerModules = $canSeeEntityModules;
+
+                        $isRestrictedEntityUser = $currentUser && $currentUser->isEntity() && !$currentUser->isSuperAdmin() && !$currentUser->isAdministration();
+                        
+                        $canSeeSellerModules = $canSeeEntityModules && (!$isRestrictedEntityUser || $currentUser->hasEntityManagerPermission('sellers'));
+                        $canSeeDesignModules = $canSeeEntityModules && (!$isRestrictedEntityUser || $currentUser->hasEntityManagerPermission('design'));
+
+                        $canSeeSettingsModules = $currentUser && (
+                            $currentUser->isSuperAdmin()
+                            || $currentUser->isAdministration()
+                            || ($isRestrictedEntityUser && $currentUser->hasEntityManagerPermission('payments'))
+                        );
                     @endphp
                     <ul class="menu">
 
@@ -329,7 +339,7 @@
                             </li>
                         @endif
 
-                        @if($canSeeEntityModules)
+                        @if($canSeeDesignModules)
                             <li class="menu-item @if (Request::is('design/*') || Request::is('design')) menuitem-active @php $selected = 1; @endphp @endif">
                                 <a href="{{url('/design')}}" class="menu-link">
                                     <span class="menu-icon">
@@ -407,7 +417,7 @@
                             </a>
                         </li>
 
-                        @if($currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration()))
+                        @if($canSeeSettingsModules)
                             <li class="menu-item @if (Request::is('configuration/*') || Request::is('configuration')) menuitem-active @php $selected = 1; @endphp @endif">
                                 <a href="{{url('configuration')}}" class="menu-link">
                                     <span class="menu-icon">
@@ -780,7 +790,7 @@
                                     @php $panelHeaderImgTop = Auth::user()?->panelAccountHeaderImageUrl(); @endphp
                                     <img src="{{ $panelHeaderImgTop ?? url('default').'/assets/images/users/user-1.jpg' }}" alt="" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;">
                                     <span class="ms-2 d-none d-md-inline-block">
-                                        {{ Auth::user()->name ?? 'Usuario' }} <i class="mdi mdi-chevron-down"></i>
+                                        {{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }} <i class="mdi mdi-chevron-down"></i>
                                     </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end profile-dropdown ">

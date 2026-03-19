@@ -683,13 +683,13 @@
 							                                		<a href="{{ route('entities.edit-manager-permissions', ['entity_id' => $entity->id, 'manager_id' => $manager->id]) }}" class="btn btn-sm btn-warning" title="Editar permisos"><i class="ri-settings-3-line"></i></a>
 							                                		<a href="#" class="btn btn-sm btn-danger delete-manager" data-manager-id="{{ $manager->id }}" title="Eliminar"><i class="ri-delete-bin-6-line"></i></a>
 							                                	@else
-							                                		@if($entity->managers->where('is_primary', false)->count() > 0)
+	                                		@if($managersVisible->where('is_primary', false)->count() > 0)
 							                                			<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" id="change-primary-form-{{ $manager->id }}" onsubmit="return validatePrimaryChange(event, {{ $manager->id }});">
 							                                				@csrf
 							                                				<input type="hidden" name="entity_id" value="{{ $entity->id }}">
 							                                				<select name="new_primary_manager_id" class="form-select form-select-sm d-inline-block primary-manager-select" style="width: auto;" required>
 							                                					<option value="">-- Seleccione nuevo principal --</option>
-							                                					@foreach($entity->managers->where('is_primary', false) as $other)
+	                                					@foreach($managersVisible->where('is_primary', false) as $other)
 							                                						<option value="{{ $other->id }}">{{ $other->user->name ?? '' }} {{ $other->user->last_name ?? '' }}</option>
 							                                					@endforeach
 							                                				</select>
@@ -721,10 +721,19 @@
 
                     						<div class="form-card bs" style="min-height: 658px;">
 
-	                    						<h4 class="mb-0 mt-1">
-				                    				Invitación/Registro
-				                    			</h4>
-				                    			<small><i>Elija la manera en la que agregar al gestor</i></small>
+											<div class="d-flex justify-content-between align-items-center">
+												<div>
+													<h4 class="mb-0 mt-1">
+														Invitación / Registro
+													</h4>
+													<small><i>Elige la manera en la que agregar al Vendedor</i></small>
+												</div>
+												<div class="d-none" id="back-to-buttons">
+													<button class="btn btn-sm btn-light return-managers-options" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">
+														<i class="ri-arrow-left-line"></i>
+													</button>
+												</div>
+											</div>
 
 				                    			<div class="form-group mt-2 mb-3 admin-box">
 
@@ -932,10 +941,19 @@
                     							@csrf
                     						<div class="form-card bs" style="min-height: 658px;">
 
-                    							<h4 class="mb-0 mt-1">
-				                    				Email de Invitación
-				                    			</h4>
-				                    			<small><i>Asegúrese de que el email sea el correcto</i></small>
+												<div class="d-flex justify-content-between align-items-center">
+													<div>
+														<h4 class="mb-0 mt-1">
+															Email de Invitación
+														</h4>
+														<small><i>Asegúrese de que el email sea el correcto</i></small>
+													</div>
+													<div class="d-none" id="back-to-buttons-2">
+														<button class="btn btn-sm btn-light return-managers-options" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">
+															<i class="ri-arrow-left-line"></i>
+														</button>
+													</div>
+												</div>
 
 				                    			<div class="form-group mt-2 mb-3 admin-box">
 
@@ -1211,6 +1229,8 @@ $('#invite-manager').click(function (e) {
 	e.preventDefault();
 
 	$('#manager-buttons').addClass('d-none');
+	$('#back-to-buttons').removeClass('d-none');
+	$('#back-to-buttons-2').removeClass('d-none');
 
 	$('#invite-form').removeClass('d-none');
 });
@@ -1261,10 +1281,26 @@ $('#register-manager').click(function (e) {
 	e.preventDefault();
 
 	$('#all-options').addClass('d-none');
+	$('#back-to-buttons').removeClass('d-none');
+	$('#back-to-buttons-2').removeClass('d-none');
 
 	$('#register-manager-form').removeClass('d-none');
 
 });
+
+$('.return-managers-options').click(function (e) {
+	e.preventDefault();
+
+	$('#invite-form').addClass('d-none');
+	$('#accept-invite').addClass('d-none');
+	$('#register-manager-form').addClass('d-none');
+	$('#back-to-buttons').addClass('d-none');
+	$('#back-to-buttons-2').addClass('d-none');
+	$('#all-managers').addClass('d-none');
+	$('#all-options').removeClass('d-none');
+	$('#manager-buttons').removeClass('d-none');
+});
+
 
 $('.return-list').click(function (e) {
 	e.preventDefault();

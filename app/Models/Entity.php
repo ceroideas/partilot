@@ -116,6 +116,17 @@ class Entity extends Model
 
         $entityIds = $user->accessibleEntityIds();
 
+        // Filtrado por permiso según módulo para usuarios entidad.
+        if ($user->isEntity() && !$user->isAdministration()) {
+            if (request()->routeIs('sellers.*')) {
+                $entityIds = $user->accessibleEntityIdsByPermission('sellers');
+            } elseif (request()->routeIs('design.*')) {
+                $entityIds = $user->accessibleEntityIdsByPermission('design');
+            } elseif (request()->routeIs('configuration.*') || request()->routeIs('sepa-payments.*')) {
+                $entityIds = $user->accessibleEntityIdsByPermission('payments');
+            }
+        }
+
         if (empty($entityIds)) {
             return $query->whereRaw('1 = 0');
         }

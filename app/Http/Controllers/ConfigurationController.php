@@ -21,6 +21,15 @@ class ConfigurationController extends Controller
         $section = $request->get('section', 'datos-partilot');
         $step = (int) $request->get('step', 1);
         $entityId = $request->get('entity_id');
+        $user = $request->user();
+
+        // Para gestores de entidad (sin cuenta panel), Ajustes solo permite Órdenes Pago Entidades.
+        if ($user && $user->isEntityManagerWithoutPanelAccount()) {
+            if (!$user->hasEntityManagerPermission('payments')) {
+                abort(403, 'No tienes permisos para acceder a Ajustes.');
+            }
+            $section = 'ordenes-pago-entidades';
+        }
 
         $entities = collect();
         $entity = null;
@@ -32,10 +41,9 @@ class ConfigurationController extends Controller
 
         if ($section === 'ordenes-pago-entidades') {
             if ($step === 1 || !$entityId) {
-                $user = $request->user();
                 $provincias = Entity::forUser($user)->whereNotNull('province')->where('province', '!=', '')->distinct()->pluck('province')->sort()->values();
                 $localidades = Entity::forUser($user)->whereNotNull('city')->where('city', '!=', '')->distinct()->pluck('city')->sort()->values();
-                $query = Entity::with('administration')->forUser($request->user());
+                $query = Entity::with('administration')->forUser($user);
                 if ($request->filled('provincia')) {
                     $query->where('province', $request->provincia);
                 }

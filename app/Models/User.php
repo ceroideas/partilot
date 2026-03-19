@@ -371,6 +371,10 @@ class User extends Authenticatable
         if ($this->isAdministration() || $this->isEntity()) {
             $entityIds = $this->accessibleEntityIds();
 
+            if ($this->isEntity() && !$this->isSuperAdmin() && !$this->isAdministration()) {
+                $entityIds = $this->accessibleEntityIdsByPermission('sellers');
+            }
+
             if (empty($entityIds)) {
                 return $this->cachedSellerIds = $this->mergeOwnSellerIds([]);
             }
@@ -419,6 +423,41 @@ class User extends Authenticatable
         return array_values(array_unique(array_merge($sellerIds, $own)));
     }
 
+    protected function managerPermissionColumn(string $permission): ?string
+    {
+        return match ($permission) {
+            'sellers' => 'permission_sellers',
+            'design' => 'permission_design',
+            'payments' => 'permission_payments',
+            'statistics' => 'permission_statistics',
+            default => null,
+        };
+    }
+
+    public function accessibleEntityIdsByPermission(string $permission): array
+    {
+        if ($this->isSuperAdmin() || $this->isAdministration()) {
+            return $this->accessibleEntityIds();
+        }
+
+        $column = $this->managerPermissionColumn($permission);
+        if (!$column || !$this->isEntity()) {
+            return [];
+        }
+
+        return $this->managers()
+            ->whereNotNull('entity_id')
+            ->where('status', 1)
+            ->where($column, true)
+            ->whereHas('entity', function ($q) {
+                $q->where('status', 1);
+            })
+            ->pluck('entity_id')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     /**
      * Determinar si el usuario puede acceder a una administración específica.
      */
@@ -440,7 +479,24 @@ class User extends Authenticatable
             return true;
         }
 
-        return in_array($entityId, $this->accessibleEntityIds(), true);
+        $hasBaseAccess = in_array($entityId, $this->accessibleEntityIds(), true);
+        if (!$hasBaseAccess) {
+            return false;
+        }
+
+        if ($this->isEntity() && !$this->isAdministration()) {
+            if (request()->routeIs('sellers.*')) {
+                return in_array($entityId, $this->accessibleEntityIdsByPermission('sellers'), true);
+            }
+            if (request()->routeIs('design.*')) {
+                return in_array($entityId, $this->accessibleEntityIdsByPermission('design'), true);
+            }
+            if (request()->routeIs('configuration.*') || request()->routeIs('sepa-payments.*')) {
+                return in_array($entityId, $this->accessibleEntityIdsByPermission('payments'), true);
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -459,6 +515,48 @@ class User extends Authenticatable
         }
 
         return in_array($sellerId, $this->accessibleSellerIds(), true);
+    }
+
+    /**
+     * True cuando es gestor de entidad (sin cuenta panel propia).
+     */
+    public function isEntityManagerWithoutPanelAccount(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdministration()) {
+            return false;
+        }
+
+        return ! $this->isPanelAccount()
+            && $this->managers()->whereNotNull('entity_id')->exists();
+    }
+
+    /**
+     * Permisos de gestor de entidad (aplican solo a managers sin cuenta panel).
+     * Si no es gestor de entidad sin panel, devolvemos true para no romper flujos existentes.
+     */
+    public function hasEntityManagerPermission(string $permission)
+    {
+        $column = $this->managerPermissionColumn($permission);
+        if (!$column) {
+            return false;
+        }
+
+        if ($this->isSuperAdmin() || $this->isAdministration()) {
+            return true;
+        }
+
+        if (!$this->isEntity()) {
+            return false;
+        }
+
+        return $this->managers()
+            ->whereNotNull('entity_id')
+            ->where('status', 1)
+            ->where($column, true)
+            ->whereHas('entity', function ($q) {
+                $q->where('status', 1);
+            })
+            ->exists();
     }
 
     /**
@@ -484,17 +582,32 @@ class User extends Authenticatable
     public function getManagerEntityIds(): array
     {
         $managers = $this->managers()->get();
+
+        // Regla global:
+        // - Si existe al menos un manager con entity_id, SOLO usamos esos entity_id.
+        // - Si NINGÚN manager tiene entity_id, entonces inferimos por administration_id.
+        $hasAnyEntityId = $managers->contains(fn ($m) => !empty($m->entity_id));
         $entityIds = collect();
-        foreach ($managers as $m) {
-            if ($m->entity_id) {
-                $entityIds->push($m->entity_id);
+
+        if ($hasAnyEntityId) {
+            foreach ($managers as $m) {
+                if (!empty($m->entity_id)) {
+                    $entityIds->push($m->entity_id);
+                }
             }
-            if ($m->administration_id) {
-                $entityIds = $entityIds->merge(
-                    Entity::where('administration_id', $m->administration_id)->pluck('id')
-                );
+        } else {
+            $administrationIds = $managers
+                ->pluck('administration_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if (!empty($administrationIds)) {
+                $entityIds = Entity::whereIn('administration_id', $administrationIds)->pluck('id');
             }
         }
+
         return $entityIds->unique()->values()->all();
     }
 

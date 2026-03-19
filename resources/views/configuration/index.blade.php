@@ -22,6 +22,13 @@
         <!-- Menú lateral izquierdo (mismo diseño que entities/add) -->
         <div class="col-md-3 col-lg-3 configuration-menu-wrapper">
             <div class="form-card bs mb-3" style="background-color: #fff;">
+                @php($onlyPaymentsSection = auth()->user()?->isEntityManagerWithoutPanelAccount())
+                @if($onlyPaymentsSection)
+                    <div class="form-wizard-element active">
+                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <label>Ordenes Pago Entidades</label>
+                    </div>
+                @else
                 @if($section == 'datos-partilot')
                     <div class="form-wizard-element active">
                         <img src="{{ url('assets/entidad.svg') }}" alt="">
@@ -162,6 +169,7 @@
                         <img src="{{ url('assets/entidad.svg') }}" alt="">
                         <label>Notificaciones</label>
                     </a>
+                @endif
                 @endif
             </div>
         </div>

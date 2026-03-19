@@ -108,6 +108,8 @@ Route::get('firebase-messaging-sw.js', function () {
 // Rutas públicas de confirmación de vendedores (sin autenticación)
 Route::get('/sellers/confirm/accept/{token}', [SellerController::class, 'confirmAccept'])->name('sellers.confirm-accept');
 Route::get('/sellers/confirm/reject/{token}', [SellerController::class, 'confirmReject'])->name('sellers.confirm-reject');
+Route::get('/entity-managers/confirm/accept/{token}', [EntityController::class, 'confirmManagerAccept'])->name('entity-managers.confirm-accept');
+Route::get('/entity-managers/confirm/reject/{token}', [EntityController::class, 'confirmManagerReject'])->name('entity-managers.confirm-reject');
 
 // Diseño externo por invitación (público, sin login; acceso solo por enlace)
 Route::get('/design/external/invite/{token}', [\App\Http\Controllers\DesignController::class, 'externalInviteByToken'])->name('design.external.invite');
@@ -199,7 +201,7 @@ Route::group(['prefix' => 'managers', 'middleware' => 'role:super_admin,administ
 /*Route::get('entities',function() {
     return view('entities.index');
 });*/
-Route::group(['prefix' => 'sellers', 'middleware' => 'role:super_admin,administration,entity'], function() {
+Route::group(['prefix' => 'sellers', 'middleware' => ['role:super_admin,administration,entity', 'entity.permission:sellers']], function() {
     Route::get('/', [SellerController::class, 'index'])->name('sellers.index');
     Route::get('/add', [SellerController::class, 'create'])->name('sellers.create');
     Route::post('/store-entity', [SellerController::class, 'store_entity'])->name('sellers.store-entity');
@@ -364,7 +366,7 @@ Route::group(['prefix' => 'activity-logs'], function() {
     Route::get('/recent', [ParticipationActivityLogController::class, 'getRecentActivities'])->name('activity-logs.recent');
 });
 
-Route::group(['prefix' => 'design'], function() {
+Route::group(['prefix' => 'design', 'middleware' => 'entity.permission:design'], function() {
     //
     Route::get('/', [\App\Http\Controllers\DesignController::class, 'index'])->name('design.index');
     // Nuevo flujo con controlador
@@ -425,7 +427,7 @@ Route::get('requests',function() {
 });
 
 // Rutas de configuración/ajustes
-Route::group(['prefix' => 'configuration'], function() {
+Route::group(['prefix' => 'configuration', 'middleware' => 'entity.permission:payments'], function() {
     Route::get('/', [App\Http\Controllers\ConfigurationController::class, 'index'])->name('configuration.index');
     Route::delete('ordenes-pago-entidades/collections/{participationCollection}', [App\Http\Controllers\ConfigurationController::class, 'destroyCollection'])->name('ordenes-pago-entidades.collections.destroy');
     Route::post('ordenes-pago-entidades/crear-sepa', [App\Http\Controllers\ConfigurationController::class, 'crearSepa'])->name('ordenes-pago-entidades.crear-sepa');
@@ -514,7 +516,7 @@ Route::group(['prefix' => 'notifications'], function() {
 });
 
 // Rutas de Órdenes de Pago SEPA
-Route::group(['prefix' => 'sepa-payments'], function() {
+Route::group(['prefix' => 'sepa-payments', 'middleware' => 'entity.permission:payments'], function() {
     Route::get('/', [SepaPaymentOrderController::class, 'index'])->name('sepa-payments.index');
     Route::get('/create', [SepaPaymentOrderController::class, 'create'])->name('sepa-payments.create');
     Route::post('/', [SepaPaymentOrderController::class, 'store'])->name('sepa-payments.store');

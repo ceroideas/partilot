@@ -11,6 +11,7 @@ use App\Mail\EntityManagerInvitationMail;
 use App\Mail\EntityResponsibleManagerConfirmedMail;
 use App\Services\CommunicationEmailService;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class EntityController extends Controller
 {
@@ -411,8 +412,8 @@ class EntityController extends Controller
                 ->update(['is_primary' => false]);
         }
 
-        // Crear la relación manager-entity
-        Manager::create([
+        // Crear la relación manager-entity (pendiente de confirmación por email)
+        $manager = Manager::create([
             'user_id' => $request->user_id,
             'entity_id' => $entity->id,
             'is_primary' => $isCreationFlow ? true : false,
@@ -420,6 +421,8 @@ class EntityController extends Controller
             'permission_design' => $request->boolean('permission_design'),
             'permission_statistics' => $request->boolean('permission_statistics'),
             'permission_payments' => $request->boolean('permission_payments'),
+            'confirmation_token' => Str::random(64),
+            'confirmation_sent_at' => now(),
             'status' => null, // Pendiente por defecto
         ]);
 
@@ -438,7 +441,7 @@ class EntityController extends Controller
                     messageType: 'entity_manager_invitation',
                     templateKey: null,
                     mailClass: EntityManagerInvitationMail::class,
-                    mailPayload: ['entity_id' => $entity->id, 'user_id' => $user->id],
+                    mailPayload: ['entity_id' => $entity->id, 'user_id' => $user->id, 'manager_id' => $manager->id],
                     context: ['entity_id' => $entity->id],
                 );
             }
@@ -518,8 +521,8 @@ class EntityController extends Controller
                 ->with('error', 'Este usuario ya es gestor de esta entidad.');
         }
 
-        // Crear la relación manager-entity (gestor secundario)
-        Manager::create([
+        // Crear la relación manager-entity (gestor secundario pendiente de confirmación)
+        $manager = Manager::create([
             'user_id' => $user->id,
             'entity_id' => $entity->id,
             'is_primary' => false,
@@ -527,6 +530,8 @@ class EntityController extends Controller
             'permission_design' => $request->has('permission_design') ? true : false,
             'permission_statistics' => $request->has('permission_statistics') ? true : false,
             'permission_payments' => $request->has('permission_payments') ? true : false,
+            'confirmation_token' => Str::random(64),
+            'confirmation_sent_at' => now(),
             'status' => null, // Pendiente por defecto
         ]);
 
@@ -540,7 +545,7 @@ class EntityController extends Controller
                     messageType: 'entity_manager_invitation',
                     templateKey: null,
                     mailClass: EntityManagerInvitationMail::class,
-                    mailPayload: ['entity_id' => $entity->id, 'user_id' => $user->id],
+                    mailPayload: ['entity_id' => $entity->id, 'user_id' => $user->id, 'manager_id' => $manager->id],
                     context: ['entity_id' => $entity->id],
                 );
             }
@@ -929,19 +934,6 @@ class EntityController extends Controller
 
         $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
 
-        $panelUser = User::where('panel_account_type', 'entity')
-            ->where('panel_account_id', $entity->id)
-            ->first();
-        if ($panelUser) {
-            $panelManager = Manager::where('entity_id', $entity->id)
-                ->where('user_id', $panelUser->id)
-                ->first();
-            if ($panelManager && (int) $request->new_primary_manager_id !== (int) $panelManager->id) {
-                return redirect()->route('entities.show', $entity->id)
-                    ->with('error', 'El gestor principal es la cuenta de acceso al panel de la entidad. No puede sustituirse por otro; añada gestores secundarios con los permisos necesarios.');
-            }
-        }
-
         // Buscar gestor principal actual (puede no existir)
         $currentPrimary = Manager::where('entity_id', $entity->id)
             ->where('is_primary', true)
@@ -950,6 +942,15 @@ class EntityController extends Controller
         $newPrimary = Manager::where('id', $request->new_primary_manager_id)
             ->where('entity_id', $entity->id)
             ->firstOrFail();
+
+        // La cuenta técnica de acceso al panel de la entidad no debe ser seleccionable como principal.
+        $newPrimary->loadMissing('user');
+        if ($newPrimary->user
+            && $newPrimary->user->panel_account_type === 'entity'
+            && (int) $newPrimary->user->panel_account_id === (int) $entity->id) {
+            return redirect()->route('entities.show', $entity->id)
+                ->with('error', 'La cuenta de acceso al panel no puede asignarse como gestor principal.');
+        }
         
         // Si hay un gestor principal actual, verificar que no sea el mismo que el nuevo
         if ($currentPrimary && $newPrimary->id === $currentPrimary->id) {
@@ -1050,6 +1051,62 @@ class EntityController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Status del gestor actualizado correctamente'
+        ]);
+    }
+
+    /**
+     * Confirmar aceptación de invitación como gestor de entidad.
+     */
+    public function confirmManagerAccept(string $token)
+    {
+        $manager = Manager::where('confirmation_token', $token)
+            ->whereNull('status')
+            ->whereNotNull('entity_id')
+            ->with(['entity', 'user'])
+            ->first();
+
+        if (! $manager) {
+            return view('entities.manager-confirmation-error', [
+                'message' => 'El enlace de confirmación no es válido o ya ha sido utilizado.',
+            ]);
+        }
+
+        $manager->update([
+            'status' => 1,
+            'confirmation_token' => null,
+            'confirmation_sent_at' => null,
+        ]);
+
+        return view('entities.manager-confirmation-success', [
+            'message' => '¡Solicitud aceptada correctamente! Ya puedes iniciar sesión y gestionar la entidad.',
+            'type' => 'accept',
+            'manager' => $manager,
+        ]);
+    }
+
+    /**
+     * Confirmar rechazo de invitación como gestor de entidad.
+     */
+    public function confirmManagerReject(string $token)
+    {
+        $manager = Manager::where('confirmation_token', $token)
+            ->whereNull('status')
+            ->whereNotNull('entity_id')
+            ->with(['entity', 'user'])
+            ->first();
+
+        if (! $manager) {
+            return view('entities.manager-confirmation-error', [
+                'message' => 'El enlace de confirmación no es válido o ya ha sido utilizado.',
+            ]);
+        }
+
+        $manager->delete();
+
+        return view('entities.manager-confirmation-success', [
+            'message' => 'Solicitud rechazada. No tendrás acceso como gestor a esta entidad.',
+            'type' => 'reject',
+            'manager' => null,
         ]);
     }
 

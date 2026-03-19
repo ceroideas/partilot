@@ -196,6 +196,9 @@
                     								<div class="row">
                     									
                     									<div class="col-7">
+										<button type="button" class="btn btn-light btn-sm mb-2 return-manager-options" style="border-radius:30px;">
+											<i class="ri-arrow-left-circle-line"></i> Volver a opciones
+										</button>
 		                    								<div class="card bs" style="border-radius: 16px;">
 		                    									<div class="card-body">
 		                    										<h4 class="mb-0 mt-1">
@@ -208,7 +211,7 @@
 									                    			<div style="width: 50%; margin: auto;" class="text-start">
 
 									                    			<div class="form-check form-switch mt-2 mb-2">
-																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="all" checked>
+																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="all" checked disabled>
 																		<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="all"><b>
 																			Todos los permisos
 																		</b></label>
@@ -221,28 +224,28 @@
 																	<div style="width: 50%; margin: auto;" class="text-start">
 
 																	<div class="form-check form-switch mt-2 mb-2">
-																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="sellers" checked>
+																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="sellers" checked disabled>
 																		<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="sellers"><b>
 																			Administrar Vendedores
 																		</b></label>
 																	</div>
 
 																	<div class="form-check form-switch mt-2 mb-2">
-																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="design" checked>
+																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="design" checked disabled>
 																		<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="design"><b>
 																			Diseñar Participaciones
 																		</b></label>
 																	</div>
 
 																	<div class="form-check form-switch mt-2 mb-2">
-																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="total" checked>
+																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="total" checked disabled>
 																		<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="total"><b>
 																			Estadísticas Totales
 																		</b></label>
 																	</div>
 
 																	<div class="form-check form-switch mt-2 mb-2">
-																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="pay" checked>
+																		<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="pay" checked disabled>
 																		<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="pay"><b>
 																			Pagar Participaciones
 																		</b></label>
@@ -342,6 +345,9 @@
                     			<div id="register-manager-selected" class="d-none">
                     				<form action="{{url('entities/store-manager')}}" method="POST" enctype="multipart/form-data">
                     					@csrf()
+	                    					<button type="button" class="btn btn-light btn-sm mb-3 return-manager-options" style="border-radius:30px; display:block;">
+	                    						<i class="ri-arrow-left-circle-line"></i> Volver a opciones
+	                    					</button>
                     					<div class="row">
                     						
                     						<div class="col-4">
@@ -549,8 +555,9 @@
 @section('scripts')
 
 <script>
-const ENTITY_MANAGER_STORAGE_KEY = 'entity_manager_form_data';
-const ENTITY_MANAGER_MODE_KEY = 'entity_manager_mode';
+const ENTITY_MANAGER_FLOW_KEY = '{{ md5((string) (session('selected_administration')->id ?? '')) . ':' . (string) (data_get(session('entity_information'), 'email', '')) }}';
+const ENTITY_MANAGER_STORAGE_KEY = 'entity_manager_form_data_' + ENTITY_MANAGER_FLOW_KEY;
+const ENTITY_MANAGER_MODE_KEY = 'entity_manager_mode_' + ENTITY_MANAGER_FLOW_KEY;
 
 function saveEntityManagerData() {
 	const data = {
@@ -668,6 +675,23 @@ $('#cancel-invite').click(function (e) {
 	
 	$('#invite-form').removeClass('d-none');
 
+});
+
+function showEntityManagerOptions() {
+	// Restablece la vista a la selección de Invitar/Registrar
+	$('#all-options').removeClass('d-none');
+	$('#manager-buttons').removeClass('d-none');
+	$('#invite-form').addClass('d-none');
+	$('#accept-invite').addClass('d-none');
+	$('#register-manager-selected').addClass('d-none');
+
+	// Evita que el botón de atrás/adelante vuelva a forzar el modo anterior
+	localStorage.removeItem(ENTITY_MANAGER_MODE_KEY);
+}
+
+$(document).on('click', '.return-manager-options', function (e) {
+	e.preventDefault();
+	showEntityManagerOptions();
 });
 
 $('#register-manager').click(function (e) {

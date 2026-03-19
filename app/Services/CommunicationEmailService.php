@@ -232,9 +232,13 @@ class CommunicationEmailService
         if ($mailClass === \App\Mail\EntityManagerInvitationMail::class) {
             $entityId = (int) ($mailPayload['entity_id'] ?? 0);
             $userId = (int) ($mailPayload['user_id'] ?? 0);
+            $managerId = (int) ($mailPayload['manager_id'] ?? 0);
             $entity = \App\Models\Entity::findOrFail($entityId);
             $user = User::findOrFail($userId);
-            Mail::to($recipientEmail)->send(new \App\Mail\EntityManagerInvitationMail($entity, $user));
+            $manager = $managerId > 0
+                ? \App\Models\Manager::findOrFail($managerId)
+                : \App\Models\Manager::where('entity_id', $entityId)->where('user_id', $userId)->latest('id')->firstOrFail();
+            Mail::to($recipientEmail)->send(new \App\Mail\EntityManagerInvitationMail($entity, $user, $manager));
             return;
         }
 

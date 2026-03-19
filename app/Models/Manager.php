@@ -18,6 +18,8 @@ class Manager extends Model
         "permission_design",
         "permission_statistics",
         "permission_payments",
+        "confirmation_token",
+        "confirmation_sent_at",
         "status",
     ];
 
@@ -27,6 +29,7 @@ class Manager extends Model
         'permission_design' => 'boolean',
         'permission_statistics' => 'boolean',
         'permission_payments' => 'boolean',
+        'confirmation_sent_at' => 'datetime',
     ];
 
     /**

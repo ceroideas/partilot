@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Entity;
+use App\Models\Manager;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -14,10 +15,17 @@ class EntityManagerInvitationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public string $acceptUrl;
+    public string $rejectUrl;
+
     public function __construct(
         public Entity $entity,
-        public User $managerUser
-    ) {}
+        public User $managerUser,
+        public Manager $manager
+    ) {
+        $this->acceptUrl = route('entity-managers.confirm-accept', ['token' => $manager->confirmation_token]);
+        $this->rejectUrl = route('entity-managers.confirm-reject', ['token' => $manager->confirmation_token]);
+    }
 
     public function envelope(): Envelope
     {
