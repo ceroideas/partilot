@@ -90,7 +90,28 @@
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons_/globe.svg')}}" alt="" width="80px">
+                                    @php
+                                        $entityImg = null;
+                                        if (Auth::check()) {
+                                            $user = Auth::user();
+                                            if ($user?->panel_account_type === 'entity' && $user?->panel_account_id) {
+                                                $entityImg = \App\Models\Entity::where('id', (int) $user->panel_account_id)->value('image');
+                                            } else {
+                                                $primaryEntityId = $user->managers()
+                                                    ->where('is_primary', true)
+                                                    ->whereNotNull('entity_id')
+                                                    ->value('entity_id');
+                                                if ($primaryEntityId) {
+                                                    $entityImg = \App\Models\Entity::where('id', (int) $primaryEntityId)->value('image');
+                                                }
+                                            }
+                                        }
+                                    @endphp
+                                    @if(!empty($entityImg))
+                                        <div class="logo-round" style="width:80px;height:80px;border-radius:50%;background-image:url('{{ asset('uploads/' . $entityImg) }}');background-size:cover;background-position:center;"></div>
+                                    @else
+                                        <img src="{{url('icons_/globe.svg')}}" alt="" width="80px">
+                                    @endif
                                 </div>
 
                                 <h3 class="mb-0">No hay Web/s Social/es</h3>

@@ -70,7 +70,12 @@
                     		<!-- Mostrar entidad seleccionada -->
                     		<div class="form-card bs" style="margin-top: 20px;">
                     			<div class="d-flex align-items-center p-3">
-                    				<img src="{{url('assets/entidad.svg')}}" alt="" width="40px" class="me-3">
+	                    				@php $entityImg = $entity->image ?? null; @endphp
+	                    				@if(!empty($entityImg))
+	                    					<img src="{{ asset('uploads/' . $entityImg) }}" alt="Logo entidad" width="40px" class="me-3" style="object-fit:cover;border-radius:50%;">
+	                    				@else
+	                    					<img src="{{url('assets/entidad.svg')}}" alt="" width="40px" class="me-3">
+	                    				@endif
                     				<div>
                     					<h6 class="mb-0">{{ $entity->name }}</h6>
                     					<small class="text-muted">{{ $entity->province ?? 'Sin provincia' }}</small>
