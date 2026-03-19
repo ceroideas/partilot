@@ -397,6 +397,16 @@
                             </a>
                         </li>
 
+                        <li class="menu-item @if (Request::is('communications/*') || Request::is('communications')) menuitem-active @php $selected = 1; @endphp @endif">
+                            <a href="{{url('communications')}}" class="menu-link">
+                                <span class="menu-icon">
+                                    <img src="{{url('icons_')}}/comunicados{{$selected == 1 ? '_selected' : ''}}.svg" alt="">
+                                </span>
+                                <span class="menu-text"> Comunicaciones </span>
+                                @php $selected = null; @endphp
+                            </a>
+                        </li>
+
                         @if($currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration()))
                             <li class="menu-item @if (Request::is('configuration/*') || Request::is('configuration')) menuitem-active @php $selected = 1; @endphp @endif">
                                 <a href="{{url('configuration')}}" class="menu-link">

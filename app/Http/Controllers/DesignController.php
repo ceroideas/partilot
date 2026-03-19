@@ -12,8 +12,9 @@ use App\Models\DesignExternalInvitation;
 use App\Models\DesignExternalInvitationFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Mail;
 use App\Mail\DesignExternalInvitationMail;
+use App\Models\EmailCommunicationLog;
+use App\Services\CommunicationEmailService;
 use App\Services\ImageOptimizationService;
 use App\Services\QrCodeService;
 
@@ -204,10 +205,19 @@ class DesignController extends Controller
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail(session('design_external_invitation_id'));
         $invitation->update(['email' => $request->email]);
 
-        try {
-            Mail::to($request->email)->send(new DesignExternalInvitationMail($invitation));
-        } catch (\Throwable $e) {
-            \Log::warning('Error enviando invitación diseño externo: ' . $e->getMessage());
+        $communicationEmailService = app(CommunicationEmailService::class);
+        $log = $communicationEmailService->sendAndLog(
+            recipientEmail: (string) $request->email,
+            recipientRole: 'diseñador_externo',
+            recipientUser: null,
+            messageType: 'design_external_invitation',
+            templateKey: null,
+            mailClass: \App\Mail\DesignExternalInvitationMail::class,
+            mailPayload: ['invitation_id' => $invitation->id],
+            context: ['invitation_id' => $invitation->id],
+        );
+
+        if ($log->status === EmailCommunicationLog::STATUS_CANCELLED) {
             return redirect()->back()->withInput()->with('error', 'No se pudo enviar el correo. Comprueba la configuración de correo (MAIL_*) en .env.');
         }
 

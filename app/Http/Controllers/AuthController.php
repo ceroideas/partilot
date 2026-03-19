@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Seller;
 use App\Models\Manager;
+use App\Mail\UserWelcomeMail;
+use App\Services\CommunicationEmailService;
 
 class AuthController extends Controller
 {
@@ -250,6 +252,21 @@ class AuthController extends Controller
             'role' => User::ROLE_CLIENT,
             'status' => true,
         ]);
+
+        try {
+            app(CommunicationEmailService::class)->sendAndLog(
+                recipientEmail: (string) $user->email,
+                recipientRole: 'usuario',
+                recipientUser: $user,
+                messageType: 'user_welcome',
+                templateKey: null,
+                mailClass: UserWelcomeMail::class,
+                mailPayload: ['user_id' => $user->id],
+                context: ['user_id' => $user->id, 'source' => 'api'],
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando bienvenida usuario: '.$e->getMessage());
+        }
 
         $payload = ['user_id' => $user->id, 'exp' => now()->addDays(30)->timestamp];
         $token = Crypt::encrypt($payload);

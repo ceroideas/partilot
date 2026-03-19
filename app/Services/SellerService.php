@@ -7,8 +7,9 @@ use App\Models\Seller;
 use App\Mail\SellerConfirmationMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use App\Models\EmailCommunicationLog;
+use App\Services\CommunicationEmailService;
 
 class SellerService
 {
@@ -92,12 +93,21 @@ class SellerService
                 Log::info("Vendedor PARTILOT creado pendiente de vinculación y confirmación con email: {$data['email']} y entidad {$entityId}");
             }
             
-            // Enviar correo de confirmación
-            try {
-                Mail::to($seller->email)->send(new SellerConfirmationMail($seller));
-                Log::info("Correo de confirmación enviado a {$seller->email}");
-            } catch (\Exception $e) {
-                Log::error("Error al enviar correo de confirmación: " . $e->getMessage());
+            // Enviar correo de confirmación + registrar en comunicaciones
+            $communicationEmailService = app(CommunicationEmailService::class);
+            $log = $communicationEmailService->sendAndLog(
+                recipientEmail: (string) $seller->email,
+                recipientRole: 'vendedor',
+                recipientUser: null,
+                messageType: 'seller_confirmation',
+                templateKey: null,
+                mailClass: SellerConfirmationMail::class,
+                mailPayload: ['seller_id' => $seller->id],
+                context: ['seller_id' => $seller->id],
+            );
+
+            if ($log->status === EmailCommunicationLog::STATUS_CANCELLED) {
+                Log::error("Error al enviar correo de confirmación: " . ($log->error_message ?? 'unknown'));
                 // No lanzar excepción, el vendedor ya está creado
             }
             

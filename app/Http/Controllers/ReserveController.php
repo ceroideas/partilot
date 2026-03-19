@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Reserve;
 use App\Models\Entity;
 use App\Models\Lottery;
+use App\Services\CommunicationEmailService;
+use App\Mail\ReserveSavedToEntityManagerMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -228,7 +230,28 @@ class ReserveController extends Controller
             'expiration_date' => now()->addDays(7) // 7 días por defecto
         ]);
 
-        Reserve::create($reserveData);
+        $reserve = Reserve::create($reserveData);
+
+        // Comunicación pendiente (según especificación): email al gestor principal de la entidad
+        // al guardar la reserva.
+        try {
+            $entityManagerUser = $entity->manager?->user;
+            if ($entityManagerUser && !empty($entityManagerUser->email)) {
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: (string) $entityManagerUser->email,
+                    recipientRole: 'gestor_entidad',
+                    recipientUser: $entityManagerUser,
+                    messageType: 'reservation_saved',
+                    templateKey: null,
+                    mailClass: ReserveSavedToEntityManagerMail::class,
+                    mailPayload: ['reserve_id' => $reserve->id],
+                    context: ['reserve_id' => $reserve->id, 'entity_id' => $entity->id, 'lottery_id' => $lottery->id],
+                );
+            }
+        } catch (\Throwable $e) {
+            // No bloquear creación de la reserva si falla el email
+            \Log::warning('Fallo enviando email reserva a gestor entidad: ' . $e->getMessage());
+        }
 
         // Limpiar sesión
         $request->session()->forget(['selected_entity', 'selected_lottery', 'selected_entity_id', 'selected_lottery_id']);

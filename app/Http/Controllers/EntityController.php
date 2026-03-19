@@ -7,6 +7,9 @@ use App\Models\Entity;
 use App\Models\Administration;
 use App\Models\Manager;
 use App\Models\User;
+use App\Mail\EntityManagerInvitationMail;
+use App\Mail\EntityResponsibleManagerConfirmedMail;
+use App\Services\CommunicationEmailService;
 use Illuminate\Support\Facades\Hash;
 
 class EntityController extends Controller
@@ -93,6 +96,7 @@ class EntityController extends Controller
             'nif_cif' => ['required', 'string', 'max:20', new \App\Rules\EntityDocument],
             'phone' => 'required|string|max:20',
             'email' => 'required|email|max:255',
+            'panel_password' => 'required|string|min:8',
             'comments' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'remove_image' => 'nullable|in:0,1'
@@ -170,10 +174,13 @@ class EntityController extends Controller
     public function store_manager(Request $request)
     {
         $request->validate([
-            'panel_password' => 'required|string|min:8|confirmed',
-        ], [
-            'panel_password.required' => 'Debe definir una contraseña de acceso al panel para la entidad.',
-            'panel_password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'manager_name' => 'required|string|max:255',
+            'manager_last_name' => 'required|string|max:255',
+            'manager_last_name2' => 'nullable|string|max:255',
+            'manager_nif_cif' => ['nullable', 'string', 'max:20', new \App\Rules\SpanishDocument],
+            'manager_birthday' => ['required', 'date', new \App\Rules\MinimumAge(18)],
+            'manager_email' => 'required|email|max:255',
+            'manager_phone' => 'nullable|string|max:20',
         ]);
 
         $administration = $request->session()->get('selected_administration');
@@ -182,6 +189,12 @@ class EntityController extends Controller
         if (! $administration || ! auth()->user()->canAccessAdministration($administration->id) || ! $entityInformation) {
             return redirect()->route('entities.create')
                 ->with('error', 'Sesión expirada o permisos insuficientes. Por favor, vuelva a empezar.');
+        }
+
+        $panelPassword = $entityInformation['panel_password'] ?? null;
+        if (! $panelPassword) {
+            return redirect()->route('entities.add-information')
+                ->with('error', 'Debe definir la contraseña de acceso al panel en el paso de Datos Entidad.');
         }
 
         $email = $entityInformation['email'] ?? null;
@@ -196,16 +209,45 @@ class EntityController extends Controller
             ])->withInput();
         }
 
+        if (strcasecmp((string) $request->input('manager_email'), (string) $email) === 0) {
+            return back()->withErrors([
+                'manager_email' => 'El email del gestor debe ser distinto al email de acceso del panel de la entidad.',
+            ])->withInput();
+        }
+
+        $managerUser = User::where('email', $request->input('manager_email'))->first();
+        if ($managerUser && $managerUser->isPanelAccount()) {
+            return back()->withErrors([
+                'manager_email' => 'Ese email corresponde a una cuenta de acceso de panel. Use otro email para el gestor.',
+            ])->withInput();
+        }
+
+        if (! $managerUser) {
+            $managerUser = User::create([
+                'name' => $request->input('manager_name'),
+                'last_name' => $request->input('manager_last_name'),
+                'last_name2' => $request->input('manager_last_name2'),
+                'email' => $request->input('manager_email'),
+                'password' => bcrypt(12345678),
+                'role' => User::ROLE_ENTITY,
+                'status' => true,
+                'phone' => $request->input('manager_phone') ?: null,
+                'nif_cif' => $request->input('manager_nif_cif') ?: null,
+                'birthday' => $request->input('manager_birthday') ?: null,
+            ]);
+        }
+
         $entityData = array_merge($entityInformation, [
             'administration_id' => is_object($administration) ? $administration->id : ($administration['id'] ?? null),
         ]);
+        unset($entityData['panel_password']);
 
         $entity = Entity::create($entityData);
 
-        $user = User::create([
+        $panelUser = User::create([
             'name' => trim((string) ($entityInformation['name'] ?? '')) ?: 'Entidad',
             'email' => $email,
-            'password' => Hash::make($request->panel_password),
+            'password' => Hash::make($panelPassword),
             'role' => User::ROLE_ENTITY,
             'panel_account_type' => 'entity',
             'panel_account_id' => $entity->id,
@@ -214,9 +256,22 @@ class EntityController extends Controller
             'nif_cif' => $entityInformation['nif_cif'] ?? null,
         ]);
 
-        Manager::create([
-            'user_id' => $user->id,
+        Manager::firstOrCreate([
+            'user_id' => $panelUser->id,
             'entity_id' => $entity->id,
+        ], [
+            'is_primary' => false,
+            'permission_sellers' => true,
+            'permission_design' => true,
+            'permission_statistics' => true,
+            'permission_payments' => true,
+            'status' => 1,
+        ]);
+
+        Manager::firstOrCreate([
+            'user_id' => $managerUser->id,
+            'entity_id' => $entity->id,
+        ], [
             'is_primary' => true,
             'permission_sellers' => true,
             'permission_design' => true,
@@ -268,7 +323,7 @@ class EntityController extends Controller
     public function invite_manager(Request $request)
     {
         $request->validate([
-            'entity_id' => 'required|integer|exists:entities,id',
+            'entity_id' => 'nullable|integer|exists:entities,id',
             'user_id' => 'required|integer|exists:users,id',
             'permission_sellers' => 'nullable|boolean',
             'permission_design' => 'nullable|boolean',
@@ -276,7 +331,62 @@ class EntityController extends Controller
             'permission_payments' => 'nullable|boolean',
         ]);
 
-        $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
+        $isCreationFlow = ! $request->filled('entity_id');
+        $entity = null;
+        if (! $isCreationFlow) {
+            $entity = Entity::forUser(auth()->user())->findOrFail($request->entity_id);
+        } else {
+            $administration = $request->session()->get('selected_administration');
+            $entityInformation = $request->session()->get('entity_information');
+
+            if (! $administration || !auth()->user()->canAccessAdministration($administration->id) || ! $entityInformation) {
+                return redirect()->route('entities.create')
+                    ->with('error', 'Sesión expirada. Vuelva a iniciar la creación de la entidad.');
+            }
+
+            $panelPassword = $entityInformation['panel_password'] ?? null;
+            $panelEmail = $entityInformation['email'] ?? null;
+            if (! $panelPassword || ! $panelEmail) {
+                return redirect()->route('entities.add-information')
+                    ->with('error', 'Faltan datos de acceso de panel para crear la entidad.');
+            }
+
+            if (User::where('email', $panelEmail)->exists()) {
+                return redirect()->route('entities.add-information')
+                    ->with('error', 'Ya existe un usuario con el email de la entidad. Cambie el email en Datos Entidad.');
+            }
+
+            $entityData = array_merge($entityInformation, [
+                'administration_id' => is_object($administration) ? $administration->id : ($administration['id'] ?? null),
+            ]);
+            unset($entityData['panel_password']);
+
+            $entity = Entity::create($entityData);
+
+            $panelUser = User::create([
+                'name' => trim((string) ($entityInformation['name'] ?? '')) ?: 'Entidad',
+                'email' => $panelEmail,
+                'password' => Hash::make($panelPassword),
+                'role' => User::ROLE_ENTITY,
+                'panel_account_type' => 'entity',
+                'panel_account_id' => $entity->id,
+                'status' => true,
+                'phone' => $entityInformation['phone'] ?? null,
+                'nif_cif' => $entityInformation['nif_cif'] ?? null,
+            ]);
+
+            Manager::firstOrCreate([
+                'user_id' => $panelUser->id,
+                'entity_id' => $entity->id,
+            ], [
+                'is_primary' => false,
+                'permission_sellers' => true,
+                'permission_design' => true,
+                'permission_statistics' => true,
+                'permission_payments' => true,
+                'status' => 1,
+            ]);
+        }
 
         $invited = User::findOrFail($request->user_id);
         if ($invited->isPanelAccount()) {
@@ -294,21 +404,51 @@ class EntityController extends Controller
                 ->with('error', 'Este usuario ya es gestor de esta entidad.');
         }
 
-        // Crear la relación manager-entity (gestor secundario)
+        // En creación inicial de entidad, el gestor invitado debe quedar como principal.
+        if ($isCreationFlow) {
+            Manager::where('entity_id', $entity->id)
+                ->where('is_primary', true)
+                ->update(['is_primary' => false]);
+        }
+
+        // Crear la relación manager-entity
         Manager::create([
             'user_id' => $request->user_id,
             'entity_id' => $entity->id,
-            'is_primary' => false,
-            'permission_sellers' => $request->has('permission_sellers') ? true : false,
-            'permission_design' => $request->has('permission_design') ? true : false,
-            'permission_statistics' => $request->has('permission_statistics') ? true : false,
-            'permission_payments' => $request->has('permission_payments') ? true : false,
+            'is_primary' => $isCreationFlow ? true : false,
+            'permission_sellers' => $request->boolean('permission_sellers'),
+            'permission_design' => $request->boolean('permission_design'),
+            'permission_statistics' => $request->boolean('permission_statistics'),
+            'permission_payments' => $request->boolean('permission_payments'),
             'status' => null, // Pendiente por defecto
         ]);
 
         $user = User::find($request->user_id);
         if ($user && $user->role !== User::ROLE_ENTITY) {
             $user->update(['role' => User::ROLE_ENTITY]);
+        }
+
+        // Cadena de alta entidad/gestor: email al gestor invitado
+        try {
+            if ($user && !empty($user->email)) {
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: (string) $user->email,
+                    recipientRole: 'gestor_entidad',
+                    recipientUser: $user,
+                    messageType: 'entity_manager_invitation',
+                    templateKey: null,
+                    mailClass: EntityManagerInvitationMail::class,
+                    mailPayload: ['entity_id' => $entity->id, 'user_id' => $user->id],
+                    context: ['entity_id' => $entity->id],
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando invitación a gestor existente: '.$e->getMessage());
+        }
+
+        // Si venimos del wizard de creación, limpiar sesión al completar la invitación.
+        if ($isCreationFlow) {
+            $request->session()->forget(['selected_administration', 'entity_information', 'entity_manager']);
         }
 
         return redirect()->route('entities.show', $entity->id)
@@ -389,6 +529,24 @@ class EntityController extends Controller
             'permission_payments' => $request->has('permission_payments') ? true : false,
             'status' => null, // Pendiente por defecto
         ]);
+
+        // Cadena de alta entidad/gestor: email al gestor recién registrado/invitado
+        try {
+            if (!empty($user->email)) {
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: (string) $user->email,
+                    recipientRole: 'gestor_entidad',
+                    recipientUser: $user,
+                    messageType: 'entity_manager_invitation',
+                    templateKey: null,
+                    mailClass: EntityManagerInvitationMail::class,
+                    mailPayload: ['entity_id' => $entity->id, 'user_id' => $user->id],
+                    context: ['entity_id' => $entity->id],
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando invitación a gestor nuevo: '.$e->getMessage());
+        }
 
         return redirect()->route('entities.show', $entity->id)
             ->with('success', 'Gestor registrado exitosamente.');
@@ -490,6 +648,11 @@ class EntityController extends Controller
         $managersVisible = $entity->managers->filter(function ($m) use ($entity) {
             $u = $m->user;
             if (! $u) {
+                return true;
+            }
+
+            // Mostrar siempre el gestor principal aunque sea la cuenta panel de la entidad.
+            if ($m->is_primary) {
                 return true;
             }
 
@@ -818,6 +981,32 @@ class EntityController extends Controller
                 'permission_payments' => true,
             ]);
         });
+
+        // Cuando se confirma/cambia gestor responsable: email de confirmación a la entidad
+        try {
+            $newPrimary->loadMissing('user');
+            $entityContactUser = User::where('panel_account_type', 'entity')
+                ->where('panel_account_id', $entity->id)
+                ->first();
+            if (!$entityContactUser) {
+                $entityContactUser = $entity->manager?->user;
+            }
+
+            if ($entityContactUser && !empty($entityContactUser->email) && $newPrimary->user) {
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: (string) $entityContactUser->email,
+                    recipientRole: 'entidad',
+                    recipientUser: $entityContactUser,
+                    messageType: 'entity_responsible_manager_confirmed',
+                    templateKey: null,
+                    mailClass: EntityResponsibleManagerConfirmedMail::class,
+                    mailPayload: ['entity_id' => $entity->id, 'responsible_manager_user_id' => $newPrimary->user->id],
+                    context: ['entity_id' => $entity->id],
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando confirmación de gestor responsable: '.$e->getMessage());
+        }
 
         return redirect()->route('entities.show', $entity->id)
             ->with('success', 'Gestor principal actualizado correctamente. El gestor anterior ahora es gestor secundario.');

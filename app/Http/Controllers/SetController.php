@@ -6,6 +6,8 @@ use App\Models\Set;
 use App\Models\Entity;
 use App\Models\Reserve;
 use App\Models\Participation;
+use App\Services\CommunicationEmailService;
+use App\Mail\SetCreatedToEntityManagerMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -342,7 +344,27 @@ class SetController extends Controller
             'tickets' => $tickets
         ]);
 
-        Set::create($setData);
+        $set = Set::create($setData);
+
+        // Comunicación pendiente (según especificación): email al gestor principal de la entidad
+        // con detalles del set al crearlo.
+        try {
+            $entityManagerUser = $entity->manager?->user;
+            if ($entityManagerUser && !empty($entityManagerUser->email)) {
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: (string) $entityManagerUser->email,
+                    recipientRole: 'gestor_entidad',
+                    recipientUser: $entityManagerUser,
+                    messageType: 'set_created',
+                    templateKey: null,
+                    mailClass: SetCreatedToEntityManagerMail::class,
+                    mailPayload: ['set_id' => $set->id],
+                    context: ['set_id' => $set->id, 'entity_id' => $entity->id, 'reserve_id' => $reserve->id],
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando email set a gestor entidad: ' . $e->getMessage());
+        }
 
         // Limpiar sesión
         $request->session()->forget(['selected_entity', 'selected_reserve', 'selected_entity_id', 'selected_reserve_id']);

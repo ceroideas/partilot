@@ -17,8 +17,10 @@ use App\Services\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use App\Models\EmailCommunicationLog;
+use App\Services\CommunicationEmailService;
+use App\Mail\SellerSettlementStatusMail;
 
 class SellerController extends Controller
 {
@@ -1199,6 +1201,53 @@ class SellerController extends Controller
 
             DB::commit();
 
+            // Email liquidación parcial / total 0 al vendedor, y copia informativa a entidad principal.
+            try {
+                $seller = Seller::with(['user', 'entities.manager.user'])->find($data['seller_id']);
+                $isFullySettled = (float) $pendingAmount <= 0.0001;
+                $communicationEmailService = app(CommunicationEmailService::class);
+
+                if ($seller && $seller->user && !empty($seller->user->email)) {
+                    $communicationEmailService->sendAndLog(
+                        recipientEmail: (string) $seller->user->email,
+                        recipientRole: 'vendedor',
+                        recipientUser: $seller->user,
+                        messageType: $isFullySettled ? 'seller_settlement_full' : 'seller_settlement_partial',
+                        templateKey: null,
+                        mailClass: SellerSettlementStatusMail::class,
+                        mailPayload: [
+                            'seller_id' => $seller->id,
+                            'settlement_id' => $settlement->id,
+                            'is_fully_settled' => $isFullySettled,
+                        ],
+                        context: ['seller_id' => $seller->id, 'lottery_id' => $data['lottery_id'], 'entity_id' => $primaryEntity?->id],
+                    );
+                }
+
+                // ¿También a entidad? Sí, envío informativo al gestor principal de la primera entidad vinculada.
+                $entityManagerUser = $seller?->entities?->first()?->manager?->user;
+                $primaryEntity = $seller?->entities?->first();
+                $contextEntityId = $primaryEntity?->id;
+                if ($entityManagerUser && !empty($entityManagerUser->email)) {
+                    $communicationEmailService->sendAndLog(
+                        recipientEmail: (string) $entityManagerUser->email,
+                        recipientRole: 'gestor_entidad',
+                        recipientUser: $entityManagerUser,
+                        messageType: $isFullySettled ? 'seller_settlement_full_copy_entity' : 'seller_settlement_partial_copy_entity',
+                        templateKey: null,
+                        mailClass: SellerSettlementStatusMail::class,
+                        mailPayload: [
+                            'seller_id' => $seller->id,
+                            'settlement_id' => $settlement->id,
+                            'is_fully_settled' => $isFullySettled,
+                        ],
+                        context: ['seller_id' => $seller->id, 'lottery_id' => $data['lottery_id'], 'entity_id' => $contextEntityId],
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Fallo enviando emails de liquidación: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Liquidación registrada correctamente',
@@ -2233,34 +2282,53 @@ class SellerController extends Controller
 
             // Enviar email de notificación si se asignaron participaciones
             if ($assignedCount > 0 && $seller->email) {
-                try {
-                    // Agrupar participaciones por set
-                    $assignmentsBySet = [];
-                    foreach ($assignedParticipations as $participation) {
-                        $setId = $participation->set_id;
-                        
-                        if (!isset($assignmentsBySet[$setId])) {
-                            // Usar el set ya cargado desde la participación
-                            $set = $participation->set;
-                            
-                            $assignmentsBySet[$setId] = [
-                                'set' => $set,
-                                'lottery' => $set->reserve->lottery ?? null,
-                                'count' => 0
-                            ];
-                        }
-                        
-                        $assignmentsBySet[$setId]['count']++;
+                // Agrupar participaciones por set
+                $assignmentsBySet = [];
+                foreach ($assignedParticipations as $participation) {
+                    $setId = $participation->set_id;
+
+                    if (!isset($assignmentsBySet[$setId])) {
+                        // Usar el set ya cargado desde la participación
+                        $set = $participation->set;
+
+                        $assignmentsBySet[$setId] = [
+                            'set' => $set,
+                            'lottery' => $set->reserve->lottery ?? null,
+                            'count' => 0,
+                        ];
                     }
 
-                    // Enviar email con las asignaciones agrupadas
-                    \Mail::to($seller->email)->send(
-                    //\Mail::to('jorgesolano92@gmail.com')->send(
-                        new \App\Mail\ParticipationAssignmentMail($seller, $assignmentsBySet)
-                    );
-                } catch (\Exception $e) {
-                    // Log el error pero no fallar la asignación
-                    \Log::error('Error enviando email de asignación de participaciones: ' . $e->getMessage());
+                    $assignmentsBySet[$setId]['count']++;
+                }
+
+                $assignmentsList = [];
+                foreach ($assignmentsBySet as $setId => $data) {
+                    $assignmentsList[] = [
+                        'set_id' => (int) $setId,
+                        'count' => (int) ($data['count'] ?? 0),
+                    ];
+                }
+
+                $communicationEmailService = app(CommunicationEmailService::class);
+                $log = $communicationEmailService->sendAndLog(
+                    recipientEmail: (string) $seller->email,
+                    recipientRole: 'vendedor',
+                    recipientUser: null,
+                    messageType: 'participation_assignment',
+                    templateKey: null,
+                    mailClass: \App\Mail\ParticipationAssignmentMail::class,
+                    mailPayload: [
+                        'seller_id' => $seller->id,
+                        'assignments' => $assignmentsList,
+                    ],
+                    context: [
+                        'seller_id' => $seller->id,
+                        'assigned_count' => $assignedCount,
+                    ],
+                );
+
+                if ($log->status === EmailCommunicationLog::STATUS_CANCELLED) {
+                    \Log::error('Error enviando email de asignación de participaciones: ' . ($log->error_message ?? 'unknown'));
                 }
             }
 

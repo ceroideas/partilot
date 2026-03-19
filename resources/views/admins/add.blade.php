@@ -299,6 +299,19 @@
 				                    			</div>
 	                    					</div>
 
+	                    					<div class="col-12">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">Contraseña acceso panel</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <i class="ri-lock-line"></i>
+					                                    </div>
+					                                    <input class="form-control" type="password" required name="panel_password" autocomplete="new-password" style="border-radius: 0 30px 30px 0;">
+					                                </div>
+				                    			</div>
+	                    					</div>
+
 	                    				</div>
 	                    			</div>
 
@@ -380,6 +393,7 @@
 	// Al crear una administración nueva: borrar imagen de permanencia de otra creación (solo si no venimos del paso gestor "Atrás")
 	if (!document.referrer || document.referrer.indexOf('add/manager') === -1) {
 		localStorage.removeItem('image_admin_create');
+		localStorage.removeItem('administration_manager_form_data');
 	}
 
 	document.getElementById('imagenInput').addEventListener('change', function(event) {

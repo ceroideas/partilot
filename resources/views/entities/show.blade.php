@@ -358,15 +358,7 @@
 
 			                    	<div class="tab-pane fade" id="datos_contacto">
                     					<div class="form-card bs" style="min-height: 658px;">
-			                    			@if(!empty($entityPanelUser))
-			                    			<h4 class="mb-0 mt-1">Acceso al panel web</h4>
-			                    			<small><i>La cuenta de acceso no aparece en el listado de gestores. Email y contraseña se gestionan desde la edición de la entidad.</i></small>
-			                    			<div class="alert alert-info mt-3">
-			                    				<strong>Usuario (email):</strong> {{ $entity->email }}<br>
-			                    				<strong>Nombre en panel:</strong> {{ $entityPanelUser->name }}<br>
-			                    				<a href="{{ route('entities.edit', $entity->id) }}" class="btn btn-sm btn-dark mt-2">Editar entidad y contraseña del panel</a>
-			                    			</div>
-			                    			@else
+			                    			
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos de gestor
 
@@ -579,7 +571,7 @@
 			                    				</div>
 
 			                    			</div>
-			                    			@endif
+			                    			
 
 			                    		</div>
                     				</div>

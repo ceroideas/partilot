@@ -20,6 +20,7 @@ use App\Http\Controllers\ParticipationActivityLogController;
 use App\Http\Controllers\DevolutionsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CommunicationEmailController;
 use App\Http\Controllers\ContextController;
 use App\Http\Controllers\SepaPaymentOrderController;
 use App\Models\Administration;
@@ -169,7 +170,7 @@ Route::group(['prefix' => 'entities'], function() {
     Route::get('/create-test-manager', [EntityController::class, 'create_test_manager'])->name('entities.create-test-manager');
 
     Route::get('/view/{id}', [EntityController::class, 'show'])->name('entities.show');
-    Route::get('/edit/{id}', [EntityController::class, 'edit']);
+    Route::get('/edit/{id}', [EntityController::class, 'edit'])->name('entities.edit');
     Route::put('/update/{id}', [EntityController::class, 'update'])->name('entities.update');
     Route::post('/{entity}/toggle-status', [EntityController::class, 'toggleStatus'])->name('entities.toggle-status');
     Route::post('/check-email', [EntityController::class, 'checkEmail'])->name('entities.check-email');
@@ -432,8 +433,10 @@ Route::group(['prefix' => 'configuration'], function() {
     Route::post('ordenes-pago-entidades/store-sepa', [App\Http\Controllers\ConfigurationController::class, 'storeOrdenSepa'])->name('ordenes-pago-entidades.store-sepa');
     Route::delete('ordenes-pago-entidades/beneficiaries/{sepaPaymentBeneficiary}', [App\Http\Controllers\ConfigurationController::class, 'destroyBeneficiary'])->name('ordenes-pago-entidades.beneficiaries.destroy');
 });
-Route::get('communications',function() {
-    return view('communications.index');
+Route::group(['prefix' => 'communications', 'middleware' => 'role:super_admin,administration,entity'], function() {
+    Route::get('/', [CommunicationEmailController::class, 'index'])->name('communications.index');
+    Route::post('/{id}/resend', [CommunicationEmailController::class, 'resend'])->name('communications.resend');
+    Route::delete('/{id}', [CommunicationEmailController::class, 'destroy'])->name('communications.destroy');
 });
 
 // Rutas de Escrutinio

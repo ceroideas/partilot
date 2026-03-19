@@ -12,6 +12,9 @@ use App\Models\Set;
 use App\Models\Devolution;
 use App\Models\DevolutionDetail;
 use App\Models\DevolutionPayment;
+use App\Mail\DevolutionReturnedToAdministrationMail;
+use App\Mail\DevolutionReturnedToEntityManagerMail;
+use App\Services\CommunicationEmailService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -612,6 +615,69 @@ class DevolutionsController extends Controller
             }
 
             DB::commit();
+
+            // Comunicación pendiente (según especificación):
+            // "Transmisión de devolución a la administración" con email a gestor principal de:
+            // - administración (panel)
+            // - entidad
+            try {
+                $hasReturnedToAdministration = DevolutionDetail::query()
+                    ->where('devolution_id', $devolution->id)
+                    ->where('action', 'devolver')
+                    ->exists();
+
+                $hasReturnedToEntity = DevolutionDetail::query()
+                    ->where('devolution_id', $devolution->id)
+                    ->whereIn('action', ['devolver', 'devolver_vendedor'])
+                    ->exists();
+
+                if ($hasReturnedToAdministration || $hasReturnedToEntity) {
+                    $devolution->loadMissing(['entity.administration', 'entity.manager.user', 'lottery']);
+
+                    $entityManagerUser = $devolution->entity?->manager?->user;
+                    $admin = $devolution->entity?->administration;
+
+                    $adminManagerUser = null;
+                    if ($admin) {
+                        $adminManagerUser = \App\Models\Manager::query()
+                            ->where('administration_id', $admin->id)
+                            ->where('is_primary', true)
+                            ->with('user')
+                            ->first()?->user;
+                    }
+
+                    $communicationEmailService = app(CommunicationEmailService::class);
+
+                    if ($adminManagerUser && !empty($adminManagerUser->email)) {
+                        $communicationEmailService->sendAndLog(
+                            recipientEmail: (string) $adminManagerUser->email,
+                            recipientRole: 'gestor_administracion',
+                            recipientUser: $adminManagerUser,
+                            messageType: 'devolution_return_to_administration',
+                            templateKey: null,
+                            mailClass: DevolutionReturnedToAdministrationMail::class,
+                            mailPayload: ['devolution_id' => $devolution->id],
+                            context: ['devolution_id' => $devolution->id, 'entity_id' => $devolution->entity_id],
+                        );
+                    }
+
+                    if ($entityManagerUser && !empty($entityManagerUser->email) && $hasReturnedToEntity) {
+                        $communicationEmailService->sendAndLog(
+                            recipientEmail: (string) $entityManagerUser->email,
+                            recipientRole: 'gestor_entidad',
+                            recipientUser: $entityManagerUser,
+                            messageType: 'devolution_return_to_entity',
+                            templateKey: null,
+                            mailClass: DevolutionReturnedToEntityManagerMail::class,
+                            mailPayload: ['devolution_id' => $devolution->id],
+                            context: ['devolution_id' => $devolution->id, 'entity_id' => $devolution->entity_id],
+                        );
+                    }
+                }
+            } catch (\Throwable $e) {
+                // No bloquear la devolución si fallan los emails
+                \Log::warning('Fallo enviando emails devolución: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

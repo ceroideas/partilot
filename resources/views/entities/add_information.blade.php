@@ -333,6 +333,24 @@
 				                    			</div>
 	                    					</div>
 
+	                    					<div class="col-4">
+	                    						<div class="form-group mt-2 mb-3">
+	                    							<label class="label-control">Contraseña acceso panel</label>
+
+					                    			<div class="input-group input-group-merge group-form">
+
+					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+					                                        <i class="ri-lock-line"></i>
+					                                    </div>
+
+					                                    <input class="form-control" type="password" name="panel_password" required autocomplete="new-password" style="border-radius: 0 30px 30px 0;">
+					                                    @error('panel_password')
+					                                        <div class="text-danger small mt-1">{{ $message }}</div>
+					                                    @enderror
+					                                </div>
+				                    			</div>
+	                    					</div>
+
 	                    				</div>
 	                    			</div>
 

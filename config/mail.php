@@ -116,6 +116,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mail Debug Override (forzar destinatario)
+    |--------------------------------------------------------------------------
+    |
+    | Si se activa, todos los correos enviados por la app se redirigen a
+    | MAIL_DEBUG_TO. Ideal para QA/staging.
+    |
+    */
+    'debug_mode' => (bool) env('MAIL_DEBUG_MODE', false),
+    'debug_to' => env('MAIL_DEBUG_TO'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Markdown Mail Settings
     |--------------------------------------------------------------------------
     |

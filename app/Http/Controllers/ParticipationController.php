@@ -18,6 +18,12 @@ use App\Models\ParticipationDonation;
 use App\Models\ParticipationDonationItem;
 use App\Models\User;
 use App\Http\Controllers\ApiController;
+use App\Services\CommunicationEmailService;
+use App\Mail\ParticipationGiftRecipientMail;
+use App\Mail\ParticipationGiftSenderMail;
+use App\Mail\DigitalPurchaseConfirmationMail;
+use App\Mail\TransferCollectionConfirmationMail;
+use App\Mail\DonationCodeConfirmationMail;
 
 class ParticipationController extends Controller
 {
@@ -490,6 +496,33 @@ class ParticipationController extends Controller
                 $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $paymentMethod, $user->id);
             }
             DB::commit();
+
+            // Confirmación compra digital al email del comprador indicado por el vendedor
+            try {
+                $items = $participations->map(function ($p) {
+                    return [
+                        'code' => $p->display_participation_code,
+                        'entity' => $p->set?->entity?->name ?? '',
+                    ];
+                })->values()->all();
+
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: (string) $buyer->email,
+                    recipientRole: 'usuario',
+                    recipientUser: $buyer,
+                    messageType: 'digital_purchase_confirmation',
+                    templateKey: null,
+                    mailClass: DigitalPurchaseConfirmationMail::class,
+                    mailPayload: [
+                        'buyer_id' => $buyer->id,
+                        'items' => $items,
+                        'total_amount' => (float) $saleAmount,
+                    ],
+                    context: ['source' => 'api', 'seller_id' => $seller->id],
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Fallo enviando confirmación de compra digital: '.$e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -1432,6 +1465,23 @@ class ParticipationController extends Controller
             ]);
         }
 
+        // Cobro por transferencia: confirmación por email al usuario
+        try {
+            $collection->load('user');
+            app(CommunicationEmailService::class)->sendAndLog(
+                recipientEmail: (string) $user->email,
+                recipientRole: 'usuario',
+                recipientUser: $user,
+                messageType: 'transfer_collection_confirmation',
+                templateKey: null,
+                mailClass: TransferCollectionConfirmationMail::class,
+                mailPayload: ['collection_id' => $collection->id],
+                context: ['source' => 'api', 'user_id' => $user->id],
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando confirmación de cobro transferencia: '.$e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Cobro registrado correctamente. La entidad se encargará del pago.',
@@ -1536,7 +1586,22 @@ class ParticipationController extends Controller
             ]);
         }
 
-        // TODO: Enviar email con el código de recarga si existe
+        // Donación/código recarga: email de confirmación
+        try {
+            $donation->load('user');
+            app(CommunicationEmailService::class)->sendAndLog(
+                recipientEmail: (string) $user->email,
+                recipientRole: 'usuario',
+                recipientUser: $user,
+                messageType: 'donation_code_confirmation',
+                templateKey: null,
+                mailClass: DonationCodeConfirmationMail::class,
+                mailPayload: ['donation_id' => $donation->id],
+                context: ['source' => 'api', 'user_id' => $user->id],
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando email donación/código: '.$e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
@@ -2146,11 +2211,42 @@ class ParticipationController extends Controller
             return response()->json(['success' => false, 'message' => 'No puedes regalarte la participación a ti mismo.'], 422);
         }
 
-        ParticipationGift::create([
+        $gift = ParticipationGift::create([
             'participation_id' => $participation->id,
             'from_user_id' => $user->id,
             'to_user_id' => $destinatario->id,
         ]);
+
+        try {
+            $gift->load(['fromUser', 'toUser', 'participation']);
+            $communicationEmailService = app(CommunicationEmailService::class);
+
+            $communicationEmailService->sendAndLog(
+                recipientEmail: (string) $destinatario->email,
+                recipientRole: 'usuario',
+                recipientUser: $destinatario,
+                messageType: 'gift_recipient_notification',
+                templateKey: null,
+                mailClass: ParticipationGiftRecipientMail::class,
+                mailPayload: ['gift_id' => $gift->id],
+                context: ['source' => 'api', 'gift_id' => $gift->id],
+            );
+
+            if (!empty($user->email)) {
+                $communicationEmailService->sendAndLog(
+                    recipientEmail: (string) $user->email,
+                    recipientRole: 'usuario',
+                    recipientUser: $user,
+                    messageType: 'gift_sender_confirmation',
+                    templateKey: null,
+                    mailClass: ParticipationGiftSenderMail::class,
+                    mailPayload: ['gift_id' => $gift->id],
+                    context: ['source' => 'api', 'gift_id' => $gift->id],
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando emails de regalo: '.$e->getMessage());
+        }
 
         return response()->json([
             'success' => true,

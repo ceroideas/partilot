@@ -42,7 +42,7 @@ class Administration extends Model
 
     public function manager()
     {
-        return $this->hasOne(Manager::class,'administration_id','id');
+        return $this->hasOne(Manager::class,'administration_id','id')->where('is_primary', true);
     }
 
     /**

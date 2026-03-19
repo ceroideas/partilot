@@ -19,6 +19,67 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::create('email_templates', function (Blueprint $table) {
+            $table->id();
+
+            // Clave estable derivada del título del JSON (para poder referenciar la plantilla)
+            $table->string('key')->unique();
+            $table->string('title')->nullable();
+
+            // Texto “crudo” con cuándo dispara / condiciones (para depurar y usar en fases futuras)
+            $table->text('trigger_text')->nullable();
+            $table->text('condition_text')->nullable();
+
+            // Plantilla: asunto y cuerpo (para render futuro desde backend)
+            $table->string('subject_template')->nullable();
+            $table->longText('body_template')->nullable();
+
+            // Flags importados del JSON (no se usan aún para automatizar disparos)
+            $table->boolean('enabled_email')->default(true);
+            $table->boolean('enabled_notification')->default(false);
+
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+        });
+        
+        Schema::create('email_communication_logs', function (Blueprint $table) {
+            $table->id();
+
+            // Referencia opcional a plantilla importada desde el JSON
+            $table->string('template_key')->nullable();
+
+            // Tipo interno del mensaje/actuación (mailable/tipo)
+            $table->string('message_type')->nullable();
+
+            // Quién envía (requerido por tu especificación)
+            $table->string('sender_type'); // superadmin | administracion | entidad
+            $table->unsignedBigInteger('sender_user_id')->nullable();
+
+            // A quién se envía
+            $table->string('recipient_email');
+            $table->string('recipient_role')->nullable();
+            $table->unsignedBigInteger('recipient_user_id')->nullable();
+
+            // Para reenviar: guardamos clase y payload (id simple) para poder reconstruir el Mailable
+            $table->string('mail_class')->nullable();
+            $table->json('mail_payload')->nullable();
+
+            // Estados
+            $table->string('status', 20); // pending | sent | cancelled | resent
+            $table->timestamp('sent_at')->nullable();
+            $table->timestamp('resent_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
+            $table->timestamp('last_attempt_at')->nullable();
+
+            $table->text('error_message')->nullable();
+            $table->json('context')->nullable();
+
+            $table->timestamps();
+
+            $table->index(['recipient_email', 'status']);
+            $table->index(['sender_type', 'status']);
+        });
+        return 'ok';
         Schema::table('users', function (Blueprint $table) {
             $table->string('panel_account_type', 32)->nullable()->after('role');
             $table->unsignedBigInteger('panel_account_id')->nullable()->after('panel_account_type');
@@ -1206,9 +1267,6 @@ class ApiController extends Controller
                     if ($entity->reserves()->count() > 0) {
                         $canDelete = false;
                         $message = 'La entidad no se puede borrar porque tiene reservas asociadas.';
-                    } elseif ($entity->scrutinyResults()->count() > 0) {
-                        $canDelete = false;
-                        $message = 'La entidad no se puede borrar porque tiene resultados de escrutinio asociados.';
                     } elseif ($entity->sellers()->count() > 0) {
                         $canDelete = false;
                         $message = 'La entidad no se puede borrar porque tiene vendedores asociados.';
