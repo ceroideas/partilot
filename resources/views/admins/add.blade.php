@@ -299,7 +299,7 @@
 				                    			</div>
 	                    					</div>
 
-	                    					<div class="col-12">
+	                    					<div class="col-4">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Contraseña acceso panel</label>
 
