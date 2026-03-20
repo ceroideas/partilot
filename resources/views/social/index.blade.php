@@ -110,7 +110,7 @@
                                     @if(!empty($entityImg))
                                         <div class="logo-round" style="width:80px;height:80px;border-radius:50%;background-image:url('{{ asset('uploads/' . $entityImg) }}');background-size:cover;background-position:center;"></div>
                                     @else
-                                        <img src="{{url('icons_/globe.svg')}}" alt="" width="80px">
+                                        <img src="{{url('icons_/websocial.svg')}}" alt="" width="80px">
                                     @endif
                                 </div>
 
