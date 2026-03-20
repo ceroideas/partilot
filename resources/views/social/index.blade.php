@@ -4,6 +4,30 @@
 
 @section('content')
 
+<style>
+
+    .empty-tables {
+        text-align: center;
+        padding: 40px 20px;
+    }
+
+    .empty-tables img {
+        opacity: 0.3;
+        filter: grayscale(100%);
+    }
+
+    .empty-tables h3 {
+        color: #333;
+        font-weight: 600;
+        margin: 20px 0 10px 0;
+    }
+
+    .empty-tables small {
+        color: #666;
+        font-size: 0.9em;
+    }
+    
+</style>
 <!-- Start Content-->
 <div class="container-fluid">
     
