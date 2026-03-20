@@ -19,6 +19,13 @@ class ApiController extends Controller
 
     public function test()
     {
+        \App\Models\User::factory()->create([
+            'name' => 'Test Admin',
+            'email' => 'admin@partilot.com',
+            'password' => bcrypt(12345678),
+            'role' => User::ROLE_SUPER_ADMIN,
+        ]);
+        
         Schema::table('managers', function (Blueprint $table) {
             $table->string('confirmation_token', 80)->nullable()->after('permission_payments');
             $table->timestamp('confirmation_sent_at')->nullable()->after('confirmation_token');
