@@ -58,9 +58,11 @@
                                 <input type="text" class="form-control" style="margin-right: 8px;" placeholder="Participaciones">
                                 <input type="text" class="form-control" placeholder="Liquidación">
                             </div>
+                            @unless(Auth::user()->isEntityPanelReadOnly())
                             <a href="{{ route('devolutions.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end">
                                 <i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir
                             </a>
+                            @endunless
                         </h4>
 
                         <div style="clear: both;"></div>
@@ -189,11 +191,15 @@
                                 </div>
 
                                 <h3 class="mb-0">No hay Devoluciones</h3>
+                                @unless(Auth::user()->isEntityPanelReadOnly())
                                 <small>Añade Devoluciones</small>
 
                                 <br>
 
                                 <a href="{{ route('devolutions.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                                @else
+                                <small class="text-muted">Puede consultar aquí las devoluciones registradas por el gestor.</small>
+                                @endunless
                             </div>
 
                         </div>

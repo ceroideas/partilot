@@ -2,10 +2,15 @@
 
 namespace App\Observers;
 
-use App\Models\User;
-use App\Models\Seller;
+use App\Mail\EntityManagerInvitationMail;
+use App\Models\Entity;
 use App\Models\Manager;
+use App\Models\PendingEntityManagerInvitation;
+use App\Models\Seller;
+use App\Models\User;
+use App\Services\CommunicationEmailService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class UserObserver
 {
@@ -14,6 +19,9 @@ class UserObserver
      */
     public function created(User $user): void
     {
+        $this->attachPendingEntityManagerInvitations($user);
+        $user->refresh();
+
         // Buscar vendedores pendientes de vinculación con el mismo email
         // Incluye tanto PARTILOT pendientes como EXTERNO
         $pendingSellers = Seller::where('email', $user->email)
@@ -23,7 +31,7 @@ class UserObserver
         if ($pendingSellers->isNotEmpty()) {
             // Si hay vendedores pendientes, asignar rol de seller si el usuario no tiene un rol específico
             // (si es super_admin, client por defecto, o no tiene rol específico)
-            if (!$user->role || $user->role === User::ROLE_SUPER_ADMIN || $user->role === User::ROLE_CLIENT) {
+            if (! $user->role || $user->role === User::ROLE_SUPER_ADMIN || $user->role === User::ROLE_CLIENT) {
                 $user->update(['role' => User::ROLE_SELLER]);
                 Log::info("Rol de seller asignado al usuario {$user->id} debido a vendedores pendientes");
             }
@@ -45,7 +53,79 @@ class UserObserver
 
                 Log::info("Vendedor {$seller->id} vinculado automáticamente al usuario {$user->id}");
             } catch (\Exception $e) {
-                Log::error("Error al vincular vendedor {$seller->id} al usuario {$user->id}: " . $e->getMessage());
+                Log::error("Error al vincular vendedor {$seller->id} al usuario {$user->id}: ".$e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Invitaciones a gestor de entidad antes de existir el usuario (mismo email al registrarse en web/app).
+     */
+    private function attachPendingEntityManagerInvitations(User $user): void
+    {
+        if ($user->isPanelAccount()) {
+            return;
+        }
+
+        $email = PendingEntityManagerInvitation::normalizeEmail((string) $user->email);
+        if ($email === '') {
+            return;
+        }
+
+        $pendings = PendingEntityManagerInvitation::query()->where('email', $email)->get();
+        if ($pendings->isEmpty()) {
+            return;
+        }
+
+        foreach ($pendings as $pending) {
+            try {
+                if (Manager::query()->where('user_id', $user->id)->where('entity_id', $pending->entity_id)->exists()) {
+                    $pending->delete();
+
+                    continue;
+                }
+
+                if ($pending->is_primary) {
+                    Manager::query()->where('entity_id', $pending->entity_id)->update(['is_primary' => false]);
+                }
+
+                $manager = Manager::create([
+                    'user_id' => $user->id,
+                    'entity_id' => $pending->entity_id,
+                    'administration_id' => null,
+                    'is_primary' => $pending->is_primary,
+                    'permission_sellers' => $pending->permission_sellers,
+                    'permission_design' => $pending->permission_design,
+                    'permission_statistics' => $pending->permission_statistics,
+                    'permission_payments' => $pending->permission_payments,
+                    'confirmation_token' => Str::random(64),
+                    'confirmation_sent_at' => now(),
+                    'status' => null,
+                ]);
+
+                $pending->delete();
+
+                if ($user->role !== User::ROLE_ENTITY) {
+                    $user->update(['role' => User::ROLE_ENTITY]);
+                }
+
+                $entity = Entity::query()->find($manager->entity_id);
+                if ($entity && filled($user->email)) {
+                    app(CommunicationEmailService::class)->sendAndLog(
+                        recipientEmail: (string) $user->email,
+                        recipientRole: 'gestor_entidad',
+                        recipientUser: $user,
+                        messageType: 'entity_manager_invitation',
+                        templateKey: null,
+                        mailClass: EntityManagerInvitationMail::class,
+                        mailPayload: ['entity_id' => $entity->id, 'user_id' => $user->id, 'manager_id' => $manager->id],
+                        context: ['entity_id' => $entity->id],
+                    );
+                }
+
+                Log::info("Invitación pendiente de gestor vinculada al usuario {$user->id}, manager {$manager->id}");
+            } catch (\Throwable $e) {
+                Log::error('Error al vincular invitación pendiente de gestor: '.$e->getMessage());
             }
         }
     }
@@ -57,7 +137,7 @@ class UserObserver
     {
         // Verificar si el status cambió
         $statusChanged = $user->wasChanged('status');
-        
+
         // Sincronizar cambios del usuario a sus vendedores vinculados
         $linkedSellers = Seller::where('user_id', $user->id)->get();
 
@@ -74,7 +154,7 @@ class UserObserver
 
                 Log::info("Datos del vendedor {$seller->id} sincronizados con usuario {$user->id}");
             } catch (\Exception $e) {
-                Log::error("Error al sincronizar vendedor {$seller->id} con usuario {$user->id}: " . $e->getMessage());
+                Log::error("Error al sincronizar vendedor {$seller->id} con usuario {$user->id}: ".$e->getMessage());
             }
         }
 
@@ -94,7 +174,7 @@ class UserObserver
 
                     Log::info("Status del manager {$manager->id} sincronizado con usuario {$user->id} (status: {$managerStatus})");
                 } catch (\Exception $e) {
-                    Log::error("Error al sincronizar status del manager {$manager->id} con usuario {$user->id}: " . $e->getMessage());
+                    Log::error("Error al sincronizar status del manager {$manager->id} con usuario {$user->id}: ".$e->getMessage());
                 }
             }
         }

@@ -225,7 +225,9 @@ class CommunicationEmailService
             $userId = (int) ($mailPayload['user_id'] ?? 0);
             $administration = Administration::findOrFail($administrationId);
             $user = User::findOrFail($userId);
-            Mail::to($recipientEmail)->send(new \App\Mail\AdministrationWelcomeMail($administration, $user));
+            $plain = \App\Models\PanelAccessToken::issueForUser($user);
+            $magicUrl = route('panel.access', ['token' => $plain], absolute: true);
+            Mail::to($recipientEmail)->send(new \App\Mail\AdministrationWelcomeMail($administration, $user, $magicUrl));
             return;
         }
 

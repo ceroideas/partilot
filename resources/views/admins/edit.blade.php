@@ -383,7 +383,7 @@
 								@endphp
 								@if($adminPanelUser)
 								<h4 class="mb-0 mt-1 mt-3">Acceso al panel web</h4>
-								<small class="text-muted">Deje en blanco para no cambiar la contraseña. El usuario del panel es el email de la administración.</small>
+								<small class="text-muted">Usuario de acceso (no modificable): <strong>{{ $adminPanelUser->panel_login_username ?? '—' }}</strong>. El correo de la administración se usa para notificaciones. Deje en blanco para no cambiar la contraseña del panel.</small>
 								<div class="row mt-2">
 									<div class="col-md-4">
 										<div class="form-group mb-3">

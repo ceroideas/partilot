@@ -82,16 +82,20 @@
                                     </ul>
                                 </div>
                             @endif
+
+                            @if (session('success'))
+                                <div class="alert alert-success">{{ session('success') }}</div>
+                            @endif
                             
                             <div class="mb-3">
                                 {{-- <label for="emailaddress" class="form-label">Email</label> --}}
                                 <div class="input-group input-group-merge group-login">
 
                                     <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                        <span class="ri-mail-line"></span>
+                                        <span class="ri-user-line"></span>
                                     </div>
 
-                                    <input class="form-control @error('email') is-invalid @enderror" type="email" name="email" id="emailaddress" placeholder="Ingresa tu email" value="{{ old('email') }}" style="border-radius: 0 30px 30px 0;" required>
+                                    <input class="form-control @error('email') is-invalid @enderror" type="text" name="email" id="emailaddress" placeholder="Usuario de panel o email" value="{{ old('email') }}" style="border-radius: 0 30px 30px 0;" required autocomplete="username">
                                 </div>
                             </div>
                             <div class="mb-3">

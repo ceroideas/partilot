@@ -33,25 +33,38 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string|max:255',
             'password' => 'required|string|min:6',
         ], [
-            'email.required' => 'El campo email es obligatorio.',
-            'email.email' => 'El formato del email no es válido.',
+            'email.required' => 'Indique su usuario o email.',
             'password.required' => 'El campo contraseña es obligatorio.',
             'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
         ]);
 
-        $credentials = $request->only('email', 'password');
+        $login = trim((string) $request->input('email'));
+        $password = (string) $request->input('password');
 
-        if (Auth::attempt($credentials, $request->filled('remember'))) {
-            $request->session()->regenerate();
+        $user = User::query()
+            ->where(function ($q) use ($login) {
+                $q->where('email', $login)
+                    ->orWhere('panel_login_username', $login);
+            })
+            ->first();
 
-            $user = Auth::user();
+        if (! $user || ! Hash::check($password, $user->password)) {
+            return back()->withErrors([
+                'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
+            ])->withInput($request->only('email'));
+        }
 
-            // Bloquear login si la administración/entidad asociada está pendiente o inactiva.
-            // Regla: solo se permite acceso si el panel asociado tiene status == 1 (Activo).
-            if (! $user->isSuperAdmin()) {
+        Auth::login($user, $request->filled('remember'));
+        $request->session()->regenerate();
+
+        $user = Auth::user();
+
+        // Bloquear login si la administración/entidad asociada está pendiente o inactiva.
+        // Regla: solo se permite acceso si el panel asociado tiene status == 1 (Activo).
+        if (! $user->isSuperAdmin()) {
                 $hasActiveAccess = false;
 
                 if ($user->isPanelAccount()) {
@@ -89,24 +102,23 @@ class AuthController extends Controller
                         'email' => 'Tu administración o entidad asociada no está activa (pendiente o inactiva).',
                     ])->withInput($request->only('email'));
                 }
-            }
-
-            // Superadmin, cuentas panel (administración/entidad) y gestores de entidad (tienen entity_id)
-            // acceden al panel web.
-            if (! $user->isSuperAdmin() && ! $user->isPanelAccount() && ! $user->isEntity()) {
-                Auth::logout();
-
-                return back()->withErrors([
-                    'email' => 'Tu cuenta no tiene acceso al panel. Use el email y contraseña de su administración o entidad.',
-                ])->withInput($request->only('email'));
-            }
-
-            return redirect()->intended('/dashboard');
         }
 
-        return back()->withErrors([
-            'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
-        ])->withInput($request->only('email'));
+        // Superadmin, cuentas panel (administración/entidad) y gestores de entidad (tienen entity_id)
+        // acceden al panel web.
+        if (! $user->isSuperAdmin() && ! $user->isPanelAccount() && ! $user->isEntity()) {
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Tu cuenta no tiene acceso al panel. Use el usuario o email y contraseña de su administración o entidad.',
+            ])->withInput($request->only('email'));
+        }
+
+        if ($user->mustChangeEntityManagerLegacyPassword()) {
+            return redirect()->route('entity-manager.legacy-password.show');
+        }
+
+        return redirect()->intended('/dashboard');
     }
 
     /**
@@ -120,6 +132,44 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
+    }
+
+    /**
+     * Formulario para sustituir la contraseña por defecto (12345678) en gestores de entidad.
+     */
+    public function showEntityManagerLegacyPassword()
+    {
+        $user = Auth::user();
+        if (! $user || ! $user->mustChangeEntityManagerLegacyPassword()) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.entity-manager-legacy-password');
+    }
+
+    /**
+     * Guardar nueva contraseña (sustituye la provisional).
+     */
+    public function updateEntityManagerLegacyPassword(Request $request)
+    {
+        $user = Auth::user();
+        if (! $user || ! $user->mustChangeEntityManagerLegacyPassword()) {
+            return redirect()->route('dashboard');
+        }
+
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'password.required' => 'Indique la nueva contraseña.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.confirmed' => 'La confirmación no coincide.',
+        ]);
+
+        $user->update([
+            'password' => $request->input('password'),
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'Contraseña actualizada correctamente.');
     }
 
     /**

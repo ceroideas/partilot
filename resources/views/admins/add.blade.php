@@ -299,17 +299,8 @@
 				                    			</div>
 	                    					</div>
 
-	                    					<div class="col-4">
-	                    						<div class="form-group mt-2 mb-3">
-	                    							<label class="label-control">Contraseña acceso panel</label>
-
-					                    			<div class="input-group input-group-merge group-form">
-					                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-					                                        <i class="ri-lock-line"></i>
-					                                    </div>
-					                                    <input class="form-control" type="password" required name="panel_password" autocomplete="new-password" style="border-radius: 0 30px 30px 0;">
-					                                </div>
-				                    			</div>
+	                    					<div class="col-12">
+	                    						<p class="text-muted small mb-0 mt-1"><i class="ri-information-line"></i> El acceso al panel se enviará por correo de forma manual desde la ficha de la administración (usuario fijo + enlace para establecer contraseña).</p>
 	                    					</div>
 
 	                    				</div>

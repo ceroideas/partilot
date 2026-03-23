@@ -126,6 +126,7 @@
                     				Email de invitación
                     			</h4>
                     			<small><i>Asegúrese de que el email sea el correcto</i></small>
+                    			<p class="text-muted small mt-2 mb-0">El <strong>gestor responsable</strong> recibirá un <strong>correo</strong> para aceptar el cargo. La cuenta de acceso al <strong>panel de la entidad</strong> (email de la entidad) puede usarse desde ya para datos e invitaciones; las <strong>devoluciones y anulaciones</strong> solo las podrá tramitar el responsable una vez aceptada la invitación (o un usuario de la administración).</p>
 
                     			<div class="form-group mt-2 mb-3 admin-box">
 
@@ -294,7 +295,7 @@
 		                    								<h2>¡Hay 0 coincidencias!</h2>
 
 		                    								<p>
-		                    									No hemos encontrado un <b>usuario registrado con el email "<span id="no-coincidence-email"></span>"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad una vez se registre.</b>
+		                    									No hemos encontrado un <b>usuario registrado con el email "<span id="no-coincidence-email"></span>"</b>. Si haces clic en <b>Aceptar</b>, se guardará la invitación: al <b>registrarse con ese mismo email</b> (web o app) recibirá el correo para aceptar y <b>definir su contraseña</b> de acceso al panel.
 		                    								</p>
                     									</div>
 
@@ -302,7 +303,7 @@
 		                    								<h2>¡Hay 1 coincidencia!</h2>
 
 		                    								<p>
-		                    									Hemos encontrado un <b>usuario registrado con el email "<span id="coincidence-email"></span>"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad.</b>
+		                    									Hemos encontrado un <b>usuario registrado con el email "<span id="coincidence-email"></span>"</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para unirse a la entidad y <b>definir su contraseña</b> al aceptar.
 		                    								</p>
                     									</div>
 

@@ -583,9 +583,14 @@
 				                    			<h4 class="mb-0 mt-1">
 				                    				Administración de gestores
 
+				                    				@if(!empty($canManageManagers))
 				                    				<button style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end add-manager"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</button>
+				                    				@endif
 				                    			</h4>
 				                    			<small><i>Todos los campos son obligatorios</i></small>
+				                    			@if(empty($canManageManagers))
+				                    			<small class="d-block text-muted mt-1"><i>Solo el gestor responsable aceptado puede crear y gestionar gestores secundarios.</i></small>
+				                    			@endif
 				                    			<div style="clear: both;"></div>
 
 				                    			<table id="example2" class="table table-striped nowrap w-100">
@@ -657,7 +662,7 @@
 							                                		}
 							                                	@endphp
 							                                	<label class="badge {{ $statusClass }}">{{ $statusText }}</label>
-							                                	@if(!$manager->is_primary)
+							                                	@if(!$manager->is_primary && !empty($canManageManagers))
 							                                		<button class="btn btn-sm {{ $newStatusBtnClass }} toggle-manager-status ms-2" 
 							                                		        data-manager-id="{{ $manager->id }}" 
 							                                		        data-new-status="{{ $newStatus }}"
@@ -667,7 +672,7 @@
 							                                	@endif
 							                                </td>
 							                                <td>
-							                                	@if(!$manager->is_primary)
+							                                	@if(!$manager->is_primary && !empty($canManageManagers))
 							                                		@php
 							                                			$hasPrimary = $entity->managers->where('is_primary', true)->count() > 0;
 							                                			$confirmMessage = $hasPrimary 
@@ -682,8 +687,11 @@
 							                                		</form>
 							                                		<a href="{{ route('entities.edit-manager-permissions', ['entity_id' => $entity->id, 'manager_id' => $manager->id]) }}" class="btn btn-sm btn-warning" title="Editar permisos"><i class="ri-settings-3-line"></i></a>
 							                                		<a href="#" class="btn btn-sm btn-danger delete-manager" data-manager-id="{{ $manager->id }}" title="Eliminar"><i class="ri-delete-bin-6-line"></i></a>
+							                                	@elseif(!$manager->is_primary)
+							                                		<span class="text-muted">-</span>
 							                                	@else
 	                                		@if($managersVisible->where('is_primary', false)->count() > 0)
+	                                			@if(!empty($canManageManagers))
 							                                			<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" id="change-primary-form-{{ $manager->id }}" onsubmit="return validatePrimaryChange(event, {{ $manager->id }});">
 							                                				@csrf
 							                                				<input type="hidden" name="entity_id" value="{{ $entity->id }}">
@@ -695,6 +703,9 @@
 							                                				</select>
 							                                				<button type="submit" class="btn btn-sm btn-outline-secondary" id="change-primary-btn-{{ $manager->id }}" disabled>Cambiar</button>
 							                                			</form>
+	                                			@else
+	                                				<span class="text-muted">-</span>
+	                                			@endif
 							                                		@else
 							                                			<span class="text-muted" title="No hay otros gestores disponibles para asignar como principal">-</span>
 							                                		@endif
@@ -801,6 +812,7 @@
 			                    								@csrf
 			                    								<input type="hidden" name="entity_id" value="{{ $entity->id }}">
 			                    								<input type="hidden" name="user_id" id="invite-user-id">
+			                    								<input type="hidden" name="pending_invite_email" id="invite-pending-email" value="" disabled>
 			                    								<div class="row">
 			                    									
 			                    									<div class="col-7">
@@ -880,7 +892,7 @@
 												                                </div>
 												                                <small id="invite-email-error" class="text-danger d-none d-block mt-2">Ese email corresponde a una cuenta de acceso al panel (administración o entidad) y no puede invitarse como gestor.</small>
 
-												                                <button type="submit" disabled style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3" id="invite-button">Invitar</button>
+												                                <button type="button" disabled style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3" id="invite-button">Invitar</button>
 					                    										
 					                    									</div>
 
@@ -901,7 +913,7 @@
 					                    								<h2>¡Hay 0 coincidencias!</h2>
 
 					                    								<p>
-					                    									No hemos encontrado un <b>usuario registrado con el email “tomasgarciamontes@example.com”</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad una vez se que registre.</b>
+					                    									No hemos encontrado un <b>usuario registrado con el email “<span id="no-coincidence-email"></span>”</b>. Si haces clic en <b>Aceptar</b>, se guardará la invitación: al <b>registrarse con ese mismo email</b> (web o app) recibirá el correo para aceptar y definir su contraseña de acceso al panel.
 					                    								</p>
 			                    									</div>
 
@@ -909,7 +921,7 @@
 					                    								<h2>¡Hay 1 coincidencia!</h2>
 
 					                    								<p>
-					                    									Hemos encontrado un <b>usuario registrado con el email “tomasgarciamontes@example.com”</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad.</b>
+					                    									Hemos encontrado un <b>usuario registrado con el email “<span id="coincidence-email"></span>”</b>. Si haces clic en <b>Aceptar</b>, se le enviará una invitación para <b>unirse a tu entidad</b> y <b>definir su contraseña</b> al aceptar.
 					                    								</p>
 			                    									</div>
 
@@ -919,7 +931,7 @@
 				                    									</div>
 
 				                    									<div class="col-6">
-				                    										<a href="javascript:;" style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3 return-list">Aceptar</a>
+				                    										<button type="button" style="border-radius: 30px; width: 100%; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-3" id="accept-invite-btn">Aceptar</button>
 				                    									</div>
 				                    								</div>
 			                    								</div>
@@ -1235,46 +1247,79 @@ $('#invite-manager').click(function (e) {
 	$('#invite-form').removeClass('d-none');
 });
 
-$('.invite-email').keyup(function(event) {
+$('.invite-email').on('keyup change', function() {
 	var email = $(this).val();
 	if (email) {
 		$('#invite-button').prop('disabled', false);
-		// Verificar si el email existe
-		$.ajax({
-			url: '{{ route("entities.check-manager-email") }}',
-			method: 'POST',
-			data: {
-				_token: '{{ csrf_token() }}',
-				email: email
-			},
-			success: function(response) {
-				if (response.is_panel_account) {
-					$('#invite-user-id').val('');
-					$('#invite-email-error').removeClass('d-none');
-					$('#invite-button').prop('disabled', true);
-					return;
-				}
-				$('#invite-email-error').addClass('d-none');
-				if (response.exists && response.user_id) {
-					$('#invite-user-id').val(response.user_id);
-				} else {
-					$('#invite-user-id').val('');
-				}
-			}
-		});
 	} else {
 		$('#invite-button').prop('disabled', true);
 		$('#invite-email-error').addClass('d-none');
 	}
 });
 
+$('#invite-button').click(function (e) {
+	e.preventDefault();
+	var email = $('.invite-email').val();
+	if (!email) {
+		alert('Por favor, ingrese un email válido');
+		return;
+	}
+	$('#invite-button').prop('disabled', true).text('Verificando...');
+	$.ajax({
+		url: '{{ route("entities.check-manager-email") }}',
+		method: 'POST',
+		data: { _token: '{{ csrf_token() }}', email: email },
+		success: function(response) {
+			if (response.is_panel_account) {
+				$('#invite-user-id').val('');
+				$('#invite-pending-email').val('');
+				$('#invite-email-error').removeClass('d-none');
+				return;
+			}
+			$('#invite-email-error').addClass('d-none');
+			$('#invite-form').addClass('d-none');
+			$('#accept-invite').removeClass('d-none');
+			if (response.exists && response.user_id) {
+				$('#coincidence').removeClass('d-none');
+				$('#no-coincidence').addClass('d-none');
+				$('#coincidence-email').text(email);
+				$('#invite-user-id').val(response.user_id);
+				$('#invite-pending-email').val('');
+			} else {
+				$('#coincidence').addClass('d-none');
+				$('#no-coincidence').removeClass('d-none');
+				$('#no-coincidence-email').text(email);
+				$('#invite-user-id').val('');
+				$('#invite-pending-email').val(email);
+			}
+		},
+		error: function() {
+			alert('Error al verificar el email. Intente de nuevo.');
+		},
+		complete: function() {
+			$('#invite-button').prop('disabled', false).text('Invitar');
+		}
+	});
+});
+
 $('#cancel-invite').click(function (e) {
 	e.preventDefault();
-
 	$('#accept-invite').addClass('d-none');
-	
+	$('#coincidence').addClass('d-none');
+	$('#no-coincidence').addClass('d-none');
 	$('#invite-form').removeClass('d-none');
+});
 
+$('#accept-invite-btn').click(function (e) {
+	e.preventDefault();
+	if ($('#coincidence').is(':visible')) {
+		$('#invite-pending-email').val('').prop('disabled', true);
+		$('#invite-user-id').prop('disabled', false);
+	} else {
+		$('#invite-user-id').prop('disabled', true);
+		$('#invite-pending-email').prop('disabled', false);
+	}
+	$('#invite-form').submit();
 });
 
 $('#register-manager').click(function (e) {
@@ -1301,18 +1346,6 @@ $('.return-managers-options').click(function (e) {
 	$('#manager-buttons').removeClass('d-none');
 });
 
-
-$('.return-list').click(function (e) {
-	e.preventDefault();
-
-	$('#all-options').addClass('d-none');
-	$('#invite-form').addClass('d-none');
-	$('#accept-invite').addClass('d-none');
-	$('#register-manager-form').addClass('d-none');
-
-	$('#manager-buttons').removeClass('d-none');
-	$('#all-managers').removeClass('d-none');
-});
 
 // Cambiar status del manager
 $(document).on('click', '.toggle-manager-status', function (e) {

@@ -61,6 +61,47 @@ class Administration extends Model
     }
 
     /**
+     * Usuario de acceso al panel (fijo): receptor (5 dígitos) + 3 últimos del nº administración (Administración de Lotería).
+     * Punto de venta mixto (sin número de administración): solo el receptor.
+     */
+    public static function panelLoginUsernameFromParts(?string $receiving, ?string $adminNumber): string
+    {
+        $recvDigits = preg_replace('/\D/', '', (string) $receiving);
+        $recvDigits = substr(str_pad($recvDigits, 5, '0', STR_PAD_LEFT), -5);
+
+        $adm = trim((string) $adminNumber);
+        if ($adm === '') {
+            return $recvDigits;
+        }
+
+        $numDigits = preg_replace('/\D/', '', $adm);
+        $last3 = substr(str_pad($numDigits, 3, '0', STR_PAD_LEFT), -3);
+
+        return $recvDigits.$last3;
+    }
+
+    /**
+     * Garantizar unicidad de `panel_login_username` en users.
+     */
+    public static function ensureUniquePanelLoginUsername(string $base, ?int $exceptUserId = null): string
+    {
+        $candidate = $base;
+        $n = 0;
+
+        while (true) {
+            $q = User::query()->where('panel_login_username', $candidate);
+            if ($exceptUserId !== null) {
+                $q->where('id', '!=', $exceptUserId);
+            }
+            if (! $q->exists()) {
+                return $candidate;
+            }
+            $n++;
+            $candidate = $base.'-'.$n;
+        }
+    }
+
+    /**
      * Relación con los escrutinios de lotería de esta administración
      */
     public function lotteryScrutinies()

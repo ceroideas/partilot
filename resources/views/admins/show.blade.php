@@ -36,6 +36,13 @@
             <div class="card">
                 <div class="card-body">
 
+                    @if(session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+                    @if(session('error'))
+                        <div class="alert alert-danger">{{ session('error') }}</div>
+                    @endif
+
             		<h4 class="header-title">
 
                     	Datos Administración
@@ -363,6 +370,34 @@
 			                    					</div>
 
 			                    				</div>
+
+			                    				@if(isset($panelUser) && $panelUser)
+			                    				<div class="row mt-3">
+			                    					<div class="col-12">
+			                    						<h4 class="mb-0 mt-1">Acceso al panel web</h4>
+			                    						<small class="text-muted">Usuario fijo (no se puede cambiar). El correo con el enlace se envía al email de contacto de la administración.</small>
+			                    					</div>
+			                    					<div class="col-md-4 mt-2">
+			                    						<label class="label-control">Usuario de acceso</label>
+			                    						<div class="input-group input-group-merge group-form">
+			                    							<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+			                    								<i class="ri-user-line"></i>
+			                    							</div>
+			                    							<input readonly class="form-control" value="{{ $panelUser->panel_login_username ?? '—' }}" style="border-radius: 0 30px 30px 0;">
+			                    						</div>
+			                    					</div>
+			                    					<div class="col-md-8 mt-2 d-flex align-items-end">
+			                    						<form method="post" action="{{ route('administrations.send-panel-access', $administration) }}" class="d-inline" onsubmit="return confirm('¿Enviar correo con usuario y enlace para establecer contraseña?');">
+			                    							@csrf
+			                    							<button type="submit" class="btn btn-dark" style="border-radius: 30px;">
+			                    								<i class="ri-mail-send-line"></i> Enviar correo de acceso al panel
+			                    							</button>
+			                    						</form>
+			                    						<a href="{{ route('administrations.edit', $administration->id) }}" class="btn btn-light ms-2" style="border: 1px solid silver; border-radius: 30px;">Cambiar contraseña del panel</a>
+			                    					</div>
+			                    				</div>
+			                    				@endif
+
 			                    			</div>
 
 			                    			<h4 class="mb-0 mt-1">

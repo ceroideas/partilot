@@ -10,6 +10,7 @@ use App\Models\Administration;
 use App\Models\Entity;
 use App\Models\Manager;
 use App\Models\Seller;
+use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
@@ -30,6 +31,12 @@ class User extends Authenticatable
     public const ROLE_SELLER = 'seller';
     public const ROLE_CLIENT = 'client';
 
+    /**
+     * Contraseña por defecto usada históricamente al dar de alta gestores desde el panel.
+     * Si el hash coincide, el usuario debe cambiarla al iniciar sesión.
+     */
+    public const ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD = '12345678';
+
     protected $fillable = [
         'name',
         'last_name',
@@ -44,6 +51,7 @@ class User extends Authenticatable
         'role',
         'panel_account_type',
         'panel_account_id',
+        'panel_login_username',
         'password',
         'fcm_token',
     ];
@@ -534,6 +542,124 @@ class User extends Authenticatable
      * Permisos de gestor de entidad (aplican solo a managers sin cuenta panel).
      * Si no es gestor de entidad sin panel, devolvemos true para no romper flujos existentes.
      */
+    /**
+     * Gestor responsable de la entidad con invitación aceptada (manager activo y principal).
+     */
+    public function isPrimaryAcceptedManagerForEntity(int $entityId): bool
+    {
+        return $this->managers()
+            ->where('entity_id', $entityId)
+            ->where('is_primary', true)
+            ->where('status', 1)
+            ->exists();
+    }
+
+    /**
+     * Usuario de acceso al panel vinculado a la entidad (supervisión; sin permisos de mutación en web).
+     */
+    public function isEntityPanelReadOnly(): bool
+    {
+        return $this->isPanelAccount() && $this->panel_account_type === 'entity';
+    }
+
+    /**
+     * True si el gestor debe cambiar la contraseña provisional (12345678) antes de usar el panel.
+     */
+    public function mustChangeEntityManagerLegacyPassword(): bool
+    {
+        if ($this->isPanelAccount()) {
+            return false;
+        }
+
+        if ($this->role !== self::ROLE_ENTITY) {
+            return false;
+        }
+
+        return Hash::check(self::ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD, $this->password);
+    }
+
+    /**
+     * Puede tramitar devoluciones/anulaciones para esta entidad (alineado con DevolutionsController).
+     */
+    public function canManageEntityDevolutions(int $entityId): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->isAdministration() && $this->canAccessEntity($entityId)) {
+            return true;
+        }
+
+        if ($this->isPanelAccount()
+            && $this->panel_account_type === 'entity'
+            && (int) $this->panel_account_id === $entityId) {
+            return false;
+        }
+
+        return $this->isPrimaryAcceptedManagerForEntity($entityId);
+    }
+
+    /**
+     * Acceso al módulo web de devoluciones (menú y pantallas).
+     * Incluye cuenta panel de entidad en modo solo consulta; gestores no responsables quedan excluidos.
+     */
+    public function hasAccessToDevolutionsModule(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->isAdministration()) {
+            return true;
+        }
+
+        if ($this->isEntityPanelReadOnly()) {
+            return true;
+        }
+
+        return $this->managers()
+            ->whereNotNull('entity_id')
+            ->where('is_primary', true)
+            ->where('status', 1)
+            ->exists();
+    }
+
+    /**
+     * Puede ver el detalle de devoluciones de la entidad (gestor responsable, administración o panel entidad en consulta).
+     */
+    public function canViewDevolutionForEntity(int $entityId): bool
+    {
+        if ($this->canManageEntityDevolutions($entityId)) {
+            return true;
+        }
+
+        return $this->isEntityPanelReadOnly()
+            && $this->panel_account_id
+            && (int) $this->panel_account_id === $entityId;
+    }
+
+    /**
+     * IDs de entidades para las que puede gestionar devoluciones (listados / filtros).
+     *
+     * @return array<int>|null null = sin filtro (superadmin, todas)
+     */
+    public function devolutionManagedEntityIds(): ?array
+    {
+        if ($this->isSuperAdmin()) {
+            return null;
+        }
+
+        if ($this->isEntityPanelReadOnly() && $this->panel_account_id) {
+            return [(int) $this->panel_account_id];
+        }
+
+        return array_values(array_filter(
+            $this->accessibleEntityIds(),
+            fn ($id) => $this->canManageEntityDevolutions((int) $id)
+        ));
+    }
+
     public function hasEntityManagerPermission(string $permission)
     {
         $column = $this->managerPermissionColumn($permission);

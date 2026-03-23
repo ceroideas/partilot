@@ -16,7 +16,8 @@ class AdministrationWelcomeMail extends Mailable
 
     public function __construct(
         public Administration $administration,
-        public User $user
+        public User $user,
+        public string $magicLinkUrl = '',
     ) {}
 
     public function envelope(): Envelope

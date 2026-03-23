@@ -33,16 +33,99 @@ class DevolutionsController extends Controller
     }
 
     /**
+     * Mutaciones de devoluciones/anulaciones: superadmin, administración (sus entidades) y gestor responsable aceptado.
+     * La cuenta de panel de la entidad no (solo consulta en web); el mensaje lo indica si aplica.
+     */
+    private function devolutionEntityPermissionErrorIfAny(int $entityId): ?\Illuminate\Http\JsonResponse
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'No autenticado.'], 401);
+        }
+
+        if ($user->canManageEntityDevolutions($entityId)) {
+            return null;
+        }
+
+        $isEntityPanel = $user->isPanelAccount()
+            && $user->panel_account_type === 'entity'
+            && (int) $user->panel_account_id === $entityId;
+
+        return response()->json([
+            'success' => false,
+            'message' => $isEntityPanel
+                ? 'Las devoluciones y anulaciones las tramita el gestor responsable. Use el usuario personal del responsable (tras aceptar la invitación) o un usuario de su administración.'
+                : 'Solo el gestor responsable de la entidad (invitación aceptada) puede tramitar devoluciones y anulaciones.',
+        ], 403);
+    }
+
+    private function redirectUnlessDevolutionsWebAccess(): ?\Illuminate\Http\RedirectResponse
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->hasAccessToDevolutionsModule()) {
+            return redirect()->route('dashboard')->with(
+                'error',
+                'No tiene acceso al módulo de devoluciones.'
+            );
+        }
+
+        return null;
+    }
+
+    private function jsonUnlessDevolutionsWebAccess(): ?\Illuminate\Http\JsonResponse
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->hasAccessToDevolutionsModule()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene acceso al módulo de devoluciones.',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\Devolution>  $query
+     */
+    private function scopeDevolutionsToManagedEntities($query): void
+    {
+        $user = auth()->user();
+        if (! $user) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $ids = $user->devolutionManagedEntityIds();
+        if ($ids === null) {
+            return;
+        }
+        if ($ids === []) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+        $query->whereIn('entity_id', $ids);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $devolutions = Devolution::with(['entity', 'lottery', 'seller', 'user', 'payments'])
-            ->forUser(auth()->user())
+        if ($redirect = $this->redirectUnlessDevolutionsWebAccess()) {
+            return $redirect;
+        }
+
+        $query = Devolution::with(['entity', 'lottery', 'seller', 'user', 'payments'])
+            ->forUser(auth()->user());
+        $this->scopeDevolutionsToManagedEntities($query);
+        $devolutions = $query
             ->orderBy('devolution_date', 'desc')
             ->orderBy('devolution_time', 'desc')
             ->get();
-        
+
         return view('devolutions.index', compact('devolutions'));
     }
 
@@ -51,6 +134,17 @@ class DevolutionsController extends Controller
      */
     public function create()
     {
+        if ($redirect = $this->redirectUnlessDevolutionsWebAccess()) {
+            return $redirect;
+        }
+
+        if (auth()->user()->isEntityPanelReadOnly()) {
+            return redirect()->route('devolutions.index')->with(
+                'error',
+                'La cuenta de panel de la entidad solo puede consultar devoluciones. Para tramitarlas use el usuario del gestor responsable.'
+            );
+        }
+
         return view('devolutions.create');
     }
 
@@ -64,7 +158,11 @@ class DevolutionsController extends Controller
         if ($request->input('tipo_devolucion') === 'anulacion') {
             return $this->procesarAnulacion($request);
         }
-        
+
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         try {
             DB::beginTransaction();
 
@@ -130,6 +228,12 @@ class DevolutionsController extends Controller
                     'success' => false,
                     'message' => 'No tienes permisos para gestionar devoluciones de esta entidad'
                 ], 403);
+            }
+
+            if ($response = $this->devolutionEntityPermissionErrorIfAny((int) $data['entity_id'])) {
+                DB::rollBack();
+
+                return $response;
             }
 
             // VALIDAR: Si hay seller_id, verificar que pertenezca a la entidad
@@ -700,17 +804,28 @@ class DevolutionsController extends Controller
      */
     public function show(string $id)
     {
+        if ($redirect = $this->redirectUnlessDevolutionsWebAccess()) {
+            return $redirect;
+        }
+
         $devolution = Devolution::with([
-            'entity', 
-            'lottery', 
-            'seller', 
-            'user', 
+            'entity',
+            'lottery',
+            'seller',
+            'user',
             'details.participation.set',
-            'payments'
+            'payments',
         ])
-        ->forUser(auth()->user())
-        ->findOrFail($id);
-        
+            ->forUser(auth()->user())
+            ->findOrFail($id);
+
+        if (! auth()->user()->canViewDevolutionForEntity((int) $devolution->entity_id)) {
+            return redirect()->route('dashboard')->with(
+                'error',
+                'No puede ver esta devolución.'
+            );
+        }
+
         return view('devolutions.show', compact('devolution'));
     }
 
@@ -719,10 +834,25 @@ class DevolutionsController extends Controller
      */
     public function edit(string $id)
     {
+        if ($redirect = $this->redirectUnlessDevolutionsWebAccess()) {
+            return $redirect;
+        }
+
         $devolution = Devolution::with(['entity', 'lottery', 'seller', 'user', 'details.participation.set', 'payments'])
             ->forUser(auth()->user())
             ->findOrFail($id);
-        
+
+        if (auth()->user()->isEntityPanelReadOnly()) {
+            return redirect()->route('devolutions.show', $id);
+        }
+
+        if (! auth()->user()->canManageEntityDevolutions((int) $devolution->entity_id)) {
+            return redirect()->route('dashboard')->with(
+                'error',
+                'No puede editar esta devolución. Solo el gestor responsable o la administración pueden acceder.'
+            );
+        }
+
         return view('devolutions.edit', compact('devolution'));
     }
 
@@ -745,6 +875,15 @@ class DevolutionsController extends Controller
             $devolution = Devolution::with('details')
                 ->forUser(auth()->user())
                 ->findOrFail($id);
+
+            if (! auth()->user()->canManageEntityDevolutions((int) $devolution->entity_id)) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tiene permiso para eliminar esta devolución.',
+                ], 403);
+            }
 
             // Revertir cada participación según el tipo de acción y devolution.seller_id (sin nuevos campos)
             // Si la devolución tiene seller_id → participaciones asignadas a ese vendedor (asignada); si no → disponible
@@ -829,20 +968,28 @@ class DevolutionsController extends Controller
      */
     public function apiShow(string $id)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $devolution = Devolution::with([
             'entity',
             'lottery',
             'seller',
             'user',
             'details.participation.set',
-            'payments'
+            'payments',
         ])
             ->forUser(auth()->user())
             ->findOrFail($id);
 
+        if (! auth()->user()->canViewDevolutionForEntity((int) $devolution->entity_id)) {
+            return response()->json(['success' => false, 'message' => 'Sin permiso para esta devolución.'], 403);
+        }
+
         return response()->json([
             'success' => true,
-            'devolution' => $devolution
+            'devolution' => $devolution,
         ]);
     }
 
@@ -868,8 +1015,15 @@ class DevolutionsController extends Controller
      */
     public function data()
     {
-        $devolutions = Devolution::with(['entity', 'lottery', 'seller', 'user', 'details', 'payments'])
-            ->forUser(auth()->user())
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
+        $query = Devolution::with(['entity', 'lottery', 'seller', 'user', 'details', 'payments'])
+            ->forUser(auth()->user());
+        $this->scopeDevolutionsToManagedEntities($query);
+
+        $devolutions = $query
             ->select([
                 'devolutions.id',
                 'devolutions.entity_id',
@@ -884,11 +1038,11 @@ class DevolutionsController extends Controller
                 'devolutions.status',
                 'devolutions.notes',
                 'devolutions.created_at',
-                'devolutions.updated_at'
+                'devolutions.updated_at',
             ])
             ->orderBy('devolutions.created_at', 'desc')
             ->get()
-            ->map(function($devolution) {
+            ->map(function ($devolution) {
                 // Contar participaciones devueltas vs vendidas
                 $returnedCount = $devolution->details()->where('action', 'devolver')->count();
                 $soldCount = $devolution->details()->where('action', 'vender')->count();
@@ -936,11 +1090,19 @@ class DevolutionsController extends Controller
      */
     public function getEntities()
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $user = auth()->user();
         $entityIds = $user->getManagerEntityIds();
         if (empty($entityIds)) {
             $entityIds = $user->accessibleEntityIds();
         }
+        $entityIds = array_values(array_filter(
+            $entityIds,
+            fn ($id) => $user->canViewDevolutionForEntity((int) $id)
+        ));
         if (empty($entityIds)) {
             return response()->json(['success' => true, 'entities' => []]);
         }
@@ -974,11 +1136,16 @@ class DevolutionsController extends Controller
      */
     public function getLotteriesByEntity(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $entityId = $request->get('entity_id');
-        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+        if (! auth()->user()->canAccessEntity((int) $entityId)
+            || ! auth()->user()->canViewDevolutionForEntity((int) $entityId)) {
             return response()->json([
                 'success' => true,
-                'lotteries' => collect()
+                'lotteries' => collect(),
             ]);
         }
 
@@ -999,11 +1166,16 @@ class DevolutionsController extends Controller
      */
     public function getSellersByEntity(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $entityId = $request->get('entity_id');
-        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+        if (! auth()->user()->canAccessEntity((int) $entityId)
+            || ! auth()->user()->canViewDevolutionForEntity((int) $entityId)) {
             return response()->json([
                 'success' => true,
-                'sellers' => collect()
+                'sellers' => collect(),
             ]);
         }
         
@@ -1050,10 +1222,14 @@ class DevolutionsController extends Controller
      */
     public function getSetsBySellerAndLottery(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $sellerId = $request->get('seller_id');
         $lotteryId = $request->get('lottery_id');
 
-        if (!auth()->user()->canAccessSeller((int) $sellerId)) {
+        if (! auth()->user()->canAccessSeller((int) $sellerId)) {
             return response()->json([]);
         }
 
@@ -1084,13 +1260,18 @@ class DevolutionsController extends Controller
      */
     public function getSetsByEntityAndLottery(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $entityId = $request->get('entity_id');
         $lotteryId = $request->get('lottery_id');
 
-        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+        if (! auth()->user()->canAccessEntity((int) $entityId)
+            || ! auth()->user()->canViewDevolutionForEntity((int) $entityId)) {
             return response()->json([
                 'success' => true,
-                'sets' => collect()
+                'sets' => collect(),
             ]);
         }
 
@@ -1130,15 +1311,20 @@ class DevolutionsController extends Controller
      */
     public function getReservesByEntityAndLottery(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $entityId = $request->get('entity_id');
         $lotteryId = $request->get('lottery_id');
         $sellerId = $request->get('seller_id');
 
-        if (!$entityId || !$lotteryId) {
+        if (! $entityId || ! $lotteryId) {
             return response()->json(['success' => true, 'reserves' => []]);
         }
 
-        if (!auth()->user()->canAccessEntity((int) $entityId)) {
+        if (! auth()->user()->canAccessEntity((int) $entityId)
+            || ! auth()->user()->canViewDevolutionForEntity((int) $entityId)) {
             return response()->json(['success' => true, 'reserves' => []]);
         }
 
@@ -1187,15 +1373,23 @@ class DevolutionsController extends Controller
      */
     public function getAvailableRangesForReserve(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $reserveId = $request->get('reserve_id');
         $sellerId = $request->get('seller_id');
 
-        if (!$reserveId) {
+        if (! $reserveId) {
             return response()->json(['success' => true, 'available_ranges' => []]);
         }
 
         $reserve = Reserve::forUser(auth()->user())->find($reserveId);
-        if (!$reserve) {
+        if (! $reserve) {
+            return response()->json(['success' => true, 'available_ranges' => []]);
+        }
+
+        if (! auth()->user()->canViewDevolutionForEntity((int) $reserve->entity_id)) {
             return response()->json(['success' => true, 'available_ranges' => []]);
         }
 
@@ -1251,10 +1445,14 @@ class DevolutionsController extends Controller
      */
     public function getParticipationsBySellerAndLottery(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $sellerId = $request->get('seller_id');
         $lotteryId = $request->get('lottery_id');
 
-        if (!auth()->user()->canAccessSeller((int) $sellerId)) {
+        if (! auth()->user()->canAccessSeller((int) $sellerId)) {
             return response()->json([
                 'success' => true,
                 'participations' => collect()
@@ -1310,6 +1508,10 @@ class DevolutionsController extends Controller
      */
     public function validateParticipations(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $data = $request->validate([
             'seller_id' => 'nullable|exists:sellers,id', // Ahora es opcional
             'entity_id' => 'nullable|exists:entities,id', // Para devoluciones de entidad
@@ -1329,10 +1531,11 @@ class DevolutionsController extends Controller
             ]);
         }
 
-        if (!empty($data['entity_id']) && !auth()->user()->canAccessEntity((int) $data['entity_id'])) {
+        if (! empty($data['entity_id']) && (! auth()->user()->canAccessEntity((int) $data['entity_id'])
+            || ! auth()->user()->canManageEntityDevolutions((int) $data['entity_id']))) {
             return response()->json([
                 'success' => true,
-                'participations' => collect()
+                'participations' => collect(),
             ]);
         }
 
@@ -1349,11 +1552,17 @@ class DevolutionsController extends Controller
             return response()->json(['success' => false, 'message' => 'Falta set_id, reserve_id o referencia.'], 422);
         }
 
-        if (!empty($data['set_id'])) {
-            Set::forUser(auth()->user())->findOrFail($data['set_id']);
+        if (! empty($data['set_id'])) {
+            $setForPerm = Set::forUser(auth()->user())->findOrFail($data['set_id']);
+            if (! auth()->user()->canManageEntityDevolutions((int) $setForPerm->entity_id)) {
+                return response()->json(['success' => true, 'participations' => collect()]);
+            }
         }
-        if (!empty($data['reserve_id'])) {
-            Reserve::forUser(auth()->user())->findOrFail($data['reserve_id']);
+        if (! empty($data['reserve_id'])) {
+            $reserveForPerm = Reserve::forUser(auth()->user())->findOrFail($data['reserve_id']);
+            if (! auth()->user()->canManageEntityDevolutions((int) $reserveForPerm->entity_id)) {
+                return response()->json(['success' => true, 'participations' => collect()]);
+            }
         }
 
         $query = Participation::select([
@@ -1426,15 +1635,23 @@ class DevolutionsController extends Controller
     private function validateByReference(string $referencia, int $entityId, int $lotteryId)
     {
         $found = $this->findSetAndParticipationByReference($referencia);
-        if (!$found) {
+        if (! $found) {
             return response()->json([
                 'success' => false,
                 'message' => 'No se encuentra ninguna participación con esa referencia.',
-                'participations' => []
+                'participations' => [],
             ], 404);
         }
         $set = $found['set'];
         $participationNumber = $found['participation_number'];
+
+        if (! auth()->user()->canManageEntityDevolutions((int) $set->entity_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para validar devoluciones en esta entidad.',
+                'participations' => [],
+            ], 403);
+        }
 
         if ($entityId && $set->entity_id != $entityId) {
             return response()->json([
@@ -1510,6 +1727,10 @@ class DevolutionsController extends Controller
      */
     public function getLiquidationSummary(Request $request)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $entityId = $request->get('entity_id');
         $lotteryId = $request->get('lottery_id');
         $setId = $request->get('set_id');
@@ -1520,10 +1741,11 @@ class DevolutionsController extends Controller
         $sellerId = $request->get('seller_id');
         // Respetar siempre el tipo de devolución elegido (no forzar vendedor si es entidad→admin)
 
-        if ($entityId && !auth()->user()->canAccessEntity((int) $entityId)) {
+        if ($entityId && (! auth()->user()->canAccessEntity((int) $entityId)
+            || ! auth()->user()->canViewDevolutionForEntity((int) $entityId))) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes permisos para consultar esta entidad'
+                'message' => 'No tienes permisos para consultar esta entidad',
             ], 403);
         }
 
@@ -1537,11 +1759,17 @@ class DevolutionsController extends Controller
         // Sin participaciones seleccionadas pero con reserve_id: resumen de la reserva (totales entidad o vendedor)
         if (empty($selectedParticipations) && $reserveId) {
             $reserve = Reserve::forUser(auth()->user())->find($reserveId);
-            if (!$reserve || $reserve->lottery_id != $lotteryId) {
+            if (! $reserve || $reserve->lottery_id != $lotteryId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Reserva no encontrada o no coincide con el sorteo'
+                    'message' => 'Reserva no encontrada o no coincide con el sorteo',
                 ], 404);
+            }
+            if (! auth()->user()->canViewDevolutionForEntity((int) $reserve->entity_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para consultar liquidación de esta reserva.',
+                ], 403);
             }
             $setIds = Set::forUser(auth()->user())
                 ->where('reserve_id', $reserveId)
@@ -1961,10 +2189,17 @@ class DevolutionsController extends Controller
      */
     private function generateActions($id)
     {
-        return '
+        $user = auth()->user();
+        $view = '
             <a href="' . route('devolutions.show', $id) . '" class="btn btn-sm btn-light" title="Ver detalle">
                 <img src="' . url('assets/form-groups/eye.svg') . '" alt="" width="12">
-                </a>
+                </a>';
+
+        if ($user && $user->isEntityPanelReadOnly()) {
+            return $view;
+        }
+
+        return $view . '
             <a href="' . route('devolutions.edit', $id) . '" class="btn btn-sm btn-light" title="Editar">
                 <img src="' . url('assets/form-groups/edit.svg') . '" alt="" width="12">
                 </a>
@@ -1980,12 +2215,19 @@ class DevolutionsController extends Controller
      */
     public function getPayments($id)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         $devolution = Devolution::forUser(auth()->user())->findOrFail($id);
+        if (! auth()->user()->canViewDevolutionForEntity((int) $devolution->entity_id)) {
+            return response()->json(['success' => false, 'message' => 'Sin permiso.'], 403);
+        }
         $payments = $devolution->payments()->orderBy('created_at', 'desc')->get();
 
         return response()->json([
             'success' => true,
-            'payments' => $payments
+            'payments' => $payments,
         ]);
     }
 
@@ -1995,7 +2237,14 @@ class DevolutionsController extends Controller
     public function addPayment(Request $request, $id)
     {
         try {
+            if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+                return $resp;
+            }
+
             $devolution = Devolution::forUser(auth()->user())->findOrFail($id);
+            if (! auth()->user()->canManageEntityDevolutions((int) $devolution->entity_id)) {
+                return response()->json(['success' => false, 'message' => 'Sin permiso.'], 403);
+            }
 
             $data = $request->validate([
                 'pagos' => 'required|array',
@@ -2039,7 +2288,14 @@ class DevolutionsController extends Controller
     public function updatePayment(Request $request, $devolutionId, $paymentId)
     {
         try {
+            if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+                return $resp;
+            }
+
             $devolution = Devolution::forUser(auth()->user())->findOrFail($devolutionId);
+            if (! auth()->user()->canManageEntityDevolutions((int) $devolution->entity_id)) {
+                return response()->json(['success' => false, 'message' => 'Sin permiso.'], 403);
+            }
 
             $payment = DevolutionPayment::where('devolution_id', $devolution->id)
                 ->where('id', $paymentId)
@@ -2074,7 +2330,14 @@ class DevolutionsController extends Controller
     public function deletePayment($devolutionId, $paymentId)
     {
         try {
+            if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+                return $resp;
+            }
+
             $devolution = Devolution::forUser(auth()->user())->findOrFail($devolutionId);
+            if (! auth()->user()->canManageEntityDevolutions((int) $devolution->entity_id)) {
+                return response()->json(['success' => false, 'message' => 'Sin permiso.'], 403);
+            }
 
             $payment = DevolutionPayment::where('devolution_id', $devolution->id)
                 ->where('id', $paymentId)
@@ -2101,7 +2364,11 @@ class DevolutionsController extends Controller
     private function procesarAnulacion(Request $request)
     {
         \Log::info("=== INICIANDO PROCESAMIENTO DE ANULACIÓN ===");
-        
+
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
         try {
             DB::beginTransaction();
             \Log::info("Transacción de anulación iniciada");
@@ -2121,6 +2388,12 @@ class DevolutionsController extends Controller
                     'success' => false,
                     'message' => 'No tienes permisos para gestionar anulaciones de esta entidad'
                 ], 403);
+            }
+
+            if ($response = $this->devolutionEntityPermissionErrorIfAny((int) $data['entity_id'])) {
+                DB::rollBack();
+
+                return $response;
             }
 
             if (!empty($data['set_id'])) {

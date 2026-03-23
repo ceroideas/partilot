@@ -14,6 +14,8 @@ use App\Http\Controllers\ReserveController;
 use App\Http\Controllers\SetController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\PanelMagicLinkController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\ParticipationController;
 use App\Http\Controllers\ParticipationActivityLogController;
@@ -24,6 +26,7 @@ use App\Http\Controllers\CommunicationEmailController;
 use App\Http\Controllers\ContextController;
 use App\Http\Controllers\SepaPaymentOrderController;
 use App\Models\Administration;
+use App\Models\User;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -87,6 +90,9 @@ Route::get('login', [AuthController::class, 'showLoginForm'])->name('login')->mi
 Route::post('login', [AuthController::class, 'login']);
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
+Route::get('panel/acceso/{token}', [PanelMagicLinkController::class, 'show'])->name('panel.access');
+Route::post('panel/acceso/{token}', [PanelMagicLinkController::class, 'update'])->name('panel.access.submit');
+
 // Ruta para crear usuario administrador por defecto (solo en desarrollo)
 Route::get('create-admin', [AuthController::class, 'createDefaultAdmin']);
 
@@ -109,6 +115,7 @@ Route::get('firebase-messaging-sw.js', function () {
 Route::get('/sellers/confirm/accept/{token}', [SellerController::class, 'confirmAccept'])->name('sellers.confirm-accept');
 Route::get('/sellers/confirm/reject/{token}', [SellerController::class, 'confirmReject'])->name('sellers.confirm-reject');
 Route::get('/entity-managers/confirm/accept/{token}', [EntityController::class, 'confirmManagerAccept'])->name('entity-managers.confirm-accept');
+Route::post('/entity-managers/confirm/accept/{token}', [EntityController::class, 'confirmManagerAcceptStore'])->name('entity-managers.confirm-accept.store');
 Route::get('/entity-managers/confirm/reject/{token}', [EntityController::class, 'confirmManagerReject'])->name('entity-managers.confirm-reject');
 
 // Diseño externo por invitación (público, sin login; acceso solo por enlace)
@@ -118,10 +125,16 @@ Route::post('/design/external/save-format', [\App\Http\Controllers\DesignControl
 Route::get('/design/external/thank-you', [\App\Http\Controllers\DesignController::class, 'externalThankYou'])->name('design.external.thankYou');
 Route::get('/design/external/file/{id}/download', [\App\Http\Controllers\DesignController::class, 'externalDownloadFileSession'])->name('design.external.downloadFile');
 
-// Rutas protegidas por autenticación
-Route::middleware(['auth'])->group(function () {
+// Rutas protegidas por autenticación (cuenta panel entidad: solo lectura vía entity_panel.readonly)
+Route::middleware(['auth', 'entity_panel.readonly', 'entity_manager.legacy_password'])->group(function () {
     
     Route::get('dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+
+    Route::get('gestor/establecer-contrasena', [AuthController::class, 'showEntityManagerLegacyPassword'])->name('entity-manager.legacy-password.show');
+    Route::post('gestor/establecer-contrasena', [AuthController::class, 'updateEntityManagerLegacyPassword'])->name('entity-manager.legacy-password.update');
+
+    Route::get('cuenta/mis-datos', [AccountController::class, 'myData'])->name('account.my-data');
+    Route::post('cuenta/contrasena', [AccountController::class, 'updatePassword'])->name('account.update-password');
 
     // Selector de contexto de gestor (administración / entidad)
     Route::post('context/set-role', [ContextController::class, 'setRole'])->name('context.set-role');
@@ -134,10 +147,17 @@ Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin']
     Route::post('/add/manager', [AdministratorController::class, 'store_information']);
     Route::post('/store', [AdministratorController::class, 'store']);
 
-    Route::get('/view/{id}', function($id) { 
-        $administration = Administration::forUser(auth()->user())->findOrFail($id); 
-        return view('admins.show', compact('administration'));
+    Route::get('/view/{id}', function ($id) {
+        $administration = Administration::forUser(auth()->user())->findOrFail($id);
+        $panelUser = User::query()
+            ->where('panel_account_type', 'administration')
+            ->where('panel_account_id', $administration->id)
+            ->first();
+
+        return view('admins.show', compact('administration', 'panelUser'));
     })->name('administrations.show');
+    Route::post('/{administration}/send-panel-access', [AdministratorController::class, 'sendPanelAccessEmail'])
+        ->name('administrations.send-panel-access');
     Route::get('/edit/{id}', [AdministratorController::class, 'edit'])->name('administrations.edit');
     Route::put('/update/{id}', [AdministratorController::class, 'update'])->name('administrations.update');
     Route::post('/{administration}/toggle-status', [AdministratorController::class, 'toggleStatus'])->name('administrations.toggle-status');

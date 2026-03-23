@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 use App\Http\Requests\CreateAdmin;
 use App\Models\Administration;
@@ -122,24 +122,57 @@ class AdministratorController extends Controller
                 'nif_cif' => $request->nif_cif,
             ];
             if ($request->filled('panel_password')) {
-                $u['password'] = Hash::make($request->panel_password);
+                $u['password'] = $request->panel_password;
             }
             $panelUser->update($u);
+        }
+
+        // Contraseña de panel definida: si la administración seguía pendiente, pasar a activa.
+        if ($request->filled('panel_password')) {
+            $administration->refresh();
+            if ($administration->status === null || $administration->status === -1) {
+                $administration->update(['status' => 1]);
+            }
         }
 
         return redirect()->route('administrations.show', $administration->id)
             ->with('success', 'Administración actualizada correctamente');
     }
 
+    /**
+     * Envío manual (superadmin): correo con usuario de panel y enlace mágico para establecer contraseña.
+     */
+    public function sendPanelAccessEmail(Administration $administration)
+    {
+        $administration = Administration::forUser(auth()->user())->findOrFail($administration->id);
+
+        $panelUser = User::query()
+            ->where('panel_account_type', 'administration')
+            ->where('panel_account_id', $administration->id)
+            ->firstOrFail();
+
+        try {
+            app(CommunicationEmailService::class)->sendAndLog(
+                recipientEmail: (string) $panelUser->email,
+                recipientRole: 'gestor_administracion',
+                recipientUser: $panelUser,
+                messageType: 'administration_welcome',
+                templateKey: null,
+                mailClass: AdministrationWelcomeMail::class,
+                mailPayload: ['administration_id' => $administration->id, 'user_id' => $panelUser->id],
+                context: ['administration_id' => $administration->id],
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando acceso panel administración: '.$e->getMessage());
+
+            return back()->with('error', 'No se pudo enviar el correo. Inténtelo más tarde o revise la configuración de correo.');
+        }
+
+        return back()->with('success', 'Se ha enviado el correo con el usuario de acceso y el enlace para establecer la contraseña.');
+    }
+
     public function store_information(CreateAdmin $request)
     {
-        $request->validate([
-            'panel_password' => 'required|string|min:8',
-        ], [
-            'panel_password.required' => 'Debe definir una contraseña de acceso al panel.',
-            'panel_password.min' => 'La contraseña debe tener al menos 8 caracteres.',
-        ]);
-
         // Saneamiento IBAN: quitar espacios, prefijo ES duplicado y dejar solo dígitos
         $accountValue = $this->sanitizeIbanAccount($request->account);
 
@@ -157,7 +190,6 @@ class AdministratorController extends Controller
             'email' => $request->validated()['email'],
             'phone' => $request->validated()['phone'],
             'account' => $accountValue ? ('ES' . $accountValue) : null,
-            'panel_password' => $request->input('panel_password'),
         ];
         if ($request->file('image')) {
             $file = $request->file('image');
@@ -195,22 +227,22 @@ class AdministratorController extends Controller
             'email' => 'required|email|max:255',
         ]);
 
-        $panelPassword = $administrationData['panel_password'] ?? null;
-        if (! $panelPassword) {
-            return redirect()->route('administrations.create')
-                ->with('error', 'Falta la contraseña del panel. Vuelva a completar los datos legales.');
-        }
-
         $email = $administrationData['email'];
         if (User::where('email', $email)->exists()) {
             return back()->withErrors([
-                'panel_password' => 'Ya existe un usuario con el email de esta administración. Use otro email en el paso anterior o contacte con soporte.',
+                'email' => 'Ya existe un usuario con el email de esta administración. Use otro email en el paso anterior o contacte con soporte.',
             ])->withInput();
         }
 
         $administrationData['status'] = null;
 
         $newAdministration = Administration::create($administrationData);
+
+        $panelLoginBase = Administration::panelLoginUsernameFromParts(
+            $newAdministration->receiving,
+            $newAdministration->admin_number
+        );
+        $panelLoginUsername = Administration::ensureUniquePanelLoginUsername($panelLoginBase, null);
 
         if (strcasecmp((string) $request->input('email'), (string) $email) === 0) {
             return back()->withErrors([
@@ -243,10 +275,11 @@ class AdministratorController extends Controller
         $panelUser = User::create([
             'name' => Administration::panelDisplayNameFromParts($administrationData['name'] ?? '', $administrationData['society'] ?? ''),
             'email' => $email,
-            'password' => Hash::make($panelPassword),
+            'password' => Str::password(32),
             'role' => User::ROLE_ADMINISTRATION,
             'panel_account_type' => 'administration',
             'panel_account_id' => $newAdministration->id,
+            'panel_login_username' => $panelLoginUsername,
             'status' => true,
             'phone' => $administrationData['phone'] ?? null,
             'nif_cif' => $administrationData['nif_cif'] ?? null,
@@ -278,24 +311,12 @@ class AdministratorController extends Controller
             'status' => 1,
         ]);
 
-        try {
-            app(CommunicationEmailService::class)->sendAndLog(
-                recipientEmail: (string) $panelUser->email,
-                recipientRole: 'gestor_administracion',
-                recipientUser: $panelUser,
-                messageType: 'administration_welcome',
-                templateKey: null,
-                mailClass: AdministrationWelcomeMail::class,
-                mailPayload: ['administration_id' => $newAdministration->id, 'user_id' => $panelUser->id],
-                context: ['administration_id' => $newAdministration->id],
-            );
-        } catch (\Throwable $e) {
-            \Log::warning('Fallo enviando bienvenida administración: ' . $e->getMessage());
-        }
-
         $request->session()->forget(['administration', 'manager']);
 
-        return redirect('administrations')->with('success', 'Administración creada exitosamente.');
+        return redirect('administrations')->with(
+            'success',
+            'Administración creada correctamente. Envíe el correo de acceso al panel desde la ficha de la administración cuando corresponda.'
+        );
     }
 
     private function sanitizeIbanAccount($value): ?string

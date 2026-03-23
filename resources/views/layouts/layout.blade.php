@@ -180,10 +180,17 @@
                             <div class="dropdown-menu user-pro-dropdown">
 
                                 <!-- item-->
+                                @if(Auth::check() && Auth::user()->isPanelAccount() && Auth::user()->panel_account_type === 'administration')
+                                <a href="{{ route('account.my-data') }}" class="dropdown-item notify-item">
+                                    <i class="fe-user me-1"></i>
+                                    <span>Mis datos</span>
+                                </a>
+                                @else
                                 <a href="javascript:void(0);" class="dropdown-item notify-item">
                                     <i class="fe-user me-1"></i>
                                     <span>Mi Cuenta</span>
                                 </a>
+                                @endif
 
                                 <!-- item-->
                                 <a href="javascript:void(0);" class="dropdown-item notify-item">
@@ -215,23 +222,43 @@
                     @php
                         $currentUser = Auth::user();
                         $selected = null;
+                        $isEntityPanelReadOnly = $currentUser && $currentUser->isEntityPanelReadOnly();
                         $canSeeAdminModules = $currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration());
+                        $canSeeEntitiesMenu = $canSeeAdminModules || (
+                            $currentUser
+                            && $currentUser->isEntity()
+                            && ! $currentUser->isPanelAccount()
+                            && $currentUser->managers()
+                                ->whereNotNull('entity_id')
+                                ->where('is_primary', true)
+                                ->where('status', 1)
+                                ->exists()
+                        );
                         $canSeeEntityModules = $currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration() || $currentUser->isEntity());
 
                         $isRestrictedEntityUser = $currentUser && $currentUser->isEntity() && !$currentUser->isSuperAdmin() && !$currentUser->isAdministration();
                         
-                        $canSeeSellerModules = $canSeeEntityModules && (!$isRestrictedEntityUser || $currentUser->hasEntityManagerPermission('sellers'));
-                        $canSeeDesignModules = $canSeeEntityModules && (!$isRestrictedEntityUser || $currentUser->hasEntityManagerPermission('design'));
+                        $canSeeSellerModules = $canSeeEntityModules && (
+                            $isEntityPanelReadOnly
+                            || !$isRestrictedEntityUser
+                            || $currentUser->hasEntityManagerPermission('sellers')
+                        );
+                        $canSeeDesignModules = $canSeeEntityModules && (
+                            $isEntityPanelReadOnly
+                            || !$isRestrictedEntityUser
+                            || $currentUser->hasEntityManagerPermission('design')
+                        );
 
                         $canSeeSettingsModules = $currentUser && (
                             $currentUser->isSuperAdmin()
                             || $currentUser->isAdministration()
+                            || $isEntityPanelReadOnly
                             || ($isRestrictedEntityUser && $currentUser->hasEntityManagerPermission('payments'))
                         );
                     @endphp
                     <ul class="menu">
 
-                        <li class="menu-title">Navigation {{$currentUser->isEntity()}}</li>
+                        <li class="menu-title">Navigation</li>
 
                         <li class="menu-item @if (Request::is('dashboard') || Request::is('/')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/dashboard')}}" class="menu-link">
@@ -255,7 +282,7 @@
                             </li>
                         @endif
 
-                        @if($canSeeAdminModules)
+                        @if($canSeeEntitiesMenu)
                             <li class="menu-item @if (Request::is('entities/*') || Request::is('entities')) menuitem-active @php $selected = 1; @endphp @endif">
                                 <a href="{{url('/entities')}}" class="menu-link">
                                     <span class="menu-icon">
@@ -363,7 +390,7 @@
                             </li>
                         @endif
 
-                        @if($canSeeEntityModules)
+                        @if($canSeeEntityModules && Auth::check() && Auth::user()->hasAccessToDevolutionsModule())
                             <li class="menu-item @if (Request::is('devolutions/*') || Request::is('devolutions')) menuitem-active @php $selected = 1; @endphp @endif">
                                 <a href="{{url('devolutions')}}" class="menu-link">
                                     <span class="menu-icon">
@@ -800,10 +827,17 @@
                                     </div>
 
                                     <!-- item-->
+                                    @if(Auth::check() && Auth::user()->isPanelAccount() && Auth::user()->panel_account_type === 'administration')
+                                    <a href="{{ route('account.my-data') }}" class="dropdown-item notify-item">
+                                        <i class="fe-user"></i>
+                                        <span>Mis datos</span>
+                                    </a>
+                                    @else
                                     <a href="javascript:void(0);" class="dropdown-item notify-item">
                                         <i class="fe-user"></i>
                                         <span>Mi Cuenta</span>
                                     </a>
+                                    @endif
 
                                     <!-- item-->
                                     <a href="javascript:void(0);" class="dropdown-item notify-item">
@@ -876,6 +910,12 @@
 
                     </div>
 
+                    @if(Auth::check() && Auth::user()->isEntityPanelReadOnly())
+                        <div class="alert alert-info border-0 rounded-0 mb-0 text-center py-2" role="alert" style="font-size: 0.9rem;">
+                            <strong>Modo solo consulta.</strong>
+                            La cuenta de panel de la entidad puede revisar la misma información que el gestor; no puede realizar cambios (tramitación solo con el usuario del gestor responsable).
+                        </div>
+                    @endif
 
                     @yield('content')
 
