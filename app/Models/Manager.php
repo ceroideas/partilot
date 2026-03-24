@@ -20,6 +20,7 @@ class Manager extends Model
         "permission_payments",
         "confirmation_token",
         "confirmation_sent_at",
+        "requires_password_setup",
         "status",
     ];
 
@@ -30,6 +31,7 @@ class Manager extends Model
         'permission_statistics' => 'boolean',
         'permission_payments' => 'boolean',
         'confirmation_sent_at' => 'datetime',
+        'requires_password_setup' => 'boolean',
     ];
 
     /**

@@ -19,12 +19,20 @@ class ApiController extends Controller
 
     public function test()
     {
-        \App\Models\User::factory()->create([
-            'name' => 'Test Admin',
-            'email' => 'admin@partilot.es',
-            'password' => bcrypt(12345678),
-            'role' => User::ROLE_SUPER_ADMIN,
-        ]);
+        // \App\Models\User::factory()->create([
+        //     'name' => 'Test Admin',
+        //     'email' => 'admin@partilot.es',
+        //     'password' => bcrypt(12345678),
+        //     'role' => User::ROLE_SUPER_ADMIN,
+        // ]);
+
+        Schema::table('managers', function (Blueprint $table) {
+            if (! Schema::hasColumn('managers', 'requires_password_setup')) {
+                $table->boolean('requires_password_setup')
+                    ->default(false)
+                    ->after('confirmation_sent_at');
+            }
+        });
         
         Schema::create('pending_entity_manager_invitations', function (Blueprint $table) {
             $table->id();

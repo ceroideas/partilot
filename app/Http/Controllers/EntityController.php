@@ -23,8 +23,17 @@ class EntityController extends Controller
      */
     public function index()
     {
-        $entities = Entity::with(['administration', 'manager'])
-            ->forUser(auth()->user())
+        $user = auth()->user();
+
+        $query = Entity::with(['administration', 'manager'])
+            ->forUser($user);
+
+        // Los gestores de entidad (sin cuenta panel) solo ven entidades activas en el listado.
+        if ($user && $user->isEntityManagerWithoutPanelAccount()) {
+            $query->where('status', 1);
+        }
+
+        $entities = $query
             ->orderBy('created_at', 'desc')
             ->get();
         return view('entities.index', compact('entities'));
@@ -220,6 +229,7 @@ class EntityController extends Controller
         }
 
         $managerUser = User::where('email', $request->input('manager_email'))->first();
+        $managerUserWasNew = false;
         if ($managerUser && $managerUser->isPanelAccount()) {
             return back()->withErrors([
                 'manager_email' => 'Ese email corresponde a una cuenta de acceso de panel. Use otro email para el gestor.',
@@ -227,6 +237,7 @@ class EntityController extends Controller
         }
 
         if (! $managerUser) {
+            $managerUserWasNew = true;
             // Contraseña aleatoria hasta que el gestor la defina al aceptar el correo.
             $managerUser = User::create([
                 'name' => $request->input('manager_name'),
@@ -284,6 +295,7 @@ class EntityController extends Controller
             'permission_payments' => true,
             'confirmation_token' => Str::random(64),
             'confirmation_sent_at' => now(),
+            'requires_password_setup' => $managerUserWasNew,
             'status' => null,
         ]);
 
@@ -552,7 +564,9 @@ class EntityController extends Controller
             'permission_statistics' => 'nullable|boolean',
             'permission_payments' => 'nullable|boolean',
         ]);
+        $userWasNew = false;
         if (! $user) {
+            $userWasNew = true;
             $user = new User;
             $user->name = $validated['manager_name'] . ' ' . $validated['manager_last_name'];
             $user->email = $validated['manager_email'];
@@ -593,6 +607,7 @@ class EntityController extends Controller
             'permission_payments' => $request->has('permission_payments') ? true : false,
             'confirmation_token' => Str::random(64),
             'confirmation_sent_at' => now(),
+            'requires_password_setup' => $userWasNew,
             'status' => null, // Pendiente por defecto
         ]);
 
@@ -796,7 +811,9 @@ class EntityController extends Controller
 
         $canManageManagers = $this->canManageSecondaryManagers($entity);
 
-        return view('entities.show', compact('entity', 'managersVisible', 'entityPanelUser', 'canManageManagers'));
+        $canToggleEntityStatus = auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdministration());
+
+        return view('entities.show', compact('entity', 'managersVisible', 'entityPanelUser', 'canManageManagers', 'canToggleEntityStatus'));
     }
 
     /**
@@ -1194,6 +1211,24 @@ class EntityController extends Controller
             ]);
         }
 
+        if (! $manager->requires_password_setup) {
+            $manager->update([
+                'status' => 1,
+                'confirmation_token' => null,
+                'confirmation_sent_at' => null,
+            ]);
+
+            if ($manager->is_primary && $manager->entity) {
+                $this->notifyEntityResponsibleManagerConfirmed($manager->entity, $manager);
+            }
+
+            return view('entities.manager-confirmation-success', [
+                'message' => '¡Invitación aceptada correctamente! Ya puedes iniciar sesión y gestionar la entidad.',
+                'type' => 'accept',
+                'manager' => $manager,
+            ]);
+        }
+
         return view('entities.manager-accept-password', [
             'token' => $token,
             'manager' => $manager,
@@ -1218,23 +1253,28 @@ class EntityController extends Controller
             ]);
         }
 
-        $request->validate([
-            'password' => 'required|string|min:8|confirmed',
-        ], [
-            'password.required' => 'Indique una contraseña.',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
-            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-        ]);
+        if ($manager->requires_password_setup) {
+            $request->validate([
+                'password' => 'required|string|min:8|confirmed',
+            ], [
+                'password.required' => 'Indique una contraseña.',
+                'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+                'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+            ]);
+        }
 
         DB::transaction(function () use ($manager, $request) {
-            $manager->user->update([
-                'password' => $request->input('password'),
-            ]);
+            if ($manager->requires_password_setup) {
+                $manager->user->update([
+                    'password' => $request->input('password'),
+                ]);
+            }
 
             $manager->update([
                 'status' => 1,
                 'confirmation_token' => null,
                 'confirmation_sent_at' => null,
+                'requires_password_setup' => false,
             ]);
         });
 
@@ -1335,6 +1375,13 @@ class EntityController extends Controller
     {
         // Verificar permisos
         $entity = Entity::forUser(auth()->user())->findOrFail($entity->id);
+        $user = auth()->user();
+        if (! $user || (! $user->isSuperAdmin() && ! $user->isAdministration())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo administración o superadmin pueden cambiar el estado de la entidad.',
+            ], 403);
+        }
         
         // Determinar el nuevo estado según el estado actual
         $currentStatus = $entity->status;

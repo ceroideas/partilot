@@ -100,6 +100,7 @@ class UserObserver
                     'permission_payments' => $pending->permission_payments,
                     'confirmation_token' => Str::random(64),
                     'confirmation_sent_at' => now(),
+                    'requires_password_setup' => false,
                     'status' => null,
                 ]);
 
