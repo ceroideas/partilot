@@ -15,11 +15,42 @@ use Illuminate\Support\Facades\Log;
 class UserController extends Controller
 {
     /**
+     * Solo super_admin y administración pueden acceder al módulo de usuarios.
+     */
+    private function authorizeUsersModule(): void
+    {
+        $auth = auth()->user();
+        if (! $auth || ! ($auth->isSuperAdmin() || $auth->isAdministration())) {
+            abort(403, 'No autorizado.');
+        }
+    }
+
+    /**
+     * Perfil administración (no superadmin): solo usuarios de su red (gestores/vendedores).
+     */
+    private function authorizeUserVisibleToAdministration(User $user): void
+    {
+        $this->authorizeUsersModule();
+
+        $auth = auth()->user();
+        if ($auth && $auth->isAdministration() && ! $auth->isSuperAdmin() && ! $user->isAccessibleToAdministrationViewer($auth)) {
+            abort(403, 'No autorizado.');
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $users = User::whereNull('panel_account_type')->orderBy('name')->get();
+        $this->authorizeUsersModule();
+
+        $query = User::query()->whereNull('panel_account_type')->orderBy('name');
+        $auth = auth()->user();
+        if ($auth && $auth->isAdministration() && ! $auth->isSuperAdmin()) {
+            $query->forAdministrationScopedViewer($auth);
+        }
+        $users = $query->get();
 
         return view('users.index', compact('users'));
     }
@@ -29,6 +60,7 @@ class UserController extends Controller
      */
     public function create()
     {
+        $this->authorizeUsersModule();
         return view('users.create');
     }
 
@@ -37,6 +69,8 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorizeUsersModule();
+
         $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -97,6 +131,7 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user)
     {
+        $this->authorizeUserVisibleToAdministration($user);
         $tab = $request->query('tab');
         return view('users.show', compact('user', 'tab'));
     }
@@ -106,6 +141,7 @@ class UserController extends Controller
      */
     public function wallet(User $user)
     {
+        $this->authorizeUserVisibleToAdministration($user);
         $participationController = app(ParticipationController::class);
         $items = $participationController->getWalletDataForUser($user);
         return view('users.wallet', compact('user', 'items'));
@@ -116,6 +152,7 @@ class UserController extends Controller
      */
     public function history(User $user)
     {
+        $this->authorizeUserVisibleToAdministration($user);
         $participationController = app(ParticipationController::class);
         $historial = $participationController->getHistorialDataForUser($user);
         return view('users.history', compact('user', 'historial'));
@@ -126,6 +163,7 @@ class UserController extends Controller
      */
     public function toggleStatus(Request $request, User $user)
     {
+        $this->authorizeUserVisibleToAdministration($user);
         $user->update(['status' => !$user->status]);
         return response()->json([
             'success' => true,
@@ -140,6 +178,7 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        $this->authorizeUserVisibleToAdministration($user);
         return view('users.edit', compact('user'));
     }
 
@@ -148,6 +187,7 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        $this->authorizeUserVisibleToAdministration($user);
         $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -216,6 +256,7 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        $this->authorizeUserVisibleToAdministration($user);
         if ($user->isPanelAccount()) {
             return back()->with('error', 'No se puede eliminar una cuenta de acceso al panel (administración o entidad).');
         }
@@ -261,7 +302,13 @@ class UserController extends Controller
      */
     public function data(Request $request)
     {
+        $this->authorizeUsersModule();
+
         $query = User::query()->whereNull('panel_account_type');
+        $auth = auth()->user();
+        if ($auth && $auth->isAdministration() && ! $auth->isSuperAdmin()) {
+            $query->forAdministrationScopedViewer($auth);
+        }
 
         // Aplicar filtros
         if ($request->filled('province')) {

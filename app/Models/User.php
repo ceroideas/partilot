@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -261,6 +262,14 @@ class User extends Authenticatable
                 ->values()
                 ->all();
 
+            if ($this->panel_account_type === 'administration' && $this->panel_account_id) {
+                $administrationIds = collect($administrationIds)
+                    ->push((int) $this->panel_account_id)
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+
             return $this->cachedAdministrationIds = $administrationIds;
         }
 
@@ -313,13 +322,7 @@ class User extends Authenticatable
         }
 
         if ($this->isAdministration()) {
-            $administrationIds = Manager::query()
-                ->where('user_id', $this->id)
-                ->whereNotNull('administration_id')
-                ->pluck('administration_id')
-                ->unique()
-                ->values()
-                ->all();
+            $administrationIds = $this->accessibleAdministrationIds();
 
             if (empty($administrationIds)) {
                 return $this->cachedEntityIds = [];
@@ -360,6 +363,58 @@ class User extends Authenticatable
         }
 
         return $this->cachedEntityIds = [];
+    }
+
+    /**
+     * Usuarios de app (sin cuenta panel) visibles para un perfil administración:
+     * gestores de sus administraciones o entidades, o vendedores ligados a esas entidades.
+     * Excluye superadministradores.
+     */
+    public function scopeForAdministrationScopedViewer(Builder $query, User $viewer): Builder
+    {
+        if ($viewer->isSuperAdmin() || ! $viewer->isAdministration()) {
+            return $query;
+        }
+
+        $adminIds = $viewer->accessibleAdministrationIds();
+        if ($adminIds === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->where('role', '!=', self::ROLE_SUPER_ADMIN)
+            ->where(function (Builder $q) use ($adminIds) {
+                $q->whereHas('managers', function (Builder $m) use ($adminIds) {
+                    $m->where(function (Builder $inner) use ($adminIds) {
+                        $inner->whereIn('administration_id', $adminIds)
+                            ->orWhereIn('entity_id', function ($sub) use ($adminIds) {
+                                $sub->select('id')
+                                    ->from('entities')
+                                    ->whereIn('administration_id', $adminIds);
+                            });
+                    });
+                })->orWhereHas('sellers', function (Builder $s) use ($adminIds) {
+                    $s->whereHas('entities', function (Builder $e) use ($adminIds) {
+                        $e->whereIn('administration_id', $adminIds);
+                    });
+                });
+            });
+    }
+
+    /**
+     * Si el visor es administración (no superadmin), ¿puede ver/editar este usuario en el panel?
+     */
+    public function isAccessibleToAdministrationViewer(User $viewer): bool
+    {
+        if ($viewer->isSuperAdmin() || ! $viewer->isAdministration()) {
+            return true;
+        }
+
+        return static::query()
+            ->whereKey($this->id)
+            ->whereNull('panel_account_type')
+            ->forAdministrationScopedViewer($viewer)
+            ->exists();
     }
 
     /**
