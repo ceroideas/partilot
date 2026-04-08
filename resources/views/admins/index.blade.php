@@ -18,7 +18,7 @@
                 <h4 class="page-title">Administraciones</h4>
             </div>
         </div>
-    </div>     
+    </div>
 
     <div class="row">
         <div class="col-12">

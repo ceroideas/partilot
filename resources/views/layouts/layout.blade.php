@@ -134,6 +134,115 @@
                 position: relative;
                 z-index: 1000;
             }
+            /* Topbar global estilo Figma */
+            .navbar-custom {
+                width: 100%;
+                margin-left: auto;
+                margin-right: 0;
+                background: #f3f4f8;
+                border: 1px solid #e2e5ee;
+                border-radius: 30px;
+                box-shadow: none;
+                overflow: visible;
+            }
+            .navbar-custom .topbar {
+                background: transparent;
+                min-height: 64px;
+                padding: 8px 16px;
+                overflow: visible;
+            }
+            .navbar-custom .topbar > .topbar-menu:first-child {
+                display: none;
+            }
+            .navbar-custom .topbar > .topbar-menu:last-child {
+                margin-left: auto;
+                padding: 12px;
+                border: 1px solid #d9dde8;
+                border-radius: 999px;
+                background: #f8f9fd;
+                gap: 8px;
+                overflow: visible;
+                margin-right: 20px;
+            }
+            .navbar-custom .topbar .nav-link,
+            .navbar-custom .topbar .nav-user {
+                border-radius: 999px;
+                height: 38px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .navbar-custom .topbar .nav-link {
+                width: 38px;
+                padding: 0;
+                border: 1px solid #cfd5e2;
+                background: #ffffff;
+            }
+            .navbar-custom .topbar .nav-user {
+                width: auto;
+                padding: 4px 6px 4px 4px !important;
+                gap: 8px;
+                border: 0;
+                background: transparent;
+            }
+            .navbar-custom .topbar .nav-user img {
+                display: none;
+            }
+            .navbar-custom .topbar .nav-user .user-name {
+                display: block;
+                color: #1f2430;
+                font-weight: 700;
+                line-height: 1.05;
+                font-size: 1.05rem;
+            }
+            .navbar-custom .topbar .nav-user .user-role {
+                display: block;
+                color: #737b8f;
+                text-transform: uppercase;
+                letter-spacing: .04em;
+                font-size: .63rem;
+                font-weight: 700;
+                margin-top: 2px;
+                line-height: 1;
+            }
+            .navbar-custom .topbar .nav-user .mdi-chevron-down {
+                display: none;
+            }
+            .navbar-custom .topbar .dropdown-menu {
+                z-index: 1100;
+            }
+            .navbar-custom #top-search-wrap {
+                min-width: 210px !important;
+                margin-right: 8px;
+                overflow: visible !important;
+            }
+            .navbar-custom .app-search input.form-control {
+                background: #eef1f7;
+                border: 1px solid #e2e6f0;
+                border-radius: 999px;
+                height: 38px;
+                font-size: .9rem;
+                padding-left: 38px;
+                pointer-events: auto;
+            }
+            .navbar-custom .app-search .search-icon {
+                left: 12px;
+                top: 6px;
+                color: #8f97ac;
+            }
+            .navbar-custom .app-search .search-icon:before {
+                top: -5px;
+                position: relative;
+            }
+            
+            @media (max-width: 1200px) {
+                .navbar-custom {
+                    width: 100%;
+                }
+                .navbar-custom .topbar .nav-user .user-role {
+                    display: none;
+                }
+            }
         </style>
 
         @yield('styles')
@@ -147,7 +256,7 @@
 
             
             <!-- ========== Menu ========== -->
-            <div class="app-menu">  
+            <div class="app-menu menuitem-active">  
 
                 <!-- Brand Logo -->
                 <div class="logo-box">
@@ -667,7 +776,14 @@
                             </li> --}}
 
                             <!-- Notofication dropdown -->
-                            <li class="dropdown notification-list">
+                            <li class="topbar-btn-settings">
+                                <a class="nav-link waves-effect waves-light" data-bs-toggle="offcanvas" href="#theme-settings-offcanvas">
+                                    <i class="fe-settings font-18"></i>
+                                </a>
+                            </li>
+
+                            <!-- Notofication dropdown -->
+                            <li class="dropdown notification-list topbar-btn-notifications">
                                 <a class="nav-link dropdown-toggle waves-effect waves-light arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                                     <i class="fe-bell font-22"></i>
                                     <span class="badge bg-danger rounded-circle noti-icon-badge">9</span>
@@ -804,10 +920,9 @@
                                 </div>
                             </li> --}}
 
-                            <!-- Right Bar offcanvas button (Theme Customization Panel) -->
-                            <li>
-                                <a class="nav-link waves-effect waves-light" data-bs-toggle="offcanvas" href="#theme-settings-offcanvas">
-                                    <i class="fe-settings font-22"></i>
+                            <li class="topbar-btn-preview">
+                                <a class="nav-link waves-effect waves-light" href="javascript:void(0);">
+                                    <i class="fe-layout font-18"></i>
                                 </a>
                             </li>
 
@@ -816,8 +931,22 @@
                                 <a class="nav-link dropdown-toggle nav-user me-0 waves-effect waves-light d-flex align-items-center" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                                     @php $panelHeaderImgTop = Auth::user()?->panelAccountHeaderImageUrl(); @endphp
                                     <img src="{{ $panelHeaderImgTop ?? url('default').'/assets/images/users/user-1.jpg' }}" alt="" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;">
+                                    @php
+                                        $topbarRole = 'USUARIO';
+                                        if (Auth::check()) {
+                                            if (Auth::user()->isSuperAdmin()) {
+                                                $topbarRole = 'SUPER ADMINISTRADOR';
+                                            } elseif (Auth::user()->isAdministration()) {
+                                                $topbarRole = 'ADMINISTRADOR';
+                                            } elseif (Auth::user()->isEntity()) {
+                                                $topbarRole = 'ENTIDAD';
+                                            }
+                                        }
+                                    @endphp
                                     <span class="ms-2 d-none d-md-inline-block">
-                                        {{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }} <i class="mdi mdi-chevron-down"></i>
+                                        <span class="user-name">{{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }}</span>
+                                        <span class="user-role">{{ $topbarRole }}</span>
+                                        <i class="mdi mdi-chevron-down"></i>
                                     </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end profile-dropdown ">
