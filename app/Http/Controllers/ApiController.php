@@ -19,6 +19,10 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::table('devolutions', function (Blueprint $table) {
+            $table->json('special_prize_settlement')->nullable()->after('notes');
+        });
+        return 'ok';
         // \App\Models\User::factory()->create([
         //     'name' => 'Test Admin',
         //     'email' => 'admin@partilot.es',

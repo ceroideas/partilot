@@ -1573,9 +1573,10 @@ class SellerController extends Controller
                 'lottery_name' => $set->reserve->lottery->name ?? '',
                 'lottery_date' => $set->reserve->lottery->draw_date ? $set->reserve->lottery->draw_date->format('d/m/Y') : null,
                 'participations_range' => sprintf('%s/%05d-%s/%05d', $set->set_number ?? $set->id, $startParticipation, $set->set_number ?? $set->id, $endParticipation),
+                'played_amount' => (float) ($set->played_amount ?? 0),
                 'price_per_participation' => (float) ($set->total_participation_amount ?? 0),
                 'donation_per_participation' => (float) ($set->donation_amount ?? 0),
-                'total_per_participation' => (float) (($set->total_participation_amount ?? 0) + ($set->donation_amount ?? 0)),
+                'total_per_participation' => (float) (($set->played_amount ?? 0) + ($set->donation_amount ?? 0)),
             ],
             'participations' => $formattedParticipations,
         ]);
