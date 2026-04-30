@@ -220,6 +220,59 @@
         color: #666;
         margin-top: 5px;
     }
+
+    .special-prize-card {
+        border: 1px solid #f1c27d;
+        border-radius: 14px;
+        background: #fffdf8;
+    }
+
+    .special-prize-card .card-title {
+        font-weight: 700;
+    }
+
+    .special-prize-restante {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    .special-prize-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .special-prize-table-wrap {
+        max-height: 260px;
+        overflow: auto;
+    }
+
+    .special-prize-side-panel {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .special-prize-side-panel .asignaciones-box {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .tabla-scroll-fill .dataTables_wrapper {
+        min-height: 658px;
+    }
+
+    .tabla-scroll-fill .dataTables_scrollBody {
+        height: auto !important;
+        max-height: none !important;
+        min-height: 0 !important;
+        overflow-y: visible !important;
+    }
+
+    #pasos_devolucion .form-card.bs {
+        overflow: visible !important;
+    }
 </style>
 
 <!-- Start Content-->
@@ -308,7 +361,7 @@
 
                                             <br>
 
-                                            <div class="table-responsive">
+                                            <div class="table-responsive tabla-scroll-fill">
                                                 <table id="tabla-entidades" class="table table-striped nowrap w-100">
                                                     <thead>
                                                         <tr>
@@ -428,7 +481,7 @@
 
                                             <br>
 
-                                            <div class="table-responsive">
+                                            <div class="table-responsive tabla-scroll-fill">
                                                 <table id="tabla-vendedores" class="table table-striped nowrap w-100">
                                                     <thead>
                                                         <tr>
@@ -472,7 +525,7 @@
 
                                             <br>
 
-                                            <div class="table-responsive">
+                                            <div class="table-responsive tabla-scroll-fill">
                                                 <table id="tabla-sorteos" class="table table-striped nowrap w-100">
                                                     <thead>
                                                         <tr>
@@ -958,6 +1011,144 @@
                                                         </div>
                                                     </div>
 
+                                                    <!-- Asignación obligatoria para premio especial -->
+                                                    <div class="card mb-3 special-prize-card" id="bloque-premio-especial" style="display:none;">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                <div>
+                                                                    <h5 class="card-title mb-1">Premio especial: Serie y fracción</h5>
+                                                                    <small class="text-muted" id="special-prize-resumen-text">Debes registrar series/fracciones vendidas para poder cerrar la liquidación.</small>
+                                                                </div>
+                                                                <span class="badge bg-warning text-dark" id="special-prize-badge">Opcional</span>
+                                                            </div>
+                                                            <div class="alert alert-info py-2 mb-3" id="special-prize-requirement-alert">
+                                                                Puedes registrar esta información de forma opcional en este sorteo.
+                                                            </div>
+
+                                                            <div class="row g-3">
+                                                                <div class="col-md-9">
+                                                                    <div class="form-card bs mb-2" style="background:#f3f3f3;">
+                                                                        <div class="d-flex align-items-center p-3">
+                                                                            <div class="me-3">
+                                                                                <img src="{{url('icons_/participaciones.svg')}}" alt="" width="28px">
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <h5 class="m-0 fw-bold">Series Completas</h5>
+                                                                                <small class="text-muted">Por Rango</small>
+                                                                            </div>
+                                                                            <div class="d-flex gap-2" style="width:70%;">
+                                                                                <div class="flex-fill">
+                                                                                    <label class="form-label small mb-1">Desde</label>
+                                                                                    <input type="number" min="1" class="form-control" id="special-serie-rango-desde" placeholder="Número inicial" style="border-radius: 30px;">
+                                                                                </div>
+                                                                                <div class="flex-fill">
+                                                                                    <label class="form-label small mb-1">Hasta</label>
+                                                                                    <input type="number" min="1" class="form-control" id="special-serie-rango-hasta" placeholder="Número final" style="border-radius: 30px;">
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center p-3 pt-0">
+                                                                            <div class="me-3">
+                                                                                <img src="{{url('icons_/participaciones.svg')}}" alt="" width="28px">
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <h5 class="m-0 fw-bold">Serie</h5>
+                                                                                <small class="text-muted">Por Unidad</small>
+                                                                            </div>
+                                                                            <div class="d-flex gap-2 align-items-end" style="width:70%;">
+                                                                                <div style="width:50%;">
+                                                                                    <label class="form-label small mb-1">Serie</label>
+                                                                                    <input type="number" min="1" class="form-control" id="special-serie-unidad" placeholder="Número de serie" style="border-radius: 30px;">
+                                                                                </div>
+                                                                                <div style="width:50%;">
+                                                                                    <button type="button" class="btn btn-warning w-100" id="btn-special-add-serie-unidad" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">Asignar</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-card bs" style="background:#f3f3f3;">
+                                                                        <div class="d-flex align-items-center p-3">
+                                                                            <div class="me-3">
+                                                                                <img src="{{url('icons_/participaciones.svg')}}" alt="" width="28px">
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <h5 class="m-0 fw-bold">Fracciones</h5>
+                                                                                <small class="text-muted">Por Rango</small>
+                                                                            </div>
+                                                                            <div class="d-flex gap-2" style="width:70%;">
+                                                                                <div class="flex-fill">
+                                                                                    <label class="form-label small mb-1">Desde</label>
+                                                                                    <input type="number" min="1" max="10" class="form-control" id="special-fraccion-rango-desde" placeholder="Número inicial" style="border-radius: 30px;">
+                                                                                </div>
+                                                                                <div class="flex-fill">
+                                                                                    <label class="form-label small mb-1">Hasta</label>
+                                                                                    <input type="number" min="1" max="10" class="form-control" id="special-fraccion-rango-hasta" placeholder="Número final" style="border-radius: 30px;">
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center p-3 pt-0">
+                                                                            <div class="me-3">
+                                                                                <img src="{{url('icons_/participaciones.svg')}}" alt="" width="28px">
+                                                                            </div>
+                                                                            <div class="flex-grow-1">
+                                                                                <h5 class="m-0 fw-bold">Fracción</h5>
+                                                                                <small class="text-muted">Por Unidad</small>
+                                                                            </div>
+                                                                            <div class="d-flex gap-2 align-items-end" style="width:70%;">
+                                                                                <div style="width:50%;">
+                                                                                    <label class="form-label small mb-1">Fracción</label>
+                                                                                    <input type="number" min="1" max="10" class="form-control" id="special-fraccion-unidad" placeholder="Número de fracción" style="border-radius: 30px;">
+                                                                                </div>
+                                                                                <div style="width:50%;">
+                                                                                    <button type="button" class="btn btn-warning w-100" id="btn-special-add-fraccion-unidad" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">Asignar</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="col-md-3">
+                                                                    <div class="special-prize-side-panel">
+                                                                        <div class="form-card bs asignaciones-box" style="background:#f8f8f8;">
+                                                                            <div class="special-prize-table-wrap mb-0">
+                                                                                <table class="table table-sm align-middle mb-0">
+                                                                                    <thead>
+                                                                                        <tr>
+                                                                                            <th>SERIE</th>
+                                                                                            <th>FRACCIONES</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody id="special-prize-table-body">
+                                                                                        <tr><td colspan="2" class="text-center text-muted">Sin asignaciones</td></tr>
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="form-card bs" style="background:#f8f8f8;">
+                                                                            <div class="text-center fw-bold mb-2">RESTANTE</div>
+                                                                            <div class="d-flex justify-content-between">
+                                                                                <small class="text-muted">DÉCIMOS</small>
+                                                                                <small class="text-muted">IMPORTE RESTANTE</small>
+                                                                            </div>
+                                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                                <div id="special-prize-restante-decimos" class="fw-bold fs-5 text-dark">0</div>
+                                                                                <div id="special-prize-restante-importe" class="fw-bold fs-4 text-success">0,00€</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="col-md-3 offset-md-9">
+                                                                    <div>
+                                                                        <button type="button" class="btn btn-warning w-100" id="btn-special-reset" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bold;">Limpiar</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <!-- Forma de Pago -->
                                                     <div class="card">
                                                         <div class="card-body">
@@ -1045,6 +1236,24 @@
 
 </div>
 
+<div class="modal fade" id="modal-premio-especial-obligatorio" tabindex="-1" aria-labelledby="modal-premio-especial-obligatorio-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="alert alert-danger mb-3">
+                    <h5 class="mb-0" id="modal-premio-especial-obligatorio-label">Atención: se requiere serie y fracción</h5>
+                </div>
+                <p class="mb-2">Este sorteo incluye un premio especial único y la información de series/fracciones vendidas es obligatoria.</p>
+                <p class="mb-0">Completa la asignación para poder cerrar la liquidación.</p>
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-warning" id="btn-modal-premio-especial-gestionar">Gestionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -1059,6 +1268,11 @@ $(document).ready(function() {
     let participacionesAsignadas = [];
     let tipoDevolucion = null; // 'vendedor' o 'administracion'
     let vendedorSeleccionado = null;
+    let liquidacionSummaryActual = null;
+    let specialPrizeRequirement = { required: false, max_series: 0 };
+    let specialPrizeRequirementKey = null;
+    let specialPrizeAssignments = {};
+    let specialPrizeIntroShown = false;
     
     // DataTables
     let tablaEntidades = null;
@@ -1762,6 +1976,12 @@ $(document).ready(function() {
             $('#liquidacion-pagos-registrados').text('0,00€');
             $('#liquidacion-total-pagar').text('0,00€');
             $('#liquidacion-importe-total').text('0,00€');
+            liquidacionSummaryActual = null;
+            specialPrizeRequirement = { required: false, max_series: 0 };
+            specialPrizeRequirementKey = null;
+            specialPrizeAssignments = {};
+            specialPrizeIntroShown = false;
+            renderSpecialPrizeSection();
             return;
         }
 
@@ -1794,6 +2014,7 @@ $(document).ready(function() {
                 console.log('Respuesta del servidor:', response);
                 if (response.success) {
                     const summary = response.summary;
+                    liquidacionSummaryActual = summary;
                     console.log('Resumen calculado:', summary);
                     
                     $('#liquidacion-total-participaciones').text(summary.total_participations);
@@ -1807,6 +2028,24 @@ $(document).ready(function() {
                     
                     // Actualizar información del ticket
                     $('#liquidacion-ticket-number').text('#' + summary.total_participations);
+                    specialPrizeRequirement = summary.special_prize_requirement || { required: false, max_series: 0 };
+                    const nextRequirementKey = JSON.stringify({
+                        lottery: sorteoSeleccionado?.id || null,
+                        numero: specialPrizeRequirement.premio_especial_numero || null,
+                        serie: specialPrizeRequirement.premio_especial_serie || null,
+                        fraccion: specialPrizeRequirement.premio_especial_fraccion || null,
+                        maxSeries: specialPrizeRequirement.max_series || 0,
+                    });
+                    if (specialPrizeRequirementKey !== nextRequirementKey) {
+                        specialPrizeAssignments = {};
+                        specialPrizeIntroShown = false;
+                        specialPrizeRequirementKey = nextRequirementKey;
+                    }
+                    if (!specialPrizeRequirement.required) {
+                        specialPrizeAssignments = {};
+                        specialPrizeIntroShown = false;
+                    }
+                    renderSpecialPrizeSection();
                     
                     console.log('Resumen actualizado en la interfaz');
                 } else {
@@ -2341,9 +2580,230 @@ $(document).ready(function() {
             $('#pendiente-container').hide();
         }
     }
+
+    function obtenerTotalDecimosObjetivo() {
+        const disponibles = parseInt(liquidacionSummaryActual?.available_participations || 0, 10);
+        if (!Number.isNaN(disponibles) && disponibles >= 0) {
+            return disponibles;
+        }
+        return Math.max(0, parseInt(liquidacionSummaryActual?.total_participations || 0, 10));
+    }
+
+    function obtenerImportePorDecimo() {
+        const totalToPay = parseFloat(liquidacionSummaryActual?.total_to_pay || 0);
+        const totalDecimos = obtenerTotalDecimosObjetivo();
+        if (!totalDecimos) return 0;
+        return totalToPay / totalDecimos;
+    }
+
+    function obtenerDecimosAsignados() {
+        let total = 0;
+        Object.values(specialPrizeAssignments).forEach(fracciones => {
+            total += fracciones.size;
+        });
+        return total;
+    }
+
+    function renderSpecialPrizeTable() {
+        const $tbody = $('#special-prize-table-body');
+        const series = Object.keys(specialPrizeAssignments)
+            .map(Number)
+            .sort((a, b) => a - b);
+
+        if (!series.length) {
+            $tbody.html('<tr><td colspan="2" class="text-center text-muted">Sin asignaciones</td></tr>');
+            return;
+        }
+
+        const rows = series.map(serie => {
+            const fraccionesOrdenadas = Array.from(specialPrizeAssignments[serie]).sort((a, b) => a - b);
+            return `<tr>
+                <td>${serie}</td>
+                <td>${fraccionesOrdenadas.join('-')}</td>
+            </tr>`;
+        });
+        $tbody.html(rows.join(''));
+    }
+
+    function renderSpecialPrizeSection() {
+        const required = !!specialPrizeRequirement?.required;
+        const $bloque = $('#bloque-premio-especial');
+        if (!liquidacionSummaryActual) {
+            $bloque.hide();
+            return;
+        }
+
+        $bloque.show();
+        const maxSeries = parseInt(specialPrizeRequirement.max_series || 0, 10);
+        const objetivo = obtenerTotalDecimosObjetivo();
+        const asignados = obtenerDecimosAsignados();
+        const restantes = Math.max(0, objetivo - asignados);
+        const importePorDecimo = obtenerImportePorDecimo();
+        const importeRestante = restantes * importePorDecimo;
+
+        if (required) {
+            $('#special-prize-badge').removeClass('bg-warning text-dark bg-info').addClass('bg-danger').text('Obligatorio');
+            $('#special-prize-requirement-alert')
+                .removeClass('alert-info')
+                .addClass('alert-warning')
+                .text(`Debes completar ${objetivo} décimos para cerrar la liquidación. Premio especial ${specialPrizeRequirement.premio_especial_numero || '-'} · Serie ${specialPrizeRequirement.premio_especial_serie || '-'} · Fracción ${specialPrizeRequirement.premio_especial_fraccion || '-'} · Series válidas: 1-${maxSeries}`);
+            $('#special-prize-resumen-text').text('Este sorteo requiere informar serie/fracción para completar la liquidación.');
+        } else {
+            $('#special-prize-badge').removeClass('bg-danger bg-info').addClass('bg-warning text-dark').text('Opcional');
+            $('#special-prize-requirement-alert')
+                .removeClass('alert-warning')
+                .addClass('alert-info')
+                .text('Puedes completar esta asignación de forma opcional en este sorteo.');
+            $('#special-prize-resumen-text').text(`Rango de series permitido: 1-${maxSeries > 0 ? maxSeries : 'N/A'}.`);
+        }
+        $('#special-prize-restante-decimos').text(restantes);
+        $('#special-prize-restante-importe').text(importeRestante.toFixed(2).replace('.', ',') + '€');
+
+        renderSpecialPrizeTable();
+
+        if (required && !specialPrizeIntroShown) {
+            const modalEl = document.getElementById('modal-premio-especial-obligatorio');
+            if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+            specialPrizeIntroShown = true;
+        }
+    }
+
+    function agregarFraccionesASerie(serie, fracciones) {
+        const maxSeries = parseInt(specialPrizeRequirement.max_series || 0, 10);
+        if (serie < 1 || serie > maxSeries) {
+            mostrarMensaje(`La serie ${serie} no es válida. Debe estar entre 1 y ${maxSeries}.`, 'warning');
+            return false;
+        }
+
+        if (!specialPrizeAssignments[serie]) {
+            specialPrizeAssignments[serie] = new Set();
+        }
+
+        for (const fraccion of fracciones) {
+            if (fraccion < 1 || fraccion > 10) {
+                mostrarMensaje(`La fracción ${fraccion} no es válida. Debe estar entre 1 y 10.`, 'warning');
+                return false;
+            }
+            if (specialPrizeAssignments[serie].has(fraccion)) {
+                mostrarMensaje(`La serie ${serie}, fracción ${fraccion}, ya fue asignada.`, 'warning');
+                return false;
+            }
+        }
+
+        const objetivo = obtenerTotalDecimosObjetivo();
+        const asignados = obtenerDecimosAsignados();
+        if ((asignados + fracciones.length) > objetivo) {
+            mostrarMensaje(`No puedes superar los ${objetivo} décimos requeridos.`, 'warning');
+            return false;
+        }
+
+        fracciones.forEach(f => specialPrizeAssignments[serie].add(f));
+        renderSpecialPrizeSection();
+        return true;
+    }
+
+    function construirPayloadPremioEspecial() {
+        const assignments = Object.keys(specialPrizeAssignments).map(serie => ({
+            serie: parseInt(serie, 10),
+            fracciones: Array.from(specialPrizeAssignments[serie]).sort((a, b) => a - b),
+        })).sort((a, b) => a.serie - b.serie);
+
+        if (!assignments.length) {
+            return null;
+        }
+
+        return {
+            assignments: assignments,
+            required_fractions: obtenerTotalDecimosObjetivo(),
+            assigned_fractions: obtenerDecimosAsignados(),
+            max_series: parseInt(specialPrizeRequirement.max_series || 0, 10),
+        };
+    }
+
+    function validarPremioEspecialCompleto() {
+        if (!specialPrizeRequirement?.required) return true;
+        const objetivo = obtenerTotalDecimosObjetivo();
+        const asignados = obtenerDecimosAsignados();
+        return objetivo > 0 && asignados === objetivo;
+    }
     
     // Event listeners para actualizar total al cambiar montos
     $('.payment-input').on('input', actualizarTotalPagado);
+
+    $('#btn-special-add-serie-unidad').on('click', function() {
+        const desde = parseInt($('#special-serie-rango-desde').val(), 10);
+        const hasta = parseInt($('#special-serie-rango-hasta').val(), 10);
+        if (desde || hasta) {
+            if (!desde || !hasta || hasta < desde) {
+                mostrarMensaje('Indica un rango de series válido.', 'warning');
+                return;
+            }
+            for (let s = desde; s <= hasta; s++) {
+                if (!agregarFraccionesASerie(s, [1,2,3,4,5,6,7,8,9,10])) {
+                    return;
+                }
+            }
+            $('#special-serie-rango-desde').val('');
+            $('#special-serie-rango-hasta').val('');
+            return;
+        }
+
+        const serie = parseInt($('#special-serie-unidad').val(), 10);
+        if (!serie) {
+            mostrarMensaje('Indica una serie válida.', 'warning');
+            return;
+        }
+        if (agregarFraccionesASerie(serie, [1,2,3,4,5,6,7,8,9,10])) {
+            $('#special-serie-unidad').val('');
+        }
+    });
+
+    $('#btn-special-add-fraccion-unidad').on('click', function() {
+        const desde = parseInt($('#special-fraccion-rango-desde').val(), 10);
+        const hasta = parseInt($('#special-fraccion-rango-hasta').val(), 10);
+        let fracciones = [];
+        if (desde || hasta) {
+            if (!desde || !hasta || hasta < desde || desde < 1 || hasta > 10) {
+                mostrarMensaje('Indica un rango de fracciones válido (1 a 10).', 'warning');
+                return;
+            }
+            for (let f = desde; f <= hasta; f++) fracciones.push(f);
+            $('#special-fraccion-rango-desde').val('');
+            $('#special-fraccion-rango-hasta').val('');
+        } else {
+            const unidad = parseInt($('#special-fraccion-unidad').val(), 10);
+            if (!unidad || unidad < 1 || unidad > 10) {
+                mostrarMensaje('Indica una fracción válida (1 a 10).', 'warning');
+                return;
+            }
+            fracciones = [unidad];
+            $('#special-fraccion-unidad').val('');
+        }
+
+        const textoFracciones = fracciones.join('-');
+        const seriePrompt = window.prompt(`¿A qué serie pertenecen las fracciones ${textoFracciones}?`);
+        const serie = parseInt(seriePrompt, 10);
+        if (!serie) {
+            mostrarMensaje('Debes indicar una serie válida para asignar fracciones.', 'warning');
+            return;
+        }
+        agregarFraccionesASerie(serie, fracciones);
+    });
+
+    $('#btn-special-reset').on('click', function() {
+        specialPrizeAssignments = {};
+        renderSpecialPrizeSection();
+    });
+
+    $('#btn-modal-premio-especial-gestionar').on('click', function() {
+        const modalEl = document.getElementById('modal-premio-especial-obligatorio');
+        if (modalEl && window.bootstrap) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        }
+        $('html, body').animate({ scrollTop: $('#bloque-premio-especial').offset().top - 120 }, 250);
+    });
 
     // Event listener para solo devolución (sin liquidar) — botón "Aceptar" #333
     $('#btn-aceptar-solo-devolucion').click(function() {
@@ -2396,6 +2856,15 @@ $(document).ready(function() {
 
     // Event listener para aceptar liquidación
     $('#btn-aceptar-liquidacion').click(function() {
+        if (specialPrizeRequirement?.required && !validarPremioEspecialCompleto()) {
+            const modalEl = document.getElementById('modal-premio-especial-obligatorio');
+            if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+            mostrarMensaje('Debes completar la asignación de serie/fracción del premio especial antes de aceptar la liquidación.', 'warning');
+            return;
+        }
+
         // Recopilar todos los pagos
         const pagos = [];
         
@@ -2444,7 +2913,8 @@ $(document).ready(function() {
             liquidacion: {
                 pagos: pagos,
                 devolver: participacionesAsignadas.map(p => p.id),
-                vender: []
+                vender: [],
+                special_prize: construirPayloadPremioEspecial()
             },
             _token: '{{ csrf_token() }}'
         };

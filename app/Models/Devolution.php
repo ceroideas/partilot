@@ -25,13 +25,15 @@ class Devolution extends Model
         'devolution_date',
         'devolution_time',
         'status',
-        'notes'
+        'notes',
+        'special_prize_settlement'
     ];
 
     protected $casts = [
         'devolution_date' => 'date',
         'devolution_time' => 'datetime:H:i:s',
         'total_liquidation' => 'decimal:2',
+        'special_prize_settlement' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

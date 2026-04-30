@@ -33,6 +33,150 @@ class DevolutionsController extends Controller
     }
 
     /**
+     * Determina si el sorteo requiere captura obligatoria de serie/fracción
+     * por tener premio especial con serie y fracción.
+     */
+    private function buildSpecialPrizeRequirement(?int $lotteryId): array
+    {
+        if (! $lotteryId) {
+            return ['required' => false];
+        }
+
+        $lottery = Lottery::query()
+            ->with(['result', 'lotteryType'])
+            ->find($lotteryId);
+
+        if (! $lottery) {
+            return ['required' => false];
+        }
+
+        $premioEspecial = $lottery->result?->premio_especial;
+        $primerPremio = $lottery->result?->primer_premio;
+
+        $specialSerie = null;
+        $specialFraccion = null;
+        $specialNumero = null;
+
+        // Priorizar premio_especial cuando tenga serie/fracción
+        if (is_array($premioEspecial) && !empty($premioEspecial['serie']) && !empty($premioEspecial['fraccion'])) {
+            $specialSerie = $premioEspecial['serie'];
+            $specialFraccion = $premioEspecial['fraccion'];
+            $specialNumero = $premioEspecial['numero'] ?? $premioEspecial['decimo'] ?? null;
+        }
+
+        // Fallback: muchos sorteos guardan serie/fracción en primer_premio
+        if (($specialSerie === null || $specialFraccion === null) && is_array($primerPremio) && !empty($primerPremio['serie']) && !empty($primerPremio['fraccion'])) {
+            $specialSerie = $primerPremio['serie'];
+            $specialFraccion = $primerPremio['fraccion'];
+            $specialNumero = $specialNumero ?? ($primerPremio['numero'] ?? $primerPremio['decimo'] ?? null);
+        }
+
+        $hasSerie = !empty($specialSerie);
+        $hasFraccion = !empty($specialFraccion);
+        $seriesConfigured = (int) ($lottery->lotteryType?->series ?? 0);
+
+        $required = $hasSerie && $hasFraccion && $seriesConfigured > 0;
+
+        return [
+            'required' => $required,
+            'max_series' => $seriesConfigured,
+            'premio_especial_numero' => $specialNumero,
+            'premio_especial_serie' => $specialSerie,
+            'premio_especial_fraccion' => $specialFraccion,
+        ];
+    }
+
+    /**
+     * Valida y normaliza la distribución de serie/fracción enviada en liquidación.
+     */
+    private function validateSpecialPrizeSettlementData(
+        $rawSpecialPrizeData,
+        array $requirement,
+        int $requiredFractions,
+        float $totalLiquidation
+    ): array {
+        $isStrictRequired = (bool) ($requirement['required'] ?? false);
+
+        if (!$isStrictRequired && (!is_array($rawSpecialPrizeData) || empty($rawSpecialPrizeData['assignments']))) {
+            return ['valid' => true, 'normalized' => null];
+        }
+
+        if (!is_array($rawSpecialPrizeData) || empty($rawSpecialPrizeData['assignments']) || !is_array($rawSpecialPrizeData['assignments'])) {
+            return ['valid' => false, 'message' => 'Debes completar la asignación de series/fracciones para el premio especial.'];
+        }
+
+        $maxSeries = (int) ($requirement['max_series'] ?? 0);
+        $normalizedAssignments = [];
+        $used = [];
+        $totalAssignedFractions = 0;
+
+        foreach ($rawSpecialPrizeData['assignments'] as $assignment) {
+            $serie = (int) ($assignment['serie'] ?? 0);
+            $fracciones = $assignment['fracciones'] ?? [];
+
+            if ($serie < 1 || $serie > $maxSeries) {
+                return ['valid' => false, 'message' => "La serie {$serie} está fuera de rango. Solo se permiten series entre 1 y {$maxSeries}."];
+            }
+            if (!is_array($fracciones) || empty($fracciones)) {
+                return ['valid' => false, 'message' => "La serie {$serie} no tiene fracciones válidas asignadas."];
+            }
+
+            $normalizedFractions = [];
+            foreach ($fracciones as $fraction) {
+                $fractionInt = (int) $fraction;
+                if ($fractionInt < 1 || $fractionInt > 10) {
+                    return ['valid' => false, 'message' => "La fracción {$fractionInt} de la serie {$serie} es inválida. Debe estar entre 1 y 10."];
+                }
+
+                $key = $serie . '-' . $fractionInt;
+                if (isset($used[$key])) {
+                    return ['valid' => false, 'message' => "La serie {$serie}, fracción {$fractionInt}, está duplicada en la liquidación."];
+                }
+                $used[$key] = true;
+                $normalizedFractions[] = $fractionInt;
+            }
+
+            sort($normalizedFractions);
+            $normalizedFractions = array_values(array_unique($normalizedFractions));
+            $totalAssignedFractions += count($normalizedFractions);
+
+            $normalizedAssignments[] = [
+                'serie' => $serie,
+                'fracciones' => $normalizedFractions,
+            ];
+        }
+
+        usort($normalizedAssignments, fn ($a, $b) => $a['serie'] <=> $b['serie']);
+
+        if ($isStrictRequired) {
+            if ($requiredFractions <= 0) {
+                return ['valid' => false, 'message' => 'No hay participaciones para liquidar en el premio especial.'];
+            }
+
+            if ($totalAssignedFractions !== $requiredFractions) {
+                return [
+                    'valid' => false,
+                    'message' => "La asignación de series/fracciones debe cubrir exactamente {$requiredFractions} décimos. Actualmente llevas {$totalAssignedFractions}.",
+                ];
+            }
+        }
+
+        return [
+            'valid' => true,
+            'normalized' => [
+                'required_fractions' => $requiredFractions,
+                'assigned_fractions' => $totalAssignedFractions,
+                'max_series' => $maxSeries,
+                'premio_especial_numero' => $requirement['premio_especial_numero'] ?? null,
+                'premio_especial_serie' => $requirement['premio_especial_serie'] ?? null,
+                'premio_especial_fraccion' => $requirement['premio_especial_fraccion'] ?? null,
+                'total_liquidation' => round($totalLiquidation, 2),
+                'assignments' => $normalizedAssignments,
+            ],
+        ];
+    }
+
+    /**
      * Mutaciones de devoluciones/anulaciones: superadmin, administración (sus entidades) y gestor responsable aceptado.
      * La cuenta de panel de la entidad no (solo consulta en web); el mensaje lo indica si aplica.
      */
@@ -186,7 +330,9 @@ class DevolutionsController extends Controller
                 'liquidacion.vender' => 'nullable|array',
                 'liquidacion.pagos' => 'nullable|array',
                 'liquidacion.pagos.*.payment_method' => 'required_with:liquidacion.pagos.*|string',
-                'liquidacion.pagos.*.amount' => 'required_with:liquidacion.pagos.*|numeric'
+                'liquidacion.pagos.*.amount' => 'required_with:liquidacion.pagos.*|numeric',
+                'liquidacion.special_prize' => 'nullable|array',
+                'liquidacion.special_prize.assignments' => 'nullable|array',
             ]);
 
             $soloDevolucion = !empty($data['solo_devolucion']);
@@ -541,6 +687,38 @@ class DevolutionsController extends Controller
                 $totalLiquidation = 0;
             }
 
+            $specialPrizeRequirement = $this->buildSpecialPrizeRequirement((int) $data['lottery_id']);
+            $specialPrizeSettlement = null;
+            if (!$soloDevolucion) {
+                $specialPrizeRaw = $data['liquidacion']['special_prize'] ?? null;
+                $shouldValidateSpecialPrize = ($specialPrizeRequirement['required'] ?? false)
+                    || (is_array($specialPrizeRaw) && !empty($specialPrizeRaw['assignments']));
+
+                // La referencia para serie/fracción debe ser la cantidad disponible a liquidar,
+                // no el total histórico ni las participaciones ya devueltas.
+                $requiredFractionsForSpecialPrize = count($participationsToSell);
+                if ($requiredFractionsForSpecialPrize <= 0) {
+                    $requiredFractionsForSpecialPrize = (int) $totalParticipations;
+                }
+
+                if ($shouldValidateSpecialPrize) {
+                    $specialPrizeValidation = $this->validateSpecialPrizeSettlementData(
+                        $specialPrizeRaw,
+                        $specialPrizeRequirement,
+                        (int) $requiredFractionsForSpecialPrize,
+                        (float) $totalLiquidation
+                    );
+                    if (!$specialPrizeValidation['valid']) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => $specialPrizeValidation['message'] ?? 'Debes completar la asignación del premio especial para continuar.',
+                        ], 422);
+                    }
+                    $specialPrizeSettlement = $specialPrizeValidation['normalized'];
+                }
+            }
+
             // Crear registro de devolución
             $devolution = Devolution::create([
                 'entity_id' => $data['entity_id'],
@@ -553,7 +731,8 @@ class DevolutionsController extends Controller
                 'devolution_date' => $now->format('Y-m-d'),
                 'devolution_time' => $now->format('H:i:s'),
                 'status' => 'procesada',
-                'notes' => 'Devolución procesada automáticamente'
+                'notes' => 'Devolución procesada automáticamente',
+                'special_prize_settlement' => $specialPrizeSettlement,
             ]);
 
             // Procesar participaciones a devolver
@@ -1739,6 +1918,7 @@ class DevolutionsController extends Controller
         $selectedParticipations = is_array($selectedParticipations) ? $selectedParticipations : array_filter([$selectedParticipations]);
         $tipoDevolucion = $request->get('tipo_devolucion');
         $sellerId = $request->get('seller_id');
+        $specialPrizeRequirement = $this->buildSpecialPrizeRequirement((int) $lotteryId);
         // Respetar siempre el tipo de devolución elegido (no forzar vendedor si es entidad→admin)
 
         if ($entityId && (! auth()->user()->canAccessEntity((int) $entityId)
@@ -1791,7 +1971,8 @@ class DevolutionsController extends Controller
                         'total_liquidation' => 0,
                         'registered_payments' => 0,
                         'total_to_pay' => 0,
-                        'sets_info' => []
+                        'sets_info' => [],
+                        'special_prize_requirement' => $specialPrizeRequirement,
                     ]
                 ]);
             }
@@ -1869,7 +2050,8 @@ class DevolutionsController extends Controller
                     'total_liquidation' => $totalLiquidationReserve,
                     'registered_payments' => 0,
                     'total_to_pay' => $totalLiquidationReserve,
-                    'sets_info' => []
+                    'sets_info' => [],
+                    'special_prize_requirement' => $specialPrizeRequirement,
                 ]
             ]);
         }
@@ -1921,6 +2103,7 @@ class DevolutionsController extends Controller
                     'total_liquidation' => $totalLiquidation,
                     'registered_payments' => 0,
                     'total_to_pay' => $totalLiquidation,
+                    'special_prize_requirement' => $specialPrizeRequirement,
                     'sets_info' => [[
                         'set_id' => $setId,
                         'set_name' => $set->set_name,
@@ -1947,7 +2130,8 @@ class DevolutionsController extends Controller
                     'total_liquidation' => 0,
                     'registered_payments' => 0,
                     'total_to_pay' => 0,
-                    'sets_info' => []
+                    'sets_info' => [],
+                    'special_prize_requirement' => $specialPrizeRequirement,
                 ]
             ]);
         }
@@ -2042,7 +2226,8 @@ class DevolutionsController extends Controller
                             'total_liquidation' => $totalLiquidation,
                             'registered_payments' => 0,
                             'total_to_pay' => $totalLiquidation,
-                            'sets_info' => []
+                            'sets_info' => [],
+                            'special_prize_requirement' => $specialPrizeRequirement,
                         ]
                     ]);
                 }
@@ -2173,7 +2358,8 @@ class DevolutionsController extends Controller
             'total_liquidation' => $totalLiquidation,
             'registered_payments' => 0, // Por ahora siempre 0
             'total_to_pay' => $totalLiquidation,
-            'sets_info' => $setsInfo
+            'sets_info' => $setsInfo,
+            'special_prize_requirement' => $specialPrizeRequirement,
         ];
 
         \Log::info('Final summary:', $summary);
