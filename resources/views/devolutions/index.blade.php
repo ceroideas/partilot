@@ -69,7 +69,7 @@
 
                         <br>
 
-                        <div class="table-responsive">
+                        <div class="">
                             <table id="tabla-devoluciones" class="table table-striped nowrap w-100">
                                 <thead class="filters">
                                     <tr>

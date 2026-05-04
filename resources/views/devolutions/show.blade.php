@@ -128,6 +128,45 @@
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 15px;
     }
+
+    .special-prize-box {
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 1rem;
+        background: #fff;
+    }
+
+    .payments-card-clean {
+        margin-top: 12px !important;
+        margin-bottom: 0 !important;
+    }
+
+    .payments-card-clean .card-header {
+        padding: 10px 14px !important;
+    }
+
+    .payments-card-clean .card-body {
+        padding: 12px 14px !important;
+    }
+
+    .payments-card-clean .table-responsive {
+        margin-bottom: 0 !important;
+    }
+
+    .payments-card-clean .table {
+        margin-bottom: 0 !important;
+    }
+
+    .payments-summary-row {
+        margin-bottom: 10px !important;
+    }
+
+    .payments-empty-clean {
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+        margin-bottom: 0 !important;
+    }
 </style>
 
 <!-- Start Content-->
@@ -221,8 +260,93 @@
                         <div class="resumen-linea"><span class="resumen-etiqueta">Fecha de Procesamiento:</span> <span class="resumen-valor">{{ \Carbon\Carbon::parse($devolution->devolution_date)->format('d/m/Y') }}</span></div>
                     </div>
 
+                    @php
+                        $sp = is_array($devolution->special_prize_settlement) ? $devolution->special_prize_settlement : [];
+                        $spAssignments = $sp['assignments'] ?? [];
+                        $spRequiredFractions = (int)($sp['required_fractions'] ?? 0);
+                        $spAssignedFractions = (int)($sp['assigned_fractions'] ?? 0);
+                        $spRemainingFractions = max(0, $spRequiredFractions - $spAssignedFractions);
+                        $spTotalLiquidation = (float)($sp['total_liquidation'] ?? 0);
+                        $spPerFraction = $spRequiredFractions > 0 ? ($spTotalLiquidation / $spRequiredFractions) : 0;
+                        $spRemainingAmount = $spRemainingFractions * $spPerFraction;
+                    @endphp
+                    <div class="special-prize-box">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h5 class="mb-0">Detalle Serie/Fracción (Premio Especial)</h5>
+                            <span class="badge bg-warning text-dark">Series válidas: 1-{{ (int)($sp['max_series'] ?? 0) }}</span>
+                        </div>
+
+                        <div class="small text-muted mb-3">
+                            @if(!empty($sp['premio_especial_numero']))
+                                Número especial: <strong>{{ $sp['premio_especial_numero'] }}</strong>
+                            @endif
+                            @if(!empty($sp['premio_especial_serie']))
+                                · Serie premio: <strong>{{ $sp['premio_especial_serie'] }}</strong>
+                            @endif
+                            @if(!empty($sp['premio_especial_fraccion']))
+                                · Fracción premio: <strong>{{ $sp['premio_especial_fraccion'] }}</strong>
+                            @endif
+                        </div>
+
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 120px;">SERIE</th>
+                                        <th>FRACCIONES</th>
+                                        <th class="text-end" style="width: 140px;">DÉCIMOS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($spAssignments as $item)
+                                        @php
+                                            $serie = $item['serie'] ?? '-';
+                                            $fracciones = collect($item['fracciones'] ?? [])->map(fn($f) => (int)$f)->sort()->values()->all();
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $serie }}</td>
+                                            <td>{{ implode('-', $fracciones) }}</td>
+                                            <td class="text-end">{{ count($fracciones) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">No hay series/fracciones liquidadas registradas en esta devolución.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <div class="border rounded p-2 text-center bg-light">
+                                    <small class="text-muted d-block">DÉCIMOS OBJETIVO</small>
+                                    <strong>{{ $spRequiredFractions }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-2 text-center bg-light">
+                                    <small class="text-muted d-block">DÉCIMOS ASIGNADOS</small>
+                                    <strong>{{ $spAssignedFractions }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-2 text-center bg-light">
+                                    <small class="text-muted d-block">RESTANTE DÉCIMOS</small>
+                                    <strong class="{{ $spRemainingFractions > 0 ? 'text-warning' : 'text-success' }}">{{ $spRemainingFractions }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-2 text-center bg-light">
+                                    <small class="text-muted d-block">RESTANTE IMPORTE</small>
+                                    <strong class="{{ $spRemainingAmount > 0 ? 'text-warning' : 'text-success' }}">{{ number_format($spRemainingAmount, 2, ',', '.') }}€</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Resumen de Pagos -->
-                    <div class="card">
+                    <div class="card payments-card-clean">
                         <div class="card-header">
                             <h5 class="card-title mb-0">Resumen de Pagos</h5>
                         </div>
@@ -241,7 +365,7 @@
                                 $pendiente = $totalLiquidacion - $totalPagado;
                             @endphp
                             
-                            <div class="row mb-3">
+                            <div class="row payments-summary-row">
                                 <div class="col-md-4">
                                     <div class="border rounded p-3 text-center bg-light">
                                         <small class="text-muted">Total Liquidación</small>
@@ -263,7 +387,7 @@
                             </div>
                             
                             @if($devolution->payments->count() > 0)
-                                <h6 class="mb-3">Detalle de Pagos</h6>
+                                <h6 class="mb-2">Detalle de Pagos</h6>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover">
                                         <thead class="table-light">
@@ -303,7 +427,7 @@
                                     </table>
                                 </div>
                             @else
-                                <div class="text-center py-4">
+                                <div class="text-center payments-empty-clean">
                                     <div class="empty-tables">
                                         <div>
                                             <i class="ri-money-dollar-circle-line" style="font-size: 48px; opacity: 0.3;"></i>
