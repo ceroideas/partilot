@@ -1446,9 +1446,9 @@ class ApiController extends Controller
                     if ($administration->entities()->count() > 0) {
                         $canDelete = false;
                         $message = 'La administración no se puede borrar porque tiene entidades asociadas.';
-                    } elseif ($administration->manager()) {
+                    } elseif ($administration->manager()->whereHas('user')->exists()) {
                         $canDelete = false;
-                        $message = 'La administración no se puede borrar porque tiene un manager asociado.';
+                        $message = 'La administración no se puede borrar porque tiene un gestor principal asociado.';
                     } elseif ($administration->lotteryScrutinies()->count() > 0) {
                         $canDelete = false;
                         $message = 'La administración no se puede borrar porque tiene escrutinios asociados.';
