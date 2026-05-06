@@ -209,6 +209,11 @@
             payBtn.disabled = false;
         }
     });
+
+    // Montar el formulario de Stripe al cargar la vista (no esperar al click en Pagar).
+    initStripe().catch((e) => {
+        showError(e.message || 'No se pudo inicializar Stripe.');
+    });
 })();
 </script>
 @endsection

@@ -19,6 +19,17 @@ class ApiController extends Controller
 
     public function test()
     {
+        DB::statement('ALTER TABLE print_orders MODIFY design_format_id BIGINT UNSIGNED NULL');
+        
+        Schema::table('print_orders', function (Blueprint $table) {
+            $table->string('payment_provider', 30)->nullable()->after('status');
+            $table->string('payment_intent_id', 120)->nullable()->unique()->after('payment_provider');
+            $table->string('payment_status', 30)->default('pending')->after('payment_intent_id');
+            $table->timestamp('paid_at')->nullable()->after('sent_at');
+        });
+
+        return "ok";
+
         Schema::create('print_order_status_audits', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('print_order_id')->index();
