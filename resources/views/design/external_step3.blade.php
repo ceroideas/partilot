@@ -44,7 +44,7 @@
 
                         <form action="{{ route('design.external.sendInvitation') }}" method="POST" id="partilotPaymentForm" class="mt-4">
                             @csrf
-                            <input type="hidden" name="confirm_simulated_payment" value="1">
+                            <input type="hidden" name="stripe_payment_intent_id" id="stripe_payment_intent_id" value="">
 
                             <div class="payment-mock-wrap">
                                 <div class="row g-4">
@@ -65,26 +65,10 @@
                                     <div class="col-lg-7">
                                         <div class="payment-card-form">
                                             <h5 class="mb-3">PAGAR CON TARJETA</h5>
-                                            <div class="mb-3">
-                                                <label class="form-label">Nº Tarjeta</label>
-                                                <input type="text" class="form-control" placeholder="4242 4242 4242 4242">
-                                            </div>
-                                            <div class="row g-3">
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Mes</label>
-                                                    <input type="text" class="form-control" placeholder="12">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Año</label>
-                                                    <input type="text" class="form-control" placeholder="29">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">CVC</label>
-                                                    <input type="text" class="form-control" placeholder="123">
-                                                </div>
-                                            </div>
+                                            <div id="stripe-card-element" class="form-control" style="padding-top: 12px; min-height: 46px;"></div>
+                                            <div id="stripe-card-errors" class="text-danger small mt-2 d-none"></div>
                                             <div class="form-text mt-3">
-                                                Integración Stripe pendiente: este formulario es mock visual para flujo operativo.
+                                                Usa tarjeta de prueba: 4242 4242 4242 4242, fecha futura, CVC cualquiera.
                                             </div>
                                         </div>
                                     </div>
@@ -97,7 +81,7 @@
                         <a href="{{ route('design.external.step2') }}" class="btn btn-dark rounded-pill">
                             <i class="ri-arrow-left-line me-1"></i> Atrás
                         </a>
-                        <button type="submit" form="partilotPaymentForm" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold">Pagar</button>
+                        <button type="button" id="btn-stripe-pay" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold">Pagar</button>
                     </div>
                 </div>
             </div>
@@ -146,4 +130,85 @@
     font-size: 0.95rem;
 }
 </style>
+@endsection
+
+@section('scripts')
+<script src="https://js.stripe.com/v3"></script>
+<script>
+(() => {
+    const payBtn = document.getElementById('btn-stripe-pay');
+    const errorBox = document.getElementById('stripe-card-errors');
+    const paymentIntentInput = document.getElementById('stripe_payment_intent_id');
+    const form = document.getElementById('partilotPaymentForm');
+    const cardContainer = document.getElementById('stripe-card-element');
+    if (!payBtn || !errorBox || !paymentIntentInput || !form || !cardContainer) return;
+
+    let stripe = null;
+    let card = null;
+    let clientSecret = null;
+
+    function showError(msg) {
+        errorBox.textContent = msg || 'Error procesando pago.';
+        errorBox.classList.remove('d-none');
+    }
+
+    function clearError() {
+        errorBox.textContent = '';
+        errorBox.classList.add('d-none');
+    }
+
+    async function initStripe() {
+        const res = await fetch('{{ route('design.external.createPaymentIntent') }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+            throw new Error(data.message || 'No se pudo iniciar pago con Stripe.');
+        }
+
+        stripe = Stripe(data.publishable_key);
+        clientSecret = data.client_secret;
+
+        const elements = stripe.elements();
+        card = elements.create('card', {hidePostalCode: true});
+        card.mount('#stripe-card-element');
+    }
+
+    payBtn.addEventListener('click', async () => {
+        try {
+            clearError();
+            payBtn.disabled = true;
+            if (!stripe || !card || !clientSecret) {
+                await initStripe();
+            }
+
+            const result = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: { card }
+            });
+
+            if (result.error) {
+                showError(result.error.message || 'Pago rechazado.');
+                payBtn.disabled = false;
+                return;
+            }
+
+            if (!result.paymentIntent || result.paymentIntent.status !== 'succeeded') {
+                showError('El pago no se confirmó correctamente.');
+                payBtn.disabled = false;
+                return;
+            }
+
+            paymentIntentInput.value = result.paymentIntent.id;
+            form.submit();
+        } catch (e) {
+            showError(e.message || 'Error iniciando Stripe.');
+            payBtn.disabled = false;
+        }
+    });
+})();
+</script>
 @endsection

@@ -155,6 +155,9 @@ class ConfigurationController extends Controller
             'price_taco_50' => 'nullable|numeric|min:0',
             'price_taco_100' => 'nullable|numeric|min:0',
             'bank_account' => 'nullable|string|max:80',
+            'stripe_publishable_key' => 'nullable|string|max:255',
+            'stripe_secret_key' => 'nullable|string|max:2000',
+            'stripe_webhook_secret' => 'nullable|string|max:2000',
         ]);
 
         $config = PrintConfiguration::first();

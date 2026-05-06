@@ -262,20 +262,44 @@
                     <div class="col-lg-5">
                         <div class="form-group mt-2 mb-0 h-100 d-flex flex-column justify-content-between">
                             <div>
-                            <h5 class="mb-3">Datos de pago</h5>
+                            <h5 class="mb-3">Datos de pago (Stripe)</h5>
                             <div class="form-group mt-2 mb-3">
-                                <label class="label-control">Cuenta bancaria</label>
+                                <label class="label-control">Stripe Publishable Key</label>
                                 <div class="input-group input-group-merge group-form">
                                     <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                         <img src="{{ url('assets/form-groups/admin/4.svg') }}" alt="">
                                     </div>
-                                    <input class="form-control" type="text" name="bank_account"
-                                        placeholder="ES00 0000 0000 0000 0000 0000"
-                                        value="{{ old('bank_account', $printConfiguration->bank_account ?? '') }}"
-                                        style="border-radius: 0 30px 30px 0; letter-spacing: 0.05em;">
+                                    <input class="form-control" type="text" name="stripe_publishable_key"
+                                        placeholder="pk_test_..."
+                                        value="{{ old('stripe_publishable_key', $printConfiguration->stripe_publishable_key ?? '') }}"
+                                        style="border-radius: 0 30px 30px 0;">
+                                </div>
+                            </div>
+                            <div class="form-group mt-2 mb-3">
+                                <label class="label-control">Stripe Secret Key</label>
+                                <div class="input-group input-group-merge group-form">
+                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                        <img src="{{ url('assets/form-groups/admin/4.svg') }}" alt="">
+                                    </div>
+                                    <input class="form-control" type="password" name="stripe_secret_key"
+                                        placeholder="sk_test_..."
+                                        value="{{ old('stripe_secret_key', $printConfiguration->stripe_secret_key ?? '') }}"
+                                        style="border-radius: 0 30px 30px 0;">
+                                </div>
+                            </div>
+                            <div class="form-group mt-2 mb-3">
+                                <label class="label-control">Stripe Webhook Secret</label>
+                                <div class="input-group input-group-merge group-form">
+                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                        <img src="{{ url('assets/form-groups/admin/4.svg') }}" alt="">
+                                    </div>
+                                    <input class="form-control" type="password" name="stripe_webhook_secret"
+                                        placeholder="whsec_..."
+                                        value="{{ old('stripe_webhook_secret', $printConfiguration->stripe_webhook_secret ?? '') }}"
+                                        style="border-radius: 0 30px 30px 0;">
                                 </div>
                                 <div class="form-text text-muted mt-1">
-                                    Introduce el IBAN de la cuenta bancaria para procesar pagos.
+                                    Estas claves se usarán para crear pagos y validar webhooks de Stripe.
                                 </div>
                             </div>
                             </div>

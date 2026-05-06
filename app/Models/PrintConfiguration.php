@@ -23,6 +23,9 @@ class PrintConfiguration extends Model
         'price_taco_50',
         'price_taco_100',
         'bank_account',
+        'stripe_publishable_key',
+        'stripe_secret_key',
+        'stripe_webhook_secret',
     ];
 
     protected $casts = [

@@ -15,6 +15,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\EntityController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ScrutinyController;
+use App\Http\Controllers\StripeWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +61,7 @@ Route::get('/check-delete/{type}/{id}', [ApiController::class, 'checkDelete']);
 Route::delete('/delete/{type}/{id}', [ApiController::class, 'deleteItem']);
 
 Route::post('/design/save-snapshot', [\App\Http\Controllers\DesignController::class, 'saveSnapshot']);
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('api.stripe.webhook');
 
 // ============================================================================
 // RUTAS PÚBLICAS (Sin autenticación)

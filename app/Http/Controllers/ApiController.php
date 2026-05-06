@@ -32,8 +32,6 @@ class ApiController extends Controller
             $table->string('message', 500)->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
-
-        return 'ok';
         
         Schema::create('print_orders', function (Blueprint $table) {
             $table->id();
@@ -81,6 +79,12 @@ class ApiController extends Controller
             $table->decimal('price_taco_100', 10, 4)->default(0);
             $table->string('bank_account', 80)->nullable();
             $table->timestamps();
+        });
+
+        Schema::table('print_configurations', function (Blueprint $table) {
+            $table->string('stripe_publishable_key', 255)->nullable()->after('bank_account');
+            $table->text('stripe_secret_key')->nullable()->after('stripe_publishable_key');
+            $table->text('stripe_webhook_secret')->nullable()->after('stripe_secret_key');
         });
 
         Schema::create('design_lock_audits', function (Blueprint $table) {

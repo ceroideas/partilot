@@ -19,6 +19,9 @@ class PrintOrder extends Model
         'lottery_id',
         'created_by_user_id',
         'status',
+        'payment_provider',
+        'payment_intent_id',
+        'payment_status',
         'print_size',
         'participations_per_book',
         'back_mode',
@@ -26,12 +29,14 @@ class PrintOrder extends Model
         'quote_breakdown',
         'notes',
         'sent_at',
+        'paid_at',
     ];
 
     protected $casts = [
         'quoted_amount' => 'decimal:2',
         'quote_breakdown' => 'array',
         'sent_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     public function design()

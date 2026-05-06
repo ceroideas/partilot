@@ -21,6 +21,8 @@ use App\Models\EmailCommunicationLog;
 use App\Services\CommunicationEmailService;
 use App\Services\ImageOptimizationService;
 use App\Services\QrCodeService;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Log;
 
 class DesignController extends Controller
 {
@@ -184,6 +186,55 @@ class DesignController extends Controller
         return view('design.external_step3', compact('entity', 'lottery', 'set', 'invitation', 'quote', 'mode'));
     }
 
+    public function externalCreatePaymentIntent(Request $request)
+    {
+        $this->ensureDesignSession();
+        $mode = session('design_external_mode', 'external');
+        if ($mode !== 'partilot') {
+            return response()->json(['ok' => false, 'message' => 'Modo inválido para pago.'], 422);
+        }
+
+        $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())
+            ->findOrFail(session('design_external_invitation_id'));
+        $quote = $this->calculateExternalInvitationQuote($invitation->set, $invitation);
+
+        [$publishableKey, $secretKey] = $this->resolveStripeKeys();
+        if ($secretKey === '' || $publishableKey === '') {
+            return response()->json(['ok' => false, 'message' => 'Stripe no configurado en entorno.'], 500);
+        }
+
+        try {
+            $client = new Client(['base_uri' => 'https://api.stripe.com/v1/']);
+            $response = $client->post('payment_intents', [
+                'auth' => [$secretKey, ''],
+                'form_params' => [
+                    'amount' => (int) round(((float) $quote['total']) * 100),
+                    'currency' => 'eur',
+                    'description' => 'Diseño e Impresión PARTILOT',
+                    'metadata[invitation_id]' => (string) $invitation->id,
+                    'metadata[set_id]' => (string) $invitation->set_id,
+                    'automatic_payment_methods[enabled]' => 'true',
+                ],
+            ]);
+
+            $payload = json_decode((string) $response->getBody(), true);
+            if (!is_array($payload) || empty($payload['client_secret']) || empty($payload['id'])) {
+                return response()->json(['ok' => false, 'message' => 'No se pudo crear PaymentIntent.'], 500);
+            }
+
+            session(['design_external_payment_intent_id' => (string) $payload['id']]);
+
+            return response()->json([
+                'ok' => true,
+                'client_secret' => (string) $payload['client_secret'],
+                'publishable_key' => $publishableKey,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Stripe PaymentIntent error', ['error' => $e->getMessage()]);
+            return response()->json(['ok' => false, 'message' => 'Error creando PaymentIntent de Stripe.'], 500);
+        }
+    }
+
     /**
      * Guardar paso 1 (comentario + archivos) y redirigir a paso 2.
      */
@@ -255,10 +306,10 @@ class DesignController extends Controller
         $rules = ['email' => 'required|email'];
         if ($mode === 'partilot') {
             $rules['email'] = 'nullable|email';
-            $rules['confirm_simulated_payment'] = 'accepted';
+            $rules['stripe_payment_intent_id'] = 'required|string';
         }
         $request->validate($rules, [
-            'confirm_simulated_payment.accepted' => 'Debes confirmar el pago simulado para continuar.',
+            'stripe_payment_intent_id.required' => 'No se encontró el pago de Stripe confirmado.',
         ]);
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail(session('design_external_invitation_id'));
         $quote = $this->calculateExternalInvitationQuote($invitation->set, $invitation);
@@ -269,6 +320,11 @@ class DesignController extends Controller
         ]);
 
         if ($mode === 'partilot') {
+            $paymentIntentId = (string) $request->input('stripe_payment_intent_id');
+            if (!$this->isStripePaymentSucceeded($paymentIntentId)) {
+                return redirect()->back()->with('error', 'El pago no está confirmado en Stripe. Intenta nuevamente.');
+            }
+
             $design = DesignFormat::create([
                 'entity_id' => (int) $invitation->entity_id,
                 'lottery_id' => (int) $invitation->lottery_id,
@@ -287,13 +343,17 @@ class DesignController extends Controller
                 'lottery_id' => $invitation->lottery_id,
                 'created_by_user_id' => auth()->id(),
                 'status' => PrintOrder::STATUS_PENDING_REVIEW,
+                'payment_provider' => 'stripe',
+                'payment_intent_id' => $paymentIntentId,
+                'payment_status' => 'paid',
                 'print_size' => $invitation->print_size,
                 'participations_per_book' => $invitation->participations_per_book,
                 'back_mode' => $invitation->back_mode,
                 'quoted_amount' => $quote['total'],
                 'quote_breakdown' => $quote,
-                'notes' => trim((string) ($invitation->comment ?? '')) . "\n[PAGO SIMULADO] Flujo Diseño e Impresión PARTILOT.",
+                'notes' => trim((string) ($invitation->comment ?? '')) . "\n[PAGO STRIPE TEST] Flujo Diseño e Impresión PARTILOT.",
                 'sent_at' => null,
+                'paid_at' => now(),
             ]);
         } else {
             $communicationEmailService = app(CommunicationEmailService::class);
@@ -321,6 +381,46 @@ class DesignController extends Controller
                 ? 'Pago confirmado y orden de imprenta registrada correctamente.'
                 : ('Invitación enviada a ' . $request->email)
         );
+    }
+
+    private function isStripePaymentSucceeded(string $paymentIntentId): bool
+    {
+        if ($paymentIntentId === '') {
+            return false;
+        }
+
+        [, $secretKey] = $this->resolveStripeKeys();
+        if ($secretKey === '') {
+            return false;
+        }
+
+        try {
+            $client = new Client(['base_uri' => 'https://api.stripe.com/v1/']);
+            $response = $client->get('payment_intents/' . $paymentIntentId, [
+                'auth' => [$secretKey, ''],
+            ]);
+            $payload = json_decode((string) $response->getBody(), true);
+            return is_array($payload) && (($payload['status'] ?? '') === 'succeeded');
+        } catch (\Throwable $e) {
+            Log::error('Stripe verify payment error', ['error' => $e->getMessage(), 'pi' => $paymentIntentId]);
+            return false;
+        }
+    }
+
+    private function resolveStripeKeys(): array
+    {
+        $cfg = PrintConfiguration::first();
+        $publishable = trim((string) ($cfg->stripe_publishable_key ?? ''));
+        $secret = trim((string) ($cfg->stripe_secret_key ?? ''));
+
+        if ($publishable === '') {
+            $publishable = (string) config('services.stripe.key');
+        }
+        if ($secret === '') {
+            $secret = (string) config('services.stripe.secret');
+        }
+
+        return [$publishable, $secret];
     }
 
     private function calculateExternalInvitationQuote(Set $set, DesignExternalInvitation $invitation): array
