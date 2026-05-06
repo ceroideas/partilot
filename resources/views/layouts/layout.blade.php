@@ -244,7 +244,7 @@
                 font-weight: 700;
                 padding: 4px 8px !important;
                 font-size: 10px !important;
-                width: 80px !important;
+                min-width: 80px !important;
             }
             .badge.bg-secondary:not(.rounded-circle) {
                 background-color: #e5e6e8 !important;
@@ -254,7 +254,7 @@
                 font-weight: 700;
                 padding: 4px 8px !important;
                 font-size: 10px !important;
-                width: 80px !important;
+                min-width: 80px !important;
             }
             .badge.bg-danger:not(.rounded-circle) {
                 background-color: #f3e8e8 !important;
@@ -264,7 +264,7 @@
                 font-weight: 700;
                 padding: 4px 8px !important;
                 font-size: 10px !important;
-                width: 80px !important;
+                min-width: 80px !important;
             }
             .badge.bg-info:not(.rounded-circle) {
                 background-color: #d9eef5 !important;
@@ -274,7 +274,7 @@
                 font-weight: 700;
                 padding: 4px 8px !important;
                 font-size: 10px !important;
-                width: 80px !important;
+                min-width: 80px !important;
             }
             .badge.bg-warning:not(.rounded-circle) {
                 background-color: #f9efcc !important;
@@ -284,7 +284,7 @@
                 font-weight: 700;
                 padding: 4px 8px !important;
                 font-size: 10px !important;
-                width: 80px !important;
+                min-width: 80px !important;
             }
 
             .no-click .btn-sm {
