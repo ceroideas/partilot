@@ -239,47 +239,68 @@
             .badge.bg-success:not(.rounded-circle) {
                 background-color: #cfead2 !important;
                 color: #0a9c2d !important;
-                border: 2px solid #95c79b;
+                border: 1px solid #95c79b;
                 border-radius: 8px !important;
                 font-weight: 700;
-                padding: 6px 10px !important;
-                font-size: 12px !important;
+                padding: 4px 8px !important;
+                font-size: 10px !important;
                 width: 80px !important;
             }
             .badge.bg-secondary:not(.rounded-circle) {
                 background-color: #e5e6e8 !important;
                 color: #4b5056 !important;
-                border: 2px solid #9aa0a6;
+                border: 1px solid #9aa0a6;
                 border-radius: 8px !important;
                 font-weight: 700;
-                padding: 6px 10px !important;
-                font-size: 12px !important;
+                padding: 4px 8px !important;
+                font-size: 10px !important;
                 width: 80px !important;
             }
             .badge.bg-danger:not(.rounded-circle) {
                 background-color: #f3e8e8 !important;
                 color: #a10000 !important;
-                border: 2px solid #c7a7a7;
+                border: 1px solid #c7a7a7;
                 border-radius: 8px !important;
                 font-weight: 700;
-                padding: 6px 10px !important;
-                font-size: 12px !important;
+                padding: 4px 8px !important;
+                font-size: 10px !important;
+                width: 80px !important;
+            }
+            .badge.bg-info:not(.rounded-circle) {
+                background-color: #d9eef5 !important;
+                color: #0f5f7c !important;
+                border: 1px solid #9dc1cf;
+                border-radius: 8px !important;
+                font-weight: 700;
+                padding: 4px 8px !important;
+                font-size: 10px !important;
+                width: 80px !important;
+            }
+            .badge.bg-warning:not(.rounded-circle) {
+                background-color: #f9efcc !important;
+                color: #8a6700 !important;
+                border: 1px solid #d8bf70;
+                border-radius: 8px !important;
+                font-weight: 700;
+                padding: 4px 8px !important;
+                font-size: 10px !important;
                 width: 80px !important;
             }
 
             .no-click .btn-sm {
                 padding: 4px !important;
-                width: 41px !important;
+                width: 28px !important;
+                height: 28px !important;
                 border: 1px solid silver !important;
                 margin-left: 5px !important;
-                border-radius: 8px !important;
+                border-radius: 4px !important;
             }
 
             .no-click .btn-sm img, .no-click .btn-sm i::before {
-                font-size: 20px !important;
-                height: 20px !important;
+                font-size: 14px !important;
+                height: 12px !important;
                 width: auto;
-                margin: 5px 0 !important;
+                margin: 3px 0 !important;
             }
             
             @media (max-width: 1200px) {
