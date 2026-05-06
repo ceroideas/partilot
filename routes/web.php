@@ -142,7 +142,7 @@ Route::middleware(['auth', 'entity_panel.readonly', 'entity_manager.legacy_passw
 Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin'], function() {
     //
     Route::get('/', function() {return view('admins.index');})->name('administrations.index');
-    Route::get('/add', function() {return view('admins.add');})->name('administrations.create');
+    Route::get('/add', [AdministratorController::class, 'create'])->name('administrations.create');
     Route::get('/add/manager', function() {return view('admins.add_manager');})->name('administrations.add-manager');
     Route::post('/add/manager', [AdministratorController::class, 'store_information']);
     Route::post('/store', [AdministratorController::class, 'store']);

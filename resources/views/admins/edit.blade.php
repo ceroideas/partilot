@@ -213,7 +213,7 @@
 
                     			<div>
                     				<div class="row">
-                    					<div class="col-4">
+                    					<div class="col-3">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Nombre comercial</label>
 
@@ -227,7 +227,7 @@
 				                                </div>
 			                    			</div>
                     					</div>
-                    					<div class="col-3">
+                    					<div class="col-2">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Nº Receptor</label>
 
@@ -241,7 +241,7 @@
 				                                </div>
 			                    			</div>
                     					</div>
-                    					<div class="col-3">
+                    					<div class="col-2">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Nº Administración</label>
 
@@ -251,11 +251,11 @@
 				                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="{{ old('admin_number', $administration->admin_number) }}" class="form-control" type="text" name="admin_number" placeholder="Nº Administración" style="border-radius: 0 30px 30px 0;">
+				                                    <input value="{{ old('admin_number', $administration->admin_number) }}" class="form-control" type="text" name="admin_number" placeholder="Nº Administración" maxlength="9" pattern="[0-9]{9}" inputmode="numeric" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
-                    					<div class="col-2">
+                    					<div class="col-5">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Nombre Autónomo / Sociedad</label>
 
@@ -295,7 +295,12 @@
 				                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="{{ old('province', $administration->province) }}" class="form-control" type="text" name="province" placeholder="Provincia" style="border-radius: 0 30px 30px 0;" required>
+				                                    <select class="form-control" name="province" id="province-select" style="border-radius: 0 30px 30px 0;" required>
+                                                        <option value="">Seleccionar provincia</option>
+                                                        @foreach(($provinces ?? []) as $province)
+                                                            <option value="{{ $province }}" {{ old('province', $administration->province) === $province ? 'selected' : '' }}>{{ $province }}</option>
+                                                        @endforeach
+                                                    </select>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -310,7 +315,9 @@
 				                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input value="{{ old('city', $administration->city) }}" class="form-control" type="text" name="city" placeholder="Localidad" style="border-radius: 0 30px 30px 0;" required>
+				                                    <select class="form-control" name="city" id="city-select" style="border-radius: 0 30px 30px 0;" required>
+                                                        <option value="">Seleccionar localidad</option>
+                                                    </select>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -330,7 +337,7 @@
 			                    			</div>
                     					</div>
 
-                    					<div class="col-4">
+                    					<div class="col-3">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Dirección</label>
 
@@ -345,7 +352,7 @@
 			                    			</div>
                     					</div>
 
-                    					<div class="col-4">
+                    					<div class="col-5">
                     						<div class="form-group mt-2 mb-3">
                     							<label class="label-control">Email</label>
 
@@ -551,6 +558,40 @@ if (receivingInput) {
 		if (this.value.length > 5) {
 			this.value = this.value.slice(0, 5);
 		}
+	});
+}
+
+// Máscara para Nº Administración (solo números, máximo 9)
+const adminNumberInput = document.querySelector('input[name="admin_number"]');
+if (adminNumberInput) {
+	adminNumberInput.addEventListener('input', function() {
+		this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9);
+	});
+}
+
+// Provincia -> Localidad dependiente
+const provinceCityMap = @json($provinceCityMap ?? []);
+const provinceSelect = document.getElementById('province-select');
+const citySelect = document.getElementById('city-select');
+const selectedCity = @json(old('city', $administration->city));
+function fillCitiesByProvince(province, preselect = '') {
+	if (!citySelect) return;
+	citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
+	const cities = provinceCityMap[province] || [];
+	cities.forEach((city) => {
+		const option = document.createElement('option');
+		option.value = city;
+		option.textContent = city;
+		if ((preselect && preselect === city) || (!preselect && selectedCity === city)) {
+			option.selected = true;
+		}
+		citySelect.appendChild(option);
+	});
+}
+if (provinceSelect && citySelect) {
+	fillCitiesByProvince(provinceSelect.value, selectedCity || '');
+	provinceSelect.addEventListener('change', function() {
+		fillCitiesByProvince(this.value, '');
 	});
 }
 

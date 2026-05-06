@@ -137,7 +137,7 @@
 	                    			<div>
 	                    				<div class="row">
 	                    					
-	                    					<div class="col-4">
+                    					<div class="col-3">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Nombre comercial</label>
 
@@ -151,7 +151,7 @@
 					                                </div>
 				                    			</div>
 	                    					</div>
-	                    					<div class="col-3">
+                    					<div class="col-2">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Nº Receptor</label>
 
@@ -165,7 +165,7 @@
 					                                </div>
 				                    			</div>
 	                    					</div>
-	                    					<div class="col-3">
+                    					<div class="col-2">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Nº Administración</label>
 
@@ -175,11 +175,11 @@
 					                                        <img src="{{url('assets/form-groups/admin/2.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="admin_number" value="{{ old('admin_number') }}" placeholder="Nº Administración" style="border-radius: 0 30px 30px 0;">
+					                                    <input class="form-control" type="text" name="admin_number" value="{{ old('admin_number') }}" placeholder="Nº Administración" maxlength="9" pattern="[0-9]{9}" inputmode="numeric" style="border-radius: 0 30px 30px 0;">
 					                                </div>
 				                    			</div>
 	                    					</div>
-	                    					<div class="col-2">
+                    					<div class="col-5">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Nombre Autónomo / Sociedad</label>
 
@@ -209,7 +209,7 @@
 				                    			</div>
 	                    					</div>
 
-	                    					<div class="col-3">
+                    					<div class="col-3">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Provincia</label>
 
@@ -219,7 +219,12 @@
 					                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="province" placeholder="Provincia" value="{{ old('province') }}" style="border-radius: 0 30px 30px 0;">
+					                                    <select class="form-control" required name="province" id="province-select" style="border-radius: 0 30px 30px 0;">
+                                                            <option value="">Seleccionar provincia</option>
+                                                            @foreach(($provinces ?? []) as $province)
+                                                                <option value="{{ $province }}" {{ old('province') === $province ? 'selected' : '' }}>{{ $province }}</option>
+                                                            @endforeach
+                                                        </select>
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -234,7 +239,9 @@
 					                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" required name="city" placeholder="Localidad" value="{{ old('city') }}" style="border-radius: 0 30px 30px 0;">
+					                                    <select class="form-control" required name="city" id="city-select" style="border-radius: 0 30px 30px 0;">
+                                                            <option value="">Seleccionar localidad</option>
+                                                        </select>
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -254,7 +261,7 @@
 				                    			</div>
 	                    					</div>
 
-	                    					<div class="col-4">
+                    					<div class="col-3">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Dirección</label>
 
@@ -269,7 +276,7 @@
 				                    			</div>
 	                    					</div>
 
-	                    					<div class="col-4">
+                    					<div class="col-5">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Email</label>
 
@@ -438,8 +445,8 @@
 	        admin_number: document.querySelector('input[name="admin_number"]')?.value || '',
 	        society: document.querySelector('input[name="society"]')?.value || '',
 	        nif_cif: document.querySelector('input[name="nif_cif"]')?.value || '',
-	        province: document.querySelector('input[name="province"]')?.value || '',
-	        city: document.querySelector('input[name="city"]')?.value || '',
+	        province: document.querySelector('select[name="province"]')?.value || '',
+	        city: document.querySelector('select[name="city"]')?.value || '',
 	        postal_code: document.querySelector('input[name="postal_code"]')?.value || '',
 	        address: document.querySelector('input[name="address"]')?.value || '',
 	        email: document.querySelector('input[name="email"]')?.value || '',
@@ -461,7 +468,7 @@
 	                    accountInput.value = formData.account;
 	                }
 	            } else {
-	                const input = document.querySelector(`input[name="${key}"]`);
+	                const input = document.querySelector(`input[name="${key}"], select[name="${key}"]`);
 	                if (input && formData[key]) {
 	                    input.value = formData[key];
 	                }
@@ -489,7 +496,7 @@
 	}
 
 	// Guardar datos al cambiar cualquier campo
-	document.querySelectorAll('input').forEach(input => {
+	document.querySelectorAll('input, select').forEach(input => {
 	    input.addEventListener('input', saveFormData);
 	    input.addEventListener('change', saveFormData);
 	});
@@ -533,6 +540,41 @@
 			}
 		});
 	}
+
+	// Máscara para Nº Administración (solo números, máximo 9)
+	const adminNumberInput = document.querySelector('input[name="admin_number"]');
+	if (adminNumberInput) {
+		adminNumberInput.addEventListener('input', function() {
+			this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9);
+		});
+	}
+
+    // Provincia -> Localidad dependiente
+    const provinceCityMap = @json($provinceCityMap ?? []);
+    const provinceSelect = document.getElementById('province-select');
+    const citySelect = document.getElementById('city-select');
+    const oldCity = @json(old('city'));
+    function fillCitiesByProvince(province, preselect = '') {
+        if (!citySelect) return;
+        citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
+        const cities = provinceCityMap[province] || [];
+        cities.forEach((city) => {
+            const option = document.createElement('option');
+            option.value = city;
+            option.textContent = city;
+            if ((preselect && preselect === city) || (!preselect && oldCity === city)) {
+                option.selected = true;
+            }
+            citySelect.appendChild(option);
+        });
+    }
+    if (provinceSelect && citySelect) {
+        fillCitiesByProvince(provinceSelect.value, citySelect.value || oldCity || '');
+        provinceSelect.addEventListener('change', function() {
+            fillCitiesByProvince(this.value, '');
+            saveFormData();
+        });
+    }
 
 	// Inicializar validación de documento español
 	document.addEventListener('DOMContentLoaded', function() {
