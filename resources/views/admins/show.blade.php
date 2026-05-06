@@ -206,7 +206,7 @@
 
 			                    						<h4 class="mt-3 mb-0">{{$administration->name ?? 'Sin nombre'}}</h4>
 
-			                    						<small>@if($administration->manager?->user?->isPanelAccount())Acceso al panel @else {{$administration->manager->user->name ?? ''}} {{$administration->manager->user->last_name ?? ''}}@endif</small> <br>
+			                    						<small>@if($administration->manager?->user?->isPanelAccount())Acceso al panel @elseif($administration->manager?->user){{ $administration->manager->user->name }} {{ $administration->manager->user->last_name }}@else Sin gestor principal @endif</small> <br>
 			                    						
 			                    					</div>
 			                    				</div>

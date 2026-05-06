@@ -162,11 +162,13 @@ Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin']
     Route::put('/update/{id}', [AdministratorController::class, 'update'])->name('administrations.update');
     Route::post('/{administration}/toggle-status', [AdministratorController::class, 'toggleStatus'])->name('administrations.toggle-status');
     Route::post('/check-email', [AdministratorController::class, 'checkEmail'])->name('administrations.check-email');
-    Route::get('/edit/manager/{id}', function($id) { 
-        $administration = Administration::with('manager')
+    Route::post('/assign-primary-manager/{id}', [AdministratorController::class, 'assignPrimaryManager'])->name('administrations.assign-primary-manager');
+    Route::get('/edit/manager/{id}', function($id) {
+        $administration = Administration::with(['manager.user'])
             ->forUser(auth()->user())
-            ->findOrFail($id); 
-        return view('admins.edit_manager', compact('administration')); 
+            ->findOrFail($id);
+
+        return view('admins.edit_manager', compact('administration'));
     })->name('administrations.edit-manager');
     Route::get('/edit/api/{id}', function() {return view('admins.edit_api');});
 });

@@ -66,7 +66,13 @@
                                     <td>{{$entity->name ?? 'Sin nombre'}}</td>
                                     <td>{{$entity->province ?? 'Sin provincia'}}</td>
                                     <td>{{$entity->city ?? 'Sin localidad'}}</td>
-                                    <td>{{$entity->manager ? $entity->manager->user->name . ' ' . $entity->manager->user->last_name : 'Sin gestor'}}</td>
+                                    <td>
+                                        @if($entity->manager?->user)
+                                            {{ trim($entity->manager->user->name.' '.$entity->manager->user->last_name) }}
+                                        @else
+                                            <span class="text-muted">Sin gestor principal</span>
+                                        @endif
+                                    </td>
                                     <td>{{$entity->phone ?? 'Sin teléfono'}}</td>
                                     <td>{{$entity->email ?? 'Sin email'}}</td>
                                     <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>

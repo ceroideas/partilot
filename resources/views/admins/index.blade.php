@@ -26,7 +26,10 @@
                 <div class="card-body">
 
                     @php
-                        $administrations = App\Models\Administration::forUser(auth()->user())->orderBy('created_at', 'desc')->get();
+                        $administrations = App\Models\Administration::forUser(auth()->user())
+                            ->with(['manager.user'])
+                            ->orderBy('created_at', 'desc')
+                            ->get();
                     @endphp
 
                 	<div class="{{count($administrations) ? '' : 'd-none'}}">
@@ -71,7 +74,13 @@
 	                                <td>{{$admins->receiving}}</td>
 	                                <td>{{$admins->province}}</td>
 	                                <td>{{$admins->city}}</td>
-	                                <td>{{$admins->manager->user->name.' '.$admins->manager->user->last_name}}</td>
+	                                <td>
+                                        @if($admins->manager?->user)
+                                            {{ trim($admins->manager->user->name.' '.$admins->manager->user->last_name) }}
+                                        @else
+                                            <span class="text-muted">Sin gestor principal</span>
+                                        @endif
+                                    </td>
 	                                <td>{{$admins->phone}}</td>
 	                                <td>{{$admins->email}}</td>
 	                                <td>

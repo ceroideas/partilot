@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 use App\Http\Requests\CreateAdmin;
 use App\Models\Administration;
+use App\Support\ContactEmailRegistry;
 use App\Models\User;
 use App\Models\Manager;
 use App\Mail\AdministrationWelcomeMail;
@@ -89,10 +90,19 @@ class AdministratorController extends Controller
             ->where('panel_account_id', $administration->id)
             ->first();
 
-        if ($panelUser && strcasecmp((string) $panelUser->email, (string) $newEmail) !== 0) {
-            if (User::where('email', $newEmail)->where('id', '!=', $panelUser->id)->exists()) {
-                return back()->withErrors(['email' => 'Este email ya está en uso por otro usuario.'])->withInput();
+        if ($panelUser) {
+            if (strcasecmp((string) $panelUser->email, (string) $newEmail) !== 0
+                && ContactEmailRegistry::isTaken(
+                    $newEmail,
+                    $panelUser->id,
+                    $administration->id,
+                    null
+                )) {
+                return back()->withErrors(['email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.'])->withInput();
             }
+        } elseif (strcasecmp((string) $administration->email, (string) $newEmail) !== 0
+            && ContactEmailRegistry::isTaken($newEmail, null, $administration->id, null)) {
+            return back()->withErrors(['email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.'])->withInput();
         }
 
         $data = [
@@ -235,9 +245,9 @@ class AdministratorController extends Controller
         ]);
 
         $email = $administrationData['email'];
-        if (User::where('email', $email)->exists()) {
+        if (ContactEmailRegistry::isTaken($email)) {
             return back()->withErrors([
-                'email' => 'Ya existe un usuario con el email de esta administración. Use otro email en el paso anterior o contacte con soporte.',
+                'email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario. Use otro correo en el paso anterior.',
             ])->withInput();
         }
 
@@ -324,6 +334,103 @@ class AdministratorController extends Controller
             'success',
             'Administración creada correctamente. Envíe el correo de acceso al panel desde la ficha de la administración cuando corresponda.'
         );
+    }
+
+    /**
+     * Asignar gestor principal cuando ya no existe (p. ej. usuario eliminado).
+     */
+    public function assignPrimaryManager(Request $request, $id)
+    {
+        $administration = Administration::forUser(auth()->user())->findOrFail($id);
+
+        $existingPrimary = Manager::query()
+            ->where('administration_id', $administration->id)
+            ->where('is_primary', true)
+            ->first();
+
+        if ($existingPrimary && User::query()->whereKey($existingPrimary->user_id)->exists()) {
+            return redirect()->route('administrations.edit-manager', $administration->id)
+                ->with('info', 'Esta administración ya tiene un gestor principal asignado.');
+        }
+
+        if ($existingPrimary) {
+            $existingPrimary->delete();
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'last_name2' => 'nullable|string|max:255',
+            'nif_cif' => ['nullable', 'string', 'max:20', new \App\Rules\SpanishDocument],
+            'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
+            'phone' => 'nullable|string|max:20',
+            'email' => 'required|email|max:255',
+            'comment' => 'nullable|string|max:10000',
+        ]);
+
+        $panelEmail = trim((string) $administration->email);
+        $managerEmail = trim((string) $request->input('email'));
+
+        if ($panelEmail !== '' && strcasecmp($panelEmail, $managerEmail) === 0) {
+            return back()->withErrors([
+                'email' => 'El email del gestor debe ser distinto al correo de acceso al panel de la administración.',
+            ])->withInput();
+        }
+
+        $norm = ContactEmailRegistry::normalize($managerEmail);
+        $managerUser = User::query()->whereRaw('LOWER(TRIM(email)) = ?', [$norm])->first();
+
+        if ($managerUser) {
+            if ($managerUser->isPanelAccount()) {
+                return back()->withErrors([
+                    'email' => 'Ese email corresponde a una cuenta de acceso al panel. Use otro email para el gestor.',
+                ])->withInput();
+            }
+        } else {
+            if (ContactEmailRegistry::isTaken($managerEmail)) {
+                return back()->withErrors([
+                    'email' => 'Este correo no puede usarse (duplicado en el sistema).',
+                ])->withInput();
+            }
+
+            $managerUser = User::create([
+                'name' => $request->input('name'),
+                'last_name' => $request->input('last_name'),
+                'last_name2' => $request->input('last_name2'),
+                'email' => $managerEmail,
+                'password' => bcrypt(12345678),
+                'role' => User::ROLE_ADMINISTRATION,
+                'status' => true,
+                'phone' => $request->input('phone') ?: null,
+                'nif_cif' => $request->input('nif_cif') ?: null,
+                'birthday' => $request->input('birthday') ?: null,
+                'comment' => $request->input('comment') ?: null,
+            ]);
+        }
+
+        Manager::query()
+            ->where('administration_id', $administration->id)
+            ->where('user_id', '!=', $managerUser->id)
+            ->update(['is_primary' => false]);
+
+        Manager::updateOrCreate(
+            [
+                'user_id' => $managerUser->id,
+                'administration_id' => $administration->id,
+                'entity_id' => null,
+            ],
+            [
+                'is_primary' => true,
+                'permission_sellers' => true,
+                'permission_design' => true,
+                'permission_statistics' => true,
+                'permission_payments' => true,
+                'status' => 1,
+            ]
+        );
+
+        return redirect()->route('administrations.edit-manager', $administration->id)
+            ->with('success', 'Gestor principal registrado correctamente.');
     }
 
     private function sanitizeIbanAccount($value): ?string
@@ -495,17 +602,25 @@ class AdministratorController extends Controller
             'exclude_id' => 'nullable|integer',
         ]);
 
-        $query = Administration::where('email', $request->email);
-
-        if ($request->exclude_id) {
-            $query->where('id', '!=', $request->exclude_id);
+        $excludeAdminId = $request->exclude_id ? (int) $request->exclude_id : null;
+        $panelUserId = null;
+        if ($excludeAdminId) {
+            $panelUserId = User::query()
+                ->where('panel_account_type', 'administration')
+                ->where('panel_account_id', $excludeAdminId)
+                ->value('id');
         }
 
-        $exists = $query->exists();
+        $exists = ContactEmailRegistry::isTaken(
+            $request->email,
+            $panelUserId ? (int) $panelUserId : null,
+            $excludeAdminId,
+            null
+        );
 
         return response()->json([
             'exists' => $exists,
-            'message' => $exists ? 'Este email ya está en uso por otra administración' : null,
+            'message' => $exists ? 'Este correo ya está en uso por otra administración, entidad o usuario' : null,
         ]);
     }
 }

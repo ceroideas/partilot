@@ -35,7 +35,77 @@
 
                     <br>
 
-                    <form action="{{ route('managers.update', $administration->manager->id) }}" method="POST" enctype="multipart/form-data">
+                    @php
+                        $primaryManager = $administration->manager;
+                        $primaryManagerUser = $primaryManager?->user;
+                    @endphp
+
+                    @if(session('info'))
+                        <div class="alert alert-info">{{ session('info') }}</div>
+                    @endif
+
+                    @if(session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+
+                    @if($errors->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+                        </div>
+                    @endif
+
+                    @if(!$primaryManager || !$primaryManagerUser)
+                        <div class="alert alert-warning">
+                            Esta administración no tiene gestor principal (por ejemplo si se eliminó el usuario asignado). Complete los datos para registrar uno nuevo.
+                            El correo debe ser distinto del correo de acceso al panel de la administración ({{ $administration->email }}).
+                        </div>
+
+                        <form action="{{ route('administrations.assign-primary-manager', $administration->id) }}" method="POST" class="assign-primary-admin-manager">
+                            @csrf
+
+                            <div class="form-card bs">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="label-control">Nombre</label>
+                                        <input class="form-control" type="text" name="name" value="{{ old('name') }}" required>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="label-control">Primer apellido</label>
+                                        <input class="form-control" type="text" name="last_name" value="{{ old('last_name') }}" required>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="label-control">Segundo apellido</label>
+                                        <input class="form-control" type="text" name="last_name2" value="{{ old('last_name2') }}">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="label-control">NIF/CIF</label>
+                                        <input class="form-control" type="text" name="nif_cif" id="admin-assign-primary-nif-cif" value="{{ old('nif_cif') }}">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="label-control">F. nacimiento</label>
+                                        <input class="form-control" type="date" name="birthday" value="{{ old('birthday') }}">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="label-control">Email</label>
+                                        <input class="form-control" type="email" name="email" value="{{ old('email') }}" required>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="label-control">Teléfono</label>
+                                        <input class="form-control" type="text" name="phone" value="{{ old('phone') }}">
+                                    </div>
+                                    <div class="col-md-12 mb-3">
+                                        <label class="label-control">Comentario</label>
+                                        <textarea class="form-control" name="comment" rows="3">{{ old('comment') }}</textarea>
+                                    </div>
+                                    <div class="col-md-12 text-end">
+                                        <button type="submit" class="btn rounded-pill btn-warning fw-semibold text-dark px-4">Registrar gestor principal</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    @else
+
+                    <form action="{{ route('managers.update', $primaryManager->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         
@@ -137,8 +207,8 @@
                     						
 		                    				<div class="photo-preview-2">
 		                    					
-		                    					@if($administration->manager && $administration->manager->user->image)
-		                    						<img src="{{url('manager/'.$administration->manager->user->image)}}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+		                    				@if(!empty($primaryManagerUser->image))
+		                    						<img src="{{url('manager/'.$primaryManagerUser->image)}}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
 		                    					@else
 		                    						<i class="ri-account-circle-fill"></i>
 		                    					@endif
@@ -152,7 +222,7 @@
 
                     						<h4 class="mt-0 mb-0">{{ $administration->name ?? 'Sin nombre' }}</h4>
 
-                    						<small>{{ $administration->manager->user->name ?? '' }} {{ $administration->manager->user->last_name ?? '' }}</small> <br>
+                    						<small>{{ $primaryManagerUser->name ?? '' }} {{ $primaryManagerUser->last_name ?? '' }}</small> <br>
 
                     						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $administration->postal_code ?? '' }}
                     						
@@ -195,7 +265,7 @@
 				                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="name" value="{{ $administration->manager->user->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input name="name" value="{{ $primaryManagerUser->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -209,7 +279,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="last_name" value="{{ $administration->manager->user->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input name="last_name" value="{{ $primaryManagerUser->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -224,7 +294,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="last_name2" value="{{ $administration->manager->user->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="last_name2" value="{{ $primaryManagerUser->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -239,7 +309,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="nif_cif" id="admin-edit-manager-nif-cif" value="{{ $administration->manager->user->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="nif_cif" id="admin-edit-manager-nif-cif" value="{{ $primaryManagerUser->nif_cif ?? '' }}" class="form-control" type="text" placeholder="B26262626" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -254,7 +324,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/12.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="birthday" value="{{ $administration->manager->user->birthday->format('Y-m-d') ?? '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
+				                                    <input name="birthday" value="{{ $primaryManagerUser->birthday?->format('Y-m-d') ?? '' }}" class="form-control" type="date" placeholder="01/01/1990" style="border-radius: 0 30px 30px 0;">
 				                                </div>
 			                    			</div>
                     					</div>
@@ -269,7 +339,7 @@
 				                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 				                                    </div>
 
-				                                    <input name="email" value="{{ $administration->manager->user->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
+				                                    <input name="email" value="{{ $primaryManagerUser->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;" required>
 				                                </div>
 			                    			</div>
                     					</div>
@@ -309,7 +379,7 @@
 
 			                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-			                                    <textarea name="comment" class="form-control" placeholder="Añade tu comentario" rows="6">{{ $administration->manager->user->comment ?? '' }}</textarea>
+			                                    <textarea name="comment" class="form-control" placeholder="Añade tu comentario" rows="6">{{ $primaryManagerUser->comment ?? '' }}</textarea>
 			                                </div>
 		                    			</div>
 
@@ -328,6 +398,8 @@
                     	
                     </form>
 
+                    @endif
+
                 </div>
             </div>
         </div>
@@ -341,9 +413,12 @@
 <script>
 // Inicializar validación de documento español
 document.addEventListener('DOMContentLoaded', function() {
-    initSpanishDocumentValidation('admin-edit-manager-nif-cif', {
-        showMessage: true
-    });
+    if (document.getElementById('admin-edit-manager-nif-cif')) {
+        initSpanishDocumentValidation('admin-edit-manager-nif-cif', { showMessage: true });
+    }
+    if (document.getElementById('admin-assign-primary-nif-cif')) {
+        initSpanishDocumentValidation('admin-assign-primary-nif-cif', { showMessage: true });
+    }
 });
 </script>
 

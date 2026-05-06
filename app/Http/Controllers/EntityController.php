@@ -12,6 +12,7 @@ use App\Mail\EntityManagerInvitationMail;
 use App\Mail\EntityManagerPreregisterInviteMail;
 use App\Mail\EntityResponsibleManagerConfirmedMail;
 use App\Services\CommunicationEmailService;
+use App\Support\ContactEmailRegistry;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -25,7 +26,7 @@ class EntityController extends Controller
     {
         $user = auth()->user();
 
-        $query = Entity::with(['administration', 'manager'])
+        $query = Entity::with(['administration', 'manager.user'])
             ->forUser($user);
 
         // Los gestores de entidad (sin cuenta panel) solo ven entidades activas en el listado.
@@ -129,6 +130,12 @@ class EntityController extends Controller
         }
         unset($validated['remove_image']);
 
+        if (ContactEmailRegistry::isTaken($validated['email'])) {
+            return back()->withErrors([
+                'email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.',
+            ])->withInput();
+        }
+
         $request->session()->put('entity_information', $validated);
 
         return redirect()->route('entities.add-manager');
@@ -216,9 +223,9 @@ class EntityController extends Controller
                 ->with('error', 'La entidad debe tener un email de contacto válido para el acceso al panel.');
         }
 
-        if (User::where('email', $email)->exists()) {
+        if (ContactEmailRegistry::isTaken($email)) {
             return back()->withErrors([
-                'panel_password' => 'Ya existe un usuario con el email de la entidad. Cambie el email en el paso anterior.',
+                'panel_password' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario. Cambie el email en el paso anterior.',
             ])->withInput();
         }
 
@@ -417,9 +424,9 @@ class EntityController extends Controller
                     ->with('error', 'Faltan datos de acceso de panel para crear la entidad.');
             }
 
-            if (User::where('email', $panelEmail)->exists()) {
+            if (ContactEmailRegistry::isTaken($panelEmail)) {
                 return redirect()->route('entities.add-information')
-                    ->with('error', 'Ya existe un usuario con el email de la entidad. Cambie el email en Datos Entidad.');
+                    ->with('error', 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario. Cambie el email en Datos Entidad.');
             }
 
             $entityData = array_merge($entityInformation, [
@@ -659,9 +666,9 @@ class EntityController extends Controller
                 ->with('error', 'Faltan datos de acceso de panel para crear la entidad.');
         }
 
-        if (User::where('email', $panelEmail)->exists()) {
+        if (ContactEmailRegistry::isTaken($panelEmail)) {
             return redirect()->route('entities.add-information')
-                ->with('error', 'Ya existe un usuario con el email de la entidad. Cambie el email en Datos Entidad.');
+                ->with('error', 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario. Cambie el email en Datos Entidad.');
         }
 
         if (strcasecmp($inviteEmail, strtolower(trim((string) $panelEmail))) === 0) {
@@ -879,11 +886,17 @@ class EntityController extends Controller
             ->where('panel_account_id', $entity->id)
             ->first();
 
-        if ($panelUser && ! empty($validated['email']) && $validated['email'] !== $panelUser->email) {
-            if (User::where('email', $validated['email'])->where('id', '!=', $panelUser->id)->exists()) {
+        $newEntityEmail = isset($validated['email']) ? trim((string) $validated['email']) : '';
+
+        if ($panelUser && $newEntityEmail !== '' && $newEntityEmail !== $panelUser->email) {
+            if (ContactEmailRegistry::isTaken($newEntityEmail, $panelUser->id, null, $entity->id)) {
                 return back()->withInput()
-                    ->withErrors(['email' => 'Ese email ya está en uso por otro usuario.']);
+                    ->withErrors(['email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.']);
             }
+        } elseif (! $panelUser && $newEntityEmail !== '' && strcasecmp($newEntityEmail, (string) $entity->email) !== 0
+            && ContactEmailRegistry::isTaken($newEntityEmail, null, null, $entity->id)) {
+            return back()->withInput()
+                ->withErrors(['email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.']);
         }
 
         $entity->update($validated);
@@ -1427,18 +1440,25 @@ class EntityController extends Controller
             'exclude_id' => 'nullable|integer'
         ]);
 
-        $query = Entity::where('email', $request->email);
-        
-        // Excluir el ID actual si se está editando
-        if ($request->exclude_id) {
-            $query->where('id', '!=', $request->exclude_id);
+        $excludeEntityId = $request->exclude_id ? (int) $request->exclude_id : null;
+        $panelUserId = null;
+        if ($excludeEntityId) {
+            $panelUserId = User::query()
+                ->where('panel_account_type', 'entity')
+                ->where('panel_account_id', $excludeEntityId)
+                ->value('id');
         }
 
-        $exists = $query->exists();
+        $exists = ContactEmailRegistry::isTaken(
+            $request->email,
+            $panelUserId ? (int) $panelUserId : null,
+            null,
+            $excludeEntityId
+        );
 
         return response()->json([
             'exists' => $exists,
-            'message' => $exists ? 'Este email ya está en uso por otra entidad' : null
+            'message' => $exists ? 'Este correo ya está en uso por otra administración, entidad o cuenta de usuario' : null,
         ]);
     }
 

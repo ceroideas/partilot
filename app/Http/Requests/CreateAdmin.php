@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\ContactEmailRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CreateAdmin extends FormRequest
@@ -34,7 +35,16 @@ class CreateAdmin extends FormRequest
             "city"=>"required|string|max:255",
             "postal_code"=>"required|string|max:255",
             "address"=>"required|string|max:255",
-            "email"=>"required|string|max:255",
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (ContactEmailRegistry::isTaken((string) $value)) {
+                        $fail('Este correo ya está en uso en otra administración, entidad o cuenta de usuario.');
+                    }
+                },
+            ],
             "phone"=>"required|string|max:255",
             "account" => [
                 "nullable",
