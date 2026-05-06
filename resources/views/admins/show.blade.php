@@ -206,7 +206,7 @@
 
 			                    						<h4 class="mt-3 mb-0">{{$administration->name ?? 'Sin nombre'}}</h4>
 
-			                    						<small>@if($administration->manager?->user?->isPanelAccount())Acceso al panel @elseif($administration->manager?->user){{ $administration->manager->user->name }} {{ $administration->manager->user->last_name }}@else Sin gestor principal @endif</small> <br>
+			                    						<small>@if($administration->manager?->user?->isPanelAccount())Acceso al panel @elseif($administration->manager?->user){{ $administration->manager?->user?->name }} {{ $administration->manager?->user?->last_name }}@else Sin gestor principal @endif</small> <br>
 			                    						
 			                    					</div>
 			                    				</div>
@@ -471,10 +471,12 @@
 
                     				<div class="tab-pane fade" id="datos_contacto">
                     					<div class="form-card bs" style="min-height: 658px;">
-			                    			@php
-			                    				$adminPanelUserShow = $administration->manager?->user && $administration->manager->user->isPanelAccount();
-			                    			@endphp
-			                    			
+			                    			@php $adminPrimaryManagerUser = $administration->manager?->user; @endphp
+
+			                    			@if(!$adminPrimaryManagerUser)
+			                    				<div class="alert alert-warning mb-3">No hay gestor principal asignado o el usuario fue eliminado. Use <strong>Editar</strong> arriba para registrar un gestor.</div>
+			                    			@endif
+
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos de contacto
 
@@ -492,8 +494,8 @@
 			                    						
 					                    				<div class="photo-preview-2">
 					                    					
-					                    					@if($administration->manager && $administration->manager->user->image)
-					                    						<img src="{{url('manager/'.$administration->manager->user->image)}}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+					                    					@if($adminPrimaryManagerUser && $adminPrimaryManagerUser->image)
+					                    						<img src="{{ url('manager/'.$adminPrimaryManagerUser->image) }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
 					                    					@else
 					                    						<i class="ri-account-circle-fill"></i>
 					                    					@endif
@@ -507,7 +509,7 @@
 
 			                    						<h4 class="mt-0 mb-0">{{$administration->name ?? 'Sin nombre'}}</h4>
 
-			                    						<small>{{$administration->manager->user->name ?? ''}} {{$administration->manager->user->last_name ?? ''}}</small> <br>
+			                    						<small>{{ $adminPrimaryManagerUser?->name ?? '' }} {{ $adminPrimaryManagerUser?->last_name ?? '' }}</small> <br>
 
 			                    						<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{$administration->receiving ?? ''}}
 			                    						
@@ -550,7 +552,7 @@
 							                                      	<img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->user->name ?? ''}}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $adminPrimaryManagerUser?->name ?? '' }}" class="form-control" type="text" placeholder="Nombre" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -564,7 +566,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->user->last_name ?? ''}}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $adminPrimaryManagerUser?->last_name ?? '' }}" class="form-control" type="text" placeholder="Primer Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -579,7 +581,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->user->last_name2 ?? ''}}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $adminPrimaryManagerUser?->last_name2 ?? '' }}" class="form-control" type="text" placeholder="Segundo Apellido" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -594,7 +596,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->user->nif_cif ?? ''}}" class="form-control" type="text" placeholder="12345678A" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $adminPrimaryManagerUser?->nif_cif ?? '' }}" class="form-control" type="text" placeholder="12345678A" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -609,7 +611,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/11.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->user->birthday->format('Y-m-d') ?? ''}}" class="form-control" type="text" placeholder="1985-03-15" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $adminPrimaryManagerUser?->birthday?->format('Y-m-d') ?? '' }}" class="form-control" type="text" placeholder="1985-03-15" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -624,7 +626,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->user->email ?? ''}}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $adminPrimaryManagerUser?->email ?? '' }}" class="form-control" type="email" placeholder="ejemplo@cuentaemail.com" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -639,7 +641,7 @@
 							                                        <img src="{{url('assets/form-groups/admin/10.svg')}}" alt="">
 							                                    </div>
 
-							                                    <input readonly="" value="{{$administration->manager->user->phone ?? ''}}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
+							                                    <input readonly="" value="{{ $adminPrimaryManagerUser?->phone ?? '' }}" class="form-control" type="phone" placeholder="940 200 200" style="border-radius: 0 30px 30px 0;">
 							                                </div>
 						                    			</div>
 			                    					</div>
@@ -662,7 +664,7 @@
 
 						                    			<div class="input-group input-group-merge group-form" style="border: none">
 
-						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{$administration->manager->user->comment ?? ''}}</textarea>
+						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{ $adminPrimaryManagerUser?->comment ?? '' }}</textarea>
 						                                </div>
 					                    			</div>
 

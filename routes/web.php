@@ -148,7 +148,9 @@ Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin']
     Route::post('/store', [AdministratorController::class, 'store']);
 
     Route::get('/view/{id}', function ($id) {
-        $administration = Administration::forUser(auth()->user())->findOrFail($id);
+        $administration = Administration::with(['manager.user'])
+            ->forUser(auth()->user())
+            ->findOrFail($id);
         $panelUser = User::query()
             ->where('panel_account_type', 'administration')
             ->where('panel_account_id', $administration->id)
