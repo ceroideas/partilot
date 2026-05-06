@@ -12,6 +12,8 @@ use App\Models\Set;
 
 class DesignExternalInvitation extends Model
 {
+    public const LINK_EXPIRATION_DAYS = 28;
+
     protected $table = 'design_external_invitations';
 
     protected $fillable = [
@@ -20,6 +22,11 @@ class DesignExternalInvitation extends Model
         'set_id',
         'created_by_user_id',
         'comment',
+        'print_size',
+        'participations_per_book',
+        'back_mode',
+        'quoted_amount',
+        'quote_breakdown',
         'email',
         'token',
         'status',
@@ -30,6 +37,8 @@ class DesignExternalInvitation extends Model
 
     protected $casts = [
         'sent_at' => 'datetime',
+        'quoted_amount' => 'decimal:2',
+        'quote_breakdown' => 'array',
     ];
 
     public const STATUS_PENDING = 'pending';
@@ -85,5 +94,13 @@ class DesignExternalInvitation extends Model
     public function isCompleted(): bool
     {
         return $this->status === self::STATUS_COMPLETED && $this->design_format_id;
+    }
+
+    public function isExpired(): bool
+    {
+        if (! $this->created_at) {
+            return false;
+        }
+        return $this->created_at->copy()->addDays(self::LINK_EXPIRATION_DAYS)->isPast();
     }
 }

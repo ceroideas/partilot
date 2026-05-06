@@ -10,6 +10,8 @@ use App\Models\ParticipationCollection;
 use App\Models\SepaPaymentOrder;
 use App\Models\SepaPaymentBeneficiary;
 use App\Models\Administration;
+use App\Models\PrintConfiguration;
+use App\Models\PrintOrder;
 
 class ConfigurationController extends Controller
 {
@@ -38,6 +40,9 @@ class ConfigurationController extends Controller
         $sepaOrder = null;
         $provincias = collect();
         $localidades = collect();
+        $printConfiguration = null;
+        $printOrders = collect();
+        $printOrderAuditsByOrderId = collect();
 
         if ($section === 'ordenes-pago-entidades') {
             if ($step === 1 || !$entityId) {
@@ -94,9 +99,141 @@ class ConfigurationController extends Controller
             }
         }
 
+        if ($section === 'imprenta') {
+            $printConfiguration = PrintConfiguration::first();
+        }
+
+        if ($section === 'ordenes-imprenta') {
+            $printOrders = PrintOrder::query()
+                ->whereIn('entity_id', $user->accessibleEntityIds())
+                ->with(['entity', 'set', 'lottery'])
+                ->orderByDesc('id')
+                ->limit(200)
+                ->get();
+
+            $orderIds = $printOrders->pluck('id')->all();
+            if (!empty($orderIds)) {
+                $audits = DB::table('print_order_status_audits')
+                    ->whereIn('print_order_id', $orderIds)
+                    ->orderByDesc('id')
+                    ->get();
+                $userIds = $audits->pluck('user_id')->filter()->unique()->values()->all();
+                $usersById = empty($userIds)
+                    ? collect()
+                    : DB::table('users')->whereIn('id', $userIds)->pluck('name', 'id');
+
+                $printOrderAuditsByOrderId = $audits
+                    ->map(function ($row) use ($usersById) {
+                        $row->user_name = $row->user_id ? ($usersById[$row->user_id] ?? ('Usuario #' . $row->user_id)) : 'Sistema';
+                        return $row;
+                    })
+                    ->groupBy('print_order_id');
+            }
+        }
+
         return view('configuration.index', compact(
-            'section', 'step', 'entityId', 'entities', 'entity', 'collections', 'sepaOrders', 'sepaOrder', 'provincias', 'localidades'
+            'section', 'step', 'entityId', 'entities', 'entity', 'collections', 'sepaOrders', 'sepaOrder', 'provincias', 'localidades', 'printConfiguration', 'printOrders', 'printOrderAuditsByOrderId'
         ));
+    }
+
+    public function updateImprenta(Request $request)
+    {
+        $data = $request->validate([
+            'company_name' => 'nullable|string|max:255',
+            'nif_cif' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:20',
+            'province' => 'nullable|string|max:120',
+            'city' => 'nullable|string|max:120',
+            'phone' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'price_design' => 'nullable|numeric|min:0',
+            'price_participation' => 'nullable|numeric|min:0',
+            'price_back_bw' => 'nullable|numeric|min:0',
+            'price_back_color' => 'nullable|numeric|min:0',
+            'price_taco_25' => 'nullable|numeric|min:0',
+            'price_taco_50' => 'nullable|numeric|min:0',
+            'price_taco_100' => 'nullable|numeric|min:0',
+            'bank_account' => 'nullable|string|max:80',
+        ]);
+
+        $config = PrintConfiguration::first();
+        if (! $config) {
+            $config = new PrintConfiguration();
+        }
+        $config->fill($data);
+        $config->save();
+
+        return redirect()->route('configuration.index', ['section' => 'imprenta'])
+            ->with('success', 'Configuración de imprenta actualizada correctamente.');
+    }
+
+    public function updatePrintOrderStatus(Request $request, PrintOrder $printOrder)
+    {
+        if (! in_array((int) $printOrder->entity_id, $request->user()->accessibleEntityIds(), true)) {
+            abort(403, 'No tienes permisos para modificar esta orden de imprenta.');
+        }
+        if (! $this->canManagePrintOrderWorkflow($request->user())) {
+            return redirect()->route('configuration.index', ['section' => 'ordenes-imprenta'])
+                ->with('error', 'No tienes permisos operativos para cambiar el estado de órdenes de imprenta.');
+        }
+
+        $data = $request->validate([
+            'target_status' => 'required|string|in:pendiente_revision,en_produccion,enviada,rechazada',
+        ]);
+
+        $target = $data['target_status'];
+        if (! $printOrder->canTransitionTo($target)) {
+            return redirect()->route('configuration.index', ['section' => 'ordenes-imprenta'])
+                ->with('error', 'Transición de estado no permitida para esta orden.');
+        }
+
+        $from = (string) $printOrder->status;
+        $printOrder->status = $target;
+        if ($target === PrintOrder::STATUS_SENT && ! $printOrder->sent_at) {
+            $printOrder->sent_at = now();
+        }
+        $printOrder->save();
+        $this->logPrintOrderStatusAudit(
+            printOrder: $printOrder,
+            action: 'status_change',
+            fromStatus: $from,
+            toStatus: $target,
+            message: 'Cambio de estado de orden de imprenta',
+        );
+
+        return redirect()->route('configuration.index', ['section' => 'ordenes-imprenta'])
+            ->with('success', 'Estado de la orden actualizado a: ' . PrintOrder::statusLabel($target) . '.');
+    }
+
+    private function canManagePrintOrderWorkflow($user): bool
+    {
+        return $user && ($user->isSuperAdmin() || $user->isAdministration());
+    }
+
+    private function logPrintOrderStatusAudit(
+        PrintOrder $printOrder,
+        string $action,
+        ?string $fromStatus,
+        ?string $toStatus,
+        ?string $message = null
+    ): void {
+        try {
+            DB::table('print_order_status_audits')->insert([
+                'print_order_id' => $printOrder->id,
+                'entity_id' => $printOrder->entity_id,
+                'set_id' => $printOrder->set_id,
+                'design_format_id' => $printOrder->design_format_id,
+                'user_id' => auth()->id(),
+                'action' => $action,
+                'from_status' => $fromStatus,
+                'to_status' => $toStatus,
+                'message' => $message,
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('No se pudo registrar auditoría de estado de imprenta: ' . $e->getMessage());
+        }
     }
 
     /**

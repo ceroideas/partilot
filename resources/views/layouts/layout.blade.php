@@ -234,6 +234,53 @@
                 top: -5px;
                 position: relative;
             }
+
+            /* Badges de estado: Activo / Inactivo / Bloqueado */
+            .badge.bg-success:not(.rounded-circle) {
+                background-color: #cfead2 !important;
+                color: #0a9c2d !important;
+                border: 2px solid #95c79b;
+                border-radius: 8px !important;
+                font-weight: 700;
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                width: 80px !important;
+            }
+            .badge.bg-secondary:not(.rounded-circle) {
+                background-color: #e5e6e8 !important;
+                color: #4b5056 !important;
+                border: 2px solid #9aa0a6;
+                border-radius: 8px !important;
+                font-weight: 700;
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                width: 80px !important;
+            }
+            .badge.bg-danger:not(.rounded-circle) {
+                background-color: #f3e8e8 !important;
+                color: #a10000 !important;
+                border: 2px solid #c7a7a7;
+                border-radius: 8px !important;
+                font-weight: 700;
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                width: 80px !important;
+            }
+
+            .no-click .btn-sm {
+                padding: 4px !important;
+                width: 41px !important;
+                border: 1px solid silver !important;
+                margin-left: 5px !important;
+                border-radius: 8px !important;
+            }
+
+            .no-click .btn-sm img, .no-click .btn-sm i::before {
+                font-size: 20px !important;
+                height: 20px !important;
+                width: auto;
+                margin: 5px 0 !important;
+            }
             
             @media (max-width: 1200px) {
                 .navbar-custom {
@@ -1050,24 +1097,26 @@
 
                 </div> <!-- content -->
 
-                <!-- Footer Start -->
-                <footer class="footer">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div><script>document.write(new Date().getFullYear())</script> © Partilot - <a href="https://partilot.es/" target="_blank">partilot.es</a></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-none d-md-flex gap-4 align-item-center justify-content-md-end footer-links">
-                                    <a href="javascript: void(0);">About</a>
-                                    <a href="javascript: void(0);">Support</a>
-                                    <a href="javascript: void(0);">Contact Us</a>
+                @if (!request()->is('configuration*'))
+                    <!-- Footer Start -->
+                    <footer class="footer">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div><script>document.write(new Date().getFullYear())</script> © Partilot - <a href="https://partilot.es/" target="_blank">partilot.es</a></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-none d-md-flex gap-4 align-item-center justify-content-md-end footer-links">
+                                        <a href="javascript: void(0);">About</a>
+                                        <a href="javascript: void(0);">Support</a>
+                                        <a href="javascript: void(0);">Contact Us</a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </footer>
-                <!-- end Footer -->
+                    </footer>
+                    <!-- end Footer -->
+                @endif
 
             </div>
 

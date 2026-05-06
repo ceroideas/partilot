@@ -1,4 +1,4 @@
-<div class="form-card bs" style="min-height: 658px;">
+<div class="form-card bs pb-3" style="min-height: 658px;">
     <h4 class="mb-0 mt-1">
         Datos legales de la imprenta
     </h4>
@@ -104,97 +104,95 @@
         </div>
     </div>
 
-    <h4 class="mb-0 mt-1">
-        Precio Gestión
-    </h4>
-    <small><i>Todos los campos son obligatorios. Importe por participación.</i></small>
+    <div class="row mt-3 mb-1 g-3">
+        <div class="col-lg-7">
+            <div class="form-group mt-2 mb-0 h-100" style="background-color: #f8f9fa; padding: 1rem; border-radius: 0.75rem; border: 1px solid #ececec;">
+                <h4 class="mb-0 mt-1">Precio Gestión</h4>
+                <small><i>Todos los campos son obligatorios. Importe por participación.</i></small>
 
-    <div class="form-group mt-2 mb-3" style="background-color: #f8f9fa; padding: 1rem; border-radius: 0.375rem;">
-        <div class="row">
-            <div class="col-6 col-md-4">
-                <div class="form-group mt-2 mb-3">
-                    <label class="label-control">Gestión Particip. 1000Un</label>
-                    <div class="input-group input-group-merge group-form">
-                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                            <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                <div class="row mt-2">
+                    <div class="col-6 col-md-4">
+                        <div class="form-group mt-2 mb-3">
+                            <label class="label-control">Gestión Particip. 1000Un</label>
+                            <div class="input-group input-group-merge group-form">
+                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                    <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                                </div>
+                                <input class="form-control" type="text" name="gestion_1000" id="gestion-1000" placeholder="00,00€" value="00,05€" style="border-radius: 0 30px 30px 0;">
+                            </div>
                         </div>
-                        <input class="form-control" type="text" name="gestion_1000" id="gestion-1000" placeholder="00,00€" value="00,05€" style="border-radius: 0 30px 30px 0;">
                     </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="form-group mt-2 mb-3">
-                    <label class="label-control">Gestión Part. Administración</label>
-                    <div class="input-group input-group-merge group-form">
-                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                            <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                    <div class="col-6 col-md-4">
+                        <div class="form-group mt-2 mb-3">
+                            <label class="label-control">Gestión Part. Administración</label>
+                            <div class="input-group input-group-merge group-form">
+                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                    <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                                </div>
+                                <input class="form-control" type="text" name="gestion_administracion" id="gestion-administracion" placeholder="00,00€" value="00,03€" style="border-radius: 0 30px 30px 0;">
+                            </div>
                         </div>
-                        <input class="form-control" type="text" name="gestion_administracion" id="gestion-administracion" placeholder="00,00€" value="00,03€" style="border-radius: 0 30px 30px 0;">
                     </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="form-group mt-2 mb-3">
-                    <label class="label-control">Gestión Particip. 5000Un</label>
-                    <div class="input-group input-group-merge group-form">
-                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                            <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                    <div class="col-6 col-md-4">
+                        <div class="form-group mt-2 mb-3">
+                            <label class="label-control">Gestión Particip. 5000Un</label>
+                            <div class="input-group input-group-merge group-form">
+                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                    <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                                </div>
+                                <input class="form-control" type="text" name="gestion_5000" id="gestion-5000" placeholder="00,00€" value="00,04€" style="border-radius: 0 30px 30px 0;">
+                            </div>
                         </div>
-                        <input class="form-control" type="text" name="gestion_5000" id="gestion-5000" placeholder="00,00€" value="00,04€" style="border-radius: 0 30px 30px 0;">
                     </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="form-group mt-2 mb-3">
-                    <label class="label-control">Comisión Gestión Pago</label>
-                    <div class="input-group input-group-merge group-form">
-                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                            <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                    <div class="col-6 col-md-4">
+                        <div class="form-group mt-2 mb-3">
+                            <label class="label-control">Comisión Gestión Pago</label>
+                            <div class="input-group input-group-merge group-form">
+                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                    <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                                </div>
+                                <input class="form-control" type="text" name="comision_gestion_pago" id="comision-gestion-pago" placeholder="00,00€" value="00,03€" style="border-radius: 0 30px 30px 0;">
+                            </div>
                         </div>
-                        <input class="form-control" type="text" name="comision_gestion_pago" id="comision-gestion-pago" placeholder="00,00€" value="00,03€" style="border-radius: 0 30px 30px 0;">
                     </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="form-group mt-2 mb-3">
-                    <label class="label-control">Gestión Particip. 10000Un</label>
-                    <div class="input-group input-group-merge group-form">
-                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                            <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                    <div class="col-6 col-md-4">
+                        <div class="form-group mt-2 mb-3">
+                            <label class="label-control">Gestión Particip. 10000Un</label>
+                            <div class="input-group input-group-merge group-form">
+                                <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                    <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                                </div>
+                                <input class="form-control" type="text" name="gestion_10000" id="gestion-10000" placeholder="00,00€" value="00,03€" style="border-radius: 0 30px 30px 0;">
+                            </div>
                         </div>
-                        <input class="form-control" type="text" name="gestion_10000" id="gestion-10000" placeholder="00,00€" value="00,03€" style="border-radius: 0 30px 30px 0;">
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <h4 class="mb-0 mt-1">
-        Datos Pago
-    </h4>
-    <small><i>Introduzca los detalles de su cuenta bancaria para procesar los pagos. Asegúrese de que la información es correcta y está actualizada.</i></small>
+        <div class="col-lg-5">
+            <div class="form-group mt-2 mb-0 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <h4 class="mb-0 mt-1">Datos Pago</h4>
+                    <small><i>Introduzca los detalles de su cuenta bancaria para procesar los pagos.</i></small>
 
-    <div class="form-group mt-2 mb-3">
-        <div class="row">
-            <div class="col-12">
-                <div class="form-group mt-2 mb-3">
-                    <label class="label-control">Cuenta bancaria (IBAN)</label>
-                    <div class="input-group input-group-merge group-form">
-                        <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                            <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                    <div class="form-group mt-3 mb-3">
+                        <label class="label-control">Cuenta bancaria (IBAN)</label>
+                        <div class="input-group input-group-merge group-form">
+                            <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                            </div>
+                            <input class="form-control" type="text" name="iban" id="iban" placeholder="1234 - 1234 - 1234 - 12 - 1234567890" value="1234 - 1234 - 1234 - 12 - 1234567890" style="border-radius: 0 30px 30px 0; letter-spacing: 0.05em;">
                         </div>
-                        <input class="form-control" type="text" name="iban" id="iban" placeholder="1234 - 1234 - 1234 - 12 - 1234567890" value="1234 - 1234 - 1234 - 12 - 1234567890" style="border-radius: 0 30px 30px 0; letter-spacing: 0.05em;">
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row">
-        <div class="col-12 text-end">
-            <button type="button" id="btn-guardar-config-factura" style="border-radius: 30px; min-width: 140px; background-color: #e78307; color: #333; padding: 8px 16px; font-weight: bolder;" class="btn btn-md btn-light mt-2">
-                <i class="fe-save me-1"></i> Guardar
-            </button>
+                <div class="text-end mt-2">
+                    <button type="button" id="btn-guardar-config-factura" style="border-radius: 30px; min-width: 140px; background-color: #e78307; color: #333; padding: 8px 16px; font-weight: bolder;" class="btn btn-md btn-light">
+                        <i class="fe-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -122,12 +122,18 @@
                     								<th>Participaciones Físicas</th>
                     								<th>Participaciones Disponibles</th>
                     								<th>Tipo</th>
+                                                    <th></th>
                     								<th class="d-none">Seleccionar</th>
                     							</tr>
                     						</thead>
                     						<tbody>
                     							@foreach($sets as $set)
-                    							<tr class="selectable-row" style="cursor: pointer;">
+                                                    @php
+                                                        $sl = isset($setLocksBySetId[$set->id]) ? $setLocksBySetId[$set->id] : ['locked' => false];
+                                                        $rowLocked = !empty($sl['locked']);
+                                                    @endphp
+                    							<tr class="selectable-row" data-set-locked="{{ $rowLocked ? '1' : '0' }}" style="cursor: pointer;{{ $rowLocked ? 'opacity:0.85;' : '' }}"
+                                                    title="{{ $rowLocked ? 'Participaciones comprometidas: no podrás iniciar un diseño nuevo, pero sí reutilizar un diseño existente.' : '' }}">
                     								<td>#SP{{str_pad($set->id, 4, '0', STR_PAD_LEFT)}}</td>
                     								<td>{{$set->set_name}}</td>
                     								<td>{{number_format($set->played_amount, 2)}}€</td>
@@ -144,6 +150,13 @@
                     										<span class="badge bg-info">Mixto</span>
                     									@endif
                     								</td>
+                                                    <td>
+                                                        @if($rowLocked)
+                                                            <span class="badge bg-secondary rounded-pill">Bloqueado</span>
+                                                        @else
+                                                            <span class="badge bg-light text-muted border rounded-pill">Libre</span>
+                                                        @endif
+                                                    </td>
                     								<td class="d-none">
                     									<div class="form-check">
                     										<input class="form-check-input" type="radio" name="set_id" value="{{$set->id}}" id="set_{{$set->id}}" required>

@@ -82,7 +82,7 @@
                     			<br>
                     			<br>
 
-                    			<div style="min-height: 250px; max-height: 656px; overflow: auto;">
+                    			<div style="min-height: 505px; max-height: 656px;">
 
 	                    			<table id="example2" class="table table-striped nowrap w-100">
 			                            <thead class="">

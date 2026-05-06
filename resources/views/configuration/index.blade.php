@@ -4,6 +4,21 @@
 
 @section('content')
 <div class="container-fluid">
+    @php
+        $configIcons = [
+            'datos-partilot' => 'config/1.png',
+            'config-factura-auto' => 'config/2.png',
+            'facturacion-cobros' => 'config/3.png',
+            'logs-actividad' => 'config/4.png',
+            'logs-emails' => 'config/5.png',
+            'logs-notificaciones' => 'config/6.png',
+            'imprenta' => 'config/7.png',
+            'ordenes-imprenta' => 'config/8.png',
+            'ordenes-pago-entidades' => 'config/9.png',
+            'codigos-recarga' => 'config/10.png',
+            'notificaciones' => 'config/11.png',
+        ];
+    @endphp
     <div class="row">
         <div class="col-12">
             <div class="page-title-box d-sm-flex align-items-center justify-content-between">
@@ -25,18 +40,18 @@
                 @php($onlyPaymentsSection = auth()->user()?->isEntityManagerWithoutPanelAccount())
                 @if($onlyPaymentsSection)
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
                         <label>Ordenes Pago Entidades</label>
                     </div>
                 @else
                 @if($section == 'datos-partilot')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['datos-partilot']) }}" alt="">
                         <label>Datos PARTILOT</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=datos-partilot') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['datos-partilot']) }}" alt="">
                         <label>Datos PARTILOT</label>
                     </a>
                 @endif
@@ -45,24 +60,24 @@
 
                 @if($section == 'config-factura-auto')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['config-factura-auto']) }}" alt="">
                         <label>Config. Factura (Auto)</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=config-factura-auto') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['config-factura-auto']) }}" alt="">
                         <label>Config. Factura (Auto)</label>
                     </a>
                 @endif
 
                 @if($section == 'facturacion-cobros')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['facturacion-cobros']) }}" alt="">
                         <label>Facturación y Cobros</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=facturacion-cobros') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['facturacion-cobros']) }}" alt="">
                         <label>Facturación y Cobros</label>
                     </a>
                 @endif
@@ -71,36 +86,36 @@
 
                 @if($section == 'logs-actividad')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['logs-actividad']) }}" alt="">
                         <label>Logs de Actividad</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=logs-actividad') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['logs-actividad']) }}" alt="">
                         <label>Logs de Actividad</label>
                     </a>
                 @endif
 
                 @if($section == 'logs-emails')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['logs-emails']) }}" alt="">
                         <label>Logs Emails</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=logs-emails') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['logs-emails']) }}" alt="">
                         <label>Logs Emails</label>
                     </a>
                 @endif
 
                 @if($section == 'logs-notificaciones')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['logs-notificaciones']) }}" alt="">
                         <label>Logs Notificaciones</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=logs-notificaciones') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['logs-notificaciones']) }}" alt="">
                         <label>Logs Notificaciones</label>
                     </a>
                 @endif
@@ -109,24 +124,24 @@
 
                 @if($section == 'imprenta')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['imprenta']) }}" alt="">
                         <label>Imprenta</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=imprenta') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['imprenta']) }}" alt="">
                         <label>Imprenta</label>
                     </a>
                 @endif
 
                 @if($section == 'ordenes-imprenta')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['ordenes-imprenta']) }}" alt="">
                         <label>Ordenes Imprenta</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=ordenes-imprenta') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['ordenes-imprenta']) }}" alt="">
                         <label>Ordenes Imprenta</label>
                     </a>
                 @endif
@@ -135,24 +150,24 @@
 
                 @if($section == 'ordenes-pago-entidades')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
                         <label>Ordenes Pago Entidades</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=ordenes-pago-entidades') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
                         <label>Ordenes Pago Entidades</label>
                     </a>
                 @endif
 
                 @if($section == 'codigos-recarga')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
                         <label>Códigos Recarga</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=codigos-recarga') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
                         <label>Códigos Recarga</label>
                     </a>
                 @endif
@@ -161,12 +176,12 @@
 
                 @if($section == 'notificaciones')
                     <div class="form-wizard-element active">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['notificaciones']) }}" alt="">
                         <label>Notificaciones</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=notificaciones') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
-                        <img src="{{ url('assets/entidad.svg') }}" alt="">
+                        <img src="{{ url($configIcons['notificaciones']) }}" alt="">
                         <label>Notificaciones</label>
                     </a>
                 @endif

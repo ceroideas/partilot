@@ -19,10 +19,88 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::create('print_order_status_audits', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('print_order_id')->index();
+            $table->unsignedBigInteger('entity_id')->nullable()->index();
+            $table->unsignedBigInteger('set_id')->nullable()->index();
+            $table->unsignedBigInteger('design_format_id')->nullable()->index();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
+            $table->string('action', 80);
+            $table->string('from_status', 40)->nullable();
+            $table->string('to_status', 40)->nullable();
+            $table->string('message', 500)->nullable();
+            $table->timestamp('created_at')->useCurrent();
+        });
+
+        return 'ok';
+        
+        Schema::create('print_orders', function (Blueprint $table) {
+            $table->id();
+            $table->string('order_code', 30)->unique();
+            $table->unsignedBigInteger('design_format_id')->index();
+            $table->unsignedBigInteger('set_id')->index();
+            $table->unsignedBigInteger('entity_id')->index();
+            $table->unsignedBigInteger('lottery_id')->nullable()->index();
+            $table->unsignedBigInteger('created_by_user_id')->nullable()->index();
+            $table->string('status', 40)->default('pendiente_revision')->index();
+            $table->string('print_size', 30)->nullable();
+            $table->unsignedInteger('participations_per_book')->nullable();
+            $table->string('back_mode', 10)->nullable();
+            $table->decimal('quoted_amount', 10, 2)->default(0);
+            $table->json('quote_breakdown')->nullable();
+            $table->text('notes')->nullable();
+            $table->timestamp('sent_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::table('design_external_invitations', function (Blueprint $table) {
+            $table->string('print_size', 30)->nullable()->after('comment');
+            $table->unsignedInteger('participations_per_book')->nullable()->after('print_size');
+            $table->string('back_mode', 10)->nullable()->after('participations_per_book');
+            $table->decimal('quoted_amount', 10, 2)->nullable()->after('back_mode');
+            $table->json('quote_breakdown')->nullable()->after('quoted_amount');
+        });
+
+        Schema::create('print_configurations', function (Blueprint $table) {
+            $table->id();
+            $table->string('company_name')->nullable();
+            $table->string('nif_cif', 50)->nullable();
+            $table->string('address')->nullable();
+            $table->string('postal_code', 20)->nullable();
+            $table->string('province', 120)->nullable();
+            $table->string('city', 120)->nullable();
+            $table->string('phone', 50)->nullable();
+            $table->string('email')->nullable();
+            $table->decimal('price_design', 10, 4)->default(0);
+            $table->decimal('price_participation', 10, 4)->default(0);
+            $table->decimal('price_back_bw', 10, 4)->default(0);
+            $table->decimal('price_back_color', 10, 4)->default(0);
+            $table->decimal('price_taco_25', 10, 4)->default(0);
+            $table->decimal('price_taco_50', 10, 4)->default(0);
+            $table->decimal('price_taco_100', 10, 4)->default(0);
+            $table->string('bank_account', 80)->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('design_lock_audits', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('set_id')->index();
+            $table->unsignedBigInteger('entity_id')->nullable()->index();
+            $table->unsignedBigInteger('design_format_id')->nullable()->index();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
+            $table->string('action', 80);
+            $table->string('message', 500)->nullable();
+            $table->unsignedInteger('assigned_count')->default(0);
+            $table->unsignedInteger('status_locked_count')->default(0);
+            $table->timestamp('created_at')->useCurrent();
+        });
+        
+        return 'ok';
+
         Schema::table('devolutions', function (Blueprint $table) {
             $table->json('special_prize_settlement')->nullable()->after('notes');
         });
-        return 'ok';
         // \App\Models\User::factory()->create([
         //     'name' => 'Test Admin',
         //     'email' => 'admin@partilot.es',

@@ -25,6 +25,13 @@
             <div class="card">
                 <div class="card-body">
 
+                    @if(session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+                    @if(session('error'))
+                        <div class="alert alert-danger">{{ session('error') }}</div>
+                    @endif
+
                     <div class="{{count($designs) ? '' : 'd-none'}}">
                         <h4 class="header-title">
 
@@ -63,8 +70,14 @@
                         
                             <tbody>
                             @foreach($designs as $design)
-                            <tr class="row-clickable" data-href="{{ route('design.editFormat', $design->id) }}" style="cursor: pointer;">
-                                <td><a href="{{ route('design.editFormat', $design->id) }}">#DS{{ str_pad($design->id,5,'0',STR_PAD_LEFT) }}</a></td>
+                            @php
+                                $lockCtx = isset($designLockByDesignId[$design->id]) ? $designLockByDesignId[$design->id] : ['locked' => false];
+                                $printLockCtx = isset($printOrderLockByDesignId[$design->id]) ? $printOrderLockByDesignId[$design->id] : ['locked' => false];
+                                $isLocked = !empty($lockCtx['locked']) || !empty($printLockCtx['locked']);
+                                $rowHref = $isLocked ? route('design.summary', $design->id) : route('design.editFormat', $design->id);
+                            @endphp
+                            <tr class="row-clickable" data-href="{{ $rowHref }}" style="cursor: pointer;">
+                                <td><a href="{{ $rowHref }}">#DS{{ str_pad($design->id,5,'0',STR_PAD_LEFT) }}</a></td>
                                 <td>{{ $design->set ? $design->set->id : '-' }}</td>
                                 <td>{{ $design->set ? $design->set->set_name : '-' }}</td>
                                 <td>{{ $design->lottery ? $design->lottery->name : '-' }}</td>
@@ -79,9 +92,21 @@
                                 <td>{{ $design->set ? $design->set->total_participations : '-' }}</td>
                                 <td>{{ $design->entity ? $design->entity->province : '-' }}</td>
                                 <td>{{ $design->entity ? $design->entity->city : '-' }}</td>
-                                <td><label class="badge bg-success">Pendiente</label></td>
+                                <td>
+                                    @if(!empty($printLockCtx['locked']))
+                                        <label class="badge bg-info text-dark rounded-pill">En imprenta</label>
+                                    @elseif($isLocked)
+                                        <label class="badge bg-secondary rounded-pill">Bloqueado</label>
+                                    @else
+                                        <label class="badge bg-success rounded-pill">Editable</label>
+                                    @endif
+                                </td>
                                 <td class="no-click" style="cursor: default;">
-                                    <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light" title="Editar diseño"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                    @if($isLocked)
+                                        <a href="{{ route('design.summary', $design->id) }}" class="btn btn-sm btn-light" title="Ver resumen y descargas"><i class="ri-eye-line"></i></a>
+                                    @else
+                                        <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light" title="Editar diseño"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                    @endif
                                     @php
                                         $hasCover = !empty($design->cover_html);
                                         $hasBack = !empty($design->back_html);
@@ -99,8 +124,21 @@
                                     @else
                                         <a target="_blank" href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
                                     @endif
+                                    @if(!empty($printLockCtx['locked']))
+                                        <button type="button" class="btn btn-sm btn-outline-warning text-dark" disabled title="{{ $printLockCtx['message'] ?? 'Ya existe una orden activa en imprenta.' }}">
+                                            <i class="ri-send-plane-line"></i>
+                                        </button>
+                                    @else
+                                        <a href="{{ route('design.sendToPrint', $design->id) }}" class="btn btn-sm btn-warning text-dark" title="Enviar a imprenta">
+                                            <i class="ri-send-plane-line"></i>
+                                        </a>
+                                    @endif
                                     {{-- <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a> --}}
-                                    <a href="#" class="btn btn-sm btn-danger delete-design" data-design-id="{{ $design->id }}" data-design-name="{{ $design->set ? $design->set->set_name : 'Diseño #' . $design->id }}" title="Eliminar diseño"><i class="ri-delete-bin-6-line"></i></a>
+                                    @if($isLocked)
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="No se puede eliminar: el set tiene participaciones comprometidas."><i class="ri-delete-bin-6-line"></i></button>
+                                    @else
+                                        <a href="#" class="btn btn-sm btn-danger delete-design" data-design-id="{{ $design->id }}" data-design-name="{{ $design->set ? $design->set->set_name : 'Diseño #' . $design->id }}" title="Eliminar diseño"><i class="ri-delete-bin-6-line"></i></a>
+                                    @endif
                                 </td>
                             </tr>
                             @endforeach

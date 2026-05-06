@@ -25,6 +25,13 @@
                 <div class="card-body">
                     <p class="text-muted mb-3">Selecciona un diseño ya creado para seguir editándolo. Se usará el número de reserva del set actual (reserva/set seleccionado).</p>
 
+                    @if(!empty($currentSetLock['locked']))
+                        <div class="alert alert-warning">
+                            <strong>Set bloqueado.</strong> {{ $currentSetLock['message'] ?? '' }}
+                            Puedes abrir un diseño para revisión o descarga; los guardados en el editor no estarán permitidos.
+                        </div>
+                    @endif
+
                     @if($designs->isEmpty())
                         <p class="text-muted">No tienes ningún diseño guardado para esta entidad. <a href="{{ route('design.showChooseType') }}">Volver</a> y elige "Ir a diseñar" para crear uno nuevo.</p>
                     @else
@@ -70,7 +77,7 @@
                                                     <input type="hidden" name="set_id" value="{{ $set->id }}">
                                                     <input type="hidden" name="design_id" value="{{ $d->id }}">
                                                     <button type="submit" class="btn btn-sm btn-primary">
-                                                        <i class="ri-check-line"></i> Seleccionar
+                                                        <i class="ri-check-line"></i> {{ !empty($currentSetLock['locked']) ? 'Abrir (revisión)' : 'Seleccionar' }}
                                                     </button>
                                                 </form>
                                             </td>

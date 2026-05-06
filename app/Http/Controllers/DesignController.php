@@ -6,12 +6,16 @@ use Illuminate\Http\Request;
 use App\Models\Entity;
 use App\Models\Lottery;
 use App\Models\Set;
+use App\Models\Participation;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\DesignFormat;
 use App\Models\DesignExternalInvitation;
 use App\Models\DesignExternalInvitationFile;
+use App\Models\PrintConfiguration;
+use App\Models\PrintOrder;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use App\Mail\DesignExternalInvitationMail;
 use App\Models\EmailCommunicationLog;
 use App\Services\CommunicationEmailService;
@@ -69,12 +73,13 @@ class DesignController extends Controller
                 $q->where('lottery_id', $lottery_id);
             })
             ->get();
+        $setLocksBySetId = $this->batchDesignLockContextsForSetIds($sets->pluck('id')->all());
         // Obtener la reserva principal (opcional, para la vista)
         $reserve = \App\Models\Reserve::forUser(auth()->user())
             ->where('entity_id', $entity_id)
             ->where('lottery_id', $lottery_id)
             ->first();
-        return view('design.add_set', compact('entity', 'lottery', 'sets', 'reserve'));
+        return view('design.add_set', compact('entity', 'lottery', 'sets', 'reserve', 'setLocksBySetId'));
     }
 
     /**
@@ -109,15 +114,22 @@ class DesignController extends Controller
         $entity = Entity::forUser(auth()->user())->findOrFail($entity_id);
         $lottery = Lottery::findOrFail($lottery_id);
         $set = Set::forUser(auth()->user())->findOrFail($set_id);
-        return view('design.choose_type', compact('entity', 'lottery', 'set'));
+        $designLock = $this->getSetDesignLockContext($set);
+
+        return view('design.choose_type', compact('entity', 'lottery', 'set', 'designLock'));
     }
 
     /**
      * Paso 1 diseño externo: Indicaciones / Archivos.
      */
-    public function externalStep1()
+    public function externalStep1(Request $request)
     {
         $this->ensureDesignSession();
+        $mode = $request->query('mode', session('design_external_mode', 'external'));
+        if (!in_array($mode, ['external', 'partilot'], true)) {
+            $mode = 'external';
+        }
+        session(['design_external_mode' => $mode]);
         $entity = Entity::forUser(auth()->user())->findOrFail(session('design_entity_id'));
         $lottery = Lottery::findOrFail(session('design_lottery_id'));
         $set = Set::forUser(auth()->user())->findOrFail(session('design_set_id'));
@@ -125,7 +137,7 @@ class DesignController extends Controller
         if (session('design_external_invitation_id')) {
             $invitation = DesignExternalInvitation::with('files')->where('created_by_user_id', auth()->id())->find(session('design_external_invitation_id'));
         }
-        return view('design.external_step1', compact('entity', 'lottery', 'set', 'invitation'));
+        return view('design.external_step1', compact('entity', 'lottery', 'set', 'invitation', 'mode'));
     }
 
     /**
@@ -134,6 +146,7 @@ class DesignController extends Controller
     public function externalStep2()
     {
         $this->ensureDesignSession();
+        $mode = session('design_external_mode', 'external');
         $invitationId = session('design_external_invitation_id');
         if (!$invitationId) {
             return redirect()->route('design.external.step1')->with('error', 'Completa primero el paso de indicaciones y archivos.');
@@ -142,7 +155,33 @@ class DesignController extends Controller
         $entity = $invitation->entity;
         $lottery = $invitation->lottery;
         $set = $invitation->set;
-        return view('design.external_step2', compact('entity', 'lottery', 'set', 'invitation'));
+        $quote = $mode === 'partilot' ? $this->calculateExternalInvitationQuote($set, $invitation) : null;
+        return view('design.external_step2', compact('entity', 'lottery', 'set', 'invitation', 'quote', 'mode'));
+    }
+
+    /**
+     * Paso 3 diseño PARTILOT: Pantalla de pago (mock Stripe-ready).
+     */
+    public function externalStep3()
+    {
+        $this->ensureDesignSession();
+        $mode = session('design_external_mode', 'external');
+        if ($mode !== 'partilot') {
+            return redirect()->route('design.external.step2');
+        }
+
+        $invitationId = session('design_external_invitation_id');
+        if (!$invitationId) {
+            return redirect()->route('design.external.step1')->with('error', 'Completa primero el paso de indicaciones y archivos.');
+        }
+
+        $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail($invitationId);
+        $entity = $invitation->entity;
+        $lottery = $invitation->lottery;
+        $set = $invitation->set;
+        $quote = $this->calculateExternalInvitationQuote($set, $invitation);
+
+        return view('design.external_step3', compact('entity', 'lottery', 'set', 'invitation', 'quote', 'mode'));
     }
 
     /**
@@ -153,6 +192,9 @@ class DesignController extends Controller
         $this->ensureDesignSession();
         $request->validate([
             'comment' => 'nullable|string|max:5000',
+            'print_size' => 'nullable|string|in:a3_6,a3_8,custom',
+            'participations_per_book' => 'required|integer|min:1|max:1000',
+            'back_mode' => 'nullable|string|in:bw,color',
             'files' => 'nullable|array|max:20',
             'files.*' => 'nullable|file|max:51200|mimes:pdf,doc,docx,jpg,jpeg,png,gif,webp,zip',
         ], [
@@ -163,7 +205,12 @@ class DesignController extends Controller
         if ($invitationId) {
             $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->find($invitationId);
             if ($invitation && $invitation->status === DesignExternalInvitation::STATUS_PENDING) {
-                $invitation->update(['comment' => $request->comment]);
+                $invitation->update([
+                    'comment' => $request->comment,
+                    'print_size' => $request->input('print_size', 'custom'),
+                    'participations_per_book' => (int) $request->input('participations_per_book'),
+                    'back_mode' => $request->input('back_mode', 'bw'),
+                ]);
             } else {
                 $invitation = null;
             }
@@ -175,6 +222,9 @@ class DesignController extends Controller
                 'set_id' => session('design_set_id'),
                 'created_by_user_id' => auth()->id(),
                 'comment' => $request->comment,
+                'print_size' => $request->input('print_size', 'custom'),
+                'participations_per_book' => (int) $request->input('participations_per_book'),
+                'back_mode' => $request->input('back_mode', 'bw'),
                 'email' => null, // se rellena en el paso 2 (enviar invitación)
                 'token' => DesignExternalInvitation::generateToken(),
                 'orden_id' => DesignExternalInvitation::generateOrdenId(),
@@ -201,29 +251,124 @@ class DesignController extends Controller
      */
     public function externalSendInvitation(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $mode = session('design_external_mode', 'external');
+        $rules = ['email' => 'required|email'];
+        if ($mode === 'partilot') {
+            $rules['email'] = 'nullable|email';
+            $rules['confirm_simulated_payment'] = 'accepted';
+        }
+        $request->validate($rules, [
+            'confirm_simulated_payment.accepted' => 'Debes confirmar el pago simulado para continuar.',
+        ]);
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail(session('design_external_invitation_id'));
-        $invitation->update(['email' => $request->email]);
+        $quote = $this->calculateExternalInvitationQuote($invitation->set, $invitation);
+        $invitation->update([
+            'email' => $mode === 'partilot' ? null : $request->email,
+            'quoted_amount' => $quote['total'],
+            'quote_breakdown' => $quote,
+        ]);
 
-        $communicationEmailService = app(CommunicationEmailService::class);
-        $log = $communicationEmailService->sendAndLog(
-            recipientEmail: (string) $request->email,
-            recipientRole: 'diseñador_externo',
-            recipientUser: null,
-            messageType: 'design_external_invitation',
-            templateKey: null,
-            mailClass: \App\Mail\DesignExternalInvitationMail::class,
-            mailPayload: ['invitation_id' => $invitation->id],
-            context: ['invitation_id' => $invitation->id],
-        );
+        if ($mode === 'partilot') {
+            $design = DesignFormat::create([
+                'entity_id' => (int) $invitation->entity_id,
+                'lottery_id' => (int) $invitation->lottery_id,
+                'set_id' => (int) $invitation->set_id,
+                'output' => [
+                    'participations_per_book' => (int) ($invitation->participations_per_book ?? 50),
+                ],
+            ]);
 
-        if ($log->status === EmailCommunicationLog::STATUS_CANCELLED) {
-            return redirect()->back()->withInput()->with('error', 'No se pudo enviar el correo. Comprueba la configuración de correo (MAIL_*) en .env.');
+            $orderCode = 'OPI' . str_pad((string) (PrintOrder::max('id') + 1), 6, '0', STR_PAD_LEFT);
+            PrintOrder::create([
+                'order_code' => $orderCode,
+                'design_format_id' => (int) $design->id,
+                'set_id' => $invitation->set_id,
+                'entity_id' => $invitation->entity_id,
+                'lottery_id' => $invitation->lottery_id,
+                'created_by_user_id' => auth()->id(),
+                'status' => PrintOrder::STATUS_PENDING_REVIEW,
+                'print_size' => $invitation->print_size,
+                'participations_per_book' => $invitation->participations_per_book,
+                'back_mode' => $invitation->back_mode,
+                'quoted_amount' => $quote['total'],
+                'quote_breakdown' => $quote,
+                'notes' => trim((string) ($invitation->comment ?? '')) . "\n[PAGO SIMULADO] Flujo Diseño e Impresión PARTILOT.",
+                'sent_at' => null,
+            ]);
+        } else {
+            $communicationEmailService = app(CommunicationEmailService::class);
+            $log = $communicationEmailService->sendAndLog(
+                recipientEmail: (string) $request->email,
+                recipientRole: 'diseñador_externo',
+                recipientUser: null,
+                messageType: 'design_external_invitation',
+                templateKey: null,
+                mailClass: \App\Mail\DesignExternalInvitationMail::class,
+                mailPayload: ['invitation_id' => $invitation->id],
+                context: ['invitation_id' => $invitation->id],
+            );
+
+            if ($log->status === EmailCommunicationLog::STATUS_CANCELLED) {
+                return redirect()->back()->withInput()->with('error', 'No se pudo enviar el correo. Comprueba la configuración de correo (MAIL_*) en .env.');
+            }
         }
 
         $invitation->update(['status' => DesignExternalInvitation::STATUS_SENT, 'sent_at' => now()]);
-        session()->forget('design_external_invitation_id');
-        return redirect()->route('design.external.list')->with('success', 'Invitación enviada a ' . $request->email);
+        session()->forget(['design_external_invitation_id', 'design_external_mode']);
+        return redirect()->route('design.external.list')->with(
+            'success',
+            $mode === 'partilot'
+                ? 'Pago confirmado y orden de imprenta registrada correctamente.'
+                : ('Invitación enviada a ' . $request->email)
+        );
+    }
+
+    private function calculateExternalInvitationQuote(Set $set, DesignExternalInvitation $invitation): array
+    {
+        $cfg = PrintConfiguration::first();
+        $totalParticipations = (int) ($set->total_participations ?? 0);
+        $perBook = max(1, (int) ($invitation->participations_per_book ?? 50));
+        $books = (int) ceil($totalParticipations / $perBook);
+        $backMode = $invitation->back_mode === 'color' ? 'color' : 'bw';
+
+        $priceDesign = (float) ($cfg->price_design ?? 0);
+        $priceParticipation = (float) ($cfg->price_participation ?? 0);
+        $priceBack = $backMode === 'color'
+            ? (float) ($cfg->price_back_color ?? 0)
+            : (float) ($cfg->price_back_bw ?? 0);
+
+        $pricePerBook = (float) ($cfg->price_taco_50 ?? 0);
+        if ($perBook <= 25) {
+            $pricePerBook = (float) ($cfg->price_taco_25 ?? 0);
+        } elseif ($perBook >= 100) {
+            $pricePerBook = (float) ($cfg->price_taco_100 ?? 0);
+        }
+
+        $designCost = $priceDesign;
+        $participationCost = $totalParticipations * $priceParticipation;
+        $backCost = $totalParticipations * $priceBack;
+        $booksCost = $books * $pricePerBook;
+        $total = $designCost + $participationCost + $backCost + $booksCost;
+
+        return [
+            'total_participations' => $totalParticipations,
+            'participations_per_book' => $perBook,
+            'books' => $books,
+            'back_mode' => $backMode,
+            'unit_prices' => [
+                'design' => $priceDesign,
+                'participation' => $priceParticipation,
+                'back' => $priceBack,
+                'book' => $pricePerBook,
+            ],
+            'subtotal' => [
+                'design' => $designCost,
+                'participation' => $participationCost,
+                'back' => $backCost,
+                'book' => $booksCost,
+            ],
+            'total' => round($total, 2),
+        ];
     }
 
     /**
@@ -265,6 +410,9 @@ class DesignController extends Controller
         if (!$invitation) {
             abort(404, 'Invitación no encontrada o enlace caducado.');
         }
+        if ($invitation->isExpired()) {
+            abort(410, 'El enlace de invitación ha caducado. Solicita uno nuevo.');
+        }
 
         session([
             'design_entity_id' => $invitation->entity_id,
@@ -294,6 +442,10 @@ class DesignController extends Controller
         if (! $invitation) {
             session()->forget(['design_entity_id', 'design_lottery_id', 'design_set_id', 'design_external_invitation_id']);
             return redirect()->to(url('/'))->with('error', 'Invitación no encontrada o expirada.');
+        }
+        if ($invitation->isExpired()) {
+            session()->forget(['design_entity_id', 'design_lottery_id', 'design_set_id', 'design_external_invitation_id']);
+            return redirect()->to(url('/'))->with('error', 'El enlace de invitación ha caducado. Solicita uno nuevo.');
         }
 
         $entity = $invitation->entity;
@@ -441,6 +593,15 @@ class DesignController extends Controller
             $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
         }
 
+        if (
+            ! $byInvitation
+            && $request->boolean('new_design')
+            && $this->getSetDesignLockContext($set)['locked']
+        ) {
+            return redirect()->route('design.index')
+                ->with('error', 'No se puede iniciar un diseño nuevo: el set tiene participaciones comprometidas y el diseño está bloqueado.');
+        }
+
         $lottery = Lottery::findOrFail(session('design_lottery_id'));
         $reservation_numbers = $set->reserve ? $set->reserve->reservation_numbers : [];
         $isDigitalSet = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
@@ -477,7 +638,9 @@ class DesignController extends Controller
                 $design->backgrounds = $blocks['backgrounds'];
             }
         }
-        return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers', 'isDigitalSet', 'design'));
+        $designLock = $this->getSetDesignLockContext($set);
+        $forceFreshDraft = (bool) $request->filled('new_design');
+        return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers', 'isDigitalSet', 'design', 'designLock', 'forceFreshDraft'));
     }
 
     // Tarea 8: listado de diseños de la entidad para reutilizar
@@ -495,7 +658,9 @@ class DesignController extends Controller
             ->orderByDesc('updated_at')
             ->limit(100)
             ->get();
-        return view('design.list_formats', compact('designs', 'set'));
+        $currentSetLock = $this->getSetDesignLockContext($set);
+
+        return view('design.list_formats', compact('designs', 'set', 'currentSetLock'));
     }
 
     // Guardar selección de entidad en sesión y redirigir a selección de sorteo
@@ -584,6 +749,8 @@ class DesignController extends Controller
     {
         $data = $request->validate([
             'design_id' => 'nullable|integer|exists:design_formats,id',
+            'expected_updated_at' => 'nullable|string',
+            'save_reason' => 'nullable|string|in:manual-save,autosave,final-save',
             'format' => 'nullable|string',
             'page' => 'nullable|string',
             'rows' => 'nullable|integer',
@@ -631,6 +798,17 @@ class DesignController extends Controller
         $data['snapshot_path'] = $data['snapshot_path'] ?? null;
 
         $set = Set::find($data['set_id'] ?? null);
+        if ($set) {
+            $designLock = $this->getSetDesignLockContext($set);
+            if ($designLock['locked']) {
+                $this->logDesignLockAudit($set, 'save_format_blocked', $designLock);
+                return response()->json([
+                    'success' => false,
+                    'message' => $designLock['message'],
+                    'code' => 'SET_DESIGN_LOCKED',
+                ], 422);
+            }
+        }
         if ($set && $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0) {
             $data['output']['participations_per_book'] = (int) $set->total_participations;
         }
@@ -642,6 +820,18 @@ class DesignController extends Controller
         if ($designId && $set) {
             $existing = DesignFormat::find($designId);
             if ($existing && (int) $existing->entity_id === (int) $data['entity_id'] && (int) $existing->set_id === (int) $data['set_id']) {
+                    $expectedUpdatedAt = $request->input('expected_updated_at');
+                    if ($expectedUpdatedAt) {
+                        $currentUpdatedAt = optional($existing->updated_at)->toISOString();
+                        if ($currentUpdatedAt && $currentUpdatedAt !== $expectedUpdatedAt) {
+                            return response()->json([
+                                'success' => false,
+                                'code' => 'DESIGN_CONFLICT',
+                                'message' => 'El diseño fue actualizado desde otra sesión. Recarga antes de continuar para evitar sobreescritura.',
+                                'current_updated_at' => $currentUpdatedAt,
+                            ], 409);
+                        }
+                    }
                     $existing->format = $data['format'] ?? $existing->format;
                     $existing->page = $data['page'] ?? $existing->page;
                     $existing->rows = $data['rows'] ?? $existing->rows;
@@ -656,13 +846,21 @@ class DesignController extends Controller
                     $existing->snapshot_path = $data['snapshot_path'];
                     $existing->save();
                     $this->linkInvitationToDesignIfNeeded($existing->id);
-                    return response()->json(['success' => true, 'id' => $existing->id]);
+                    return response()->json([
+                        'success' => true,
+                        'id' => $existing->id,
+                        'updated_at' => optional($existing->updated_at)->toISOString(),
+                    ]);
             }
         }
 
         $designFormat = DesignFormat::create($data);
         $this->linkInvitationToDesignIfNeeded($designFormat->id);
-        return response()->json(['success' => true, 'id' => $designFormat->id]);
+        return response()->json([
+            'success' => true,
+            'id' => $designFormat->id,
+            'updated_at' => optional($designFormat->updated_at)->toISOString(),
+        ]);
     }
 
     /**
@@ -1345,6 +1543,16 @@ class DesignController extends Controller
         if (!auth()->user()->canAccessEntity((int) $format->entity_id)) {
             abort(403, 'No tienes permisos para editar este diseño.');
         }
+        $setForLock = $format->set_id ? Set::find($format->set_id) : null;
+        if ($setForLock && $this->getSetDesignLockContext($setForLock)['locked']) {
+            return redirect()->route('design.summary', $id)
+                ->with('warning', 'Este diseño está bloqueado por el estado operativo del set (ventas/asignaciones). Usa el resumen para revisar y descargar PDFs.');
+        }
+        $printOrderLock = $this->getPrintOrderLockContext($format->id);
+        if ($printOrderLock['locked']) {
+            return redirect()->route('design.summary', $id)
+                ->with('warning', $printOrderLock['message']);
+        }
         $format->participation_html = $this->ensureAbsoluteUrlsInHtml($format->participation_html ?? '');
         $format->cover_html = $this->ensureAbsoluteUrlsInHtml($format->cover_html ?? '');
         $format->back_html = $this->ensureAbsoluteUrlsInHtml($format->back_html ?? '');
@@ -1367,7 +1575,126 @@ class DesignController extends Controller
         if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
             abort(403, 'No tienes permisos para ver este diseño.');
         }
-        return view('design.summary', compact('design'));
+        $latestPrintOrder = PrintOrder::where('design_format_id', $design->id)
+            ->orderByDesc('id')
+            ->first();
+        $printOrderLock = $this->getPrintOrderLockContext($design->id);
+        return view('design.summary', compact('design', 'latestPrintOrder', 'printOrderLock'));
+    }
+
+    public function sendToPrint($id)
+    {
+        $design = DesignFormat::with(['set', 'lottery', 'entity'])->findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para esta operación.');
+        }
+        $printOrderLock = $this->getPrintOrderLockContext($design->id);
+        if ($printOrderLock['locked']) {
+            return redirect()->route('design.summary', $design->id)
+                ->with('warning', $printOrderLock['message']);
+        }
+
+        $output = is_array($design->output ?? null) ? $design->output : [];
+        $defaults = [
+            'print_size' => (string) ($output['format'] ?? 'custom'),
+            'participations_per_book' => (int) ($output['participations_per_book'] ?? 50),
+            'back_mode' => 'bw',
+        ];
+        $quote = $this->calculatePrintOrderQuote($design->set, $defaults);
+
+        return view('design.send_to_print', compact('design', 'defaults', 'quote'));
+    }
+
+    public function submitPrintOrder(Request $request, $id)
+    {
+        $design = DesignFormat::with(['set', 'lottery', 'entity'])->findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para esta operación.');
+        }
+        $printOrderLock = $this->getPrintOrderLockContext($design->id);
+        if ($printOrderLock['locked']) {
+            return redirect()->route('design.summary', $design->id)
+                ->with('warning', $printOrderLock['message']);
+        }
+
+        $data = $request->validate([
+            'print_size' => 'required|string|in:a3_6,a3_8,custom',
+            'participations_per_book' => 'required|integer|min:1|max:1000',
+            'back_mode' => 'required|string|in:bw,color',
+            'notes' => 'nullable|string|max:4000',
+        ]);
+
+        $quote = $this->calculatePrintOrderQuote($design->set, $data);
+        $orderCode = 'OPI' . str_pad((string) (PrintOrder::max('id') + 1), 6, '0', STR_PAD_LEFT);
+
+        PrintOrder::create([
+            'order_code' => $orderCode,
+            'design_format_id' => $design->id,
+            'set_id' => $design->set_id,
+            'entity_id' => $design->entity_id,
+            'lottery_id' => $design->lottery_id,
+            'created_by_user_id' => auth()->id(),
+            'status' => 'pendiente_revision',
+            'print_size' => $data['print_size'],
+            'participations_per_book' => (int) $data['participations_per_book'],
+            'back_mode' => $data['back_mode'],
+            'quoted_amount' => $quote['total'],
+            'quote_breakdown' => $quote,
+            'notes' => $data['notes'] ?? null,
+            'sent_at' => null,
+        ]);
+
+        return redirect()->route('design.summary', $design->id)
+            ->with('success', 'Orden de imprenta enviada correctamente (sin cobro en esta fase).');
+    }
+
+    private function calculatePrintOrderQuote(Set $set, array $input): array
+    {
+        $cfg = PrintConfiguration::first();
+        $totalParticipations = (int) ($set->total_participations ?? 0);
+        $perBook = max(1, (int) ($input['participations_per_book'] ?? 50));
+        $books = (int) ceil($totalParticipations / $perBook);
+        $backMode = ($input['back_mode'] ?? 'bw') === 'color' ? 'color' : 'bw';
+
+        $priceDesign = (float) ($cfg->price_design ?? 0);
+        $priceParticipation = (float) ($cfg->price_participation ?? 0);
+        $priceBack = $backMode === 'color'
+            ? (float) ($cfg->price_back_color ?? 0)
+            : (float) ($cfg->price_back_bw ?? 0);
+
+        $pricePerBook = (float) ($cfg->price_taco_50 ?? 0);
+        if ($perBook <= 25) {
+            $pricePerBook = (float) ($cfg->price_taco_25 ?? 0);
+        } elseif ($perBook >= 100) {
+            $pricePerBook = (float) ($cfg->price_taco_100 ?? 0);
+        }
+
+        $designCost = $priceDesign;
+        $participationCost = $totalParticipations * $priceParticipation;
+        $backCost = $totalParticipations * $priceBack;
+        $booksCost = $books * $pricePerBook;
+        $total = $designCost + $participationCost + $backCost + $booksCost;
+
+        return [
+            'total_participations' => $totalParticipations,
+            'print_size' => $input['print_size'] ?? 'custom',
+            'participations_per_book' => $perBook,
+            'books' => $books,
+            'back_mode' => $backMode,
+            'unit_prices' => [
+                'design' => $priceDesign,
+                'participation' => $priceParticipation,
+                'back' => $priceBack,
+                'book' => $pricePerBook,
+            ],
+            'subtotal' => [
+                'design' => $designCost,
+                'participation' => $participationCost,
+                'back' => $backCost,
+                'book' => $booksCost,
+            ],
+            'total' => round($total, 2),
+        ];
     }
 
     /**
@@ -1380,6 +1707,25 @@ class DesignController extends Controller
         $format = DesignFormat::findOrFail($id);
         if (!auth()->user()->canAccessEntity((int) $format->entity_id)) {
             abort(403, 'No tienes permisos para actualizar este diseño.');
+        }
+        if ($format->set) {
+            $printOrderLock = $this->getPrintOrderLockContext($format->id);
+            if ($printOrderLock['locked']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $printOrderLock['message'],
+                    'code' => 'SET_DESIGN_LOCKED',
+                ], 422);
+            }
+            $designLock = $this->getSetDesignLockContext($format->set);
+            if ($designLock['locked']) {
+                $this->logDesignLockAudit($format->set, 'update_format_blocked', $designLock, $format->id);
+                return response()->json([
+                    'success' => false,
+                    'message' => $designLock['message'],
+                    'code' => 'SET_DESIGN_LOCKED',
+                ], 422);
+            }
         }
         // Procesar el JSON enviado desde el frontend (campo 'data')
         // if ($request->has('data')) {
@@ -2031,7 +2377,38 @@ class DesignController extends Controller
             ->whereIn('entity_id', $entityIds)
             ->orderByDesc('id')
             ->get();
-        return view('design.index', compact('designs'));
+        $lockBySetId = $this->batchDesignLockContextsForSetIds(
+            $designs->pluck('set_id')->filter()->unique()->values()->all()
+        );
+        $designLockByDesignId = [];
+        foreach ($designs as $d) {
+            if ($d->set_id && isset($lockBySetId[$d->set_id])) {
+                $designLockByDesignId[$d->id] = $lockBySetId[$d->set_id];
+            }
+        }
+        $printOrderLockByDesignId = [];
+        $designIds = $designs->pluck('id')->all();
+        if (!empty($designIds)) {
+            $latestOrdersByDesign = PrintOrder::query()
+                ->whereIn('design_format_id', $designIds)
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('design_format_id')
+                ->map(fn ($rows) => $rows->first());
+
+            foreach ($latestOrdersByDesign as $designId => $order) {
+                if ($this->isPrintOrderBlockingStatus((string) $order->status)) {
+                    $printOrderLockByDesignId[(int) $designId] = [
+                        'locked' => true,
+                        'status' => (string) $order->status,
+                        'message' => 'Diseño bloqueado por estado de imprenta: ' . PrintOrder::statusLabel((string) $order->status) . '.',
+                        'order_code' => $order->order_code,
+                    ];
+                }
+            }
+        }
+
+        return view('design.index', compact('designs', 'designLockByDesignId', 'printOrderLockByDesignId'));
     }
 
     /**
@@ -2047,14 +2424,17 @@ class DesignController extends Controller
                 abort(403, 'No tienes permisos para eliminar este diseño.');
             }
             
-            // Verificar si hay participaciones vendidas
-            $soldParticipations = $design->participations()->where('status', 'vendida')->count();
-            
-            if ($soldParticipations > 0) {
-                return redirect()->route('design.index')
-                    ->with('error', 'No se puede eliminar el diseño porque tiene ' . $soldParticipations . ' participación(es) vendida(s).');
+            if ($design->set) {
+                $lock = $this->getSetDesignLockContext($design->set);
+                if ($lock['locked']) {
+                    return redirect()->route('design.index')->with('error', $lock['message']);
+                }
             }
-            
+            $printOrderLock = $this->getPrintOrderLockContext($design->id);
+            if ($printOrderLock['locked']) {
+                return redirect()->route('design.index')->with('error', $printOrderLock['message']);
+            }
+
             // El modelo DesignFormat tiene un evento boot que elimina automáticamente las participaciones
             // cuando se elimina el diseño, así que solo necesitamos eliminar el diseño
             $design->delete();
@@ -2066,6 +2446,144 @@ class DesignController extends Controller
             \Log::error('Error al eliminar diseño: ' . $e->getMessage());
             return redirect()->route('design.index')
                 ->with('error', 'Error al eliminar el diseño: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Determina si el set permite edición de diseño.
+     * Regla operativa: si hay participaciones vendidas, reservadas, pagadas, perdidas
+     * o asignadas a vendedor (seller_id), el diseño queda bloqueado.
+     */
+    private function getSetDesignLockContext(Set $set): array
+    {
+        $assignedCount = Participation::where('set_id', $set->id)->whereNotNull('seller_id')->count();
+        $statusLockedCount = Participation::where('set_id', $set->id)
+            ->whereIn('status', ['vendida', 'reservada', 'pagada', 'perdida'])
+            ->count();
+
+        return $this->buildDesignLockContext($assignedCount, $statusLockedCount);
+    }
+
+    /**
+     * @param  array<int>  $setIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function batchDesignLockContextsForSetIds(array $setIds): array
+    {
+        $setIds = array_values(array_unique(array_filter($setIds)));
+        if ($setIds === []) {
+            return [];
+        }
+
+        $assignedRows = Participation::query()
+            ->whereIn('set_id', $setIds)
+            ->whereNotNull('seller_id')
+            ->groupBy('set_id')
+            ->selectRaw('set_id, COUNT(*) as c')
+            ->pluck('c', 'set_id');
+
+        $statusRows = Participation::query()
+            ->whereIn('set_id', $setIds)
+            ->whereIn('status', ['vendida', 'reservada', 'pagada', 'perdida'])
+            ->groupBy('set_id')
+            ->selectRaw('set_id, COUNT(*) as c')
+            ->pluck('c', 'set_id');
+
+        $out = [];
+        foreach ($setIds as $sid) {
+            $ac = (int) ($assignedRows[$sid] ?? 0);
+            $sc = (int) ($statusRows[$sid] ?? 0);
+            $out[$sid] = $this->buildDesignLockContext($ac, $sc);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array{locked:bool, message:?string, assigned_count:int, status_locked_count:int}
+     */
+    private function buildDesignLockContext(int $assignedCount, int $statusLockedCount): array
+    {
+        $locked = ($assignedCount + $statusLockedCount) > 0;
+
+        if (! $locked) {
+            return [
+                'locked' => false,
+                'message' => null,
+                'assigned_count' => 0,
+                'status_locked_count' => 0,
+            ];
+        }
+
+        $message = 'Este set tiene participaciones comprometidas por operación (venta/asignación/reserva) y el diseño está bloqueado.';
+        if ($assignedCount > 0 && $statusLockedCount > 0) {
+            $message = "Diseño bloqueado: hay {$assignedCount} participaciones asignadas y {$statusLockedCount} en estado operativo no editable.";
+        } elseif ($assignedCount > 0) {
+            $message = "Diseño bloqueado: hay {$assignedCount} participaciones asignadas a vendedor.";
+        } elseif ($statusLockedCount > 0) {
+            $message = "Diseño bloqueado: hay {$statusLockedCount} participaciones en estado operativo no editable (vendida/reservada/pagada/perdida).";
+        }
+
+        return [
+            'locked' => true,
+            'message' => $message,
+            'assigned_count' => $assignedCount,
+            'status_locked_count' => $statusLockedCount,
+        ];
+    }
+
+    private function isPrintOrderBlockingStatus(string $status): bool
+    {
+        return in_array($status, [
+            PrintOrder::STATUS_PENDING_REVIEW,
+            PrintOrder::STATUS_IN_PRODUCTION,
+            PrintOrder::STATUS_SENT,
+        ], true);
+    }
+
+    /**
+     * @return array{locked:bool, message:?string, status:?string, order_code:?string}
+     */
+    private function getPrintOrderLockContext(?int $designFormatId): array
+    {
+        if (!$designFormatId) {
+            return ['locked' => false, 'message' => null, 'status' => null, 'order_code' => null];
+        }
+
+        $latest = PrintOrder::query()
+            ->where('design_format_id', $designFormatId)
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$latest || !$this->isPrintOrderBlockingStatus((string) $latest->status)) {
+            return ['locked' => false, 'message' => null, 'status' => null, 'order_code' => null];
+        }
+
+        $label = PrintOrder::statusLabel((string) $latest->status);
+        return [
+            'locked' => true,
+            'message' => "Este diseño tiene una orden de imprenta activa ({$latest->order_code}) en estado '{$label}'. No se permite editar ni reenviar.",
+            'status' => (string) $latest->status,
+            'order_code' => (string) $latest->order_code,
+        ];
+    }
+
+    private function logDesignLockAudit(Set $set, string $action, array $lockContext, ?int $designFormatId = null): void
+    {
+        try {
+            DB::table('design_lock_audits')->insert([
+                'set_id' => $set->id,
+                'entity_id' => $set->entity_id,
+                'design_format_id' => $designFormatId,
+                'user_id' => auth()->id(),
+                'action' => $action,
+                'message' => $lockContext['message'] ?? null,
+                'assigned_count' => (int) ($lockContext['assigned_count'] ?? 0),
+                'status_locked_count' => (int) ($lockContext['status_locked_count'] ?? 0),
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('No se pudo registrar auditoría de bloqueo de diseño: ' . $e->getMessage());
         }
     }
 } 

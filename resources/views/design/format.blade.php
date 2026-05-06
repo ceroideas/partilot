@@ -81,6 +81,7 @@
 @endphp
 <script>
 window.__designId = {{ $design->id }};
+window.__designUpdatedAt = @json(optional($design->updated_at)->toISOString());
 window.__designLoad = {!! json_encode([
     'format' => $design->format,
     'page' => $design->page,
@@ -100,13 +101,44 @@ window.__designLoad = {!! json_encode([
     'cover_html' => $loadCover,
     'back_html' => $loadBack,
     'backgrounds' => $design->backgrounds,
+    'updated_at' => optional($design->updated_at)->toISOString(),
 ]) !!};
 </script>
 @else
-<script> window.__designId = null; window.__designLoad = null; </script>
+<script> window.__designId = null; window.__designLoad = null; window.__designUpdatedAt = null; </script>
 @endif
+<script>
+window.__designLocked = @json((bool)($designLock['locked'] ?? false));
+window.__designLockMessage = @json($designLock['message'] ?? 'Este set no permite edición de diseño por estado operativo.');
+window.__designContext = {
+  entity_id: {{ (int)($entity->id ?? 0) }},
+  lottery_id: {{ (int)($lottery->id ?? 0) }},
+  reserve_id: {{ (int)($set->reserve_id ?? 0) }},
+  set_id: {{ (int)($set->id ?? 0) }}
+};
+window.__forceFreshDraft = @json((bool)($forceFreshDraft ?? false));
+</script>
 
 <style>
+    .design-lock-alert {
+        border-radius: 12px;
+        border: 1px solid #f0ad4e;
+        background: #fff8e1;
+        color: #7a4b00;
+    }
+
+    .design-locked .format-box {
+        pointer-events: none;
+        opacity: 0.85;
+    }
+
+    .design-locked .format-box-btn,
+    .design-locked #open-bg-modal,
+    .design-locked #btn-guardar-margenes {
+        pointer-events: none;
+        opacity: 0.55;
+    }
+
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
     }
@@ -198,7 +230,45 @@ window.__designLoad = {!! json_encode([
 </style>
 
 <!-- Start Content-->
-<div class="container-fluid">
+<div class="container-fluid {{ !empty($designLock['locked']) ? 'design-locked' : '' }}">
+    @if(!empty($designLock['locked']))
+        <div class="alert design-lock-alert mb-3" role="alert">
+            <strong>Diseño bloqueado.</strong> {{ $designLock['message'] ?? 'Este set ya tiene operación activa y no permite edición.' }}
+        </div>
+    @endif
+    <div class="modal fade" id="draft-choice-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Borrador detectado</h5>
+                </div>
+                <div class="modal-body">
+                    Tenemos un borrador guardado para este set. ¿Quieres continuar editándolo o empezar un diseño limpio?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" id="btn-draft-discard">Empezar limpio</button>
+                    <button type="button" class="btn btn-warning" id="btn-draft-continue">Continuar editando</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="design-conflict-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Conflicto de edición</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2" id="design-conflict-message">Se detectó una versión más reciente del diseño.</p>
+                    <p class="mb-0 text-muted small">Para evitar sobreescritura, recarga el editor antes de guardar de nuevo.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" id="btn-conflict-keep-editing">Seguir revisando</button>
+                    <button type="button" class="btn btn-warning" id="btn-conflict-reload">Recargar editor</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <div class="row">
         <div class="col-12">
@@ -1565,6 +1635,149 @@ $('#format').change(function (e) {
   var step = 1;
   var isDigitalSet = {{ ($isDigitalSet ?? false) ? 'true' : 'false' }};
   var selectedElement = null;
+  var designDirty = false;
+  var autosaveInFlight = false;
+  var autosaveIntervalMs = 30000;
+  var designConflictDetected = false;
+  var draftPersistTimer = null;
+  var pendingPersistentDraft = null;
+  var restoredDraftStep = null;
+  var draftContext = window.__designContext || {};
+  var draftStorageKey = 'design:draft:set:' + (draftContext.set_id || 'unknown');
+  var transientKeys = ['step2','step3','step4','bg-step2','bg-step3','bg-step4','bgimg-step2','bgimg-step3','bgimg-step4','guide-step2','guide-step3','guide-step4'];
+
+  function clearTransientLocalState() {
+    transientKeys.forEach(function(k){ localStorage.removeItem(k); });
+  }
+
+  function clearPersistentDraft() {
+    try { localStorage.removeItem(draftStorageKey); } catch (e) {}
+  }
+
+  function mapDraftDataToDesignLoad(data) {
+    if (!data) return null;
+    return {
+      format: data.format ?? null,
+      page: data.page ?? null,
+      rows: data.rows ?? null,
+      cols: data.cols ?? null,
+      orientation: data.orientation ?? null,
+      margin_up: data.margins?.up ?? null,
+      margin_right: data.margins?.right ?? null,
+      margin_left: data.margins?.left ?? null,
+      margin_top: data.margins?.top ?? null,
+      identation: data.identation ?? null,
+      matrix_box: data.matrix_box ?? null,
+      margin_custom: data.margin_custom ?? null,
+      page_rigth: data.horizontal_space ?? null,
+      page_bottom: data.vertical_space ?? null,
+      participation_html: data.participation_html ?? null,
+      cover_html: data.cover_html ?? null,
+      back_html: data.back_html ?? null,
+      backgrounds: data.backgrounds ?? null
+    };
+  }
+
+  function hydrateTransientStateFromDraft(draft) {
+    if (!draft || !draft.data) return;
+    if (draft.data.participation_html) {
+      localStorage.setItem('step2', $('<div>').html(draft.data.participation_html).find('#containment-wrapper2').html() || '');
+    }
+    if (draft.data.cover_html) {
+      localStorage.setItem('step3', $('<div>').html(draft.data.cover_html).find('#containment-wrapper3').html() || '');
+    }
+    if (draft.data.back_html) {
+      localStorage.setItem('step4', $('<div>').html(draft.data.back_html).find('#containment-wrapper4').html() || '');
+    }
+    if (draft.data.backgrounds) {
+      [2,3,4].forEach(function(i){
+        var bg = draft.data.backgrounds['step'+i];
+        if (!bg) return;
+        localStorage.setItem('bg-step'+i, bg.color || '#dfdfdf');
+        localStorage.setItem('bgimg-step'+i, bg.image || '');
+      });
+    }
+    if (draft.ui && draft.ui.guide_colors) {
+      [2,3,4].forEach(function(i){
+        if (draft.ui.guide_colors['step'+i]) {
+          localStorage.setItem('guide-step'+i, draft.ui.guide_colors['step'+i]);
+        }
+      });
+    }
+  }
+
+  function tryRestorePersistentDraft() {
+    if (window.__forceFreshDraft) {
+      clearPersistentDraft();
+      clearTransientLocalState();
+      return null;
+    }
+
+    let draft = null;
+    try {
+      draft = JSON.parse(localStorage.getItem(draftStorageKey) || 'null');
+    } catch (e) {
+      draft = null;
+    }
+    if (!draft || !draft.context || !draft.data) return null;
+
+    const sameSet = Number(draft.context.set_id || 0) === Number(draftContext.set_id || 0);
+    const sameEntity = Number(draft.context.entity_id || 0) === Number(draftContext.entity_id || 0);
+    const sameReserve = Number(draft.context.reserve_id || 0) === Number(draftContext.reserve_id || 0);
+    if (!(sameSet && sameEntity && sameReserve)) return null;
+    return draft;
+  }
+
+  function applyDraftSelection(continueDraft) {
+    if (!continueDraft) {
+      clearPersistentDraft();
+      clearTransientLocalState();
+      restoredDraftStep = null;
+      return;
+    }
+    if (!pendingPersistentDraft) return;
+    clearTransientLocalState();
+    hydrateTransientStateFromDraft(pendingPersistentDraft);
+    window.__designLoad = mapDraftDataToDesignLoad(pendingPersistentDraft.data);
+    window.__designId = pendingPersistentDraft.data.design_id || window.__designId || null;
+    window.__designUpdatedAt = pendingPersistentDraft.data.expected_updated_at || window.__designUpdatedAt || null;
+    restoredDraftStep = parseInt(pendingPersistentDraft.step, 10) || null;
+  }
+
+  function buildPersistentDraftPayload() {
+    const data = collectDesignData();
+    const guides = {
+      step2: localStorage.getItem('guide-step2') || null,
+      step3: localStorage.getItem('guide-step3') || null,
+      step4: localStorage.getItem('guide-step4') || null
+    };
+    return {
+      version: 1,
+      saved_at: new Date().toISOString(),
+      context: draftContext,
+      step: step,
+      data: data,
+      ui: {
+        guide_colors: guides
+      }
+    };
+  }
+
+  function persistDraftLocally() {
+    if (window.__designLocked) return;
+    try {
+      localStorage.setItem(draftStorageKey, JSON.stringify(buildPersistentDraftPayload()));
+    } catch (e) {}
+  }
+
+  function scheduleDraftPersist() {
+    if (draftPersistTimer) clearTimeout(draftPersistTimer);
+    draftPersistTimer = setTimeout(function() {
+      persistDraftLocally();
+    }, 800);
+  }
+
+  pendingPersistentDraft = tryRestorePersistentDraft();
 
   // Reaplicar position/right/top/margin al .format-box del paso 2 en digital (el JS que actualiza width/height lo sobrescribe)
   function applyDigitalFormatBoxStep2() {
@@ -1653,36 +1866,15 @@ $('#format').change(function (e) {
 
       if (step == 5 || (isDigitalSet && step == 2)) {
         e.preventDefault();
-          const data = collectDesignData();
-          console.log(data);
-          showDesignLoading('Guardando diseño...');
-          var saveUrl = @json($save_format_url ?? url('/api/design/save-format'));
-          var redirectAfterSave = @json($redirect_after_save ?? null);
-          fetch(saveUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            body: JSON.stringify(data)
-          })
-          .then(response => response.json())
-          .then(result => {
-            if(result.success) {
-              hideDesignLoading();
-              if (redirectAfterSave) {
-                window.location.href = redirectAfterSave;
-              } else if (result.id) {
-                window.location.href = '{{ url("design/summary") }}/' + result.id;
-              } else {
-                window.location.href = '{{ route("design.index") }}';
-              }
-            } else {
-              alert('Error al guardar el diseño.');
-            }
-          })
-          .catch(() => alert('Error al guardar el diseño.'))
-          .finally(() => hideDesignLoading());
+          if (window.__designLocked) {
+            alert(window.__designLockMessage || 'Este set no permite edición de diseño por estado operativo.');
+            return;
+          }
+          persistDesignToServer({
+            reason: 'final-save',
+            showLoader: true,
+            redirectOnSuccess: true
+          });
 
       }else{
           step +=1;
@@ -2643,25 +2835,176 @@ $('#format').change(function (e) {
     selectedElement = null;
     $('.up-layer, .down-layer, .text-style-btn').prop('disabled', true);
 
+    if (window.__designLocked) {
+      alert(window.__designLockMessage || 'Este set no permite edición de diseño por estado operativo.');
+      return;
+    }
+
     if (step != 1) {
-
-        if(step == 2) {
-            showDesignLoading('Guardando vista previa...');
-            generateParticipationSnapshot(function() {
-              var html = $('#containment-wrapper'+step).html();
-              localStorage.setItem('step'+step, html);
-              $('#step').removeClass('d-none');
-              $('#save-step').addClass('d-none');
+      if(step == 2) {
+          showDesignLoading('Guardando vista previa...');
+          generateParticipationSnapshot(function() {
+            var html = $('#containment-wrapper'+step).html();
+            localStorage.setItem('step'+step, html);
+            persistDesignToServer({
+              reason: 'manual-save',
+              showLoader: true,
+              redirectOnSuccess: false
             });
-        } else {
-            let html = $('#containment-wrapper'+step).html();
+          });
+      } else {
+          let html = $('#containment-wrapper'+step).html();
+          localStorage.setItem('step'+step, html);
+          persistDesignToServer({
+            reason: 'manual-save',
+            showLoader: true,
+            redirectOnSuccess: false
+          });
+      }
+    }
+  });
 
-            localStorage.setItem('step'+step,html);
+  function markDesignDirty() {
+    if (window.__designLocked) return;
+    designDirty = true;
+    $('#step').addClass('d-none');
+    $('#save-step').removeClass('d-none');
+    scheduleDraftPersist();
+  }
 
-            $('#step').removeClass('d-none');
-            $('#save-step').addClass('d-none');
+  function markDesignSaved() {
+    designDirty = false;
+    $('#step').removeClass('d-none');
+    $('#save-step').addClass('d-none');
+  }
+
+  function showDesignConflictModal(message) {
+    var text = message || 'Se detectó una versión más reciente del diseño.';
+    $('#design-conflict-message').text(text);
+
+    if (typeof bootstrap !== 'undefined' && document.getElementById('design-conflict-modal')) {
+      const modalEl = document.getElementById('design-conflict-modal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    } else {
+      alert(text + ' Recarga el editor antes de guardar.');
+    }
+  }
+
+  function persistDesignToServer(options) {
+    options = options || {};
+    if (window.__designLocked) {
+      if (options.showLoader) hideDesignLoading();
+      return Promise.resolve(false);
+    }
+    if (designConflictDetected && options.reason === 'autosave') {
+      return Promise.resolve(false);
+    }
+    const data = collectDesignData();
+    data.save_reason = options.reason || 'manual-save';
+    const saveUrl = @json($save_format_url ?? url('/api/design/save-format'));
+    const redirectAfterSave = @json($redirect_after_save ?? null);
+    autosaveInFlight = true;
+
+    return fetch(saveUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      body: JSON.stringify(data)
+    })
+    .then(async (response) => {
+      const result = await response.json().catch(() => ({}));
+      return { ok: response.ok, status: response.status, result };
+    })
+    .then(({ ok, status, result }) => {
+      if (ok && result.success) {
+        if (result.id) window.__designId = result.id;
+        if (result.updated_at) window.__designUpdatedAt = result.updated_at;
+        markDesignSaved();
+        persistDraftLocally();
+        if (options.redirectOnSuccess) {
+          clearPersistentDraft();
+          clearTransientLocalState();
+          if (redirectAfterSave) {
+            window.location.href = redirectAfterSave;
+          } else if (result.id) {
+            window.location.href = '{{ url("design/summary") }}/' + result.id;
+          } else {
+            window.location.href = '{{ route("design.index") }}';
+          }
+        } else if (options.reason === 'manual-save') {
+          alert('Diseño guardado correctamente.');
         }
+        return true;
+      }
 
+      if (status === 409 && result.code === 'DESIGN_CONFLICT') {
+        designConflictDetected = true;
+        showDesignConflictModal(result.message || 'Otro usuario guardó una versión más reciente. Recarga para evitar sobreescritura.');
+      } else if (status === 422 && result.code === 'SET_DESIGN_LOCKED') {
+        alert(result.message || 'Diseño bloqueado por estado operativo del set.');
+      } else if (options.reason === 'manual-save' || options.redirectOnSuccess) {
+        alert(result.message || 'Error al guardar el diseño.');
+      }
+      return false;
+    })
+    .catch(() => {
+      if (options.reason === 'manual-save' || options.redirectOnSuccess) {
+        alert('Error al guardar el diseño.');
+      }
+      return false;
+    })
+    .finally(() => {
+      autosaveInFlight = false;
+      if (options.showLoader) hideDesignLoading();
+    });
+  }
+
+  function setupDesignAutosave() {
+    if (window.__designLocked) return;
+
+    $(document).on('input change', '#format, #page, #rows, #cols, #orientation, #margin-up, #margin-right, #margin-left, #margin-top, #identation, #matrix-box, #margin-custom, #page-rigth, #page-bottom, #guide_color, #guide_weight, #participation_number, #participation_from, #participation_to, #participation_page', markDesignDirty);
+    $(document).on('input', '.elements [contenteditable="true"], .elements textarea, .elements input', markDesignDirty);
+    $(document).on('click', '.add-text, .add-image, .delete-element-btn, .up-layer, .down-layer, .text-style-btn, #open-bg-modal, #remove-bg-image, #apply-bg', function() {
+      setTimeout(markDesignDirty, 50);
+    });
+
+    const observerConfig = { childList: true, subtree: true, attributes: true, characterData: true };
+    ['containment-wrapper2', 'containment-wrapper3', 'containment-wrapper4'].forEach(function(id) {
+      const node = document.getElementById(id);
+      if (!node) return;
+      const observer = new MutationObserver(function() { markDesignDirty(); });
+      observer.observe(node, observerConfig);
+    });
+
+    setInterval(function() {
+      if (window.__designLocked) return;
+      if (!designDirty || autosaveInFlight) return;
+      if (step < 2) return;
+      persistDesignToServer({
+        reason: 'autosave',
+        showLoader: false,
+        redirectOnSuccess: false
+      });
+    }, autosaveIntervalMs);
+  }
+
+  setupDesignAutosave();
+  $('#btn-conflict-reload').off('click').on('click', function() {
+    window.location.reload();
+  });
+  $('#btn-conflict-keep-editing').off('click').on('click', function() {
+    if (typeof bootstrap !== 'undefined' && document.getElementById('design-conflict-modal')) {
+      const modalEl = document.getElementById('design-conflict-modal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.hide();
+    }
+  });
+  window.addEventListener('beforeunload', function() {
+    if (!window.__designLocked && designDirty) {
+      persistDraftLocally();
     }
   });
 
@@ -3004,10 +3347,63 @@ $('#format').change(function (e) {
 
   // Llamar al cargar y al cambiar cualquier campo relevante
   $(document).ready(function() {
-      applyLoadedDesign();
-      updateTicketInfo();
-      $('#format,#page,#rows,#cols,#orientation').on('change keyup', updateTicketInfo);
-      $('#margin-top,#margin-up,#margin-left,#margin-right,#identation,#matrix-box,#margin-custom,#page-rigth,#page-bottom').on('change keyup', function() { if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo(); });
+      const initDesignEditor = function() {
+        applyLoadedDesign();
+        updateTicketInfo();
+        $('#format,#page,#rows,#cols,#orientation').off('change keyup').on('change keyup', updateTicketInfo);
+        $('#margin-top,#margin-up,#margin-left,#margin-right,#identation,#matrix-box,#margin-custom,#page-rigth,#page-bottom').off('change keyup').on('change keyup', function() { if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo(); });
+
+        if (restoredDraftStep) {
+          const maxStep = isDigitalSet ? 2 : 5;
+          const targetStep = Math.max(1, Math.min(maxStep, restoredDraftStep));
+          step = targetStep;
+
+          $('.form-card[id*="step-"]').addClass('d-none').removeClass('show');
+          $('.form-card[id="step-'+step+'"]').removeClass('d-none fade').addClass('show');
+
+          if (localStorage.getItem('step'+step)) {
+            $('#containment-wrapper'+step).html(localStorage.getItem('step'+step));
+          }
+          if (step === 3) ensurePortadaQrPlaceholder();
+
+          $('.form-wizard-element').removeClass('active');
+          $('#bc-step-'+step).addClass('active');
+
+          $('#step').removeClass('d-none');
+          $('#save-step').addClass('d-none');
+
+          configMargins();
+          addEventsElement();
+          setupDraggable();
+          setupResizeObserver();
+          if (typeof applyPendingRescaleIfStep2 === 'function') applyPendingRescaleIfStep2();
+          if (step === 2 && typeof applyDigitalFormatBoxStep2 === 'function') applyDigitalFormatBoxStep2();
+        }
+      };
+
+      if (pendingPersistentDraft && !window.__forceFreshDraft) {
+        if (typeof bootstrap !== 'undefined' && document.getElementById('draft-choice-modal')) {
+          const modalEl = document.getElementById('draft-choice-modal');
+          const modal = new bootstrap.Modal(modalEl);
+          $('#btn-draft-continue').off('click').on('click', function() {
+            applyDraftSelection(true);
+            modal.hide();
+            initDesignEditor();
+          });
+          $('#btn-draft-discard').off('click').on('click', function() {
+            applyDraftSelection(false);
+            modal.hide();
+            initDesignEditor();
+          });
+          modal.show();
+        } else {
+          const useDraft = confirm('Tenemos un borrador guardado para este set. Aceptar: continuar editando. Cancelar: empezar limpio.');
+          applyDraftSelection(useDraft);
+          initDesignEditor();
+        }
+      } else {
+        initDesignEditor();
+      }
   });
   // === FIN BLOQUE NUEVO ===
 
@@ -3092,6 +3488,7 @@ $('#format').change(function (e) {
     return {
       set_id: {{ $set->id ?? 'null' }},
       design_id: (typeof window.__designId !== 'undefined' && window.__designId) ? window.__designId : null,
+      expected_updated_at: (typeof window.__designUpdatedAt !== 'undefined' && window.__designUpdatedAt) ? window.__designUpdatedAt : null,
       format,
       page,
       rows,

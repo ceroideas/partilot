@@ -34,6 +34,7 @@
                                     <th>Email</th>
                                     <th>Fecha Envio</th>
                                     <th>Hora Envio</th>
+                                    <th>Presupuesto</th>
                                     <th>Status</th>
                                     <th>Archivos</th>
                                     <th class="text-end">Acciones</th>
@@ -46,6 +47,13 @@
                                         <td>{{ $inv->email }}</td>
                                         <td>{{ $inv->sent_at ? $inv->sent_at->format('d/m/Y') : '—' }}</td>
                                         <td>{{ $inv->sent_at ? $inv->sent_at->format('H.i') . 'h' : '—' }}</td>
+                                        <td>
+                                            @if(!is_null($inv->quoted_amount))
+                                                <span class="fw-semibold">{{ number_format((float) $inv->quoted_amount, 2, ',', '.') }}€</span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             @if($inv->status === \App\Models\DesignExternalInvitation::STATUS_COMPLETED && $inv->design_format_id)
                                                 <span class="badge bg-success rounded-pill">Completado</span>
@@ -76,7 +84,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">No hay invitaciones de diseño externo.</td>
+                                        <td colspan="8" class="text-center text-muted py-4">No hay invitaciones de diseño externo.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

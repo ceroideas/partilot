@@ -406,11 +406,14 @@ Route::group(['prefix' => 'design', 'middleware' => 'entity.permission:design'],
     // Diseño e impresión externo (tarea 9)
     Route::get('/external/step1', [\App\Http\Controllers\DesignController::class, 'externalStep1'])->name('design.external.step1');
     Route::get('/external/step2', [\App\Http\Controllers\DesignController::class, 'externalStep2'])->name('design.external.step2');
+    Route::get('/external/step3', [\App\Http\Controllers\DesignController::class, 'externalStep3'])->name('design.external.step3');
     Route::post('/external/store-step1', [\App\Http\Controllers\DesignController::class, 'externalStoreStep1'])->name('design.external.storeStep1');
     Route::post('/external/send-invitation', [\App\Http\Controllers\DesignController::class, 'externalSendInvitation'])->name('design.external.sendInvitation');
     Route::get('/external/list', [\App\Http\Controllers\DesignController::class, 'externalList'])->name('design.external.list');
     Route::get('/external/{invitation}/file/{file}/download', [\App\Http\Controllers\DesignController::class, 'externalDownloadFileAuth'])->name('design.external.downloadFileAuth');
     Route::delete('/external/{id}', [\App\Http\Controllers\DesignController::class, 'externalDestroy'])->name('design.external.destroy');
+    Route::get('/send-to-print/{id}', [\App\Http\Controllers\DesignController::class, 'sendToPrint'])->name('design.sendToPrint');
+    Route::post('/send-to-print/{id}', [\App\Http\Controllers\DesignController::class, 'submitPrintOrder'])->name('design.submitPrintOrder');
     // Route::post('design/format', [App\Http\Controllers\DesignController::class, 'storeFormat'])->name('design.storeFormat');
 
 });
@@ -449,6 +452,8 @@ Route::get('requests',function() {
 // Rutas de configuración/ajustes
 Route::group(['prefix' => 'configuration', 'middleware' => 'entity.permission:payments'], function() {
     Route::get('/', [App\Http\Controllers\ConfigurationController::class, 'index'])->name('configuration.index');
+    Route::post('/imprenta', [App\Http\Controllers\ConfigurationController::class, 'updateImprenta'])->name('configuration.imprenta.update');
+    Route::post('/print-orders/{printOrder}/status', [App\Http\Controllers\ConfigurationController::class, 'updatePrintOrderStatus'])->name('configuration.print-orders.status');
     Route::delete('ordenes-pago-entidades/collections/{participationCollection}', [App\Http\Controllers\ConfigurationController::class, 'destroyCollection'])->name('ordenes-pago-entidades.collections.destroy');
     Route::post('ordenes-pago-entidades/crear-sepa', [App\Http\Controllers\ConfigurationController::class, 'crearSepa'])->name('ordenes-pago-entidades.crear-sepa');
     Route::get('ordenes-pago-entidades/nueva-orden', [App\Http\Controllers\ConfigurationController::class, 'nuevaOrdenSepa'])->name('ordenes-pago-entidades.nueva-orden');

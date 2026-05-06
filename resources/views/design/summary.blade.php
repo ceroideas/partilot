@@ -23,6 +23,12 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-body text-center py-5">
+                    @if(session('success'))
+                        <div class="alert alert-success text-start">{{ session('success') }}</div>
+                    @endif
+                    @if(session('warning'))
+                        <div class="alert alert-warning text-start">{{ session('warning') }}</div>
+                    @endif
                     <p class="text-success mb-4 fs-5">
                         <i class="ri-checkbox-circle-line me-1"></i>
                         La configuración del diseño se ha guardado correctamente.
@@ -44,7 +50,33 @@
                             <i class="ri-file-pdf-line me-1"></i> Descargar PDF portada y trasera
                         </a>
                         @endif
+                        @if(!empty($printOrderLock['locked']))
+                            <button type="button" class="btn btn-outline-warning text-dark" disabled title="{{ $printOrderLock['message'] ?? '' }}">
+                                <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
+                            </button>
+                        @else
+                            <a href="{{ route('design.sendToPrint', $design->id) }}" class="btn btn-warning text-dark">
+                                <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
+                            </a>
+                        @endif
                     </div>
+
+                    @if(!empty($latestPrintOrder))
+                        <div class="alert alert-light border text-start mx-auto" style="max-width: 540px;">
+                            <div class="d-flex justify-content-between">
+                                <span>Última orden</span>
+                                <strong>{{ $latestPrintOrder->order_code }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Estado</span>
+                                <strong>{{ \App\Models\PrintOrder::statusLabel((string) $latestPrintOrder->status) }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Importe</span>
+                                <strong>{{ number_format((float) $latestPrintOrder->quoted_amount, 2, ',', '.') }}€</strong>
+                            </div>
+                        </div>
+                    @endif
 
                     <hr class="my-4">
 

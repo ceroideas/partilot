@@ -14,7 +14,7 @@
                         <li class="breadcrumb-item active">Indicaciones / Archivos</li>
                     </ol>
                 </div>
-                <h4 class="page-title">Diseño e impresión externo</h4>
+                <h4 class="page-title">{{ ($mode ?? 'external') === 'partilot' ? 'Diseño e impresión PARTILOT' : 'Diseño e impresión externo' }}</h4>
             </div>
         </div>
     </div>
@@ -29,66 +29,99 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <p class="text-muted mb-2">Selecciona una Entidad</p>
-                    <h5 class="mb-4">Indicaciones y archivos</h5>
-
-                    <div class="d-flex gap-2 mb-4">
-                        <span class="badge bg-dark rounded-pill px-3 py-2">1 Indicaciones / Archivos</span>
-                        <span class="badge bg-secondary rounded-pill px-3 py-2">2 Invitación</span>
+                    <div class="d-flex p-2 mb-3" style="align-items: center; justify-content: center;">
+                        <div class="form-wizard-element active" style="width: 220px;">
+                            <span style="top: -4px; margin-right: 8px;">1</span>
+                            <label>Indicaciones <br> / Archivos</label>
+                        </div>
+                        <div class="form-wizard-element" style="width: 220px;">
+                            <span style="top: -4px; margin-right: 8px;">2</span>
+                            <label>{{ ($mode ?? 'external') === 'partilot' ? 'Resumen <br> y pago' : 'Invitación' }}</label>
+                        </div>
                     </div>
 
-                    <form action="{{ route('design.external.storeStep1') }}" method="POST" enctype="multipart/form-data" id="external-step1-form">
-                        @csrf
+                    <div class="form-card bs">
+                        <h4 class="mb-0 mt-1">Configurar salida</h4>
+                        <small><i>Configura el formato de salida de las participaciones</i></small>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Comentarios</label>
-                            <p class="text-muted small">Aquí puedes introducir tus sugerencias y las cualidades que deseas que tenga tu diseño.</p>
-                            <textarea name="comment" class="form-control" rows="4" placeholder="Añade tu comentario">{{ old('comment', $invitation->comment ?? '') }}</textarea>
-                        </div>
+                        <form action="{{ route('design.external.storeStep1') }}" method="POST" enctype="multipart/form-data" id="external-step1-form" class="mt-4">
+                            @csrf
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Carga de archivos</label>
-                                <p class="text-muted small">PDF, Word, imágenes o ZIP (máx. 50 MB por archivo, hasta 20 archivos).</p>
-                                <div id="external-drop-zone" class="border border-2 border-dashed rounded p-4 text-center bg-light external-upload-zone" style="min-height: 220px; cursor: pointer;">
-                                    <i class="ri-cloud-upload-line ri-3x text-muted d-block mb-2"></i>
-                                    <input type="file" name="files[]" id="files" multiple class="d-none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.zip,application/pdf,application/zip,image/*">
-                                    <button type="button" class="btn btn-outline-primary rounded-pill mb-2" id="external-browse-btn">Buscar archivos</button>
-                                    <p class="text-muted small mb-0">Puedes <strong>buscar varias veces</strong> (carpetas distintas) y se irán sumando. También <strong>arrastrar y soltar</strong>.</p>
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Comentarios</label>
+                                <p class="text-muted small">Aquí puedes introducir tus sugerencias y las cualidades que deseas que tenga tu diseño.</p>
+                                <textarea name="comment" class="form-control" rows="4" placeholder="Añade tu comentario">{{ old('comment', $invitation->comment ?? '') }}</textarea>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Formato de impresión</label>
+                                    <select name="print_size" class="form-select">
+                                        @php($printSize = old('print_size', $invitation->print_size ?? 'custom'))
+                                        <option value="a3_6" {{ $printSize === 'a3_6' ? 'selected' : '' }}>A3 - 6 participaciones</option>
+                                        <option value="a3_8" {{ $printSize === 'a3_8' ? 'selected' : '' }}>A3 - 8 participaciones</option>
+                                        <option value="custom" {{ $printSize === 'custom' ? 'selected' : '' }}>Personalizado</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Participaciones por taco</label>
+                                    <input type="number" name="participations_per_book" min="1" max="1000" class="form-control" value="{{ old('participations_per_book', $invitation->participations_per_book ?? 50) }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Trasera</label>
+                                    @php($backMode = old('back_mode', $invitation->back_mode ?? 'bw'))
+                                    <select name="back_mode" class="form-select">
+                                        <option value="bw" {{ $backMode === 'bw' ? 'selected' : '' }}>Blanco y negro</option>
+                                        <option value="color" {{ $backMode === 'color' ? 'selected' : '' }}>Color</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Archivos que se enviarán <span class="text-muted fw-normal">(nuevos)</span></label>
-                                <div id="external-new-files-list" class="border rounded p-3 bg-light mb-3" style="min-height: 100px;">
-                                    <p class="text-muted small mb-0" id="external-new-files-empty">Ningún archivo nuevo seleccionado.</p>
-                                    <ul class="list-unstyled mb-0 small d-none" id="external-new-files-ul"></ul>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Carga de archivos</label>
+                                    <p class="text-muted small">PDF, Word, imágenes o ZIP (máx. 50 MB por archivo, hasta 20 archivos).</p>
+                                    <div id="external-drop-zone" class="border border-2 border-dashed rounded p-4 text-center bg-light external-upload-zone" style="min-height: 220px; cursor: pointer;">
+                                        <i class="ri-cloud-upload-line ri-3x text-muted d-block mb-2"></i>
+                                        <input type="file" name="files[]" id="files" multiple class="d-none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.zip,application/pdf,application/zip,image/*">
+                                        <button type="button" class="btn btn-outline-primary rounded-pill mb-2" id="external-browse-btn">Buscar archivos</button>
+                                        <p class="text-muted small mb-0">Puedes <strong>buscar varias veces</strong> (carpetas distintas) y se irán sumando. También <strong>arrastrar y soltar</strong>.</p>
+                                    </div>
                                 </div>
-                                <label class="form-label fw-semibold">Ya adjuntos a esta solicitud</label>
-                                <div class="border rounded p-3 bg-white" style="min-height: 100px;">
-                                    @if(isset($invitation) && $invitation->files->count())
-                                        <ul class="list-unstyled mb-0 small">
-                                            @foreach($invitation->files as $f)
-                                                <li class="py-1 border-bottom border-light">
-                                                    <i class="ri-attachment-2 text-muted"></i> {{ $f->original_name ?? basename($f->path) }}
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    @else
-                                        <p class="text-muted small mb-0">Aún no hay archivos. Sube archivos y pulsa <strong>Siguiente</strong> para guardarlos.</p>
-                                    @endif
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Archivos que se enviarán <span class="text-muted fw-normal">(nuevos)</span></label>
+                                    <div id="external-new-files-list" class="border rounded p-3 bg-light mb-3" style="min-height: 100px;">
+                                        <p class="text-muted small mb-0" id="external-new-files-empty">Ningún archivo nuevo seleccionado.</p>
+                                        <ul class="list-unstyled mb-0 small d-none" id="external-new-files-ul"></ul>
+                                    </div>
+                                    <label class="form-label fw-semibold">Ya adjuntos a esta solicitud</label>
+                                    <div class="border rounded p-3 bg-white" style="min-height: 100px;">
+                                        @if(isset($invitation) && $invitation->files->count())
+                                            <ul class="list-unstyled mb-0 small">
+                                                @foreach($invitation->files as $f)
+                                                    <li class="py-1 border-bottom border-light">
+                                                        <i class="ri-attachment-2 text-muted"></i> {{ $f->original_name ?? basename($f->path) }}
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <p class="text-muted small mb-0">Aún no hay archivos. Sube archivos y pulsa <strong>Siguiente</strong> para guardarlos.</p>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="mt-4 d-flex justify-content-between">
-                            <a href="{{ route('design.showChooseType') }}" class="btn btn-dark rounded-pill">
-                                <i class="ri-arrow-left-line me-1"></i> Atrás
-                            </a>
-                            <button type="submit" class="btn btn-warning rounded-pill px-4 text-dark">
-                                Siguiente <i class="ri-arrow-right-line ms-1"></i>
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
+
+                    <div class="mt-2 d-flex justify-content-between">
+                        <a href="{{ route('design.showChooseType') }}" class="btn btn-dark rounded-pill">
+                            <i class="ri-arrow-left-line me-1"></i> Atrás
+                        </a>
+                        <button type="submit" form="external-step1-form" class="btn btn-warning rounded-pill px-4 text-dark">
+                            Siguiente <i class="ri-arrow-right-line ms-1"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
