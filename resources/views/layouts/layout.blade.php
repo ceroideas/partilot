@@ -124,6 +124,21 @@
             .container-fluid .alert {
                 display: none;
             }
+            /* Formularios: mantener estilo pill en controles dentro de input-group */
+            .content-page .content .group-form .form-control,
+            .content-page .content .group-form .ts-wrapper.single .ts-control {
+                border-radius: 0 30px 30px 0 !important;
+            }
+            .content-page .content .group-form .input-group-text + .form-control,
+            .content-page .content .group-form .input-group-text + .ts-wrapper.single .ts-control {
+                border-top-left-radius: 0 !important;
+                border-bottom-left-radius: 0 !important;
+            }
+            .content-page .content .group-form .ts-wrapper.single.focus .ts-control,
+            .content-page .content .group-form .ts-wrapper.single .ts-control:focus-within {
+                outline: none !important;
+                box-shadow: none !important;
+            }
             .inline-fields {
 
                 width: 100%;

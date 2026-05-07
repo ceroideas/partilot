@@ -382,6 +382,22 @@
 
 @section('scripts')
 
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+    .group-form .ts-wrapper {
+        flex: 1 1 auto;
+    }
+    .group-form .ts-wrapper.single .ts-control {
+        height: calc(1.5em + 0.9rem + 2px) !important;
+        min-height: calc(1.5em + 0.9rem + 2px) !important;
+        border-radius: 0 30px 30px 0 !important;
+        border-left: 0 !important;
+    }
+    .group-form .ts-wrapper.single .ts-control input::placeholder {
+        color: #6c757d !important;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
 // Preview y eliminación de imagen de entidad
 document.getElementById('entity-imagen-input').addEventListener('change', function(e) {
@@ -423,10 +439,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const provinceSelect = document.getElementById('entity-edit-province-select');
     const citySelect = document.getElementById('entity-edit-city-select');
     const selectedCity = @json(old('city', $entity->city));
+    let provinceTs = null;
+    let cityTs = null;
 
     const fillCities = function(province) {
         if (!citySelect) return;
         const cities = (province && provinceCityMap[province]) ? provinceCityMap[province] : [];
+        if (cityTs) {
+            cityTs.clear(true);
+            cityTs.clearOptions();
+            cities.forEach(function(city) {
+                cityTs.addOption({ value: city, text: city });
+            });
+            cityTs.refreshOptions(false);
+            if (selectedCity && cities.includes(selectedCity)) {
+                cityTs.setValue(selectedCity, true);
+            } else {
+                cityTs.clear(true);
+            }
+            return;
+        }
         citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
         cities.forEach(function(city) {
             const opt = document.createElement('option');
@@ -441,9 +473,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (provinceSelect) {
         fillCities(provinceSelect.value);
-        provinceSelect.addEventListener('change', function() {
-            fillCities(this.value);
-        });
+        if (window.TomSelect) {
+            provinceTs = new TomSelect(provinceSelect, {
+                create: false,
+                allowEmptyOption: true,
+                placeholder: 'Seleccionar provincia',
+            });
+            cityTs = new TomSelect(citySelect, {
+                create: false,
+                allowEmptyOption: true,
+                placeholder: 'Seleccionar localidad',
+            });
+            provinceTs.on('change', function(value) {
+                fillCities(value || '');
+            });
+            if (!provinceSelect.value) {
+                provinceTs.clear(true);
+            }
+            if (!citySelect.value) {
+                cityTs.clear(true);
+            }
+        } else {
+            provinceSelect.addEventListener('change', function() {
+                fillCities(this.value);
+            });
+        }
     }
 
     // Validación documento entidad: NIF, NIE, TIE o CIF

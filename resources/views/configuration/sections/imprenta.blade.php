@@ -90,10 +90,13 @@
                                     <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                         <img src="{{ url('assets/form-groups/admin/5.svg') }}" alt="">
                                     </div>
-                                    <input class="form-control" type="text" name="province"
-                                        placeholder="Provincia"
-                                        value="{{ old('province', $printConfiguration->province ?? '') }}"
-                                        style="border-radius: 0 30px 30px 0;">
+                                    @php($selectedProvince = old('province', $printConfiguration->province ?? ''))
+                                    <select class="form-control" name="province" id="imprenta-province-select" style="border-radius: 0 30px 30px 0;">
+                                        <option value="">Selecciona provincia</option>
+                                        @foreach(($provinces ?? []) as $province)
+                                            <option value="{{ $province }}" @selected($selectedProvince === $province)>{{ $province }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -105,10 +108,10 @@
                                     <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                         <img src="{{ url('assets/form-groups/admin/6.svg') }}" alt="">
                                     </div>
-                                    <input class="form-control" type="text" name="city"
-                                        placeholder="Localidad"
-                                        value="{{ old('city', $printConfiguration->city ?? '') }}"
-                                        style="border-radius: 0 30px 30px 0;">
+                                    @php($selectedCity = old('city', $printConfiguration->city ?? ''))
+                                    <select class="form-control" name="city" id="imprenta-city-select" style="border-radius: 0 30px 30px 0;">
+                                        <option value="">Selecciona localidad</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -317,3 +320,88 @@
         </div>
     </form>
 </div>
+
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+    .group-form .ts-wrapper {
+        flex: 1 1 auto;
+    }
+    .group-form .ts-wrapper.single .ts-control {
+        height: calc(1.5em + 0.9rem + 2px) !important;
+        min-height: calc(1.5em + 0.9rem + 2px) !important;
+        border-radius: 0 30px 30px 0 !important;
+        border-left: 0 !important;
+    }
+    .group-form .ts-wrapper.single .ts-control input::placeholder {
+        color: #6c757d !important;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+    (function () {
+        const provinceSelect = document.getElementById('imprenta-province-select');
+        const citySelect = document.getElementById('imprenta-city-select');
+        if (!provinceSelect || !citySelect) {
+            return;
+        }
+
+        const provinceCityMap = @json($provinceCityMap ?? []);
+        const selectedCity = @json(old('city', $printConfiguration->city ?? ''));
+        let provinceTs = null;
+        let cityTs = null;
+
+        const fillCities = (province, cityToSelect = '') => {
+            const cities = provinceCityMap[province] || [];
+            if (cityTs) {
+                cityTs.clear(true);
+                cityTs.clearOptions();
+                cities.forEach((city) => cityTs.addOption({ value: city, text: city }));
+                cityTs.refreshOptions(false);
+                if (cityToSelect && cities.includes(cityToSelect)) {
+                    cityTs.setValue(cityToSelect, true);
+                } else {
+                    cityTs.clear(true);
+                }
+                return;
+            }
+
+            citySelect.innerHTML = '<option value="">Selecciona localidad</option>';
+            cities.forEach((city) => citySelect.add(new Option(city, city)));
+            citySelect.value = cityToSelect && cities.includes(cityToSelect) ? cityToSelect : '';
+        };
+
+        fillCities(provinceSelect.value, selectedCity);
+
+        if (window.TomSelect) {
+            provinceTs = new TomSelect(provinceSelect, {
+                create: false,
+                allowEmptyOption: true,
+                placeholder: 'Seleccionar provincia',
+                maxOptions: 60,
+                sortField: [{ field: 'text', direction: 'asc' }],
+            });
+
+            cityTs = new TomSelect(citySelect, {
+                create: false,
+                allowEmptyOption: true,
+                placeholder: 'Seleccionar localidad',
+                maxOptions: 200,
+                sortField: [{ field: 'text', direction: 'asc' }],
+            });
+
+            provinceTs.on('change', function (value) {
+                fillCities(value || '', '');
+            });
+            if (!provinceSelect.value) {
+                provinceTs.clear(true);
+            }
+            if (!citySelect.value) {
+                cityTs.clear(true);
+            }
+        } else {
+            provinceSelect.addEventListener('change', function () {
+                fillCities(this.value, '');
+            });
+        }
+    })();
+</script>

@@ -384,6 +384,22 @@
 
 @section('scripts')
 
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+	.group-form .ts-wrapper {
+		flex: 1 1 auto;
+	}
+	.group-form .ts-wrapper.single .ts-control {
+		height: calc(1.5em + 0.9rem + 2px) !important;
+		min-height: calc(1.5em + 0.9rem + 2px) !important;
+		border-radius: 0 30px 30px 0 !important;
+		border-left: 0 !important;
+	}
+	.group-form .ts-wrapper.single .ts-control input::placeholder {
+		color: #6c757d !important;
+	}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
 	// Si hay old() (error de validación), no sobrescribir con localStorage
 	window.hasOldInput = {{ (is_array(old()) && count(old()) > 0) ? 'true' : 'false' }};
@@ -554,10 +570,26 @@
     const provinceSelect = document.getElementById('province-select');
     const citySelect = document.getElementById('city-select');
     const oldCity = @json(old('city'));
+    let provinceTs = null;
+    let cityTs = null;
     function fillCitiesByProvince(province, preselect = '') {
         if (!citySelect) return;
-        citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
         const cities = provinceCityMap[province] || [];
+        if (cityTs) {
+            cityTs.clear(true);
+            cityTs.clearOptions();
+            cities.forEach((city) => cityTs.addOption({ value: city, text: city }));
+            cityTs.refreshOptions(false);
+            const targetValue = preselect || oldCity || '';
+            if (cities.includes(targetValue)) {
+                cityTs.setValue(targetValue, true);
+            } else {
+                cityTs.clear(true);
+            }
+            return;
+        }
+
+        citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
         cities.forEach((city) => {
             const option = document.createElement('option');
             option.value = city;
@@ -570,10 +602,33 @@
     }
     if (provinceSelect && citySelect) {
         fillCitiesByProvince(provinceSelect.value, citySelect.value || oldCity || '');
-        provinceSelect.addEventListener('change', function() {
-            fillCitiesByProvince(this.value, '');
-            saveFormData();
-        });
+        if (window.TomSelect) {
+            provinceTs = new TomSelect(provinceSelect, {
+                create: false,
+                allowEmptyOption: true,
+                placeholder: 'Seleccionar provincia',
+            });
+            cityTs = new TomSelect(citySelect, {
+                create: false,
+                allowEmptyOption: true,
+                placeholder: 'Seleccionar localidad',
+            });
+            provinceTs.on('change', function(value) {
+                fillCitiesByProvince(value || '', '');
+                saveFormData();
+            });
+            if (!provinceSelect.value) {
+                provinceTs.clear(true);
+            }
+            if (!citySelect.value) {
+                cityTs.clear(true);
+            }
+        } else {
+            provinceSelect.addEventListener('change', function() {
+                fillCitiesByProvince(this.value, '');
+                saveFormData();
+            });
+        }
     }
 
 	// Inicializar validación de documento español

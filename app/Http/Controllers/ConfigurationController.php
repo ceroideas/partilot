@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Entity;
 use App\Models\ParticipationCollection;
 use App\Models\SepaPaymentOrder;
@@ -43,6 +47,8 @@ class ConfigurationController extends Controller
         $printConfiguration = null;
         $printOrders = collect();
         $printOrderAuditsByOrderId = collect();
+        $provinces = [];
+        $provinceCityMap = [];
 
         if ($section === 'ordenes-pago-entidades') {
             if ($step === 1 || !$entityId) {
@@ -101,6 +107,7 @@ class ConfigurationController extends Controller
 
         if ($section === 'imprenta') {
             $printConfiguration = PrintConfiguration::first();
+            [$provinces, $provinceCityMap] = $this->getProvinceCityData();
         }
 
         if ($section === 'ordenes-imprenta') {
@@ -132,8 +139,111 @@ class ConfigurationController extends Controller
         }
 
         return view('configuration.index', compact(
-            'section', 'step', 'entityId', 'entities', 'entity', 'collections', 'sepaOrders', 'sepaOrder', 'provincias', 'localidades', 'printConfiguration', 'printOrders', 'printOrderAuditsByOrderId'
+            'section', 'step', 'entityId', 'entities', 'entity', 'collections', 'sepaOrders', 'sepaOrder', 'provincias', 'localidades', 'printConfiguration', 'printOrders', 'printOrderAuditsByOrderId', 'provinces', 'provinceCityMap'
         ));
+    }
+
+    private function getProvinceCityData(): array
+    {
+        try {
+            return Cache::rememberForever('es_official_province_city_catalog', function () {
+                $cachePath = 'catalogs/es_province_city_catalog.json';
+                if (Storage::disk('local')->exists($cachePath)) {
+                    $stored = json_decode((string) Storage::disk('local')->get($cachePath), true);
+                    if (
+                        is_array($stored)
+                        && isset($stored['provinces'], $stored['provinceCityMap'])
+                        && is_array($stored['provinces'])
+                        && is_array($stored['provinceCityMap'])
+                    ) {
+                        return [$stored['provinces'], $stored['provinceCityMap']];
+                    }
+                }
+
+                $provincesUrl = 'https://raw.githubusercontent.com/codeforspain/ds-organizacion-administrativa/master/data/provincias.json';
+                $citiesUrl = 'https://raw.githubusercontent.com/codeforspain/ds-organizacion-administrativa/master/data/municipios.json';
+
+                $provincesResponse = Http::timeout(20)->get($provincesUrl);
+                $citiesResponse = Http::timeout(25)->get($citiesUrl);
+                if (! $provincesResponse->ok() || ! $citiesResponse->ok()) {
+                    throw new \RuntimeException('No se pudo descargar catálogo de provincias/municipios.');
+                }
+
+                $provincesData = $provincesResponse->json();
+                $citiesData = $citiesResponse->json();
+                if (! is_array($provincesData) || ! is_array($citiesData)) {
+                    throw new \RuntimeException('Catálogo de provincias/municipios inválido.');
+                }
+
+                $provinceNamesById = [];
+                foreach ($provincesData as $province) {
+                    $provinceId = trim((string) ($province['provincia_id'] ?? ''));
+                    $name = trim((string) ($province['nombre'] ?? ''));
+                    if ($provinceId !== '' && $name !== '') {
+                        $provinceNamesById[$provinceId] = $name;
+                    }
+                }
+
+                $provinceCityMap = [];
+                foreach ($citiesData as $city) {
+                    $provinceId = trim((string) ($city['provincia_id'] ?? ''));
+                    $cityName = trim((string) ($city['nombre'] ?? ''));
+                    if ($provinceId === '' || $cityName === '' || ! isset($provinceNamesById[$provinceId])) {
+                        continue;
+                    }
+                    $provinceName = $provinceNamesById[$provinceId];
+                    $provinceCityMap[$provinceName] ??= [];
+                    $provinceCityMap[$provinceName][$cityName] = true;
+                }
+
+                ksort($provinceCityMap, SORT_NATURAL | SORT_FLAG_CASE);
+                foreach ($provinceCityMap as $province => $citiesSet) {
+                    $cities = array_keys($citiesSet);
+                    sort($cities, SORT_NATURAL | SORT_FLAG_CASE);
+                    $provinceCityMap[$province] = $cities;
+                }
+
+                $provinces = array_keys($provinceCityMap);
+                Storage::disk('local')->put($cachePath, json_encode([
+                    'provinces' => $provinces,
+                    'provinceCityMap' => $provinceCityMap,
+                ], JSON_UNESCAPED_UNICODE));
+
+                return [$provinces, $provinceCityMap];
+            });
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo cargar catálogo oficial provincias/localidades para imprenta, usando fallback local.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $rows = PrintConfiguration::query()
+                ->select('province', 'city')
+                ->whereNotNull('province')
+                ->where('province', '!=', '')
+                ->whereNotNull('city')
+                ->where('city', '!=', '')
+                ->get();
+
+            $provinceCityMap = [];
+            foreach ($rows as $row) {
+                $province = trim((string) $row->province);
+                $city = trim((string) $row->city);
+                if ($province === '' || $city === '') {
+                    continue;
+                }
+                $provinceCityMap[$province] ??= [];
+                $provinceCityMap[$province][$city] = true;
+            }
+
+            ksort($provinceCityMap, SORT_NATURAL | SORT_FLAG_CASE);
+            foreach ($provinceCityMap as $province => $citiesSet) {
+                $cities = array_keys($citiesSet);
+                sort($cities, SORT_NATURAL | SORT_FLAG_CASE);
+                $provinceCityMap[$province] = $cities;
+            }
+
+            return [array_keys($provinceCityMap), $provinceCityMap];
+        }
     }
 
     public function updateImprenta(Request $request)

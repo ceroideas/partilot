@@ -504,6 +504,22 @@
 
 @section('scripts')
 
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+	.group-form .ts-wrapper {
+		flex: 1 1 auto;
+	}
+	.group-form .ts-wrapper.single .ts-control {
+		height: calc(1.5em + 0.9rem + 2px) !important;
+		min-height: calc(1.5em + 0.9rem + 2px) !important;
+		border-radius: 0 30px 30px 0 !important;
+		border-left: 0 !important;
+	}
+	.group-form .ts-wrapper.single .ts-control input::placeholder {
+		color: #6c757d !important;
+	}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
 
 document.getElementById('imagenInput').addEventListener('change', function(event) {
@@ -576,8 +592,21 @@ const citySelect = document.getElementById('city-select');
 const selectedCity = @json(old('city', $administration->city));
 function fillCitiesByProvince(province, preselect = '') {
 	if (!citySelect) return;
-	citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
 	const cities = provinceCityMap[province] || [];
+	if (cityTs) {
+		cityTs.clear(true);
+		cityTs.clearOptions();
+		cities.forEach((city) => cityTs.addOption({ value: city, text: city }));
+		cityTs.refreshOptions(false);
+		const targetValue = preselect || selectedCity || '';
+		if (cities.includes(targetValue)) {
+			cityTs.setValue(targetValue, true);
+		} else {
+			cityTs.clear(true);
+		}
+		return;
+	}
+	citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
 	cities.forEach((city) => {
 		const option = document.createElement('option');
 		option.value = city;
@@ -588,11 +617,35 @@ function fillCitiesByProvince(province, preselect = '') {
 		citySelect.appendChild(option);
 	});
 }
+let provinceTs = null;
+let cityTs = null;
 if (provinceSelect && citySelect) {
 	fillCitiesByProvince(provinceSelect.value, selectedCity || '');
-	provinceSelect.addEventListener('change', function() {
-		fillCitiesByProvince(this.value, '');
-	});
+	if (window.TomSelect) {
+		provinceTs = new TomSelect(provinceSelect, {
+			create: false,
+			allowEmptyOption: true,
+			placeholder: 'Seleccionar provincia',
+		});
+		cityTs = new TomSelect(citySelect, {
+			create: false,
+			allowEmptyOption: true,
+			placeholder: 'Seleccionar localidad',
+		});
+		provinceTs.on('change', function(value) {
+			fillCitiesByProvince(value || '', '');
+		});
+		if (!provinceSelect.value) {
+			provinceTs.clear(true);
+		}
+		if (!citySelect.value) {
+			cityTs.clear(true);
+		}
+	} else {
+		provinceSelect.addEventListener('change', function() {
+			fillCitiesByProvince(this.value, '');
+		});
+	}
 }
 
 // Máscara para número de cuenta (formato: ES 12 1234 1234 12 123456789)
