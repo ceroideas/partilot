@@ -34,6 +34,86 @@
 
         <!-- Icons css -->
         <link href="{{url('assets')}}/css/icons.min.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pnotify/3.2.1/pnotify.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pnotify/3.2.1/pnotify.buttons.css" />
+        <style>
+            .ui-pnotify {
+                opacity: 1 !important;
+                z-index: 20000 !important;
+                top: 103px !important;
+            }
+            .ui-pnotify.partilot-notify .ui-pnotify-container,
+            .ui-pnotify .alert {
+                opacity: 1 !important;
+                background-image: none !important;
+                box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18) !important;
+                border: 1px solid rgba(0, 0, 0, 0.08) !important;
+                border-radius: 999px !important;
+                width: min(460px, calc(100vw - 48px)) !important;
+                min-width: 0 !important;
+                max-width: calc(100vw - 48px) !important;
+                padding: 14px 20px 14px 20px !important;
+                font-size: 15px !important;
+                font-weight: 600 !important;
+            }
+            .ui-pnotify.partilot-notify .ui-pnotify-closer,
+            .ui-pnotify .ui-pnotify-closer {
+                visibility: visible !important;
+                opacity: 1 !important;
+                right: -8px !important;
+                top: 11px !important;
+                transform: translateY(-50%) !important;
+                border-radius: 999px !important;
+                width: 24px !important;
+                height: 24px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                border: 1px solid rgba(15, 118, 110, 0.35) !important;
+                background: rgba(255, 255, 255, 0.65) !important;
+                position: relative !important;
+            }
+            .ui-pnotify.partilot-notify .ui-pnotify-closer > span,
+            .ui-pnotify .ui-pnotify-closer > span {
+                display: inline-block !important;
+                width: 100% !important;
+                height: 100% !important;
+                position: relative !important;
+                font-size: 0 !important;
+                color: transparent !important;
+            }
+            .ui-pnotify.partilot-notify .ui-pnotify-closer > span::before,
+            .ui-pnotify .ui-pnotify-closer > span::before {
+                content: "×";
+                font-size: 18px !important;
+                line-height: 1 !important;
+                font-weight: 700 !important;
+                color: #0f766e !important;
+                position: absolute !important;
+                inset: 0 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .ui-pnotify .alert-success {
+                background-color: #c7efe9 !important;
+                color: #0f766e !important;
+                border-color: #8fd7cd !important;
+            }
+            .ui-pnotify .alert-danger {
+                background-color: #f8d7da !important;
+                color: #842029 !important;
+                border-color: #f1aeb5 !important;
+            }
+            .ui-pnotify .alert-warning,
+            .ui-pnotify .alert-notice,
+            .ui-pnotify .ui-pnotify-notice {
+                background-color: #fff3cd !important;
+                color: #7a5a00 !important;
+                border-color: #ffe69c !important;
+            }
+        </style>
 
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
 
@@ -41,6 +121,9 @@
         <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/45.2.0/ckeditor5.css" crossorigin>
 
         <style>
+            .container-fluid .alert {
+                display: none;
+            }
             .inline-fields {
 
                 width: 100%;
@@ -1068,44 +1151,13 @@
 
                 <div class="content">
 
-                    <div class="container-fluid mt-2" style="margin-bottom: -1.5rem;">
-
-                        @if (session('success'))
-                            <div class="alert alert-success" role="alert">
-                                    {{ session('success') }}
-                            </div>
-                            @php
-                                session()->remove('success');
-                            @endphp
-                        @endif
-
-                        @if (session('warning'))
-                            <div class="alert alert-warning" role="alert">
-                                    {{ session('warning') }}
-                            </div>
-                            @php
-                                session()->remove('warning');
-                            @endphp
-                        @endif
-
-
-                        @if (session('error'))
-                            <div class="alert alert-danger" role="alert">
-                                    {{ session('error') }}
-                            </div>
-                        @endif
-
-                        @if ($errors->any())
-                            <div class="alert alert-danger">
-                                <ul class="mb-0">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-
-                    </div>
+                    @php
+                        // Consumir flashes para mostrarlos por PNotify (sin alerts HTML).
+                        $flashSuccess = session()->pull('success');
+                        $flashWarning = session()->pull('warning');
+                        $flashError = session()->pull('error');
+                        $flashValidationErrors = $errors->any() ? implode("\n", $errors->all()) : null;
+                    @endphp
 
                     @if(Auth::check() && Auth::user()->isEntityPanelReadOnly())
                         <div class="alert alert-info border-0 rounded-0 mb-0 text-center py-2" role="alert" style="font-size: 0.9rem;">
@@ -1612,6 +1664,8 @@
         
         <!-- Vendor js -->
         <script src="{{url('default')}}/assets/js/vendor.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pnotify/3.2.1/pnotify.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pnotify/3.2.1/pnotify.buttons.js"></script>
 
         <!-- App js -->
         <script src="{{url('default')}}/assets/js/app.min.js"></script>
@@ -1666,6 +1720,56 @@
         
         <!-- Email Validator -->
         <script src="{{url('js/email-validator.js')}}"></script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (typeof PNotify === 'undefined') return;
+
+                PNotify.prototype.options.styling = 'bootstrap3';
+                PNotify.prototype.options.delay = 5000;
+                PNotify.prototype.options.opacity = 1;
+                PNotify.prototype.options.animate = false;
+                PNotify.prototype.options.stack = {
+                    dir1: 'down',
+                    dir2: 'left',
+                    firstpos1: 90,
+                    firstpos2: 12
+                };
+
+                const notices = [
+                    { type: 'success', text: @json($flashSuccess) },
+                    { type: 'notice', text: @json($flashWarning) },
+                    { type: 'error', text: @json($flashError) },
+                    { type: 'error', text: @json($flashValidationErrors) }
+                ];
+
+                notices.forEach(function (item) {
+                    if (!item.text) return;
+                    new PNotify({
+                        type: item.type,
+                        addclass: 'partilot-notify',
+                        width: '460px',
+                        text: item.text,
+                        hide: true,
+                        buttons: {
+                            closer: true,
+                            sticker: false,
+                            closer_hover: false
+                        }
+                    });
+                });
+
+                // Fallback: algunos temas no enlazan bien el closer de PNotify con Bootstrap.
+                document.addEventListener('click', function (e) {
+                    const closer = e.target.closest('.ui-pnotify .ui-pnotify-closer');
+                    if (!closer) return;
+                    const notice = closer.closest('.ui-pnotify');
+                    if (notice) {
+                        notice.remove();
+                    }
+                });
+            });
+        </script>
 
         @yield('scripts')
 
