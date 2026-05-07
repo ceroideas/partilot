@@ -217,7 +217,12 @@
 					                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="province" placeholder="Provincia" value="{{ old('province', session('entity_information.province')) }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <select class="form-control" name="province" id="entity-province-select" required style="border-radius: 0 30px 30px 0;">
+                                                            <option value="">Seleccionar provincia</option>
+                                                            @foreach(($provinces ?? []) as $province)
+                                                                <option value="{{ $province }}" {{ old('province', session('entity_information.province')) === $province ? 'selected' : '' }}>{{ $province }}</option>
+                                                            @endforeach
+                                                        </select>
 					                                    @error('province')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -235,7 +240,9 @@
 					                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" type="text" name="city" placeholder="Localidad" value="{{ old('city', session('entity_information.city')) }}" required style="border-radius: 0 30px 30px 0;">
+					                                    <select class="form-control" name="city" id="entity-city-select" required style="border-radius: 0 30px 30px 0;">
+                                                            <option value="">Seleccionar localidad</option>
+                                                        </select>
 					                                    @error('city')
 					                                        <div class="text-danger small mt-1">{{ $message }}</div>
 					                                    @enderror
@@ -444,6 +451,33 @@
 	});
 
 	document.addEventListener('DOMContentLoaded', function() {
+        const provinceCityMap = @json($provinceCityMap ?? []);
+        const provinceSelect = document.getElementById('entity-province-select');
+        const citySelect = document.getElementById('entity-city-select');
+        const selectedCity = @json(old('city', session('entity_information.city')));
+
+        const fillCities = function(province) {
+            if (!citySelect) return;
+            const cities = (province && provinceCityMap[province]) ? provinceCityMap[province] : [];
+            citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
+            cities.forEach(function(city) {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.textContent = city;
+                citySelect.appendChild(opt);
+            });
+            if (selectedCity && cities.includes(selectedCity)) {
+                citySelect.value = selectedCity;
+            }
+        };
+
+        if (provinceSelect) {
+            fillCities(provinceSelect.value);
+            provinceSelect.addEventListener('change', function() {
+                fillCities(this.value);
+            });
+        }
+
 	    // Al cargar sin imagen en sesión, no mostrar imagen previa de otros flujos
 	    localStorage.removeItem('image_entity_create');
 

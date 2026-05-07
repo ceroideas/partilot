@@ -205,7 +205,12 @@
 					                                        <img src="{{url('assets/form-groups/admin/5.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" name="province" value="{{ old('province', $entity->province) }}" type="text" placeholder="Provincia" style="border-radius: 0 30px 30px 0;">
+					                                    <select class="form-control" name="province" id="entity-edit-province-select" style="border-radius: 0 30px 30px 0;">
+                                                            <option value="">Seleccionar provincia</option>
+                                                            @foreach(($provinces ?? []) as $province)
+                                                                <option value="{{ $province }}" {{ old('province', $entity->province) === $province ? 'selected' : '' }}>{{ $province }}</option>
+                                                            @endforeach
+                                                        </select>
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -220,7 +225,9 @@
 					                                        <img src="{{url('assets/form-groups/admin/6.svg')}}" alt="">
 					                                    </div>
 
-					                                    <input class="form-control" name="city" value="{{ old('city', $entity->city) }}" type="text" placeholder="Localidad" style="border-radius: 0 30px 30px 0;">
+					                                    <select class="form-control" name="city" id="entity-edit-city-select" style="border-radius: 0 30px 30px 0;">
+                                                            <option value="">Seleccionar localidad</option>
+                                                        </select>
 					                                </div>
 				                    			</div>
 	                    					</div>
@@ -412,6 +419,33 @@ document.getElementById('entity-btn-eliminar-imagen').addEventListener('click', 
 
 // Actualizar el badge de estado cuando se cambie el select
 document.addEventListener('DOMContentLoaded', function() {
+    const provinceCityMap = @json($provinceCityMap ?? []);
+    const provinceSelect = document.getElementById('entity-edit-province-select');
+    const citySelect = document.getElementById('entity-edit-city-select');
+    const selectedCity = @json(old('city', $entity->city));
+
+    const fillCities = function(province) {
+        if (!citySelect) return;
+        const cities = (province && provinceCityMap[province]) ? provinceCityMap[province] : [];
+        citySelect.innerHTML = '<option value="">Seleccionar localidad</option>';
+        cities.forEach(function(city) {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            citySelect.appendChild(opt);
+        });
+        if (selectedCity && cities.includes(selectedCity)) {
+            citySelect.value = selectedCity;
+        }
+    };
+
+    if (provinceSelect) {
+        fillCities(provinceSelect.value);
+        provinceSelect.addEventListener('change', function() {
+            fillCities(this.value);
+        });
+    }
+
     // Validación documento entidad: NIF, NIE, TIE o CIF
     initSpanishDocumentValidation('entity-edit-nif-cif', { forEntity: true, showMessage: true });
     // Inicializar validación de email

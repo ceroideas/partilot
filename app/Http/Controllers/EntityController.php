@@ -13,8 +13,12 @@ use App\Mail\EntityManagerPreregisterInviteMail;
 use App\Mail\EntityResponsibleManagerConfirmedMail;
 use App\Services\CommunicationEmailService;
 use App\Support\ContactEmailRegistry;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class EntityController extends Controller
@@ -93,7 +97,9 @@ class EntityController extends Controller
         // Actualizar la sesión con la administración recargada
         session(['selected_administration' => $administration]);
 
-        return view('entities.add_information');
+        [$provinces, $provinceCityMap] = $this->getProvinceCityData();
+
+        return view('entities.add_information', compact('provinces', 'provinceCityMap'));
     }
 
     /**
@@ -831,8 +837,118 @@ class EntityController extends Controller
         $entity = Entity::forUser(auth()->user())->findOrFail($id);
         $administrations = Administration::forUser(auth()->user())->get();
         $users = User::whereNull('panel_account_type')->orderBy('name')->get();
+        [$provinces, $provinceCityMap] = $this->getProvinceCityData();
 
-        return view('entities.edit', compact('entity', 'administrations', 'users'));
+        return view('entities.edit', compact('entity', 'administrations', 'users', 'provinces', 'provinceCityMap'));
+    }
+
+    private function getProvinceCityData(): array
+    {
+        try {
+            return Cache::rememberForever('es_official_province_city_catalog', function () {
+                $cachePath = 'catalogs/es_province_city_catalog.json';
+                if (Storage::disk('local')->exists($cachePath)) {
+                    $stored = json_decode((string) Storage::disk('local')->get($cachePath), true);
+                    if (is_array($stored)
+                        && isset($stored['provinces'], $stored['provinceCityMap'])
+                        && is_array($stored['provinces'])
+                        && is_array($stored['provinceCityMap'])) {
+                        return [$stored['provinces'], $stored['provinceCityMap']];
+                    }
+                }
+
+                $provincesUrl = 'https://raw.githubusercontent.com/codeforspain/ds-organizacion-administrativa/master/data/provincias.json';
+                $citiesUrl = 'https://raw.githubusercontent.com/codeforspain/ds-organizacion-administrativa/master/data/municipios.json';
+
+                $provincesResponse = Http::timeout(20)->get($provincesUrl);
+                $citiesResponse = Http::timeout(25)->get($citiesUrl);
+                if (! $provincesResponse->ok() || ! $citiesResponse->ok()) {
+                    throw new \RuntimeException('No se pudo descargar catálogo de provincias/municipios.');
+                }
+
+                $provincesData = $provincesResponse->json();
+                $citiesData = $citiesResponse->json();
+                if (! is_array($provincesData) || ! is_array($citiesData)) {
+                    throw new \RuntimeException('Catálogo de provincias/municipios inválido.');
+                }
+
+                $provinceNamesById = [];
+                foreach ($provincesData as $p) {
+                    $pid = trim((string) ($p['provincia_id'] ?? ''));
+                    $name = trim((string) ($p['nombre'] ?? ''));
+                    if ($pid !== '' && $name !== '') {
+                        $provinceNamesById[$pid] = $name;
+                    }
+                }
+
+                $provinceCityMap = [];
+                foreach ($citiesData as $city) {
+                    $provinceId = trim((string) ($city['provincia_id'] ?? ''));
+                    $cityName = trim((string) ($city['nombre'] ?? ''));
+                    if ($provinceId === '' || $cityName === '' || ! isset($provinceNamesById[$provinceId])) {
+                        continue;
+                    }
+                    $provinceName = $provinceNamesById[$provinceId];
+                    $provinceCityMap[$provinceName] ??= [];
+                    $provinceCityMap[$provinceName][$cityName] = true;
+                }
+
+                ksort($provinceCityMap, SORT_NATURAL | SORT_FLAG_CASE);
+                foreach ($provinceCityMap as $province => $citiesSet) {
+                    $cities = array_keys($citiesSet);
+                    sort($cities, SORT_NATURAL | SORT_FLAG_CASE);
+                    $provinceCityMap[$province] = $cities;
+                }
+
+                $provinces = array_keys($provinceCityMap);
+                Storage::disk('local')->put($cachePath, json_encode([
+                    'provinces' => $provinces,
+                    'provinceCityMap' => $provinceCityMap,
+                ], JSON_UNESCAPED_UNICODE));
+
+                return [$provinces, $provinceCityMap];
+            });
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo cargar catálogo oficial provincias/localidades para entidades, usando fallback local.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $entityData = Entity::query()
+                ->select('province', 'city')
+                ->whereNotNull('province')
+                ->where('province', '!=', '')
+                ->whereNotNull('city')
+                ->where('city', '!=', '')
+                ->get();
+            $adminData = Administration::query()
+                ->select('province', 'city')
+                ->whereNotNull('province')
+                ->where('province', '!=', '')
+                ->whereNotNull('city')
+                ->where('city', '!=', '')
+                ->get();
+            $rows = $entityData->concat($adminData);
+
+            $provinceCityMap = [];
+            foreach ($rows as $row) {
+                $province = trim((string) $row->province);
+                $city = trim((string) $row->city);
+                if ($province === '' || $city === '') {
+                    continue;
+                }
+                $provinceCityMap[$province] ??= [];
+                $provinceCityMap[$province][$city] = true;
+            }
+
+            ksort($provinceCityMap);
+            foreach ($provinceCityMap as $province => $citiesSet) {
+                $cities = array_keys($citiesSet);
+                sort($cities, SORT_NATURAL | SORT_FLAG_CASE);
+                $provinceCityMap[$province] = $cities;
+            }
+
+            return [array_keys($provinceCityMap), $provinceCityMap];
+        }
     }
 
     /**
