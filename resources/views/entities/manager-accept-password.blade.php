@@ -13,6 +13,8 @@
             padding: 5px 0;
             border-radius: 30px;
             background: #fff;
+            display: flex;
+            align-items: center;
         }
         .group-login input {
             border: none !important;
@@ -22,6 +24,15 @@
         .group-login input[readonly] {
             color: #6c757d;
             cursor: not-allowed;
+        }
+        .toggle-password-btn {
+            border: none;
+            background: transparent;
+            color: #6c757d;
+            padding: 0 14px 0 8px;
+            line-height: 1;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -92,25 +103,42 @@
                 </div>
                 @if($manager->requires_password_setup)
                 <div class="mb-3">
-                    <label class="form-label">Nueva contraseña</label>
+                    <label class="form-label">Contraseña</label>
                     <div class="group-login">
-                        <input type="password" name="password" class="form-control" required autocomplete="new-password" minlength="8">
+                        <input type="password" name="password" id="password" class="form-control" required autocomplete="new-password" minlength="8">
+                        <button type="button" class="toggle-password-btn" data-target="password" aria-label="Mostrar u ocultar contraseña">👁</button>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Confirmar contraseña</label>
                     <div class="group-login">
-                        <input type="password" name="password_confirmation" class="form-control" required autocomplete="new-password" minlength="8">
+                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required autocomplete="new-password" minlength="8">
+                        <button type="button" class="toggle-password-btn" data-target="password_confirmation" aria-label="Mostrar u ocultar contraseña">👁</button>
                     </div>
                 </div>
                 @endif
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="terms_accepted" name="terms_accepted" value="1" {{ old('terms_accepted') ? 'checked' : '' }} required>
+                    <label class="form-check-label" for="terms_accepted">
+                        He leído y acepto las <a href="#" target="_blank" rel="noopener noreferrer">condiciones de uso</a>.
+                    </label>
+                </div>
                 <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-success" style="border-radius: 30px; padding: 13px 0;">{{ $manager->requires_password_setup ? 'Aceptar y guardar contraseña' : 'Aceptar' }}</button>
+                    <button type="submit" class="btn btn-success" style="border-radius: 30px; padding: 13px 0;">{{ $manager->requires_password_setup ? 'Aceptar y guardar' : 'Aceptar' }}</button>
                 </div>
             </form>
         </div>
     </div>
     <p class="text-center text-muted small mt-3"><a href="{{ route('login') }}">Ir al inicio de sesión</a></p>
 </div>
+<script>
+    document.querySelectorAll('.toggle-password-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const input = document.getElementById(this.dataset.target);
+            if (!input) return;
+            input.type = input.type === 'password' ? 'text' : 'password';
+        });
+    });
+</script>
 </body>
 </html>

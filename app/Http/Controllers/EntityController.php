@@ -1422,6 +1422,9 @@ class EntityController extends Controller
             'last_name2' => 'nullable|string|max:255',
             'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
             'phone' => 'nullable|string|max:20',
+            'terms_accepted' => 'accepted',
+        ], [
+            'terms_accepted.accepted' => 'Debe aceptar las condiciones de uso para continuar.',
         ]);
 
         if ($manager->requires_password_setup) {
