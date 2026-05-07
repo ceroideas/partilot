@@ -261,7 +261,7 @@
 				                    			</div>
 	                    					</div>
 
-                    					<div class="col-3">
+                    					<div class="col-5">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Dirección</label>
 
@@ -276,7 +276,7 @@
 				                    			</div>
 	                    					</div>
 
-                    					<div class="col-5">
+                    						<div class="col-4">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Email</label>
 
@@ -291,7 +291,7 @@
 				                    			</div>
 	                    					</div>
 
-	                    					<div class="col-4">
+	                    					<div class="col-3">
 	                    						<div class="form-group mt-2 mb-3">
 	                    							<label class="label-control">Teléfono</label>
 
