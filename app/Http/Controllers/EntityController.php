@@ -1258,11 +1258,12 @@ class EntityController extends Controller
         }
 
         \DB::transaction(function () use ($entity, $newPrimary) {
-            // Si hay un gestor principal actual, quitarlo primero
-            Manager::where('entity_id', $entity->id)->update(['is_primary' => false]);
-            // Asignar el nuevo gestor como principal
+            // No cambiar aún el principal actual: se marca como pendiente hasta aceptación por email.
             $newPrimary->update([
-                'is_primary' => true,
+                'pending_primary' => true,
+                'confirmation_token' => Str::random(64),
+                'confirmation_sent_at' => now(),
+                'status' => $newPrimary->status ?? 1,
                 'permission_sellers' => true,
                 'permission_design' => true,
                 'permission_statistics' => true,
@@ -1270,10 +1271,26 @@ class EntityController extends Controller
             ]);
         });
 
-        $this->notifyEntityResponsibleManagerConfirmed($entity, $newPrimary);
+        try {
+            $newPrimary->loadMissing('user');
+            if ($newPrimary->user && !empty($newPrimary->user->email)) {
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: (string) $newPrimary->user->email,
+                    recipientRole: 'gestor_entidad',
+                    recipientUser: $newPrimary->user,
+                    messageType: 'entity_manager_invitation',
+                    templateKey: null,
+                    mailClass: EntityManagerInvitationMail::class,
+                    mailPayload: ['entity_id' => $entity->id, 'user_id' => $newPrimary->user->id, 'manager_id' => $newPrimary->id],
+                    context: ['entity_id' => $entity->id],
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando invitación para cambio de gestor principal: '.$e->getMessage());
+        }
 
         return redirect()->route('entities.show', $entity->id)
-            ->with('success', 'Gestor principal actualizado correctamente. El gestor anterior ahora es gestor secundario.');
+            ->with('success', 'Solicitud enviada al nuevo gestor principal. El cambio se aplicará cuando acepte por email.');
     }
 
     /**
@@ -1329,8 +1346,11 @@ class EntityController extends Controller
     public function confirmManagerAccept(string $token)
     {
         $manager = Manager::where('confirmation_token', $token)
-            ->whereNull('status')
             ->whereNotNull('entity_id')
+            ->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhere('pending_primary', true);
+            })
             ->with(['entity', 'user'])
             ->first();
 
@@ -1341,13 +1361,24 @@ class EntityController extends Controller
         }
 
         if (! $manager->requires_password_setup) {
-            $manager->update([
-                'status' => 1,
-                'confirmation_token' => null,
-                'confirmation_sent_at' => null,
-            ]);
+            DB::transaction(function () use ($manager) {
+                if ($manager->pending_primary) {
+                    Manager::where('entity_id', $manager->entity_id)->update([
+                        'is_primary' => false,
+                        'pending_primary' => false,
+                    ]);
+                    $manager->is_primary = true;
+                }
+
+                $manager->status = 1;
+                $manager->confirmation_token = null;
+                $manager->confirmation_sent_at = null;
+                $manager->pending_primary = false;
+                $manager->save();
+            });
 
             if ($manager->is_primary && $manager->entity) {
+                $manager->entity->update(['status' => 1]);
                 $this->notifyEntityResponsibleManagerConfirmed($manager->entity, $manager);
             }
 
@@ -1371,8 +1402,11 @@ class EntityController extends Controller
     public function confirmManagerAcceptStore(Request $request, string $token)
     {
         $manager = Manager::where('confirmation_token', $token)
-            ->whereNull('status')
             ->whereNotNull('entity_id')
+            ->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhere('pending_primary', true);
+            })
             ->with(['entity', 'user'])
             ->first();
 
@@ -1381,6 +1415,14 @@ class EntityController extends Controller
                 'message' => 'El enlace de confirmación no es válido o ya ha sido utilizado.',
             ]);
         }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'last_name2' => 'nullable|string|max:255',
+            'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
+            'phone' => 'nullable|string|max:20',
+        ]);
 
         if ($manager->requires_password_setup) {
             $request->validate([
@@ -1393,10 +1435,26 @@ class EntityController extends Controller
         }
 
         DB::transaction(function () use ($manager, $request) {
+            $manager->user->update([
+                'name' => $request->input('name'),
+                'last_name' => $request->input('last_name'),
+                'last_name2' => $request->input('last_name2'),
+                'birthday' => $request->input('birthday') ?: null,
+                'phone' => $request->input('phone') ?: null,
+            ]);
+
             if ($manager->requires_password_setup) {
                 $manager->user->update([
                     'password' => $request->input('password'),
                 ]);
+            }
+
+            if ($manager->pending_primary) {
+                Manager::where('entity_id', $manager->entity_id)->update([
+                    'is_primary' => false,
+                    'pending_primary' => false,
+                ]);
+                $manager->is_primary = true;
             }
 
             $manager->update([
@@ -1404,12 +1462,14 @@ class EntityController extends Controller
                 'confirmation_token' => null,
                 'confirmation_sent_at' => null,
                 'requires_password_setup' => false,
+                'pending_primary' => false,
             ]);
         });
 
         $manager->refresh();
 
         if ($manager->is_primary && $manager->entity) {
+            $manager->entity->update(['status' => 1]);
             $this->notifyEntityResponsibleManagerConfirmed($manager->entity, $manager);
         }
 
@@ -1426,8 +1486,11 @@ class EntityController extends Controller
     public function confirmManagerReject(string $token)
     {
         $manager = Manager::where('confirmation_token', $token)
-            ->whereNull('status')
             ->whereNotNull('entity_id')
+            ->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhere('pending_primary', true);
+            })
             ->with(['entity', 'user'])
             ->first();
 
@@ -1437,7 +1500,15 @@ class EntityController extends Controller
             ]);
         }
 
-        $manager->delete();
+        if ($manager->pending_primary) {
+            $manager->update([
+                'pending_primary' => false,
+                'confirmation_token' => null,
+                'confirmation_sent_at' => null,
+            ]);
+        } else {
+            $manager->delete();
+        }
 
         return view('entities.manager-confirmation-success', [
             'message' => 'Solicitud rechazada. No tendrás acceso como gestor a esta entidad.',

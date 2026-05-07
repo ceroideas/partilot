@@ -29,13 +29,14 @@
 
             .group-login {
                 border: 2px solid silver;
-                padding: 5px 0;
+                /* padding: 5px 0; */
                 border-radius: 30px;
                 background: #fff;
             }
             
             .group-login div, .group-login input {
                 border: none;
+                padding: .7rem .9rem;
             }
 
         </style>

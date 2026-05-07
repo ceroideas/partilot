@@ -11,10 +11,14 @@
 <p>Has sido invitado como gestor de la entidad <strong>{{ $entity->name }}</strong> en Partilot.</p>
 @endif
 <div class="info-box">
-    <p>Para activar tu acceso al panel, abre el enlace <strong>Aceptar</strong>, confirma la solicitud y <strong>define tu contraseña</strong> de acceso al panel como gestor.</p>
+    @if($manager->requires_password_setup)
+        <p>Para activar tu acceso al panel, abre el enlace <strong>Aceptar</strong>, confirma la solicitud y <strong>define tu contraseña</strong> de acceso al panel como gestor.</p>
+    @else
+        <p>Para activar tu acceso al panel, abre el enlace <strong>Aceptar</strong> y confirma la solicitud.</p>
+    @endif
 </div>
 <p style="text-align:center; margin: 24px 0;">
-    <a href="{{ $acceptUrl }}" style="display:inline-block;padding:10px 18px;background:#198754;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;margin-right:8px;">Aceptar y definir contraseña</a>
+    <a href="{{ $acceptUrl }}" style="display:inline-block;padding:10px 18px;background:#198754;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;margin-right:8px;">{{ $manager->requires_password_setup ? 'Aceptar y definir contraseña' : 'Aceptar' }}</a>
     <a href="{{ $rejectUrl }}" style="display:inline-block;padding:10px 18px;background:#dc3545;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Rechazar solicitud</a>
 </p>
 <p style="font-size: 13px; color:#666;">Si no reconoces esta invitación, puedes rechazarla o ignorar este correo.</p>

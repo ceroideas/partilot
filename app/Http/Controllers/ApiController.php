@@ -19,6 +19,14 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::table('managers', function (Blueprint $table) {
+            if (! Schema::hasColumn('managers', 'pending_primary')) {
+                $table->boolean('pending_primary')->default(false)->after('is_primary');
+            }
+        });
+
+        return "ok";
+        
         DB::statement('ALTER TABLE print_orders MODIFY design_format_id BIGINT UNSIGNED NULL');
         
         Schema::table('print_orders', function (Blueprint $table) {

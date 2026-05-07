@@ -14,6 +14,7 @@ class Manager extends Model
         "entity_id",
         "administration_id",
         "is_primary",
+        "pending_primary",
         "permission_sellers",
         "permission_design",
         "permission_statistics",
@@ -26,6 +27,7 @@ class Manager extends Model
 
     protected $casts = [
         'is_primary' => 'boolean',
+        'pending_primary' => 'boolean',
         'permission_sellers' => 'boolean',
         'permission_design' => 'boolean',
         'permission_statistics' => 'boolean',

@@ -614,6 +614,8 @@
 							                                <td>
 							                                	@if($manager->is_primary)
 							                                		Administrador
+							                                	@elseif($manager->pending_primary)
+							                                		Gestor <span class="badge bg-warning ms-1">Principal pendiente</span>
 							                                	@else
 							                                		Gestor
 							                                	@endif
@@ -662,7 +664,7 @@
 							                                		}
 							                                	@endphp
 							                                	<label class="badge {{ $statusClass }}">{{ $statusText }}</label>
-							                                	@if(!$manager->is_primary && !empty($canManageManagers))
+							                                	@if(!$manager->is_primary && !$manager->pending_primary && !empty($canManageManagers))
 							                                		<button class="btn btn-sm {{ $newStatusBtnClass }} toggle-manager-status ms-2" 
 							                                		        data-manager-id="{{ $manager->id }}" 
 							                                		        data-new-status="{{ $newStatus }}"
@@ -672,7 +674,9 @@
 							                                	@endif
 							                                </td>
 							                                <td>
-							                                	@if(!$manager->is_primary && !empty($canManageManagers))
+							                                	@if($manager->pending_primary)
+							                                		<span class="text-warning fw-semibold">Pendiente de aceptación</span>
+							                                	@elseif(!$manager->is_primary && !empty($canManageManagers))
 							                                		@php
 							                                			$hasPrimary = $entity->managers->where('is_primary', true)->count() > 0;
 							                                			$confirmMessage = $hasPrimary 

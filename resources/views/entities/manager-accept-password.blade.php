@@ -7,6 +7,23 @@
     <link rel="shortcut icon" href="{{ url('/') }}/logo.svg">
     <link href="{{ url('default') }}/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
     <link href="{{ url('default') }}/assets/css/app.min.css" rel="stylesheet" type="text/css" />
+    <style>
+        .group-login {
+            border: 2px solid silver;
+            padding: 5px 0;
+            border-radius: 30px;
+            background: #fff;
+        }
+        .group-login input {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+        }
+        .group-login input[readonly] {
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body class="auth-fluid-pages pb-0">
 <div class="container py-5" style="max-width: 520px;">
@@ -26,19 +43,69 @@
                     </ul>
                 </div>
             @endif
-            <p class="small text-muted">Defina la contraseña con la que accederá al <strong>panel de gestión</strong> de la entidad.</p>
+            <p class="small text-muted">Revise sus datos. Puede modificarlos, excepto <strong>DNI/NIF</strong> y <strong>email</strong>.</p>
             <form method="post" action="{{ route('entity-managers.confirm-accept.store', ['token' => $token]) }}">
                 @csrf
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nombre</label>
+                        <div class="group-login">
+                            <input type="text" name="name" class="form-control" required value="{{ old('name', $manager->user->name) }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Primer apellido</label>
+                        <div class="group-login">
+                            <input type="text" name="last_name" class="form-control" required value="{{ old('last_name', $manager->user->last_name) }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Segundo apellido</label>
+                        <div class="group-login">
+                            <input type="text" name="last_name2" class="form-control" value="{{ old('last_name2', $manager->user->last_name2) }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Fecha de nacimiento</label>
+                        <div class="group-login">
+                            <input type="date" name="birthday" class="form-control" value="{{ old('birthday', optional($manager->user->birthday)->format('Y-m-d')) }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">DNI / NIF</label>
+                        <div class="group-login">
+                            <input type="text" class="form-control" value="{{ $manager->user->nif_cif }}" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <div class="group-login">
+                            <input type="email" class="form-control" value="{{ $manager->user->email }}" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <div class="group-login">
+                            <input type="text" name="phone" class="form-control" value="{{ old('phone', $manager->user->phone) }}">
+                        </div>
+                    </div>
+                </div>
+                @if($manager->requires_password_setup)
                 <div class="mb-3">
                     <label class="form-label">Nueva contraseña</label>
-                    <input type="password" name="password" class="form-control" required autocomplete="new-password" minlength="8">
+                    <div class="group-login">
+                        <input type="password" name="password" class="form-control" required autocomplete="new-password" minlength="8">
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Confirmar contraseña</label>
-                    <input type="password" name="password_confirmation" class="form-control" required autocomplete="new-password" minlength="8">
+                    <div class="group-login">
+                        <input type="password" name="password_confirmation" class="form-control" required autocomplete="new-password" minlength="8">
+                    </div>
                 </div>
+                @endif
                 <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-success" style="border-radius: 30px;">Aceptar y guardar contraseña</button>
+                    <button type="submit" class="btn btn-success" style="border-radius: 30px; padding: 13px 0;">{{ $manager->requires_password_setup ? 'Aceptar y guardar contraseña' : 'Aceptar' }}</button>
                 </div>
             </form>
         </div>
