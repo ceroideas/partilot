@@ -2493,6 +2493,17 @@ $(document).ready(function() {
             method: 'POST',
             data: payload,
             success: function(response) {
+                if (response.queued && response.success) {
+                    try {
+                        sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                            title: 'Tramitación en segundo plano',
+                            text: 'La operación está en cola. Puedes seguir navegando; al terminar verás un aviso y el listado se actualizará.',
+                            type: 'notice'
+                        }));
+                    } catch (e) {}
+                    window.location.href = "{{ route('devolutions.index') }}";
+                    return;
+                }
                 if (response.success) {
                     mostrarMensaje('Liquidación procesada correctamente', 'success');
                     setTimeout(() => {
@@ -2833,6 +2844,17 @@ $(document).ready(function() {
             method: 'POST',
             data: liquidacionData,
             success: function(response) {
+                if (response.queued && response.success) {
+                    try {
+                        sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                            title: 'Tramitación en segundo plano',
+                            text: 'La operación está en cola. Te llevamos al listado; al terminar verás un aviso.',
+                            type: 'notice'
+                        }));
+                    } catch (e) {}
+                    window.location.href = "{{ route('devolutions.index') }}";
+                    return;
+                }
                 if (response.success) {
                     mostrarMensaje('Devolución registrada correctamente (sin liquidar)', 'success');
                     if (response.devolution_id) {
@@ -2931,6 +2953,17 @@ $(document).ready(function() {
             method: 'POST',
             data: liquidacionData,
             success: function(response) {
+                if (response.queued && response.success) {
+                    try {
+                        sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                            title: 'Tramitación en segundo plano',
+                            text: 'La operación está en cola. Te llevamos al listado; al terminar verás un aviso.',
+                            type: 'notice'
+                        }));
+                    } catch (e) {}
+                    window.location.href = "{{ route('devolutions.index') }}";
+                    return;
+                }
                 if (response.success) {
                     mostrarMensaje('Liquidación procesada correctamente', 'success');
                     setTimeout(() => {

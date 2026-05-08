@@ -13,7 +13,10 @@ use App\Models\SellerSettlement;
 use App\Models\SellerSettlementPayment;
 use App\Models\ParticipationActivityLog;
 use App\Models\DesignFormat;
+use App\Models\BackgroundTask;
+use App\Jobs\ProcessParticipationAssignmentTask;
 use App\Services\SellerService;
+use App\Services\BackgroundTaskService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -2197,7 +2200,9 @@ class SellerController extends Controller
     {
         $request->validate([
             'participations_json' => 'required|string',
-            'seller_id' => 'required|integer|exists:sellers,id'
+            'seller_id' => 'required|integer|exists:sellers,id',
+            'background' => 'nullable|boolean',
+            'force_sync' => 'nullable|boolean',
         ]);
 
         // Decodificar el JSON de participaciones
@@ -2215,6 +2220,47 @@ class SellerController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Debe proporcionar al menos una participación'
+            ]);
+        }
+
+        // Por defecto procesamos en background para evitar bloquear la UI.
+        // Solo se procesa en síncrono cuando se fuerza explícitamente.
+        $runInBackground = !$request->boolean('force_sync');
+        if ($runInBackground) {
+            if (!auth()->user()->canAccessSeller((int) $request->seller_id)) {
+                abort(403, 'No tienes permisos para gestionar este vendedor.');
+            }
+
+            $resourceSetIds = array_values(array_unique(array_filter(array_map(
+                fn ($p) => (int) ($p['set_id'] ?? 0),
+                $participations
+            ))));
+            $resourceKey = count($resourceSetIds) === 1
+                ? ('set:' . $resourceSetIds[0])
+                : ('seller_assignment:' . (int) $request->seller_id);
+
+            $task = app(BackgroundTaskService::class)->createTask(auth()->user(), [
+                'type' => BackgroundTask::TYPE_PARTICIPATION_ASSIGNMENT,
+                'payload' => [
+                    'seller_id' => (int) $request->seller_id,
+                    'participations' => $participations,
+                    'set_id' => count($resourceSetIds) === 1 ? $resourceSetIds[0] : null,
+                ],
+                'set_id' => count($resourceSetIds) === 1 ? $resourceSetIds[0] : null,
+                'resource_key' => $resourceKey,
+            ]);
+
+            if ($task->status === BackgroundTask::STATUS_PENDING) {
+                ProcessParticipationAssignmentTask::dispatch($task->uuid);
+            }
+
+            return response()->json([
+                'success' => true,
+                'queued' => true,
+                'message' => 'Asignación enviada a segundo plano.',
+                'task_uuid' => $task->uuid,
+                'status' => $task->status,
+                'poll_url' => route('background-tasks.show', ['uuid' => $task->uuid]),
             ]);
         }
 

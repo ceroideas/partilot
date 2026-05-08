@@ -1473,7 +1473,8 @@ function initDatatable()
                 set_id: participation.set_id,
                 assigned_at: participation.sale_date ? (participation.sale_date + 'T' + (participation.sale_time || '00:00:00')) : null,
                 updated_at: participation.updated_at,
-                created_at: participation.created_at
+                created_at: participation.created_at,
+                is_persisted: true
               }));
               actualizarResumenAsignacion();
             }
@@ -1588,7 +1589,8 @@ function initDatatable()
                    participation_code: participation.participation_code,
                    set_id: setSeleccionado.id,
                    assigned_at: new Date().toISOString(),
-                   updated_at: new Date().toISOString()  // Agregar updated_at
+                  updated_at: new Date().toISOString(),  // Agregar updated_at
+                  is_persisted: false
                  });
                }
              });
@@ -1637,7 +1639,8 @@ function initDatatable()
                  participation_code: participation.participation_code,
                  set_id: setSeleccionado.id,
                  assigned_at: new Date().toISOString(),
-                 updated_at: new Date().toISOString()  // Agregar updated_at
+                updated_at: new Date().toISOString(),  // Agregar updated_at
+                is_persisted: false
                });
                actualizarResumenAsignacion();
                mostrarMensaje('Participación asignada correctamente', 'success');
@@ -1739,6 +1742,14 @@ function initDatatable()
         const participacionAEliminar = participacionesAsignadas.find(p => p.participation_code === codigo);
         
         if (participacionAEliminar) {
+          // Si todavía no se ha guardado (Terminar), solo se elimina del borrador local.
+          if (!participacionAEliminar.is_persisted) {
+            participacionesAsignadas = participacionesAsignadas.filter(p => p.participation_code !== codigo);
+            actualizarResumenAsignacion();
+            mostrarMensaje('Participación retirada del borrador', 'success');
+            return;
+          }
+
           // Eliminar de la base de datos
           $.ajax({
             url: '{{ route("sellers.remove-assignment") }}',
@@ -1767,24 +1778,40 @@ function initDatatable()
 
            // Función para mostrar mensajes
       function mostrarMensaje(mensaje, tipo) {
-        const alertClass = tipo === 'success' ? 'alert-success' : 
-                          tipo === 'warning' ? 'alert-warning' : 
-                          tipo === 'error' ? 'alert-danger' : 'alert-info';
-       
-        const alertHtml = `
-          <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-            ${mensaje}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        `;
-        
-        // Insertar alerta en la parte superior de la página, fuera del contenido de asignación
-        $('.page-title-box').after(alertHtml);
-        
-        // Auto-remover después de 5 segundos
-        setTimeout(() => {
-          $('.alert').fadeOut();
-        }, 5000);
+        const pnotifyType = tipo === 'success'
+          ? 'success'
+          : (tipo === 'error' ? 'error' : (tipo === 'warning' ? 'notice' : 'info'));
+        const pnotifyTitle = tipo === 'success'
+          ? 'Proceso finalizado'
+          : (tipo === 'error' ? 'Error' : (tipo === 'warning' ? 'Atención' : 'Información'));
+
+        if (typeof PNotify !== 'undefined') {
+          if (typeof PNotify.removeAll === 'function') {
+            PNotify.removeAll();
+          }
+          document.querySelectorAll('.ui-pnotify').forEach(function (el) { el.remove(); });
+          const notice = new PNotify({
+            title: pnotifyTitle,
+            text: mensaje,
+            type: pnotifyType,
+            addclass: 'partilot-notify',
+            width: '460px',
+            icon: false,
+            hide: true,
+            delay: 6000,
+            stack: PNotify.prototype.options.stack,
+            buttons: {
+              closer: true,
+              sticker: false,
+              closer_hover: false
+            }
+          });
+          return notice;
+        }
+
+        // Fallback mínimo si PNotify no está disponible
+        alert(mensaje);
+        return null;
       }
 
      // Event listeners para asignación
@@ -1829,7 +1856,8 @@ function initDatatable()
                    participation_code: participation.participation_code,
                    set_id: setSeleccionado.id,
                    assigned_at: new Date().toISOString(),
-                   updated_at: new Date().toISOString()
+                  updated_at: new Date().toISOString(),
+                  is_persisted: false
                  });
                }
              });
@@ -1873,22 +1901,32 @@ function initDatatable()
           },
           success: function(response) {
             if (response.success) {
-              mostrarMensaje('Asignaciones guardadas correctamente', 'success');
-              
-              // Limpiar el array temporal y recargar las participaciones existentes
-              participacionesAsignadas = [];
-              
-              // Recargar las participaciones existentes desde la base de datos
-              cargarParticipacionesExistentes();
-              
-              // Limpiar los campos de entrada
-              $('#rango-desde').val('');
-              $('#rango-hasta').val('');
-              $('#participacion-unidad').val('');
-              
-              // Habilitar todos los campos
-              $('#rango-desde, #rango-hasta, #participacion-unidad').prop('disabled', false);
-              
+              if (response.queued) {
+                try {
+                  sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                    title: 'Asignación en segundo plano',
+                    text: 'Las asignaciones están en cola. Recargamos la página; al terminar verás un aviso.',
+                    type: 'notice'
+                  }));
+                } catch (e) {}
+                window.location.reload();
+              } else {
+                mostrarMensaje('Asignaciones guardadas correctamente', 'success');
+                
+                // Limpiar el array temporal y recargar las participaciones existentes
+                participacionesAsignadas = [];
+                
+                // Recargar las participaciones existentes desde la base de datos
+                cargarParticipacionesExistentes();
+                
+                // Limpiar los campos de entrada
+                $('#rango-desde').val('');
+                $('#rango-hasta').val('');
+                $('#participacion-unidad').val('');
+                
+                // Habilitar todos los campos
+                $('#rango-desde, #rango-hasta, #participacion-unidad').prop('disabled', false);
+              }
             } else {
               mostrarMensaje(response.message || 'Error al guardar las asignaciones', 'error');
             }

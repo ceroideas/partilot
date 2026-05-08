@@ -14,8 +14,13 @@ use App\Models\DevolutionDetail;
 use App\Models\DevolutionPayment;
 use App\Mail\DevolutionReturnedToAdministrationMail;
 use App\Mail\DevolutionReturnedToEntityManagerMail;
+use App\Jobs\ProcessDevolutionDeleteTask;
+use App\Jobs\ProcessDevolutionTask;
+use App\Models\BackgroundTask;
 use App\Services\CommunicationEmailService;
+use App\Services\BackgroundTaskService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class DevolutionsController extends Controller
@@ -305,6 +310,44 @@ class DevolutionsController extends Controller
 
         if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
             return $resp;
+        }
+
+        $forceSync = $request->boolean('force_sync', false);
+        // Procesar en background por defecto para evitar bloqueos en UI.
+        // Solo ejecutar en síncrono cuando se fuerce explícitamente.
+        $runInBackground = !$forceSync;
+        if ($runInBackground) {
+            $payload = $request->all();
+            unset($payload['background']);
+            $payload['force_sync'] = true;
+
+            $resourceKey = null;
+            if (!empty($payload['set_id'])) {
+                $resourceKey = 'set:' . (int) $payload['set_id'];
+            } elseif (!empty($payload['entity_id'])) {
+                $resourceKey = 'entity:' . (int) $payload['entity_id'];
+            }
+
+            $task = app(BackgroundTaskService::class)->createTask(auth()->user(), [
+                'type' => BackgroundTask::TYPE_DEVOLUTION,
+                'payload' => $payload,
+                'entity_id' => isset($payload['entity_id']) ? (int) $payload['entity_id'] : null,
+                'set_id' => isset($payload['set_id']) ? (int) $payload['set_id'] : null,
+                'resource_key' => $resourceKey,
+            ]);
+
+            if ($task->status === BackgroundTask::STATUS_PENDING) {
+                ProcessDevolutionTask::dispatch($task->uuid);
+            }
+
+            return response()->json([
+                'success' => true,
+                'queued' => true,
+                'message' => 'Devolución enviada a segundo plano.',
+                'task_uuid' => $task->uuid,
+                'status' => $task->status,
+                'poll_url' => route('background-tasks.show', ['uuid' => $task->uuid]),
+            ]);
         }
 
         try {
@@ -1046,8 +1089,48 @@ class DevolutionsController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
+            return $resp;
+        }
+
+        $forceSync = $request->boolean('force_sync', false);
+        if (! $forceSync) {
+            $devolution = Devolution::with('details')
+                ->forUser(auth()->user())
+                ->findOrFail($id);
+
+            if (! auth()->user()->canManageEntityDevolutions((int) $devolution->entity_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tiene permiso para eliminar esta devolución.',
+                ], 403);
+            }
+
+            $task = app(BackgroundTaskService::class)->createTask(auth()->user(), [
+                'type' => BackgroundTask::TYPE_DEVOLUTION_DELETE,
+                'payload' => [
+                    'devolution_id' => (int) $id,
+                    'entity_id' => (int) $devolution->entity_id,
+                ],
+                'entity_id' => (int) $devolution->entity_id,
+                'resource_key' => 'devolution_delete:'.$id,
+            ]);
+
+            if ($task->status === BackgroundTask::STATUS_PENDING) {
+                ProcessDevolutionDeleteTask::dispatch($task->uuid);
+            }
+
+            return response()->json([
+                'success' => true,
+                'queued' => true,
+                'message' => 'Eliminación enviada a segundo plano.',
+                'task_uuid' => $task->uuid,
+                'poll_url' => route('background-tasks.show', ['uuid' => $task->uuid]),
+            ]);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -1184,9 +1267,9 @@ class DevolutionsController extends Controller
     /**
      * API: Eliminar devolución (delega en destroy; destroy ya devuelve JSON)
      */
-    public function apiDestroy(string $id)
+    public function apiDestroy(Request $request, string $id)
     {
-        return $this->destroy($id);
+        return $this->destroy($request, $id);
     }
 
     /**

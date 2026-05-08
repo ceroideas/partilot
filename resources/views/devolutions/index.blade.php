@@ -282,6 +282,17 @@ $(document).ready(function() {
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
+                    if (response.queued && response.success) {
+                        try {
+                            sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                                title: 'Eliminación en segundo plano',
+                                text: 'La eliminación está en cola. Recargamos la página; al terminar verás un aviso con el resultado.',
+                                type: 'notice'
+                            }));
+                        } catch (e) {}
+                        window.location.reload();
+                        return;
+                    }
                     if (response.success) {
                         mostrarMensaje('Devolución eliminada correctamente', 'success');
                         setTimeout(() => {

@@ -19,13 +19,60 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::create('failed_jobs', function (Blueprint $table) {
+            $table->id();
+            $table->string('uuid')->unique();
+            $table->text('connection');
+            $table->text('queue');
+            $table->longText('payload');
+            $table->longText('exception');
+            $table->timestamp('failed_at')->useCurrent();
+        });
+        
+        Schema::create('background_tasks', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->string('type', 64);
+            $table->string('status', 24)->default('pending')->index();
+            $table->unsignedBigInteger('requested_by_user_id')->index();
+            $table->unsignedBigInteger('entity_id')->nullable()->index();
+            $table->unsignedBigInteger('administration_id')->nullable()->index();
+            $table->unsignedBigInteger('set_id')->nullable()->index();
+            $table->string('resource_key', 120)->nullable()->index();
+            $table->string('task_hash', 64)->nullable()->index();
+            $table->json('payload')->nullable();
+            $table->unsignedInteger('progress_total')->default(0);
+            $table->unsignedInteger('progress_done')->default(0);
+            $table->unsignedTinyInteger('progress_percent')->default(0);
+            $table->json('result_summary')->nullable();
+            $table->text('error_message')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['status', 'created_at']);
+            $table->index(['requested_by_user_id', 'created_at']);
+            $table->index(['type', 'status']);
+            $table->index(['resource_key', 'status']);
+        });
+
+        Schema::create('jobs', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('queue')->index();
+            $table->longText('payload');
+            $table->unsignedTinyInteger('attempts');
+            $table->unsignedInteger('reserved_at')->nullable();
+            $table->unsignedInteger('available_at');
+            $table->unsignedInteger('created_at');
+        });
+        
+        return "ok";
+
         Schema::table('managers', function (Blueprint $table) {
             if (! Schema::hasColumn('managers', 'pending_primary')) {
                 $table->boolean('pending_primary')->default(false)->after('is_primary');
             }
         });
-
-        return "ok";
         
         DB::statement('ALTER TABLE print_orders MODIFY design_format_id BIGINT UNSIGNED NULL');
         
@@ -35,8 +82,6 @@ class ApiController extends Controller
             $table->string('payment_status', 30)->default('pending')->after('payment_intent_id');
             $table->timestamp('paid_at')->nullable()->after('sent_at');
         });
-
-        return "ok";
 
         Schema::create('print_order_status_audits', function (Blueprint $table) {
             $table->id();

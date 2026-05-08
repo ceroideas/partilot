@@ -16,6 +16,7 @@ use App\Http\Controllers\EntityController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ScrutinyController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\BackgroundTaskController;
 
 /*
 |--------------------------------------------------------------------------
@@ -117,6 +118,12 @@ Route::prefix('auth')->group(function () {
 // ============================================================================
 
 Route::middleware('auth.api')->group(function () {
+    Route::prefix('background-tasks')->group(function () {
+        Route::get('/', [BackgroundTaskController::class, 'index']);
+        Route::post('/', [BackgroundTaskController::class, 'store']);
+        Route::get('/{uuid}', [BackgroundTaskController::class, 'show']);
+        Route::post('/{uuid}/cancel', [BackgroundTaskController::class, 'cancel']);
+    });
     
     // ========================================================================
     // PERFIL Y USUARIO

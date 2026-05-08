@@ -25,6 +25,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CommunicationEmailController;
 use App\Http\Controllers\ContextController;
 use App\Http\Controllers\SepaPaymentOrderController;
+use App\Http\Controllers\BackgroundTaskController;
 use App\Models\Administration;
 use App\Models\User;
 /*
@@ -138,6 +139,13 @@ Route::middleware(['auth', 'entity_panel.readonly', 'entity_manager.legacy_passw
 
     // Selector de contexto de gestor (administración / entidad)
     Route::post('context/set-role', [ContextController::class, 'setRole'])->name('context.set-role');
+
+    Route::prefix('background-tasks')->group(function () {
+        Route::get('/', [BackgroundTaskController::class, 'index'])->name('background-tasks.index');
+        Route::post('/', [BackgroundTaskController::class, 'store'])->name('background-tasks.store');
+        Route::get('/{uuid}', [BackgroundTaskController::class, 'show'])->name('background-tasks.show');
+        Route::post('/{uuid}/cancel', [BackgroundTaskController::class, 'cancel'])->name('background-tasks.cancel');
+    });
 
 Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin'], function() {
     //

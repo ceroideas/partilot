@@ -60,8 +60,8 @@
             .ui-pnotify .ui-pnotify-closer {
                 visibility: visible !important;
                 opacity: 1 !important;
-                right: -8px !important;
-                top: 11px !important;
+                right: 6px !important;
+                top: 50% !important;
                 transform: translateY(-50%) !important;
                 border-radius: 999px !important;
                 width: 24px !important;
@@ -72,7 +72,7 @@
                 cursor: pointer !important;
                 border: 1px solid rgba(15, 118, 110, 0.35) !important;
                 background: rgba(255, 255, 255, 0.65) !important;
-                position: relative !important;
+                position: absolute !important;
             }
             .ui-pnotify.partilot-notify .ui-pnotify-closer > span,
             .ui-pnotify .ui-pnotify-closer > span {
@@ -127,7 +127,7 @@
             /* Formularios: mantener estilo pill en controles dentro de input-group */
             .content-page .content .group-form .form-control,
             .content-page .content .group-form .ts-wrapper.single .ts-control {
-                border-radius: 0 30px 30px 0 !important;
+                border-radius: 30px !important;
             }
             .content-page .content .group-form .input-group-text + .form-control,
             .content-page .content .group-form .input-group-text + .ts-wrapper.single .ts-control {
@@ -1760,6 +1760,10 @@
 
                 notices.forEach(function (item) {
                     if (!item.text) return;
+                    if (typeof PNotify.removeAll === 'function') {
+                        PNotify.removeAll();
+                    }
+                    document.querySelectorAll('.ui-pnotify').forEach(function (el) { el.remove(); });
                     new PNotify({
                         type: item.type,
                         addclass: 'partilot-notify',
@@ -1785,6 +1789,188 @@
                 });
             });
         </script>
+        @auth
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const pollUrl = @json(route('background-tasks.index', ['mine' => 1, 'limit' => 20]));
+                const devolutionsIndexUrl = @json(route('devolutions.index'));
+                const notifiedPrefix = 'background_task_notified_';
+                const PARTILOT_PENDING_NOTIFY_KEY = 'partilot_pending_background_notify';
+                const PARTILOT_BG_JOB_STARTED_KEY = 'partilot_bg_job_started';
+
+                const queuePendingNotify = function (title, text, pnotifyType) {
+                    try {
+                        sessionStorage.setItem(PARTILOT_PENDING_NOTIFY_KEY, JSON.stringify({
+                            title: title || 'Proceso finalizado',
+                            text: text || '',
+                            type: pnotifyType || 'success'
+                        }));
+                    } catch (e) {}
+                };
+
+                const flushPendingBackgroundNotify = function () {
+                    var raw = null;
+                    try {
+                        raw = sessionStorage.getItem(PARTILOT_PENDING_NOTIFY_KEY);
+                    } catch (e) {}
+                    if (!raw) return;
+                    try {
+                        sessionStorage.removeItem(PARTILOT_PENDING_NOTIFY_KEY);
+                    } catch (e2) {}
+                    var data = null;
+                    try {
+                        data = JSON.parse(raw);
+                    } catch (e3) {
+                        return;
+                    }
+                    if (typeof PNotify === 'undefined') return;
+                    if (typeof PNotify.removeAll === 'function') {
+                        PNotify.removeAll();
+                    }
+                    document.querySelectorAll('.ui-pnotify').forEach(function (el) {
+                        el.remove();
+                    });
+                    var pType = data.type === 'error' ? 'error' : (data.type === 'notice' ? 'notice' : 'success');
+                    new PNotify({
+                        title: data.title || 'Proceso finalizado',
+                        text: data.text || '',
+                        type: pType,
+                        addclass: 'partilot-notify',
+                        width: '460px',
+                        hide: true,
+                        icon: false,
+                        delay: 7000,
+                        buttons: { closer: true, sticker: false, closer_hover: false }
+                    });
+                };
+
+                const flushPendingBackgroundStarted = function () {
+                    var raw = null;
+                    try {
+                        raw = sessionStorage.getItem(PARTILOT_BG_JOB_STARTED_KEY);
+                    } catch (e) {}
+                    if (!raw) return;
+                    try {
+                        sessionStorage.removeItem(PARTILOT_BG_JOB_STARTED_KEY);
+                    } catch (e2) {}
+                    var data = null;
+                    try {
+                        data = JSON.parse(raw);
+                    } catch (e3) {
+                        return;
+                    }
+                    if (typeof PNotify === 'undefined') return;
+                    if (typeof PNotify.removeAll === 'function') {
+                        PNotify.removeAll();
+                    }
+                    document.querySelectorAll('.ui-pnotify').forEach(function (el) {
+                        el.remove();
+                    });
+                    var pType = data.type === 'error' ? 'error' : (data.type === 'success' ? 'success' : 'notice');
+                    new PNotify({
+                        title: data.title || 'En proceso',
+                        text: data.text || 'La tarea se está ejecutando en segundo plano.',
+                        type: pType,
+                        addclass: 'partilot-notify',
+                        width: '460px',
+                        hide: true,
+                        icon: false,
+                        delay: 8000,
+                        buttons: { closer: true, sticker: false, closer_hover: false }
+                    });
+                };
+
+                flushPendingBackgroundStarted();
+                flushPendingBackgroundNotify();
+
+                const notifyTask = (task) => {
+                    if (!task || !task.uuid) return;
+                    const notifyKey = notifiedPrefix + task.uuid + '_' + task.status;
+                    if (localStorage.getItem(notifyKey)) return;
+                    localStorage.setItem(notifyKey, '1');
+
+                    if (typeof PNotify === 'undefined') return;
+
+                    const summary = task.result_summary || {};
+                    const successMsg = (typeof summary.message === 'string' && summary.message)
+                        ? summary.message
+                        : 'La operación finalizó correctamente.';
+
+                    if (task.status === 'completed') {
+                        const t = task.type || '';
+                        if (t === 'participation_assignment' || t === 'devolution_delete') {
+                            queuePendingNotify('Proceso finalizado', successMsg, 'success');
+                            setTimeout(function () {
+                                window.location.reload();
+                            }, 250);
+                            return;
+                        }
+                        if (t === 'devolution') {
+                            queuePendingNotify('Proceso finalizado', successMsg, 'success');
+                            setTimeout(function () {
+                                window.location.href = devolutionsIndexUrl;
+                            }, 250);
+                            return;
+                        }
+                        if (typeof PNotify.removeAll === 'function') {
+                            PNotify.removeAll();
+                        }
+                        document.querySelectorAll('.ui-pnotify').forEach(function (el) {
+                            el.remove();
+                        });
+                        new PNotify({
+                            type: 'success',
+                            addclass: 'partilot-notify',
+                            width: '460px',
+                            title: 'Proceso finalizado',
+                            text: successMsg,
+                            hide: true,
+                            icon: false,
+                            buttons: { closer: true, sticker: false, closer_hover: false }
+                        });
+                    } else if (task.status === 'failed') {
+                        if (typeof PNotify.removeAll === 'function') {
+                            PNotify.removeAll();
+                        }
+                        document.querySelectorAll('.ui-pnotify').forEach(function (el) {
+                            el.remove();
+                        });
+                        new PNotify({
+                            type: 'error',
+                            addclass: 'partilot-notify',
+                            width: '460px',
+                            title: 'Proceso fallido',
+                            text: task.error_message || 'La tarea en segundo plano ha fallado.',
+                            hide: true,
+                            buttons: { closer: true, sticker: false, closer_hover: false }
+                        });
+                    }
+                };
+
+                const pollBackgroundTasks = () => {
+                    fetch(pollUrl, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                        .then((res) => (res.ok ? res.json() : null))
+                        .then((data) => {
+                            const items = Array.isArray(data?.items) ? data.items : [];
+                            items.forEach(function (item) {
+                                if (item.status === 'completed' || item.status === 'failed') {
+                                    notifyTask(item);
+                                }
+                            });
+                        })
+                        .catch(() => {});
+                };
+
+                pollBackgroundTasks();
+                setInterval(pollBackgroundTasks, 3000);
+            });
+        </script>
+        @endauth
 
         @yield('scripts')
 
