@@ -1064,16 +1064,23 @@ class DesignController extends Controller
     }
 
     /**
-     * Sustituye la raíz web de la aplicación (todas las variantes habituales) por la ruta real de public/.
-     * Evita que queden URLs tipo http://127.0.0.1:8000/... cuando APP_URL usa localhost u otro host.
+     * Prefijos URL (origen de la app) que se reemplazan por la ruta de public/ en HTML para DomPDF.
+     *
+     * @return list<string>
      */
-    private function replaceApplicationWebRootsWithPublicPath(string $html, string $publicPath): string
+    private function pdfApplicationUrlPrefixesForReplace(): array
     {
-        $fsBase = str_replace('\\', '/', rtrim($publicPath, '/'));
-
-        $prefixes = array_unique(array_filter([
+        $prefixes = array_filter([
             rtrim((string) config('app.url'), '/'),
             rtrim(str_replace('\\', '/', (string) url('/')), '/'),
+        ]);
+
+        $asset = config('asset.url');
+        if (is_string($asset) && $asset !== '') {
+            $prefixes[] = rtrim(str_replace('\\', '/', $asset), '/');
+        }
+
+        $prefixes = array_merge($prefixes, [
             'http://127.0.0.1:8000',
             'http://localhost:8000',
             'http://127.0.0.1',
@@ -1082,10 +1089,21 @@ class DesignController extends Controller
             'https://localhost:8000',
             'https://127.0.0.1',
             'https://localhost',
-        ]));
+        ]);
 
-        $appPort = parse_url((string) config('app.url'), PHP_URL_PORT);
-        $appScheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
+        $appUrl = (string) config('app.url');
+        $host = parse_url($appUrl, PHP_URL_HOST);
+        if (is_string($host) && $host !== '') {
+            $port = parse_url($appUrl, PHP_URL_PORT);
+            $withPort = $port !== null && $port !== false && (string) $port !== ''
+                ? ':'.(string) $port
+                : '';
+            $prefixes[] = 'https://'.$host.$withPort;
+            $prefixes[] = 'http://'.$host.$withPort;
+        }
+
+        $appPort = parse_url($appUrl, PHP_URL_PORT);
+        $appScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: 'http';
         if ($appPort !== null && $appPort !== false && (string) $appPort !== '') {
             $port = (string) $appPort;
             $prefixes[] = "{$appScheme}://127.0.0.1:{$port}";
@@ -1098,25 +1116,60 @@ class DesignController extends Controller
         $prefixes = array_values(array_unique(array_filter($prefixes)));
         usort($prefixes, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
 
-        foreach ($prefixes as $prefix) {
-            if ($prefix === '') {
-                continue;
+        return $prefixes;
+    }
+
+    /**
+     * Hosts de confianza para mapear https?://host/.../uploads|storage a disco (sólo esas rutas).
+     *
+     * @return list<string>
+     */
+    private function pdfTrustedHostsForAssetPaths(): array
+    {
+        $hosts = ['127.0.0.1', 'localhost', '[::1]'];
+        foreach ([config('app.url'), url('/'), config('asset.url')] as $u) {
+            $h = parse_url((string) $u, PHP_URL_HOST);
+            if (is_string($h) && $h !== '') {
+                $hosts[] = $h;
             }
-            $html = str_replace($prefix.'/', $fsBase.'/', $html);
         }
 
-        // Cualquier puerto/host local que no coincidiera con APP_URL (p. ej. 127.0.0.1 vs localhost)
-        $fixed = preg_replace_callback(
-            '#https?://(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(/(?:uploads|storage)/[^\s\'"\)\>\#]+)#i',
-            static function (array $m) use ($fsBase): string {
-                $path = explode('?', rawurldecode($m[1]), 2)[0];
+        return array_values(array_unique(array_filter($hosts)));
+    }
 
-                return $fsBase.str_replace('\\', '/', $path);
-            },
-            $html
+    /**
+     * Sustituye la raíz web de la aplicación (todas las variantes habituales) por la ruta real de public/.
+     * Evita URLs absolutas típicas de prod (panel.partilot.es) o dev (127.0.0.1) que DomPDF no resuelve.
+     */
+    private function replaceApplicationWebRootsWithPublicPath(string $html, string $publicPath): string
+    {
+        $fsBase = str_replace('\\', '/', rtrim($publicPath, '/'));
+
+        foreach ($this->pdfApplicationUrlPrefixesForReplace() as $prefix) {
+            if ($prefix !== '') {
+                $html = str_replace($prefix.'/', $fsBase.'/', $html);
+            }
+        }
+
+        $escaped = array_map(
+            static fn (string $h): string => preg_quote($h, '#'),
+            $this->pdfTrustedHostsForAssetPaths()
         );
+        if ($escaped !== []) {
+            $hostsPattern = implode('|', $escaped);
+            $fixed = preg_replace_callback(
+                '#https?://(?:'.$hostsPattern.')(?::\d+)?(/(?:uploads|storage)/[^\s\'"\)\>\#]+)#i',
+                static function (array $m) use ($fsBase): string {
+                    $path = explode('?', rawurldecode($m[1]), 2)[0];
 
-        return $fixed ?? $html;
+                    return $fsBase.str_replace('\\', '/', $path);
+                },
+                $html
+            );
+            $html = $fixed ?? $html;
+        }
+
+        return $html;
     }
 
     /**
@@ -1124,13 +1177,33 @@ class DesignController extends Controller
      */
     public function ensureLocalPathsForPdf(string $html, string $publicPath): string
     {
-        // url('uploads/...') o url("/uploads/...") -> url(publicPath/uploads/...)
+        $normBase = str_replace('\\', '/', rtrim($publicPath, '/'));
+
+        // url('uploads/...') relativos sin barra inicial
         $html = preg_replace_callback(
             '/url\s*\(\s*[\'"]?(?!\/|[a-z]:)(\/?)(uploads\/[^\'")\s]+)/i',
-            function ($m) use ($publicPath) {
-                $path = $publicPath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $m[2]);
+            function ($m) use ($normBase) {
+                $path = $normBase.'/'.str_replace('\\', '/', $m[2]);
 
-                return 'url(\'' . str_replace('\\', '/', $path) . '\')';
+                return 'url(\''.$path.'\')';
+            },
+            $html
+        );
+
+        // background-image etc.: url(/uploads/...) o url("/storage/...")
+        $html = preg_replace_callback(
+            '/url\s*\(\s*[\'"]?(\/(?:uploads|storage)\/[^\'")\s]+)/i',
+            function ($m) use ($normBase) {
+                return 'url(\''.$normBase.str_replace('\\', '/', $m[1]).'\')';
+            },
+            $html
+        );
+
+        // <img src="/uploads/..."> y enlaces equivalentes
+        $html = preg_replace_callback(
+            '#\b(src|href)\s*=\s*([\'"])(/(?:uploads|storage)/[^\'"]+)\2#i',
+            function ($m) use ($normBase) {
+                return $m[1].'='.$m[2].$normBase.str_replace('\\', '/', $m[3]).$m[2];
             },
             $html
         );
@@ -1291,7 +1364,7 @@ class DesignController extends Controller
         }
         
         // Cache del HTML procesado (clave versionada; mismo pipeline que el Job en cola)
-        $cacheKey = 'participation_html_pdf_v7_' . $id;
+        $cacheKey = 'participation_html_pdf_v8_' . $id;
         $participation_html = cache()->remember($cacheKey, 3600, function () use ($design) {
             return $this->prepareParticipationHtmlForPdf($design->participation_html ?? '');
         });
