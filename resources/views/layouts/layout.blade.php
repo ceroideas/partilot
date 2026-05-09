@@ -113,6 +113,13 @@
                 color: #7a5a00 !important;
                 border-color: #ffe69c !important;
             }
+            .ui-pnotify .alert-info,
+            .ui-pnotify .ui-pnotify-info {
+                background-color: #cff4fc !important;
+                color: #055160 !important;
+                border-color: #9eeaf9 !important;
+                opacity: 1 !important;
+            }
         </style>
 
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">

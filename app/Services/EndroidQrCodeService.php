@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use Endroid\QrCode\QrCode;
+use Endroid\QrCode\QrCodeInterface;
 use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Support\Facades\Cache;
 
 class EndroidQrCodeService
@@ -16,6 +18,24 @@ class EndroidQrCodeService
     }
 
     /**
+     * PNG vía GD cuando está disponible; si no (p. ej. PHP CLI/worker sin extension=gd),
+     * SVG puro sin dependencias gráficas — válido en navegador y DomPDF.
+     */
+    private function isGdAvailable(): bool
+    {
+        return extension_loaded('gd') && function_exists('imagecreatetruecolor');
+    }
+
+    private function qrCodeToDataUri(QrCodeInterface $qrCode): string
+    {
+        if ($this->isGdAvailable()) {
+            return (new PngWriter())->write($qrCode)->getDataUri();
+        }
+
+        return (new SvgWriter())->write($qrCode)->getDataUri();
+    }
+
+    /**
      * Generar QR code desde texto raw (p. ej. taco_ref) - sin imagick.
      * Usado en PDF portadas de tacos.
      */
@@ -25,10 +45,7 @@ class EndroidQrCodeService
             ->setSize($size)
             ->setMargin(2);
 
-        $writer = new PngWriter();
-        $result = $writer->write($qrCode);
-
-        return 'data:image/png;base64,' . base64_encode($result->getString());
+        return $this->qrCodeToDataUri($qrCode);
     }
 
     /**
@@ -50,16 +67,13 @@ class EndroidQrCodeService
         $qrCode = QrCode::create($url)
             ->setSize(200)
             ->setMargin(2);
-        
-        $writer = new PngWriter();
-        $result = $writer->write($qrCode);
-        
-        $base64 = 'data:image/png;base64,' . base64_encode($result->getString());
-        
+
+        $dataUri = $this->qrCodeToDataUri($qrCode);
+
         // Cache por 30 minutos
-        Cache::put($cacheKey, $base64, 1800);
-        
-        return $base64;
+        Cache::put($cacheKey, $dataUri, 1800);
+
+        return $dataUri;
     }
 
     /**
@@ -103,23 +117,19 @@ class EndroidQrCodeService
         $qrCode = QrCode::create('')
             ->setSize(config('qr_optimization.qr_code.size', 120))
             ->setMargin(config('qr_optimization.qr_code.margin', 0));
-        
-        $writer = new PngWriter();
-        
+
         foreach ($references as $reference) {
             $url = $baseUrl . $reference;
-            
+
             // Actualizar solo la URL (más eficiente)
             $qrCode = $qrCode->setData($url);
-            $result = $writer->write($qrCode);
-            
-            $base64 = 'data:image/png;base64,' . base64_encode($result->getString());
-            
+            $dataUri = $this->qrCodeToDataUri($qrCode);
+
             // Cache inmediato (solo en memoria)
             $cacheKey = 'endroid_qr_base64_' . md5($reference);
-            Cache::put($cacheKey, $base64, 1800);
-            
-            $results[$reference] = $base64;
+            Cache::put($cacheKey, $dataUri, 1800);
+
+            $results[$reference] = $dataUri;
         }
         
         return $results;
@@ -137,23 +147,19 @@ class EndroidQrCodeService
         $qrCode = QrCode::create('')
             ->setSize(150) // Tamaño optimizado
             ->setMargin(1); // Margen mínimo
-        
-        $writer = new PngWriter();
-        
+
         foreach ($references as $reference) {
             $url = $baseUrl . $reference;
-            
+
             // Actualizar solo la URL (más eficiente)
             $qrCode = $qrCode->setData($url);
-            $result = $writer->write($qrCode);
-            
-            $base64 = 'data:image/png;base64,' . base64_encode($result->getString());
-            
+            $dataUri = $this->qrCodeToDataUri($qrCode);
+
             // Cache inmediato
             $cacheKey = 'endroid_qr_base64_' . md5($reference);
-            Cache::put($cacheKey, $base64, 1800);
-            
-            $results[$reference] = $base64;
+            Cache::put($cacheKey, $dataUri, 1800);
+
+            $results[$reference] = $dataUri;
         }
         
         return $results;
@@ -171,30 +177,26 @@ class EndroidQrCodeService
         $qrCode = QrCode::create('')
             ->setSize(100) // Tamaño mínimo
             ->setMargin(0); // Sin margen
-        
-        $writer = new PngWriter();
-        
+
         // Procesar en lotes para mejor gestión de memoria
         $batchSize = 100; // Lotes más grandes para mejor eficiencia
         $batches = array_chunk($references, $batchSize);
-        
+
         foreach ($batches as $batchIndex => $batch) {
             error_log("Endroid QR: Procesando lote " . ($batchIndex + 1) . " de " . count($batches) . " (" . count($batch) . " QR codes)");
-            
+
             foreach ($batch as $reference) {
                 $url = $baseUrl . $reference;
-                
+
                 // Actualizar solo la URL
                 $qrCode = $qrCode->setData($url);
-                $result = $writer->write($qrCode);
-                
-                $base64 = 'data:image/png;base64,' . base64_encode($result->getString());
-                
+                $dataUri = $this->qrCodeToDataUri($qrCode);
+
                 // Cache inmediato (solo en memoria)
                 $cacheKey = 'endroid_qr_base64_' . md5($reference);
-                Cache::put($cacheKey, $base64, 1800);
-                
-                $results[$reference] = $base64;
+                Cache::put($cacheKey, $dataUri, 1800);
+
+                $results[$reference] = $dataUri;
             }
         }
         

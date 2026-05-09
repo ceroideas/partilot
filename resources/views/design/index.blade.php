@@ -112,7 +112,11 @@
                                         $hasBack = !empty($design->back_html);
                                     @endphp
                                     @if($hasCover && $hasBack)
-                                    <a target="_blank" href="{{ route('design.exportCoverAndBackPdf', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de portada y trasera"><i class="ri-file-pdf-line"></i></a>
+                                    <button type="button"
+                                        class="btn btn-sm btn-light js-design-pdf-async"
+                                        title="Descargar PDF de portada y trasera"
+                                        data-async-url="{{ route('design.exportCoverBackPdfAsync', $design->id) }}"
+                                        data-title="Portada y trasera"><i class="ri-file-pdf-line"></i></button>
                                     @endif
                                     @php
                                         $isDigital = $design->set && ($design->set->digital_participations ?? 0) > 0 && (int)($design->set->physical_participations ?? 0) === 0;
@@ -122,7 +126,11 @@
                                             <i class="ri-image-line"></i>
                                         </a>
                                     @else
-                                        <a target="_blank" href="{{ url('design/pdf/participation', $design->id) }}" class="btn btn-sm btn-light" title="Descargar PDF de participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></a>
+                                        <button type="button"
+                                            class="btn btn-sm btn-light js-design-pdf-async"
+                                            title="Descargar PDF de participaciones"
+                                            data-async-url="{{ route('design.exportParticipationPdfAsync', $design->id) }}"
+                                            data-title="Participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></button>
                                     @endif
                                     @if(!empty($printLockCtx['locked']))
                                         <button type="button" class="btn btn-sm btn-outline-warning text-dark" disabled title="{{ $printLockCtx['message'] ?? 'Ya existe una orden activa en imprenta.' }}">
@@ -182,6 +190,8 @@
 @endsection
 
 @section('scripts')
+
+@include('design.partials.async_design_pdf')
 
 <script>
     

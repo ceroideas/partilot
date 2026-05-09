@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\DB;
 use App\Mail\DesignExternalInvitationMail;
 use App\Models\EmailCommunicationLog;
 use App\Services\CommunicationEmailService;
+use App\Support\FpdiPdfMerge;
+use App\Support\GeneratedPdfCatalog;
 use App\Services\ImageOptimizationService;
 use App\Services\QrCodeService;
 use GuzzleHttp\Client;
@@ -1032,7 +1034,7 @@ class DesignController extends Controller
         
         // Optimizar HTML antes de generar PDF
         $publicPath = public_path();
-        $html = str_replace(url('/'), $publicPath, $html);
+        $html = $this->replaceApplicationWebRootsWithPublicPath($html, $publicPath);
         $html = $this->ensureLocalPathsForPdf($html, $publicPath);
         $html = $this->adjustWidthsForDomPdf($html);
         
@@ -1049,19 +1051,90 @@ class DesignController extends Controller
     }
 
     /**
+     * HTML de participación listo para DomPDF (misma lógica en web y colas).
+     * Mantiene el flujo histórico: base de la app -> ruta de public/ y url(uploads/...) en CSS.
+     */
+    public function prepareParticipationHtmlForPdf(string $html): string
+    {
+        $publicPath = public_path();
+        $html = $this->replaceApplicationWebRootsWithPublicPath($html, $publicPath);
+        $html = $this->ensureLocalPathsForPdf($html, $publicPath);
+
+        return $this->adjustWidthsForDomPdf($html);
+    }
+
+    /**
+     * Sustituye la raíz web de la aplicación (todas las variantes habituales) por la ruta real de public/.
+     * Evita que queden URLs tipo http://127.0.0.1:8000/... cuando APP_URL usa localhost u otro host.
+     */
+    private function replaceApplicationWebRootsWithPublicPath(string $html, string $publicPath): string
+    {
+        $fsBase = str_replace('\\', '/', rtrim($publicPath, '/'));
+
+        $prefixes = array_unique(array_filter([
+            rtrim((string) config('app.url'), '/'),
+            rtrim(str_replace('\\', '/', (string) url('/')), '/'),
+            'http://127.0.0.1:8000',
+            'http://localhost:8000',
+            'http://127.0.0.1',
+            'http://localhost',
+            'https://127.0.0.1:8000',
+            'https://localhost:8000',
+            'https://127.0.0.1',
+            'https://localhost',
+        ]));
+
+        $appPort = parse_url((string) config('app.url'), PHP_URL_PORT);
+        $appScheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
+        if ($appPort !== null && $appPort !== false && (string) $appPort !== '') {
+            $port = (string) $appPort;
+            $prefixes[] = "{$appScheme}://127.0.0.1:{$port}";
+            $prefixes[] = "{$appScheme}://localhost:{$port}";
+            $altScheme = $appScheme === 'https' ? 'http' : 'https';
+            $prefixes[] = "{$altScheme}://127.0.0.1:{$port}";
+            $prefixes[] = "{$altScheme}://localhost:{$port}";
+        }
+
+        $prefixes = array_values(array_unique(array_filter($prefixes)));
+        usort($prefixes, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
+
+        foreach ($prefixes as $prefix) {
+            if ($prefix === '') {
+                continue;
+            }
+            $html = str_replace($prefix.'/', $fsBase.'/', $html);
+        }
+
+        // Cualquier puerto/host local que no coincidiera con APP_URL (p. ej. 127.0.0.1 vs localhost)
+        $fixed = preg_replace_callback(
+            '#https?://(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(/(?:uploads|storage)/[^\s\'"\)\>\#]+)#i',
+            static function (array $m) use ($fsBase): string {
+                $path = explode('?', rawurldecode($m[1]), 2)[0];
+
+                return $fsBase.str_replace('\\', '/', $path);
+            },
+            $html
+        );
+
+        return $fixed ?? $html;
+    }
+
+    /**
      * Convierte URLs relativas de imágenes (uploads/...) a ruta absoluta del sistema de archivos para DomPDF.
      */
-    private function ensureLocalPathsForPdf(string $html, string $publicPath): string
+    public function ensureLocalPathsForPdf(string $html, string $publicPath): string
     {
         // url('uploads/...') o url("/uploads/...") -> url(publicPath/uploads/...)
         $html = preg_replace_callback(
             '/url\s*\(\s*[\'"]?(?!\/|[a-z]:)(\/?)(uploads\/[^\'")\s]+)/i',
             function ($m) use ($publicPath) {
                 $path = $publicPath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $m[2]);
+
                 return 'url(\'' . str_replace('\\', '/', $path) . '\')';
             },
             $html
         );
+
         return $html;
     }
 
@@ -1175,7 +1248,7 @@ class DesignController extends Controller
         return $p;
     }
 
-    private function adjustWidthsForDomPdf($html) {
+    public function adjustWidthsForDomPdf($html) {
         return preg_replace_callback(
             '/style="([^"]*)"/i',
             function ($matches) {
@@ -1217,14 +1290,10 @@ class DesignController extends Controller
             abort(403, 'No tienes permisos para exportar este diseño.');
         }
         
-        // Cache del HTML procesado para evitar reprocesar
-        $cacheKey = 'participation_html_' . $id;
-        $participation_html = cache()->remember($cacheKey, 3600, function() use ($design) {
-            $html = $design->participation_html;
-            $publicPath = public_path();
-            $html = str_replace(url('/'), $publicPath, $html);
-            $html = $this->ensureLocalPathsForPdf($html, $publicPath);
-            return $this->adjustWidthsForDomPdf($html);
+        // Cache del HTML procesado para evitar reprocesar (clave versionada si cambia la normalización PDF)
+        $cacheKey = 'participation_html_pdf_v6_' . $id;
+        $participation_html = cache()->remember($cacheKey, 3600, function () use ($design) {
+            return $this->prepareParticipationHtmlForPdf($design->participation_html ?? '');
         });
 
         // Determinar tamaño y orientación
@@ -1302,11 +1371,11 @@ class DesignController extends Controller
             'cols' => $cols,
             'qrCodes' => $qrCodes,
         ])->setPaper($page, $pdfOrientation);
-        
+
         // Limpiar QR codes temporales después de generar el PDF
         $this->cleanupTempQrCodes();
         
-        return $pdf->stream('participacion.pdf');
+        return $pdf->download('participacion.pdf');
     }
 
     public function exportCoverPdf($id)
@@ -1320,53 +1389,40 @@ class DesignController extends Controller
     }
 
     /**
-     * Exportar portada y trasera en un solo PDF.
-     * Tarea 3 tacos: si hay taco_qrs en output, genera una portada por taco, cada una con su QR taco_ref.
+     * Construye el PDF combinado portada+trasera (incluye tacos/QRs).
+     * Sin comprobación de usuario: el llamador debe validar permisos antes.
      */
-    public function exportCoverAndBackPdf($id)
+    public function makeCoverBackPdfFacade(DesignFormat $design)
     {
-        // Aumentar límites para PDFs grandes
-        ini_set('max_execution_time', 300);
-        ini_set('memory_limit', '1024M');
-        
-        $design = DesignFormat::findOrFail($id);
-        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
-            abort(403, 'No tienes permisos para exportar este diseño.');
-        }
-        
-        // Verificar que ambas existan
         if (empty($design->cover_html) || empty($design->back_html)) {
-            abort(404, 'Portada o trasera no encontradas');
+            throw new \InvalidArgumentException('Portada o trasera no encontradas');
         }
-        
+
         $imageService = new ImageOptimizationService();
         $publicPath = public_path();
-        
-        // Procesar HTML de trasera (común para todas las páginas)
+
         $backHtml = $design->back_html;
         $backHtml = $imageService->optimizeHtmlImages($backHtml);
-        $backHtml = str_replace(url('/'), $publicPath, $backHtml);
+        $backHtml = $this->replaceApplicationWebRootsWithPublicPath($backHtml, $publicPath);
         $backHtml = $this->ensureLocalPathsForPdf($backHtml, $publicPath);
         $backHtml = $this->preserveInlineStyles($backHtml);
         $backHtml = $this->adjustWidthsForDomPdf($backHtml);
-        
-        // Tarea 3: comprobar si hay tacos (taco_qrs en output)
+
         $output = $design->output ?? [];
         if (!empty($output['participations_per_book']) && $design->set_id && empty($output['taco_qrs'])) {
             $output = DesignFormat::mergeTacoQrsIntoOutput($design->set_id, $output);
         }
         $tacoQrs = $output['taco_qrs'] ?? [];
-        
+
         if (!empty($tacoQrs)) {
-            // Una portada por taco, cada una con su QR
             $coverPages = [];
             $coverTemplate = $design->cover_html;
             $coverTemplate = $imageService->optimizeHtmlImages($coverTemplate);
-            $coverTemplate = str_replace(url('/'), $publicPath, $coverTemplate);
+            $coverTemplate = $this->replaceApplicationWebRootsWithPublicPath($coverTemplate, $publicPath);
             $coverTemplate = $this->ensureLocalPathsForPdf($coverTemplate, $publicPath);
             $coverTemplate = $this->preserveInlineStyles($coverTemplate);
             $coverTemplate = $this->adjustWidthsForDomPdf($coverTemplate);
-            
+
             foreach ($tacoQrs as $taco) {
                 $tacoRef = $taco['taco_ref'] ?? '';
                 $bookNumber = $taco['book_number'] ?? 0;
@@ -1377,9 +1433,9 @@ class DesignController extends Controller
                 $coverHtml = $this->replaceCoverQrWithTacoQr($coverTemplate, $qrBase64, $bookNumber);
                 $coverPages[] = $coverHtml;
             }
-            
+
             if (empty($coverPages)) {
-                abort(500, 'No se pudieron generar las portadas de tacos');
+                throw new \RuntimeException('No se pudieron generar las portadas de tacos');
             }
 
             $coverBackPairs = [];
@@ -1392,30 +1448,27 @@ class DesignController extends Controller
             ];
             $viewName = 'design.pdf_cover_back_multiple';
         } else {
-            // Sin tacos: una sola portada (comportamiento anterior)
             $coverHtml = $design->cover_html;
             $coverHtml = $imageService->optimizeHtmlImages($coverHtml);
-            $coverHtml = str_replace(url('/'), $publicPath, $coverHtml);
+            $coverHtml = $this->replaceApplicationWebRootsWithPublicPath($coverHtml, $publicPath);
             $coverHtml = $this->ensureLocalPathsForPdf($coverHtml, $publicPath);
             $coverHtml = $this->preserveInlineStyles($coverHtml);
             $coverHtml = $this->adjustWidthsForDomPdf($coverHtml);
-            
+
             $viewData = [
                 'coverHtml' => $coverHtml,
                 'backHtml' => $backHtml,
             ];
             $viewName = 'design.pdf_cover_back';
         }
-        
-        // Determinar tamaño y orientación
+
         $page = $design->page ?? 'a3';
         $orientation = $design->orientation ?? 'h';
         $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
-        
+
         $pdf = Pdf::loadView($viewName, $viewData);
         $pdf->setPaper($page, $pdfOrientation);
-        
-        // Configurar opciones de DomPDF
+
         $dompdf = $pdf->getDomPDF();
         $options = $dompdf->getOptions();
         $options->set('defaultFont', 'Arial');
@@ -1427,7 +1480,32 @@ class DesignController extends Controller
         $options->set('enable_php', true);
         $options->set('enableCssFloat', true);
         $options->set('enableFontSubsetting', false);
-        
+
+        return $pdf;
+    }
+
+    /**
+     * Exportar portada y trasera en un solo PDF.
+     * Tarea 3 tacos: si hay taco_qrs en output, genera una portada por taco, cada una con su QR taco_ref.
+     */
+    public function exportCoverAndBackPdf($id)
+    {
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '1024M');
+
+        $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
+
+        try {
+            $pdf = $this->makeCoverBackPdfFacade($design);
+        } catch (\InvalidArgumentException $e) {
+            abort(404, $e->getMessage());
+        } catch (\RuntimeException $e) {
+            abort(500, $e->getMessage());
+        }
+
         return $pdf->download('portada-trasera.pdf');
     }
 
@@ -1514,51 +1592,35 @@ class DesignController extends Controller
     }
 
     /**
-     * Método genérico optimizado para generar PDFs
+     * Portada o trasera: instancia Pdf lista para descargar o guardar en disco (sin chequeo de permisos).
      */
-    private function generateOptimizedPdf($id, $htmlField, $filename)
+    public function prepareOptimizedPdfFacade(DesignFormat $design, string $htmlField)
     {
-        // Aumentar límites para PDFs grandes
-        ini_set('max_execution_time', 300);
-        ini_set('memory_limit', '1024M');
-        
-        $design = DesignFormat::findOrFail($id);
-        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
-            abort(403, 'No tienes permisos para exportar este diseño.');
-        }
-        
-        // Procesar HTML sin caché para aplicar cambios inmediatamente
         $html = $design->$htmlField;
-        
-        // Usar servicio de optimización de imágenes
+
         $imageService = new ImageOptimizationService();
         $html = $imageService->optimizeHtmlImages($html);
-        
+
         $publicPath = public_path();
-        $html = str_replace(url('/'), $publicPath, $html);
+        $html = $this->replaceApplicationWebRootsWithPublicPath($html, $publicPath);
         $html = $this->ensureLocalPathsForPdf($html, $publicPath);
-        // Asegurar que los estilos inline se preserven correctamente
         $html = $this->preserveInlineStyles($html);
         $html = $this->adjustWidthsForDomPdf($html);
 
-        // Determinar tamaño y orientación
         $page = $design->page ?? 'a3';
         $orientation = $design->orientation ?? 'h';
         $pdfOrientation = ($orientation === 'h') ? 'landscape' : 'portrait';
 
-        // Determinar la vista a usar según el tipo de PDF
-        $viewName = 'design.pdf_base'; // Vista por defecto
+        $viewName = 'design.pdf_base';
         if ($htmlField === 'cover_html') {
             $viewName = 'design.pdf_cover';
         } elseif ($htmlField === 'back_html') {
             $viewName = 'design.pdf_back';
         }
 
-        // Usar vista optimizada para mejor rendimiento
         $pdf = Pdf::loadView($viewName, ['html' => $html]);
         $pdf->setPaper($page, $pdfOrientation);
-        
-        // Configurar opciones de DomPDF para mejor rendimiento
+
         $dompdf = $pdf->getDomPDF();
         $options = $dompdf->getOptions();
         $options->set('defaultFont', 'Arial');
@@ -1570,8 +1632,24 @@ class DesignController extends Controller
         $options->set('enable_php', true);
         $options->set('enableCssFloat', true);
         $options->set('enableFontSubsetting', false);
-        
-        return $pdf->download($filename);
+
+        return $pdf;
+    }
+
+    /**
+     * Método genérico optimizado para generar PDFs
+     */
+    private function generateOptimizedPdf($id, $htmlField, $filename)
+    {
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '1024M');
+
+        $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
+
+        return $this->prepareOptimizedPdfFacade($design, $htmlField)->download($filename);
     }
 
     /**
@@ -1927,51 +2005,20 @@ class DesignController extends Controller
                 'cols' => $cols,
                 'qrCodes' => $qrCodes,
             ])->setPaper($page, $pdfOrientation);
-            
+
             // Guardar en archivo temporal
-            
+
             $temp_file = storage_path('app/temp_pdf_' . $chunk_start . '.pdf');
             $pdf->save($temp_file);
             $temp_files[] = $temp_file;
         }
         
         // Combinar PDFs usando una librería como TCPDF o FPDI
-        return $this->combinePdfFiles($temp_files, 'participacion.pdf');
-    }
+        $binary = FpdiPdfMerge::mergeTemporaryFiles($temp_files, false);
 
-    /**
-     * Combinar múltiples archivos PDF en uno solo.
-     * Respeta orientación y tamaño de cada página importada (getTemplateSize + AddPage con mismo size).
-     */
-    private function combinePdfFiles($temp_files, $filename)
-    {
-        $pdf = new \setasign\Fpdi\Fpdi();
-
-        foreach ($temp_files as $file) {
-            $pageCount = $pdf->setSourceFile($file);
-            for ($i = 1; $i <= $pageCount; $i++) {
-                $templateId = $pdf->importPage($i);
-                $size = $pdf->getTemplateSize($templateId);
-                if ($size === false) {
-                    continue;
-                }
-                // Añadir página con la misma orientación y dimensiones que la importada
-                $orientation = isset($size['orientation']) ? $size['orientation'] : 'P';
-                $pdf->AddPage($orientation, $size);
-                $pdf->useTemplate($templateId);
-            }
-        }
-
-        // Limpiar archivos temporales
-        foreach ($temp_files as $file) {
-            if (file_exists($file)) {
-                unlink($file);
-            }
-        }
-
-        return response($pdf->Output('S'), 200, [
+        return response($binary, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+            'Content-Disposition' => 'attachment; filename="participacion.pdf"'
         ]);
     }
 
@@ -1984,28 +2031,43 @@ class DesignController extends Controller
         if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
             abort(403, 'No tienes permisos para exportar este diseño.');
         }
-        
-        // Para PDFs muy grandes (>1000 participaciones), usar procesamiento asíncrono
-        $set = $design->set_id ? Set::select('id', 'total_participations')->find($design->set_id) : null;
-        $total_participations = $set->total_participations ?? 0;
-        
-        if ($total_participations > 1000) {
-            // Generar un ID único para el trabajo
-            $job_id = 'pdf_' . $id . '_' . time();
-            
-            // Dispatch job para procesar en background
-            Queue::push(new \App\Jobs\GenerateParticipationPdfJob($id, $job_id));
-            
-            return response()->json([
-                'status' => 'processing',
-                'job_id' => $job_id,
-                'message' => 'El PDF se está generando en segundo plano. Te notificaremos cuando esté listo.',
-                'check_url' => route('design.checkPdfStatus', $job_id)
-            ]);
+
+        $job_id = 'pdf_part_' . $id . '_' . time();
+        Queue::push(new \App\Jobs\GenerateParticipationPdfJob($id, $job_id));
+
+        return response()->json([
+            'status' => 'processing',
+            'job_id' => $job_id,
+            'message' => 'El PDF se está generando en segundo plano. Cuando esté listo podrá descargarlo desde el aviso.',
+            'check_url' => route('design.checkPdfStatus', $job_id),
+        ]);
+    }
+
+    /**
+     * Portada + trasera asíncronas (mismo pipeline que la descarga directa, archivo en disco).
+     */
+    public function exportCoverBackPdfAsync($id)
+    {
+        $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
         }
-        
-        // Para PDFs pequeños, usar el método normal
-        return $this->exportParticipationPdf($id);
+        if (empty($design->cover_html) || empty($design->back_html)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Portada o trasera no encontradas',
+            ], 404);
+        }
+
+        $job_id = 'pdf_cover_back_' . $id . '_' . time();
+        Queue::push(new \App\Jobs\GenerateCoverBackPdfJob($id, $job_id));
+
+        return response()->json([
+            'status' => 'processing',
+            'job_id' => $job_id,
+            'message' => 'El PDF de portada y trasera se está generando. Cuando esté listo podrá descargarlo desde el aviso.',
+            'check_url' => route('design.checkPdfStatus', $job_id),
+        ]);
     }
 
     /**
@@ -2034,12 +2096,25 @@ class DesignController extends Controller
     public function downloadPdf($job_id)
     {
         $file_path = storage_path('app/generated_pdfs/' . $job_id . '.pdf');
-        
+
         if (!file_exists($file_path)) {
             abort(404, 'PDF no encontrado');
         }
-        
-        return response()->download($file_path, 'participacion.pdf')->deleteFileAfterSend(true);
+
+        $meta = GeneratedPdfCatalog::readMeta($job_id);
+        if ($meta === null || ! isset($meta['design_format_id'])) {
+            abort(403, 'No se puede descargar este archivo.');
+        }
+
+        $design = DesignFormat::find($meta['design_format_id']);
+        if (! $design || ! auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para descargar este PDF.');
+        }
+
+        $downloadName = $meta['download_name'] ?? 'documento.pdf';
+        GeneratedPdfCatalog::deleteMeta($job_id);
+
+        return response()->download($file_path, $downloadName)->deleteFileAfterSend(true);
     }
 
 
@@ -2173,7 +2248,7 @@ class DesignController extends Controller
     /**
      * Optimizar HTML de participación (simplificado - solo si es necesario)
      */
-    private function optimizeParticipationHtml($html, $tickets)
+    public function optimizeParticipationHtml($html, $tickets)
     {
         // Solo optimizar imágenes si hay muchas (para evitar ralentizar)
         preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $html, $matches);
@@ -2249,27 +2324,16 @@ class DesignController extends Controller
         if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
             abort(403, 'No tienes permisos para exportar este diseño.');
         }
-        
-        // Para PDFs simples, usar procesamiento asíncrono solo si es muy grande
-        $html = $design->$htmlField;
-        $htmlSize = strlen($html);
-        
-        if ($htmlSize > 500000) { // Si el HTML es muy grande (>500KB)
-            $job_id = 'pdf_' . $htmlField . '_' . $id . '_' . time();
-            
-            // Dispatch job para procesar en background
-            Queue::push(new \App\Jobs\GenerateSimplePdfJob($id, $htmlField, $job_id, $filename));
-            
-            return response()->json([
-                'status' => 'processing',
-                'job_id' => $job_id,
-                'message' => 'El PDF se está generando en segundo plano. Te notificaremos cuando esté listo.',
-                'check_url' => route('design.checkPdfStatus', $job_id)
-            ]);
-        }
-        
-        // Para PDFs pequeños, usar el método normal optimizado
-        return $this->generateOptimizedPdf($id, $htmlField, $filename);
+
+        $job_id = 'pdf_' . preg_replace('/[^a-z0-9_]/i', '', $htmlField) . '_' . $id . '_' . time();
+        Queue::push(new \App\Jobs\GenerateSimplePdfJob($id, $htmlField, $job_id, $filename));
+
+        return response()->json([
+            'status' => 'processing',
+            'job_id' => $job_id,
+            'message' => 'El PDF se está generando en segundo plano. Cuando esté listo podrá descargarlo desde el aviso.',
+            'check_url' => route('design.checkPdfStatus', $job_id),
+        ]);
     }
 
     public function saveSnapshot(Request $request) {

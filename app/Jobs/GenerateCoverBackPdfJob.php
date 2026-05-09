@@ -12,24 +12,18 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 
-class GenerateSimplePdfJob implements ShouldQueue
+class GenerateCoverBackPdfJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected int $designId;
 
-    protected string $htmlField;
-
     protected string $jobId;
 
-    protected string $filename;
-
-    public function __construct(int $designId, string $htmlField, string $jobId, string $filename)
+    public function __construct(int $designId, string $jobId)
     {
         $this->designId = $designId;
-        $this->htmlField = $htmlField;
         $this->jobId = $jobId;
-        $this->filename = $filename;
     }
 
     public function handle(): void
@@ -38,12 +32,23 @@ class GenerateSimplePdfJob implements ShouldQueue
         ini_set('memory_limit', '1024M');
 
         $design = DesignFormat::findOrFail($this->designId);
-        $pdf = app(DesignController::class)->prepareOptimizedPdfFacade($design, $this->htmlField);
+
+        $controller = app(DesignController::class);
+        try {
+            $pdf = $controller->makeCoverBackPdfFacade($design);
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            \Log::error('GenerateCoverBackPdfJob falló para diseño '.$this->designId.': '.$e->getMessage());
+            throw $e;
+        }
 
         Storage::makeDirectory('generated_pdfs');
         $final_path = storage_path('app/generated_pdfs/'.$this->jobId.'.pdf');
         $pdf->save($final_path);
 
-        GeneratedPdfCatalog::writeMeta($this->jobId, $this->filename, $this->designId);
+        GeneratedPdfCatalog::writeMeta(
+            $this->jobId,
+            'portada-trasera-diseno-'.$this->designId.'.pdf',
+            $this->designId
+        );
     }
 }

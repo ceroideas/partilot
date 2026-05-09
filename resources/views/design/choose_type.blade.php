@@ -35,7 +35,14 @@
                 <div class="form-wizard-element active"><span>4</span><label>Diseño Particip.</label></div>
             </div>
             <div class="form-card bs text-center mb-3">
-                <i class="ri-user-3-line" style="font-size: 34px;"></i>
+                <div class="photo-preview-3 logo-round mx-auto mb-2"
+                    @if($entity->image ?? null)
+                        style="background-image: url('{{ asset('uploads/' . $entity->image) }}'); background-size: cover; background-position: center;"
+                    @endif>
+                    @if(!($entity->image ?? null))
+                        <i class="ri-account-circle-fill"></i>
+                    @endif
+                </div>
                 <h4 class="mb-0 mt-1">{{ strtoupper($entity->name ?? 'ENTIDAD') }}</h4>
                 <small>{{ $entity->province ?? '' }}</small>
             </div>

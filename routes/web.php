@@ -440,6 +440,7 @@ Route::get('/design/pdf/cover-async/{id}', [App\Http\Controllers\DesignControlle
 Route::get('/design/pdf/back/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdf'])->name('design.exportBackPdf');
 Route::get('/design/pdf/back-async/{id}', [App\Http\Controllers\DesignController::class, 'exportBackPdfAsync'])->name('design.exportBackPdfAsync');
 Route::get('/design/pdf/cover-back/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverAndBackPdf'])->name('design.exportCoverAndBackPdf');
+Route::get('/design/pdf/cover-back-async/{id}', [App\Http\Controllers\DesignController::class, 'exportCoverBackPdfAsync'])->name('design.exportCoverBackPdfAsync');
 Route::get('/design/pdf/export-async', [App\Http\Controllers\DesignController::class, 'exportPdf'])->name('design.exportPdfAsync');
 Route::post('/design/export-pdf', [App\Http\Controllers\DesignController::class, 'exportPdf']);
 Route::get('/design/format/edit/{id}', [App\Http\Controllers\DesignController::class, 'editFormat'])->name('design.editFormat');

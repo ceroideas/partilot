@@ -38,17 +38,23 @@
                     </p>
 
                     <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
-                        <a target="_blank" href="{{ route('design.exportParticipationPdf', $design->id) }}" class="btn btn-primary">
+                        <button type="button"
+                            class="btn btn-primary js-design-pdf-async"
+                            data-async-url="{{ route('design.exportParticipationPdfAsync', $design->id) }}"
+                            data-title="Participaciones">
                             <i class="ri-file-pdf-line me-1"></i> Descargar PDF participaciones
-                        </a>
+                        </button>
                         @php
                             $hasCover = !empty($design->cover_html);
                             $hasBack = !empty($design->back_html);
                         @endphp
                         @if($hasCover && $hasBack)
-                        <a target="_blank" href="{{ route('design.exportCoverAndBackPdf', $design->id) }}" class="btn btn-outline-primary">
+                        <button type="button"
+                            class="btn btn-outline-primary js-design-pdf-async"
+                            data-async-url="{{ route('design.exportCoverBackPdfAsync', $design->id) }}"
+                            data-title="Portada y trasera">
                             <i class="ri-file-pdf-line me-1"></i> Descargar PDF portada y trasera
-                        </a>
+                        </button>
                         @endif
                         @if(!empty($printOrderLock['locked']))
                             <button type="button" class="btn btn-outline-warning text-dark" disabled title="{{ $printOrderLock['message'] ?? '' }}">
@@ -89,4 +95,8 @@
     </div>
 </div>
 
+@endsection
+
+@section('scripts')
+    @include('design.partials.async_design_pdf')
 @endsection
