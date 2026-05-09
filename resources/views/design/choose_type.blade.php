@@ -27,13 +27,65 @@
 
     <div class="row">
         <div class="col-md-3" style="position: relative;">
-            <div class="form-card bs mb-3">
-                <h4 class="mb-3">Selección</h4>
-                <div class="form-wizard-element"><span>1</span><label>Selec. Entidad</label></div>
-                <div class="form-wizard-element"><span>2</span><label>Selec. Sorteo</label></div>
-                <div class="form-wizard-element"><span>3</span><label>Selec. Set</label></div>
-                <div class="form-wizard-element active"><span>4</span><label>Diseño Particip.</label></div>
-            </div>
+        <div class="form-card bs mb-3">
+
+<div class="form-wizard-element">
+    
+    <span>
+        1
+    </span>
+
+    <img src="{{url('assets/entidad.svg')}}" alt="">
+
+    <label>
+        Selec. Entidad
+    </label>
+
+</div>
+
+<div class="form-wizard-element">
+    
+    <span>
+        2
+    </span>
+
+    <img width="26px" src="{{url('icons_/selec_sorteo.svg')}}" alt="">
+
+    <label>
+        Selec. Sorteo
+    </label>
+
+</div>
+
+<div class="form-wizard-element">
+    
+    <span>
+        3
+    </span>
+
+    <img src="{{url('assets/entidad.svg')}}" alt="">
+
+    <label>
+        Selec. Set
+    </label>
+
+</div>
+
+<div class="form-wizard-element active">
+    
+    <span>
+        4
+    </span>
+
+    <img src="{{url('assets/entidad.svg')}}" alt="">
+
+    <label>
+        Diseño Particip.
+    </label>
+
+</div>
+
+</div>
             <div class="form-card bs text-center mb-3">
                 <div class="photo-preview-3 logo-round mx-auto mb-2"
                     @if($entity->image ?? null)

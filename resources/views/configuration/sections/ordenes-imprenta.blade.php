@@ -30,6 +30,7 @@
                         <th>Set</th>
                         <th>Sorteo</th>
                         <th>Estado</th>
+                        <th>Cobro</th>
                         <th>Importe</th>
                         <th>Fecha envío</th>
                         <th>Historial</th>
@@ -51,6 +52,14 @@
                             <span class="badge {{ \App\Models\PrintOrder::statusBadgeClass((string) $order->status) }} rounded-pill">
                                 {{ \App\Models\PrintOrder::statusLabel((string) $order->status) }}
                             </span>
+                        </td>
+                        <td>
+                            <span class="badge {{ \App\Models\PrintOrder::paymentStatusBadgeClass($order->payment_status) }} rounded-pill">
+                                {{ \App\Models\PrintOrder::paymentStatusLabel($order->payment_status, $order->payment_provider) }}
+                            </span>
+                            @if($order->paid_at)
+                                <div class="small text-muted mt-1">{{ $order->paid_at->format('d/m/Y H:i') }}</div>
+                            @endif
                         </td>
                         <td>{{ number_format((float) $order->quoted_amount, 2, ',', '.') }}€</td>
                         <td>{{ $order->sent_at ? $order->sent_at->format('d/m/Y H:i') : '—' }}</td>

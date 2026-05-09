@@ -36,7 +36,7 @@
                         </div>
                         <div class="form-wizard-element" style="width: 220px;">
                             <span style="top: -4px; margin-right: 8px;">2</span>
-                            <label>{{ ($mode ?? 'external') === 'partilot' ? 'Resumen <br> y pago' : 'Invitación' }}</label>
+                            <label>{!! ($mode ?? 'external') === 'partilot' ? 'Resumen <br> y pago' : 'Invitación' !!}</label>
                         </div>
                     </div>
 

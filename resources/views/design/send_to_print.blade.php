@@ -72,7 +72,10 @@
                             <strong>{{ $quote['books'] ?? 0 }}</strong>
                         </div>
                         <hr>
-                        <div class="d-flex justify-content-between small mb-2"><span>Diseño</span><strong>{{ number_format(($quote['subtotal']['design'] ?? 0), 2, ',', '.') }}€</strong></div>
+                        <div class="d-flex justify-content-between small mb-2 align-items-start">
+                            <span>Diseño @if(!empty($quote['design_fee_waived']))<span class="d-block text-muted fw-normal" style="font-size:0.85em;">Sin cargo (realizado en PARTILOT)</span>@endif</span>
+                            <strong>{{ number_format(($quote['subtotal']['design'] ?? 0), 2, ',', '.') }}€</strong>
+                        </div>
                         <div class="d-flex justify-content-between small mb-2"><span>Participaciones</span><strong>{{ number_format(($quote['subtotal']['participation'] ?? 0), 2, ',', '.') }}€</strong></div>
                         <div class="d-flex justify-content-between small mb-2"><span>Trasera</span><strong>{{ number_format(($quote['subtotal']['back'] ?? 0), 2, ',', '.') }}€</strong></div>
                         <div class="d-flex justify-content-between small mb-2"><span>Tacos</span><strong>{{ number_format(($quote['subtotal']['book'] ?? 0), 2, ',', '.') }}€</strong></div>

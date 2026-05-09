@@ -11,6 +11,15 @@ class PrintOrder extends Model
     public const STATUS_SENT = 'enviada';
     public const STATUS_REJECTED = 'rechazada';
 
+    /** Cobro online no aplicado (pedido interno / envío sin pasarela). */
+    public const PAYMENT_STATUS_NOT_REQUIRED = 'not_required';
+
+    /** Pago Stripe confirmado y registrado en pedido. */
+    public const PAYMENT_STATUS_PAID = 'paid';
+
+    /** Estado inicial migración / pendiente de conciliar. */
+    public const PAYMENT_STATUS_PENDING = 'pending';
+
     protected $fillable = [
         'order_code',
         'design_format_id',
@@ -78,6 +87,35 @@ class PrintOrder extends Model
             self::STATUS_SENT => 'bg-success',
             self::STATUS_REJECTED => 'bg-danger',
             default => 'bg-secondary',
+        };
+    }
+
+    /**
+     * Etiqueta legible del estado de cobro para UI y trazabilidad.
+     */
+    public static function paymentStatusLabel(?string $paymentStatus, ?string $paymentProvider): string
+    {
+        $s = $paymentStatus ?: '';
+        return match ($s) {
+            self::PAYMENT_STATUS_PAID, 'succeeded' => $paymentProvider === 'stripe'
+                ? 'Cobrado (Stripe)'
+                : 'Cobrado',
+            self::PAYMENT_STATUS_NOT_REQUIRED => 'Sin cobro online',
+            self::PAYMENT_STATUS_PENDING => $paymentProvider ? 'Pago pendiente / revisar' : 'Pendiente',
+            'failed' => 'Pago fallido',
+            default => $s !== '' ? ucfirst(str_replace('_', ' ', $s)) : '—',
+        };
+    }
+
+    public static function paymentStatusBadgeClass(?string $paymentStatus): string
+    {
+        $s = $paymentStatus ?: '';
+        return match ($s) {
+            self::PAYMENT_STATUS_PAID, 'succeeded' => 'bg-success',
+            self::PAYMENT_STATUS_NOT_REQUIRED => 'bg-secondary',
+            self::PAYMENT_STATUS_PENDING => 'bg-warning text-dark',
+            'failed' => 'bg-danger',
+            default => 'bg-light text-dark border',
         };
     }
 

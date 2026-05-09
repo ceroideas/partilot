@@ -153,7 +153,14 @@ Definir un plan cerrado de ejecución para completar únicamente los pendientes 
 
 ### Pendiente (solo económico e integraciones)
 
-- Bloque 3: pagos, conciliación y trazabilidad de cobro.
+- Bloque 3: pagos, conciliación y trazabilidad de cobro — **en curso (base aplicada)**:
+  - **El cobro con Stripe no cambia en esencia:** sigue verificándose el PaymentIntent contra la API y creándose el pedido igual; solo se añadió control anti-duplicado, bloqueo y auditoría (no se alteró la pasarela ni el importe cobrado por Stripe salvo lo indicado abajo).
+  - Idempotencia por `payment_intent_id` (Stripe) + bloqueo distribuido + transacción con `lockForUpdate`.
+  - Auditoría de intento duplicado (`duplicate_payment_intent_blocked`) y de alta (`order_created_stripe` / `order_created_internal`).
+  - Pedidos internos (`submitPrintOrder`) con `payment_status = not_required` y trazabilidad en tabla de auditoría.
+  - Columna **Cobro** en órdenes imprenta (estado de pago + fecha de cobro si existe).
+  - **Presupuesto “enviar a imprenta” desde el panel:** la línea de **tarifa de diseño** no suma al total cuando el pedido sale del diseño ya elaborado en PARTILOT (`calculatePrintOrderQuote` con diseño exento). El flujo **invitación externa / pago directo** (`calculateExternalInvitationQuote`) **sigue incluyendo** la tarifa de diseño.
+  - Pendiente de negocio: reglas fuertes pedido↔pago en todos los flujos, idempotencia global de referencias de cobro, panel de conciliación.
 - Bloque 4: webhooks, reintentos e integración externa de estados.
 
 ## Dependencias clave para ejecución

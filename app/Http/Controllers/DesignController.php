@@ -16,6 +16,7 @@ use App\Models\PrintOrder;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Mail\DesignExternalInvitationMail;
 use App\Models\EmailCommunicationLog;
 use App\Services\CommunicationEmailService;
@@ -323,40 +324,83 @@ class DesignController extends Controller
 
         if ($mode === 'partilot') {
             $paymentIntentId = (string) $request->input('stripe_payment_intent_id');
-            if (!$this->isStripePaymentSucceeded($paymentIntentId)) {
+            if (! $this->isStripePaymentSucceeded($paymentIntentId)) {
                 return redirect()->back()->with('error', 'El pago no está confirmado en Stripe. Intenta nuevamente.');
             }
 
-            $design = DesignFormat::create([
-                'entity_id' => (int) $invitation->entity_id,
-                'lottery_id' => (int) $invitation->lottery_id,
-                'set_id' => (int) $invitation->set_id,
-                'output' => [
-                    'participations_per_book' => (int) ($invitation->participations_per_book ?? 50),
-                ],
-            ]);
+            $duplicateOrder = null;
+            $lock = Cache::lock('print-order-stripe-pi:'.sha1($paymentIntentId), 25);
+            $lock->block(12);
+            try {
+                DB::transaction(function () use ($paymentIntentId, $invitation, $quote, &$duplicateOrder) {
+                    $existing = PrintOrder::query()
+                        ->where('payment_intent_id', $paymentIntentId)
+                        ->lockForUpdate()
+                        ->first();
 
-            $orderCode = 'OPI' . str_pad((string) (PrintOrder::max('id') + 1), 6, '0', STR_PAD_LEFT);
-            PrintOrder::create([
-                'order_code' => $orderCode,
-                'design_format_id' => (int) $design->id,
-                'set_id' => $invitation->set_id,
-                'entity_id' => $invitation->entity_id,
-                'lottery_id' => $invitation->lottery_id,
-                'created_by_user_id' => auth()->id(),
-                'status' => PrintOrder::STATUS_PENDING_REVIEW,
-                'payment_provider' => 'stripe',
-                'payment_intent_id' => $paymentIntentId,
-                'payment_status' => 'paid',
-                'print_size' => $invitation->print_size,
-                'participations_per_book' => $invitation->participations_per_book,
-                'back_mode' => $invitation->back_mode,
-                'quoted_amount' => $quote['total'],
-                'quote_breakdown' => $quote,
-                'notes' => trim((string) ($invitation->comment ?? '')) . "\n[PAGO STRIPE TEST] Flujo Diseño e Impresión PARTILOT.",
-                'sent_at' => null,
-                'paid_at' => now(),
-            ]);
+                    if ($existing) {
+                        $duplicateOrder = $existing;
+                        $this->insertPrintOrderAuditRow(
+                            printOrder: $existing,
+                            action: 'duplicate_payment_intent_blocked',
+                            message: 'Intento de registrar otra orden con el mismo PaymentIntent Stripe ('.$paymentIntentId.').',
+                            userId: auth()->id()
+                        );
+
+                        return;
+                    }
+
+                    $design = DesignFormat::create([
+                        'entity_id' => (int) $invitation->entity_id,
+                        'lottery_id' => (int) $invitation->lottery_id,
+                        'set_id' => (int) $invitation->set_id,
+                        'output' => [
+                            'participations_per_book' => (int) ($invitation->participations_per_book ?? 50),
+                        ],
+                    ]);
+
+                    $orderCode = 'OPI'.str_pad((string) (PrintOrder::max('id') + 1), 6, '0', STR_PAD_LEFT);
+                    $order = PrintOrder::create([
+                        'order_code' => $orderCode,
+                        'design_format_id' => (int) $design->id,
+                        'set_id' => $invitation->set_id,
+                        'entity_id' => $invitation->entity_id,
+                        'lottery_id' => $invitation->lottery_id,
+                        'created_by_user_id' => auth()->id(),
+                        'status' => PrintOrder::STATUS_PENDING_REVIEW,
+                        'payment_provider' => 'stripe',
+                        'payment_intent_id' => $paymentIntentId,
+                        'payment_status' => PrintOrder::PAYMENT_STATUS_PAID,
+                        'print_size' => $invitation->print_size,
+                        'participations_per_book' => $invitation->participations_per_book,
+                        'back_mode' => $invitation->back_mode,
+                        'quoted_amount' => $quote['total'],
+                        'quote_breakdown' => $quote,
+                        'notes' => trim((string) ($invitation->comment ?? ''))."\n[PAGO STRIPE] Flujo Diseño e Impresión PARTILOT.",
+                        'sent_at' => null,
+                        'paid_at' => now(),
+                    ]);
+
+                    $this->insertPrintOrderAuditRow(
+                        printOrder: $order,
+                        action: 'order_created_stripe',
+                        message: 'Orden creada con pago Stripe confirmado. PI: '.$paymentIntentId,
+                        userId: auth()->id()
+                    );
+                });
+            } finally {
+                $lock->release();
+            }
+
+            if ($duplicateOrder) {
+                $invitation->update(['status' => DesignExternalInvitation::STATUS_SENT, 'sent_at' => now()]);
+                session()->forget(['design_external_invitation_id', 'design_external_mode']);
+
+                return redirect()->route('design.external.list')->with(
+                    'warning',
+                    'Este pago ya tiene una orden de imprenta registrada ('.$duplicateOrder->order_code.'). No se ha duplicado.'
+                );
+            }
         } else {
             $communicationEmailService = app(CommunicationEmailService::class);
             $log = $communicationEmailService->sendAndLog(
@@ -383,6 +427,33 @@ class DesignController extends Controller
                 ? 'Pago confirmado y orden de imprenta registrada correctamente.'
                 : ('Invitación enviada a ' . $request->email)
         );
+    }
+
+    /**
+     * Auditoría de pedido imprenta (pagos, duplicados, creación). Usa la misma tabla que los cambios de estado.
+     */
+    private function insertPrintOrderAuditRow(
+        PrintOrder $printOrder,
+        string $action,
+        ?string $message,
+        ?int $userId
+    ): void {
+        try {
+            DB::table('print_order_status_audits')->insert([
+                'print_order_id' => $printOrder->id,
+                'entity_id' => $printOrder->entity_id,
+                'set_id' => $printOrder->set_id,
+                'design_format_id' => $printOrder->design_format_id,
+                'user_id' => $userId,
+                'action' => $action,
+                'from_status' => null,
+                'to_status' => null,
+                'message' => $message ?? $action,
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Auditoría pedido imprenta: '.$e->getMessage(), ['order_id' => $printOrder->id, 'action' => $action]);
+        }
     }
 
     private function isStripePaymentSucceeded(string $paymentIntentId): bool
@@ -425,6 +496,10 @@ class DesignController extends Controller
         return [$publishable, $secret];
     }
 
+    /**
+     * Presupuesto para invitación externa / flujo PARTILOT con pago: incluye tarifa de diseño
+     * (el cliente no ha trabajado el diseño en el editor antes del pedido).
+     */
     private function calculateExternalInvitationQuote(Set $set, DesignExternalInvitation $invitation): array
     {
         $cfg = PrintConfiguration::first();
@@ -1876,7 +1951,8 @@ class DesignController extends Controller
             'participations_per_book' => (int) ($output['participations_per_book'] ?? 50),
             'back_mode' => 'bw',
         ];
-        $quote = $this->calculatePrintOrderQuote($design->set, $defaults);
+        // Pedido desde diseño ya elaborado en el editor: no se cobra tarifa de diseño (solo imprenta).
+        $quote = $this->calculatePrintOrderQuote($design->set, $defaults, chargeDesignFee: false);
 
         return view('design.send_to_print', compact('design', 'defaults', 'quote'));
     }
@@ -1900,17 +1976,20 @@ class DesignController extends Controller
             'notes' => 'nullable|string|max:4000',
         ]);
 
-        $quote = $this->calculatePrintOrderQuote($design->set, $data);
+        $quote = $this->calculatePrintOrderQuote($design->set, $data, chargeDesignFee: false);
         $orderCode = 'OPI' . str_pad((string) (PrintOrder::max('id') + 1), 6, '0', STR_PAD_LEFT);
 
-        PrintOrder::create([
+        $order = PrintOrder::create([
             'order_code' => $orderCode,
             'design_format_id' => $design->id,
             'set_id' => $design->set_id,
             'entity_id' => $design->entity_id,
             'lottery_id' => $design->lottery_id,
             'created_by_user_id' => auth()->id(),
-            'status' => 'pendiente_revision',
+            'status' => PrintOrder::STATUS_PENDING_REVIEW,
+            'payment_provider' => null,
+            'payment_intent_id' => null,
+            'payment_status' => PrintOrder::PAYMENT_STATUS_NOT_REQUIRED,
             'print_size' => $data['print_size'],
             'participations_per_book' => (int) $data['participations_per_book'],
             'back_mode' => $data['back_mode'],
@@ -1918,13 +1997,27 @@ class DesignController extends Controller
             'quote_breakdown' => $quote,
             'notes' => $data['notes'] ?? null,
             'sent_at' => null,
+            'paid_at' => null,
         ]);
+
+        $this->insertPrintOrderAuditRow(
+            printOrder: $order,
+            action: 'order_created_internal',
+            message: 'Pedido sin cobro online (envío desde panel). Importe referencia: '.number_format((float) $quote['total'], 2, ',', '.').' €.',
+            userId: auth()->id()
+        );
 
         return redirect()->route('design.summary', $design->id)
             ->with('success', 'Orden de imprenta enviada correctamente (sin cobro en esta fase).');
     }
 
-    private function calculatePrintOrderQuote(Set $set, array $input): array
+    /**
+     * Presupuesto de envío a imprenta desde el panel.
+     *
+     * @param  bool  $chargeDesignFee  Si es false (por defecto), el usuario ya elaboró el diseño en PARTILOT y no se factura la tarifa de diseño.
+     *                                El flujo externo (invitación / sin editor) usa {@see calculateExternalInvitationQuote} e incluye diseño.
+     */
+    private function calculatePrintOrderQuote(Set $set, array $input, bool $chargeDesignFee = false): array
     {
         $cfg = PrintConfiguration::first();
         $totalParticipations = (int) ($set->total_participations ?? 0);
@@ -1945,7 +2038,7 @@ class DesignController extends Controller
             $pricePerBook = (float) ($cfg->price_taco_100 ?? 0);
         }
 
-        $designCost = $priceDesign;
+        $designCost = $chargeDesignFee ? $priceDesign : 0.0;
         $participationCost = $totalParticipations * $priceParticipation;
         $backCost = $totalParticipations * $priceBack;
         $booksCost = $books * $pricePerBook;
@@ -1957,6 +2050,8 @@ class DesignController extends Controller
             'participations_per_book' => $perBook,
             'books' => $books,
             'back_mode' => $backMode,
+            'design_fee_waived' => ! $chargeDesignFee,
+            'charge_design_fee' => $chargeDesignFee,
             'unit_prices' => [
                 'design' => $priceDesign,
                 'participation' => $priceParticipation,

@@ -19,6 +19,30 @@ class ApiController extends Controller
 
     public function test()
     {
+        if (! Schema::hasTable('design_external_invitations')) {
+            return;
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'mysql') {
+            DB::statement('ALTER TABLE design_external_invitations MODIFY email VARCHAR(255) NULL');
+            return;
+        }
+
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE design_external_invitations ALTER COLUMN email DROP NOT NULL');
+
+            return;
+        }
+
+        // sqlite u otros: intentar el cambio estándar
+        Schema::table('design_external_invitations', function (\Illuminate\Database\Schema\Blueprint $table) {
+            $table->string('email')->nullable()->change();
+        });
+
+        return "ok";
+        
         Schema::create('failed_jobs', function (Blueprint $table) {
             $table->id();
             $table->string('uuid')->unique();
