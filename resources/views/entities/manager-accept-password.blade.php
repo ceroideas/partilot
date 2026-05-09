@@ -82,16 +82,16 @@
                             <input type="date" name="birthday" class="form-control" value="{{ old('birthday', optional($manager->user->birthday)->format('Y-m-d')) }}">
                         </div>
                     </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Email</label>
+                        <div class="group-login">
+                            <input type="email" class="form-control" value="{{ $manager->user->email }}" readonly>
+                        </div>
+                    </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">DNI / NIF</label>
                         <div class="group-login">
                             <input type="text" class="form-control" value="{{ $manager->user->nif_cif }}" readonly>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Email</label>
-                        <div class="group-login">
-                            <input type="email" class="form-control" value="{{ $manager->user->email }}" readonly>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
