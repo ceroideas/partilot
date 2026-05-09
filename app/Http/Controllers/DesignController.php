@@ -1290,8 +1290,8 @@ class DesignController extends Controller
             abort(403, 'No tienes permisos para exportar este diseño.');
         }
         
-        // Cache del HTML procesado para evitar reprocesar (clave versionada si cambia la normalización PDF)
-        $cacheKey = 'participation_html_pdf_v6_' . $id;
+        // Cache del HTML procesado (clave versionada; mismo pipeline que el Job en cola)
+        $cacheKey = 'participation_html_pdf_v7_' . $id;
         $participation_html = cache()->remember($cacheKey, 3600, function () use ($design) {
             return $this->prepareParticipationHtmlForPdf($design->participation_html ?? '');
         });
