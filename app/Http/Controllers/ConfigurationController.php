@@ -16,6 +16,10 @@ use App\Models\SepaPaymentBeneficiary;
 use App\Models\Administration;
 use App\Models\PrintConfiguration;
 use App\Models\PrintOrder;
+use App\Models\ParticipationDonation;
+use App\Models\Manager;
+use App\Models\Seller;
+use App\Models\User;
 
 class ConfigurationController extends Controller
 {
@@ -29,12 +33,15 @@ class ConfigurationController extends Controller
         $entityId = $request->get('entity_id');
         $user = $request->user();
 
-        // Para gestores de entidad (sin cuenta panel), Ajustes solo permite Órdenes Pago Entidades.
+        // Para gestores de entidad (sin cuenta panel), Ajustes solo permite secciones de pagos.
         if ($user && $user->isEntityManagerWithoutPanelAccount()) {
             if (!$user->hasEntityManagerPermission('payments')) {
                 abort(403, 'No tienes permisos para acceder a Ajustes.');
             }
-            $section = 'ordenes-pago-entidades';
+            $allowedManagerSections = ['ordenes-pago-entidades', 'codigos-recarga'];
+            if (! in_array($section, $allowedManagerSections, true)) {
+                $section = 'ordenes-pago-entidades';
+            }
         }
 
         $entities = collect();
@@ -49,6 +56,141 @@ class ConfigurationController extends Controller
         $printOrderAuditsByOrderId = collect();
         $provinces = [];
         $provinceCityMap = [];
+        $participationDonations = collect();
+
+        $logTab = 'partilot';
+        $logsProvincias = collect();
+        $logsLocalidades = collect();
+        $logsEntities = collect();
+        $logsAdministrations = collect();
+        $logsManagers = collect();
+        $logsSellers = collect();
+        $logsUsersPicker = collect();
+        $selectedLogAdministration = null;
+        $selectedLogEntity = null;
+        $selectedLogManager = null;
+        $selectedLogSeller = null;
+        $selectedLogUser = null;
+
+        if ($section === 'logs-actividad') {
+            $allowedTabs = ['partilot', 'administracion', 'entidades', 'vendedores', 'usuarios'];
+            $logTab = $request->get('log_tab', 'partilot');
+            if (! in_array($logTab, $allowedTabs, true)) {
+                $logTab = 'partilot';
+            }
+
+            $logsProvincias = Entity::forUser($user)->whereNotNull('province')->where('province', '!=', '')->distinct()->pluck('province')->sort()->values();
+            $logsLocalidades = Entity::forUser($user)->whereNotNull('city')->where('city', '!=', '')->distinct()->pluck('city')->sort()->values();
+
+            $entQ = Entity::with('administration')->forUser($user);
+            if ($request->filled('provincia')) {
+                $entQ->where('province', $request->provincia);
+            }
+            if ($request->filled('localidad')) {
+                $entQ->where('city', $request->localidad);
+            }
+            if ($request->filled('busqueda')) {
+                $q = $request->busqueda;
+                $entQ->where(function ($qry) use ($q) {
+                    $qry->where('name', 'like', '%'.$q.'%')
+                        ->orWhere('province', 'like', '%'.$q.'%')
+                        ->orWhere('city', 'like', '%'.$q.'%');
+                });
+            }
+            $logsEntities = $entQ->orderBy('name')->get();
+
+            $logsAdministrations = Administration::forUser($user)->orderBy('name')->get();
+
+            $adminId = $request->get('administration_id');
+            if ($adminId && $user->canAccessAdministration((int) $adminId)) {
+                $selectedLogAdministration = Administration::query()->find((int) $adminId);
+            }
+
+            $leId = $request->get('entity_id');
+            if ($leId) {
+                $selectedLogEntity = Entity::with('administration')->forUser($user)->find((int) $leId);
+            }
+
+            $lmId = $request->get('manager_id');
+            if ($selectedLogEntity && $lmId) {
+                $selectedLogManager = Manager::with('user')
+                    ->where('entity_id', $selectedLogEntity->id)
+                    ->find((int) $lmId);
+            }
+
+            $lsId = $request->get('seller_id');
+            if ($selectedLogEntity && $lsId) {
+                $selectedLogSeller = Seller::query()
+                    ->whereHas('entities', fn ($q) => $q->where('entities.id', $selectedLogEntity->id))
+                    ->find((int) $lsId);
+            }
+
+            $luId = $request->get('target_user_id');
+            if ($luId) {
+                $candidateUser = User::query()->find((int) $luId);
+                if ($candidateUser && ! $candidateUser->isSuperAdmin() && ! $candidateUser->isPanelAccount()) {
+                    $selectedLogUser = $candidateUser;
+                }
+            }
+
+            if ($selectedLogEntity) {
+                $logsManagers = Manager::with('user')
+                    ->where('entity_id', $selectedLogEntity->id)
+                    ->orderByDesc('is_primary')
+                    ->orderBy('id')
+                    ->get();
+
+                $logsSellers = Seller::with('user')
+                    ->whereHas('entities', fn ($q) => $q->where('entities.id', $selectedLogEntity->id))
+                    ->orderBy('name')
+                    ->orderBy('last_name')
+                    ->get();
+            }
+
+            // Solo usuarios “normales”: sin cuenta panel de administración/entidad ni rol super administrador.
+            $logsUsersPicker = User::query()
+                ->withoutPanelAccount()
+                ->where(function ($q) {
+                    $q->whereNull('role')->orWhere('role', '!=', User::ROLE_SUPER_ADMIN);
+                })
+                ->orderBy('name')
+                ->limit(500)
+                ->get(['id', 'name', 'last_name', 'last_name2', 'email', 'phone', 'status']);
+        }
+
+        if ($section === 'codigos-recarga') {
+            if ((int) $step === 2 && ! $entityId) {
+                return redirect()->route('configuration.index', ['section' => 'codigos-recarga', 'step' => 1]);
+            }
+            if ($step === 1 || ! $entityId) {
+                $provincias = Entity::forUser($user)->whereNotNull('province')->where('province', '!=', '')->distinct()->pluck('province')->sort()->values();
+                $localidades = Entity::forUser($user)->whereNotNull('city')->where('city', '!=', '')->distinct()->pluck('city')->sort()->values();
+                $query = Entity::with('administration')->forUser($user);
+                if ($request->filled('provincia')) {
+                    $query->where('province', $request->provincia);
+                }
+                if ($request->filled('localidad')) {
+                    $query->where('city', $request->localidad);
+                }
+                if ($request->filled('busqueda')) {
+                    $q = $request->busqueda;
+                    $query->where(function ($qry) use ($q) {
+                        $qry->where('name', 'like', '%'.$q.'%')
+                            ->orWhere('province', 'like', '%'.$q.'%')
+                            ->orWhere('city', 'like', '%'.$q.'%');
+                    });
+                }
+                $entities = $query->orderBy('name')->get();
+            }
+
+            if ($entityId && (int) $step === 2) {
+                $entity = Entity::with('administration')->forUser($request->user())->find($entityId);
+                if (! $entity) {
+                    return redirect()->route('configuration.index', ['section' => 'codigos-recarga', 'step' => 1]);
+                }
+                $participationDonations = $this->participationDonationsForEntity((int) $entity->id);
+            }
+        }
 
         if ($section === 'ordenes-pago-entidades') {
             if ($step === 1 || !$entityId) {
@@ -139,8 +281,56 @@ class ConfigurationController extends Controller
         }
 
         return view('configuration.index', compact(
-            'section', 'step', 'entityId', 'entities', 'entity', 'collections', 'sepaOrders', 'sepaOrder', 'provincias', 'localidades', 'printConfiguration', 'printOrders', 'printOrderAuditsByOrderId', 'provinces', 'provinceCityMap'
+            'section',
+            'step',
+            'entityId',
+            'entities',
+            'entity',
+            'collections',
+            'sepaOrders',
+            'sepaOrder',
+            'provincias',
+            'localidades',
+            'printConfiguration',
+            'printOrders',
+            'printOrderAuditsByOrderId',
+            'provinces',
+            'provinceCityMap',
+            'participationDonations',
+            'logTab',
+            'logsProvincias',
+            'logsLocalidades',
+            'logsEntities',
+            'logsAdministrations',
+            'logsManagers',
+            'logsSellers',
+            'logsUsersPicker',
+            'selectedLogAdministration',
+            'selectedLogEntity',
+            'selectedLogManager',
+            'selectedLogSeller',
+            'selectedLogUser'
         ));
+    }
+
+    /**
+     * Donaciones cuya primera fila en participation_donation_items (por id) apunta a una participación de la entidad dada.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, ParticipationDonation>
+     */
+    private function participationDonationsForEntity(int $entityId)
+    {
+        return ParticipationDonation::query()
+            ->whereIn('id', function ($q) use ($entityId) {
+                $q->select('pdi.donation_id')
+                    ->from('participation_donation_items as pdi')
+                    ->join('participations as p', 'p.id', '=', 'pdi.participation_id')
+                    ->where('p.entity_id', $entityId)
+                    ->whereRaw('pdi.id = (SELECT MIN(pdi2.id) FROM participation_donation_items pdi2 WHERE pdi2.donation_id = pdi.donation_id)');
+            })
+            ->orderByDesc('donated_at')
+            ->orderByDesc('id')
+            ->get();
     }
 
     private function getProvinceCityData(): array

@@ -3,6 +3,13 @@
 @section('title', 'Ajustes')
 
 @section('content')
+
+<style>
+    #configuration-content .alert {
+        display: block !important;
+    }
+</style>
+
 <div class="container-fluid">
     @php
         $configIcons = [
@@ -39,10 +46,28 @@
             <div class="form-card bs mb-3" style="background-color: #fff;">
                 @php($onlyPaymentsSection = auth()->user()?->isEntityManagerWithoutPanelAccount())
                 @if($onlyPaymentsSection)
-                    <div class="form-wizard-element active">
-                        <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
-                        <label>Ordenes Pago Entidades</label>
-                    </div>
+                    @if($section == 'ordenes-pago-entidades')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
+                            <label>Ordenes Pago Entidades</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=ordenes-pago-entidades') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
+                            <label>Ordenes Pago Entidades</label>
+                        </a>
+                    @endif
+                    @if($section == 'codigos-recarga')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
+                            <label>Códigos Recarga</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=codigos-recarga') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
+                            <label>Códigos Recarga</label>
+                        </a>
+                    @endif
                 @else
                 @if($section == 'datos-partilot')
                     <div class="form-wizard-element active">
@@ -190,7 +215,7 @@
         </div>
 
         <!-- Contenido central -->
-        <div class="col-md-9 col-lg-9">
+        <div class="col-md-9 col-lg-9" id="configuration-content">
                     @if($section == 'datos-partilot')
                         @include('configuration.sections.datos-partilot')
                     @elseif($section == 'config-factura-auto')
@@ -300,6 +325,157 @@
                 columnDefs: [{ orderable: false, targets: -1 }]
             });
         }
+    });
+})();
+</script>
+@endif
+@if($section == 'codigos-recarga' && $step === 1)
+<script>
+(function() {
+    var baseUrl = '{{ url("/configuration") }}';
+    document.addEventListener('DOMContentLoaded', function() {
+        var table = document.getElementById('tabla-cr-entidades');
+        var btnSiguiente = document.getElementById('btn-siguiente-cr');
+        var inputSelected = document.getElementById('selected-entity-id-cr');
+        if (!table || !btnSiguiente || !inputSelected) return;
+
+        function clearSelection() {
+            var rows = table.querySelectorAll('tbody tr.selectable-row');
+            rows.forEach(function(r) { r.style.backgroundColor = ''; });
+        }
+        document.addEventListener('click', function(e) {
+            var row = e.target.closest('tr.selectable-row');
+            if (!row || !table.contains(row)) return;
+            if (row.classList.contains('entity-inactive')) return;
+            var id = row.getAttribute('data-entity-id');
+            if (!id) return;
+            e.preventDefault();
+            clearSelection();
+            row.style.backgroundColor = '#e3f2fd';
+            inputSelected.value = id;
+            btnSiguiente.disabled = false;
+        });
+        btnSiguiente.addEventListener('click', function() {
+            var id = inputSelected.value;
+            if (id) window.location.href = baseUrl + '?section=codigos-recarga&step=2&entity_id=' + id;
+        });
+        if (typeof jQuery !== 'undefined' && jQuery.fn.DataTable && table.querySelector('tbody tr.selectable-row')) {
+            jQuery(table).DataTable({
+                ordering: true,
+                searching: true,
+                paging: true,
+                pageLength: 30,
+                lengthMenu: [[10, 25, 30, 50, -1], [10, 25, 30, 50, 'Todos']],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
+                columnDefs: [{ orderable: false, targets: -1 }]
+            });
+        }
+    });
+})();
+</script>
+@endif
+@if($section == 'codigos-recarga' && $step === 2 && isset($entity) && $entity)
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var t = document.getElementById('tabla-cr-donaciones');
+    if (!t || typeof jQuery === 'undefined' || !jQuery.fn.DataTable) return;
+    if (!t.querySelector('tbody tr td[colspan]') && t.querySelector('tbody tr')) {
+        jQuery(t).DataTable({
+            ordering: true,
+            searching: true,
+            paging: true,
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'Todos']],
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
+            order: [[0, 'desc']]
+        });
+    }
+});
+</script>
+@endif
+@if($section == 'logs-actividad')
+<script>
+(function() {
+    var baseUrl = '{{ url("/configuration") }}';
+    function qs(params) {
+        var q = new URLSearchParams(params).toString();
+        return q ? ('?' + q) : '';
+    }
+    function highlightRows(container, row) {
+        if (!container) return;
+        container.querySelectorAll('tbody tr.logs-select-row').forEach(function(r) { r.style.backgroundColor = ''; });
+        if (row) row.style.backgroundColor = '#e3f2fd';
+    }
+    function bindTableSelect(tableId, hiddenId, btnId, onNavigate) {
+        var table = document.getElementById(tableId);
+        var hid = document.getElementById(hiddenId);
+        var btn = document.getElementById(btnId);
+        if (!table || !hid || !btn) return;
+        function onRowClick(row) {
+            var id = row.getAttribute('data-select-id');
+            var active = row.getAttribute('data-entity-active');
+            if (active === '0') return;
+            hid.value = id || '';
+            btn.disabled = !id;
+            highlightRows(table, row);
+        }
+        table.addEventListener('click', function(e) {
+            var row = e.target.closest('tr.logs-select-row');
+            if (!row || !table.contains(row)) return;
+            onRowClick(row);
+        });
+        if (typeof jQuery !== 'undefined' && jQuery.fn.DataTable && table.querySelector('tbody tr')) {
+            jQuery(table).DataTable({
+                ordering: true,
+                searching: true,
+                paging: true,
+                pageLength: 30,
+                lengthMenu: [[10, 25, 30, 50, -1], [10, 25, 30, 50, 'Todos']],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' }
+            });
+        }
+        btn.addEventListener('click', function() {
+            if (!hid.value) return;
+            onNavigate(hid.value);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        bindTableSelect('logs-tabla-administraciones', 'logs-selected-admin-id', 'logs-btn-admin-next', function(id) {
+            window.location.href = baseUrl + qs({ section: 'logs-actividad', log_tab: 'administracion', administration_id: id });
+        });
+        bindTableSelect('logs-tabla-entidades', 'logs-selected-entity-id', 'logs-btn-entity-next', function(id) {
+            window.location.href = baseUrl + qs({ section: 'logs-actividad', log_tab: 'entidades', entity_id: id });
+        });
+        bindTableSelect('logs-tabla-gestores', 'logs-selected-manager-id', 'logs-btn-manager-next', function(id) {
+            var b = document.getElementById('logs-btn-manager-next');
+            var eid = b ? b.getAttribute('data-entity-id') : '';
+            window.location.href = baseUrl + qs({ section: 'logs-actividad', log_tab: 'entidades', entity_id: eid, manager_id: id });
+        });
+        bindTableSelect('logs-tabla-entidades-ven', 'logs-selected-entity-v-id', 'logs-btn-entity-v-next', function(id) {
+            window.location.href = baseUrl + qs({ section: 'logs-actividad', log_tab: 'vendedores', entity_id: id });
+        });
+        bindTableSelect('logs-tabla-vendedores', 'logs-selected-seller-id', 'logs-btn-seller-next', function(id) {
+            var b = document.getElementById('logs-btn-seller-next');
+            var eid = b ? b.getAttribute('data-entity-id') : '';
+            window.location.href = baseUrl + qs({ section: 'logs-actividad', log_tab: 'vendedores', entity_id: eid, seller_id: id });
+        });
+        bindTableSelect('logs-tabla-usuarios', 'logs-selected-user-id', 'logs-btn-user-next', function(id) {
+            window.location.href = baseUrl + qs({ section: 'logs-actividad', log_tab: 'usuarios', target_user_id: id });
+        });
+
+        document.querySelectorAll('table.logs-tabla-actividad-mock').forEach(function(t) {
+            if (typeof jQuery === 'undefined' || !jQuery.fn.DataTable) return;
+            if (!t.querySelector('tbody tr')) return;
+            jQuery(t).DataTable({
+                ordering: true,
+                searching: true,
+                paging: true,
+                pageLength: 30,
+                lengthMenu: [[10, 25, 30, 50, -1], [10, 25, 30, 50, 'Todos']],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
+                order: [[0, 'desc']]
+            });
+        });
     });
 })();
 </script>

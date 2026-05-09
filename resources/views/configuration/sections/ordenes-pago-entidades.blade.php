@@ -179,21 +179,19 @@
                 </tbody>
             </table>
         </div>
-        <div class="d-flex justify-content-between mt-3 align-items-center">
+        <div class="d-flex justify-content-end flex-wrap gap-2 mt-3 align-items-center">
             <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=1') }}" class="btn btn-md btn-dark" style="border-radius: 30px;">
                 <i class="ri-arrow-left-line me-1"></i> Atrás
             </a>
-            <div class="d-flex gap-2 align-items-center">
-                <a href="{{ route('ordenes-pago-entidades.nueva-orden', ['entity_id' => $entity->id]) }}" class="btn btn-md btn-outline-primary" style="border-radius: 30px;">
-                    <i class="ri-add-line me-1"></i> Nueva orden SEPA
-                </a>
-                <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=3&entity_id=' . $entity->id) }}" class="btn btn-md btn-outline-secondary" style="border-radius: 30px;">
-                    Pagos pendientes <i class="ri-arrow-right-line ms-1"></i>
-                </a>
-                <button type="button" id="btn-ver-detalle-ope" disabled style="border-radius: 30px; min-width: 140px; background-color: #e78307; color: #333; padding: 8px 16px; font-weight: bolder;" class="btn btn-md btn-light">
-                    Ver detalle <i class="ri-arrow-right-line ms-1"></i>
-                </button>
-            </div>
+            <a href="{{ route('ordenes-pago-entidades.nueva-orden', ['entity_id' => $entity->id]) }}" class="btn btn-md btn-outline-primary" style="border-radius: 30px;">
+                <i class="ri-add-line me-1"></i> Nueva orden SEPA
+            </a>
+            <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=3&entity_id=' . $entity->id) }}" class="btn btn-md btn-outline-secondary" style="border-radius: 30px;">
+                Pagos pendientes <i class="ri-arrow-right-line ms-1"></i>
+            </a>
+            <button type="button" id="btn-ver-detalle-ope" disabled style="border-radius: 30px; min-width: 140px; background-color: #e78307; color: #333; padding: 8px 16px; font-weight: bolder;" class="btn btn-md btn-light">
+                Ver detalle <i class="ri-arrow-right-line ms-1"></i>
+            </button>
         </div>
     @endif
 
@@ -308,25 +306,23 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-between mt-3">
+        <div class="d-flex justify-content-end flex-wrap gap-2 mt-3 align-items-center">
             <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=2&entity_id=' . $entity->id) }}" class="btn btn-md btn-dark" style="border-radius: 30px;">
                 <i class="ri-arrow-left-line me-1"></i> Volver a órdenes
             </a>
-            <div class="d-flex gap-2 flex-wrap">
-                @if($sepaOrder->beneficiaries->isNotEmpty())
-                    <a href="{{ route('sepa-payments.generate-xml', $sepaOrder->id) }}" class="btn btn-md btn-light" style="border-radius: 30px;"><i class="fe-download me-1"></i> Descargar XML</a>
-                @endif
-                @if(in_array($sepaOrder->status ?? '', ['descargado', 'generated']))
-                    <form action="{{ route('sepa-payments.mark-ready', $sepaOrder->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar esta orden como Listo (pago realizado)?');">
-                        @csrf
-                        <input type="hidden" name="redirect_to" value="configuration">
-                        <input type="hidden" name="entity_id" value="{{ $entity->id }}">
-                        <input type="hidden" name="order_id" value="{{ $sepaOrder->id }}">
-                        <button type="submit" class="btn btn-md btn-success" style="border-radius: 30px;"><i class="fe-check me-1"></i> Marcar como Listo</button>
-                    </form>
-                @endif
-                <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=3&entity_id=' . $entity->id) }}" class="btn btn-md btn-outline-secondary" style="border-radius: 30px;">Pagos pendientes</a>
-            </div>
+            @if($sepaOrder->beneficiaries->isNotEmpty())
+                <a href="{{ route('sepa-payments.generate-xml', $sepaOrder->id) }}" class="btn btn-md btn-light" style="border-radius: 30px;"><i class="fe-download me-1"></i> Descargar XML</a>
+            @endif
+            @if(in_array($sepaOrder->status ?? '', ['descargado', 'generated']))
+                <form action="{{ route('sepa-payments.mark-ready', $sepaOrder->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar esta orden como Listo (pago realizado)?');">
+                    @csrf
+                    <input type="hidden" name="redirect_to" value="configuration">
+                    <input type="hidden" name="entity_id" value="{{ $entity->id }}">
+                    <input type="hidden" name="order_id" value="{{ $sepaOrder->id }}">
+                    <button type="submit" class="btn btn-md btn-success" style="border-radius: 30px;"><i class="fe-check me-1"></i> Marcar como Listo</button>
+                </form>
+            @endif
+            <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=3&entity_id=' . $entity->id) }}" class="btn btn-md btn-outline-secondary" style="border-radius: 30px;">Pagos pendientes</a>
         </div>
     @endif
 
@@ -397,22 +393,20 @@
             </table>
         </div>
 
-        <div class="d-flex justify-content-between mt-3">
+        <div class="d-flex justify-content-end flex-wrap gap-2 mt-3 align-items-center">
             <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=2&entity_id=' . $entity->id) }}" class="btn btn-md btn-dark" style="border-radius: 30px;">
                 <i class="ri-arrow-left-line me-1"></i> Órdenes SEPA
             </a>
-            <div class="d-flex gap-2">
-                <a href="{{ route('ordenes-pago-entidades.nueva-orden', ['entity_id' => $entity->id]) }}" class="btn btn-md btn-outline-primary" style="border-radius: 30px;">
-                    <i class="ri-add-line me-1"></i> Nueva orden SEPA
-                </a>
-                <form action="{{ route('ordenes-pago-entidades.crear-sepa') }}" method="POST" class="d-inline">
-                    @csrf
-                    <input type="hidden" name="entity_id" value="{{ $entity->id }}">
-                    <button type="submit" class="btn btn-md btn-light" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bolder;" {{ $collections->isEmpty() ? 'disabled' : '' }}>
-                        Crear orden SEPA (desde pendientes)
-                    </button>
-                </form>
-            </div>
+            <a href="{{ route('ordenes-pago-entidades.nueva-orden', ['entity_id' => $entity->id]) }}" class="btn btn-md btn-outline-primary" style="border-radius: 30px;">
+                <i class="ri-add-line me-1"></i> Nueva orden SEPA
+            </a>
+            <form action="{{ route('ordenes-pago-entidades.crear-sepa') }}" method="POST" class="d-inline">
+                @csrf
+                <input type="hidden" name="entity_id" value="{{ $entity->id }}">
+                <button type="submit" class="btn btn-md btn-light" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bolder;" {{ $collections->isEmpty() ? 'disabled' : '' }}>
+                    Crear orden SEPA (desde pendientes)
+                </button>
+            </form>
         </div>
     @endif
 </div>
