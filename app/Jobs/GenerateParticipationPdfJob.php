@@ -38,7 +38,7 @@ class GenerateParticipationPdfJob implements ShouldQueue
         $controller = app(DesignController::class);
 
         // Misma preparación que exportParticipationPdf() (web): rutas locales + url(uploads/) + anchuras
-        $cacheKey = 'participation_html_pdf_v8_'.$this->designId;
+        $cacheKey = 'participation_html_pdf_v9_'.$this->designId;
         $participation_html = cache()->remember($cacheKey, 3600, function () use ($design, $controller) {
             return $controller->prepareParticipationHtmlForPdf($design->participation_html ?? '');
         });

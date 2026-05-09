@@ -1100,6 +1100,8 @@ class DesignController extends Controller
                 : '';
             $prefixes[] = 'https://'.$host.$withPort;
             $prefixes[] = 'http://'.$host.$withPort;
+            // Protocolo-relativo //host/... (navegadores y plantillas suelen guardarlo así).
+            $prefixes[] = '//'.$host.$withPort;
         }
 
         $appPort = parse_url($appUrl, PHP_URL_PORT);
@@ -1131,6 +1133,11 @@ class DesignController extends Controller
             $h = parse_url((string) $u, PHP_URL_HOST);
             if (is_string($h) && $h !== '') {
                 $hosts[] = $h;
+                if (str_starts_with(strtolower($h), 'www.')) {
+                    $hosts[] = substr($h, 4);
+                } else {
+                    $hosts[] = 'www.'.$h;
+                }
             }
         }
 
@@ -1157,16 +1164,25 @@ class DesignController extends Controller
         );
         if ($escaped !== []) {
             $hostsPattern = implode('|', $escaped);
+            $mapToFs = static function (array $m) use ($fsBase): string {
+                $path = explode('?', rawurldecode($m[1]), 2)[0];
+
+                return $fsBase.str_replace('\\', '/', $path);
+            };
             $fixed = preg_replace_callback(
                 '#https?://(?:'.$hostsPattern.')(?::\d+)?(/(?:uploads|storage)/[^\s\'"\)\>\#]+)#i',
-                static function (array $m) use ($fsBase): string {
-                    $path = explode('?', rawurldecode($m[1]), 2)[0];
-
-                    return $fsBase.str_replace('\\', '/', $path);
-                },
+                $mapToFs,
                 $html
             );
             $html = $fixed ?? $html;
+
+            // //host/uploads/... (sin esquema http/https)
+            $fixed2 = preg_replace_callback(
+                '#//(?:'.$hostsPattern.')(?::\d+)?(/(?:uploads|storage)/[^\s\'"\)\>\#]+)#i',
+                $mapToFs,
+                $html
+            );
+            $html = $fixed2 ?? $html;
         }
 
         return $html;
@@ -1204,6 +1220,15 @@ class DesignController extends Controller
             '#\b(src|href)\s*=\s*([\'"])(/(?:uploads|storage)/[^\'"]+)\2#i',
             function ($m) use ($normBase) {
                 return $m[1].'='.$m[2].$normBase.str_replace('\\', '/', $m[3]).$m[2];
+            },
+            $html
+        );
+
+        // src="uploads/..." sin barra inicial (subidas desde el editor)
+        $html = preg_replace_callback(
+            '#\b(src|href)\s*=\s*([\'"])((?:uploads|storage)/[^\'"]+)\2#i',
+            function ($m) use ($normBase) {
+                return $m[1].'='.$m[2].$normBase.'/'.str_replace('\\', '/', $m[3]).$m[2];
             },
             $html
         );
@@ -1364,7 +1389,7 @@ class DesignController extends Controller
         }
         
         // Cache del HTML procesado (clave versionada; mismo pipeline que el Job en cola)
-        $cacheKey = 'participation_html_pdf_v8_' . $id;
+        $cacheKey = 'participation_html_pdf_v9_' . $id;
         $participation_html = cache()->remember($cacheKey, 3600, function () use ($design) {
             return $this->prepareParticipationHtmlForPdf($design->participation_html ?? '');
         });
