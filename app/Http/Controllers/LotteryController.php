@@ -229,8 +229,8 @@ class LotteryController extends Controller
             $dateFrom = date('Ymd', strtotime($request->date_from));
             $dateTo = date('Ymd', strtotime($request->date_to));
 
-            // Construir URL de la API
-            $apiUrl = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva={$dateFrom}&fechaFinInclusiva={$dateTo}";
+            // Construir URL de la API (celebrados=true: en pruebas reduce errores 503 respecto a celebrados=false)
+            $apiUrl = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=true&fechaInicioInclusiva={$dateFrom}&fechaFinInclusiva={$dateTo}";
 
             // Realizar petición HTTP usando Guzzle
             $response = Http::withOptions(['verify' => config('app.http_verify_ssl')])
@@ -798,8 +798,8 @@ class LotteryController extends Controller
     {
         $lottery = Lottery::with(['result', 'lotteryType'])->findOrFail($id);
         
-        // Construir la URL de la API para este sorteo específico
-        $apiUrl = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=false&fechaInicioInclusiva=" . $lottery->draw_date->format('Ymd') . "&fechaFinInclusiva=" . $lottery->draw_date->format('Ymd');
+        // Construir la URL de la API para este sorteo específico (celebrados=true: menos 503 al consultar el buscador)
+        $apiUrl = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos?game_id=LNAC&celebrados=true&fechaInicioInclusiva=" . $lottery->draw_date->format('Ymd') . "&fechaFinInclusiva=" . $lottery->draw_date->format('Ymd');
 
         // return $lottery->result;
 
