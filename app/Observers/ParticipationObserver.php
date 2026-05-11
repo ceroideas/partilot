@@ -323,7 +323,7 @@ class ParticipationObserver
         $participation->load(['seller.user.fcmTokens', 'entity.manager.user.fcmTokens']);
 
         $pushTokensForUser = function ($user, string $role) use (&$tokens): void {
-            if (! $user || $user->fcmTokens->isEmpty()) {
+            if (! $user || $user->fcmTokens->isEmpty() || $user->shouldExcludeFromOperationalPushRecipients()) {
                 return;
             }
             foreach ($user->fcmTokens as $row) {

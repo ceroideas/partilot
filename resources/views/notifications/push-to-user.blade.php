@@ -39,9 +39,10 @@
                     @endif
 
                     <p class="text-muted">
-                        Solo aparecen usuarios vinculados como gestor o vendedor a entidades a las que tienes acceso
+                        No se listan: superadministradores, usuarios de administración del sistema, ni cuentas de acceso al panel vinculadas a una administración o entidad.
+                        Sí aparecen gestores de entidad y vendedores elegibles
                         @if(auth()->user()->isSuperAdmin())
-                            (como super administrador ves todos los usuarios).
+                            (como super administrador ves todos los del sistema que cumplan eso).
                         @endif
                     </p>
 

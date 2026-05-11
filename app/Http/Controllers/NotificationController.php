@@ -73,6 +73,8 @@ class NotificationController extends Controller
         $auth = auth()->user();
         $users = $auth->isSuperAdmin()
             ? User::query()->with('fcmTokens')->orderBy('name')->get()
+                ->reject(fn (User $u) => $u->shouldExcludeFromOperationalPushRecipients())
+                ->values()
             : $this->collectUsersLinkedToEntities($auth->accessibleEntityIds());
 
         return view('notifications.push-to-user', [
@@ -93,6 +95,10 @@ class NotificationController extends Controller
 
         $auth = auth()->user();
         $target = User::query()->with('fcmTokens')->findOrFail((int) $request->user_id);
+
+        if ($target->shouldExcludeFromOperationalPushRecipients()) {
+            abort(403, 'No se envían pushes a administradores del sistema ni a cuentas de acceso directo del panel (administración o entidad).');
+        }
 
         if (! $this->authUserMaySendDirectPushTo($auth, $target)) {
             abort(403, 'No puedes enviar notificaciones a este usuario.');
@@ -538,8 +544,12 @@ class NotificationController extends Controller
      */
     public function dashboard()
     {
-        $usersWithTokens = User::has('fcmTokens')->count();
-        $users = User::withCount('fcmTokens')->orderBy('name')->get();
+        $usersWithTokens = User::query()->has('fcmTokens')->get()
+            ->reject(fn (User $u) => $u->shouldExcludeFromOperationalPushRecipients())
+            ->count();
+        $users = User::query()->withCount('fcmTokens')->orderBy('name')->get()
+            ->reject(fn (User $u) => $u->shouldExcludeFromOperationalPushRecipients())
+            ->values();
         $totalNotifications = Notification::count();
         $notificationsToday = Notification::whereDate('created_at', today())->count();
         $recentNotifications = Notification::with(['sender', 'entity'])
@@ -611,7 +621,10 @@ class NotificationController extends Controller
             }
         }
 
-        return collect($byId)->sortBy('name')->values();
+        return collect($byId)
+            ->reject(fn (User $u) => $u->shouldExcludeFromOperationalPushRecipients())
+            ->sortBy('name')
+            ->values();
     }
 
     private function authUserMaySendDirectPushTo(User $auth, User $target): bool
@@ -640,16 +653,21 @@ class NotificationController extends Controller
     public function sendTest(Request $request)
     {
         try {
-            $devices = UserFcmToken::with('user')->get();
+            $devices = UserFcmToken::query()
+                ->with('user')
+                ->get()
+                ->filter(fn ($d) => $d->user && ! $d->user->shouldExcludeFromOperationalPushRecipients())
+                ->values();
 
             if ($devices->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay tokens FCM registrados en ningún dispositivo',
+                    'message' => 'No hay tokens FCM en usuarios elegibles (se excluyen administración del sistema, superadmin y cuentas panel).',
                 ], 400);
             }
 
-            \Log::info('📤 Iniciando envío de notificación de prueba a ' . $devices->count() . ' dispositivo(s)');
+            $deviceCount = $devices->count();
+            \Log::info('📤 Iniciando envío de notificación de prueba a '.$deviceCount.' dispositivo(s)');
 
             $successCount = 0;
             $failCount = 0;
@@ -690,7 +708,7 @@ class NotificationController extends Controller
             if ($successCount > 0) {
                 return response()->json([
                     'success' => true,
-                    'message' => "Notificación enviada a {$successCount} de {$devices->count()} dispositivo(s)",
+                    'message' => "Notificación enviada a {$successCount} de {$deviceCount} dispositivo(s)",
                     'success_count' => $successCount,
                     'fail_count' => $failCount
                 ]);

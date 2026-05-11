@@ -93,6 +93,17 @@ class User extends Authenticatable
     }
 
     /**
+     * Destinatarios de push operativos (app / gestión): no superadmin, no administración del sistema,
+     * ni cuenta panel directa de administración o entidad.
+     */
+    public function shouldExcludeFromOperationalPushRecipients(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isPanelAccount()
+            || $this->isAdministration();
+    }
+
+    /**
      * Imagen de administración o entidad para el header (cuenta panel).
      */
     public function panelAccountHeaderImageUrl(): ?string
@@ -125,6 +136,18 @@ class User extends Authenticatable
     public function scopeWithoutPanelAccount($query)
     {
         return $query->whereNull('panel_account_type');
+    }
+
+    /**
+     * Excluye cuentas de acceso al panel vinculadas a una administración o entidad (misma lógica que {@see isPanelAccount()}).
+     */
+    public function scopeWithoutDirectPanelAccount(Builder $query): Builder
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('panel_account_id')
+                ->orWhereNull('panel_account_type')
+                ->orWhere('panel_account_type', '');
+        });
     }
 
     public function hasRole(string $role): bool

@@ -266,6 +266,7 @@ Route::middleware('auth.api')->group(function () {
         Route::post('/me/entities/{entityId}/sellers/{sellerId}/settlement', [SellerController::class, 'apiManagerStoreSettlement']);
         Route::get('/me/tacos', [SellerController::class, 'apiGetManagerTacos']);
         Route::get('/me/tacos/{setId}/{bookNumber}/participations', [SellerController::class, 'apiGetManagerTacoParticipations']);
+        Route::get('/me/taco-for-assign', [SellerController::class, 'apiManagerTacoForAssign']);
         Route::post('/me/check-user-email', [SellerController::class, 'apiManagerCheckUserEmail']);
         Route::post('/me/store-existing-user', [SellerController::class, 'apiManagerStoreExistingUser']);
         Route::post('/me/store-new-user', [SellerController::class, 'apiManagerStoreNewUser']);

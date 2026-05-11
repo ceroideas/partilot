@@ -1708,6 +1708,108 @@ class SellerController extends Controller
     }
 
     /**
+     * API gestor: resolver taco_ref para asignar participaciones libres del libro (taco) al vendedor seleccionado.
+     * Devuelve sorteo, set y rangos consecutivos de números en estado disponible sin vendedor dentro del taco.
+     */
+    public function apiManagerTacoForAssign(Request $request)
+    {
+        $request->validate([
+            'taco_ref' => 'required|string|max:120',
+            'entity_id' => 'required|integer|exists:entities,id',
+            'seller_id' => 'required|integer|exists:sellers,id',
+        ]);
+
+        $user = $request->user();
+        $entityId = (int) $request->entity_id;
+        $sellerId = (int) $request->seller_id;
+
+        $entityIds = $user->getManagerEntityIds();
+        if (! in_array($entityId, $entityIds, true)) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+        if (! $user->canAccessSeller($sellerId)) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para gestionar este vendedor.'], 403);
+        }
+
+        $parsed = DesignFormat::parseTacoRef($request->taco_ref);
+        if (! $parsed || (int) $parsed['entity_id'] !== $entityId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Código de taco no válido o no corresponde a esta entidad.',
+            ], 422);
+        }
+
+        $setId = $parsed['set_id'];
+        $bookNumber = $parsed['book_number'];
+
+        $set = Set::with(['reserve.lottery', 'designFormats'])->find($setId);
+        if (! $set || (int) $set->entity_id !== $entityId) {
+            return response()->json(['success' => false, 'message' => 'Set no encontrado o no pertenece a la entidad.'], 404);
+        }
+
+        if ((int) ($set->physical_participations ?? 0) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La asignación por taco desde la app solo aplica a sets con participaciones físicas.',
+            ], 422);
+        }
+
+        $designFormat = $set->designFormats->first();
+        $output = $designFormat && is_array($designFormat->output) ? $designFormat->output : [];
+        $participationsPerBook = (int) ($output['participations_per_book'] ?? 50);
+        $startParticipation = ($bookNumber - 1) * $participationsPerBook + 1;
+        $endParticipation = min($bookNumber * $participationsPerBook, (int) ($set->total_participations ?? 0));
+
+        if ($endParticipation < $startParticipation) {
+            return response()->json(['success' => false, 'message' => 'Rango de taco inválido.'], 422);
+        }
+
+        $participations = Participation::query()
+            ->where('set_id', $setId)
+            ->whereBetween('participation_number', [$startParticipation, $endParticipation])
+            ->where('status', 'disponible')
+            ->whereNull('seller_id')
+            ->orderBy('participation_number')
+            ->get();
+
+        if ($participations->isEmpty()) {
+            $lottery = $set->reserve->lottery ?? null;
+
+            return response()->json([
+                'success' => true,
+                'taco_ref' => $request->taco_ref,
+                'lottery_id' => $lottery?->id,
+                'lottery_name' => $lottery?->name ?? '',
+                'set_id' => $setId,
+                'book_number' => $bookNumber,
+                'set_name' => $set->set_name,
+                'rangos_disponibles' => [],
+                'total_disponibles' => 0,
+                'participations_per_book' => $participationsPerBook,
+                'message' => 'No hay participaciones disponibles para asignar en este taco (libro).',
+            ]);
+        }
+
+        $numbers = $participations->pluck('participation_number')->sort()->values()->all();
+        $rangos = $this->buildConsecutiveRanges($numbers);
+        $lottery = $set->reserve->lottery ?? null;
+
+        return response()->json([
+            'success' => true,
+            'taco_ref' => $request->taco_ref,
+            'lottery_id' => $lottery?->id,
+            'lottery_name' => $lottery?->name ?? '',
+            'lottery_date' => $lottery?->draw_date ? $lottery->draw_date->format('d/m/Y') : null,
+            'set_id' => $setId,
+            'book_number' => $bookNumber,
+            'set_name' => $set->set_name,
+            'rangos_disponibles' => $rangos,
+            'total_disponibles' => $participations->count(),
+            'participations_per_book' => $participationsPerBook,
+        ]);
+    }
+
+    /**
      * Convierte una lista ordenada de números en rangos consecutivos [['desde' => n, 'hasta' => m], ...].
      */
     private function buildConsecutiveRanges(array $numbers): array
