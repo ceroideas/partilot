@@ -266,22 +266,28 @@
                     </h4>
 
                     <div class="row">
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
                             <button onclick="testFirebaseConnection()" class="btn btn-primary btn-block w-100">
                                 <i class="mdi mdi-test-tube me-1"></i>
                                 Probar Conexión
                             </button>
                         </div>
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
                             <button onclick="sendTestNotification()" class="btn btn-success btn-block w-100" {{ $usersWithTokens == 0 ? 'disabled' : '' }}>
                                 <i class="mdi mdi-send me-1"></i>
                                 Enviar Prueba
                             </button>
                         </div>
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
                             <a href="{{route('notifications.create')}}" class="btn btn-info btn-block w-100">
                                 <i class="mdi mdi-bell-plus me-1"></i>
                                 Nueva Notificación
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ route('notifications.push-to-user') }}" class="btn btn-secondary btn-block w-100">
+                                <i class="mdi mdi-account-arrow-right me-1"></i>
+                                Push a usuario
                             </a>
                         </div>
                     </div>

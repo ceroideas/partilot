@@ -98,15 +98,21 @@
                                     <!-- Opciones de tipo de notificación -->
                                     <div id="all-options-notification">
                                         <div class="mt-4 text-center">
-                                            <div id="notification-type-buttons">
-                                                <button type="button" class="btn btn-light btn-xl text-center m-2 bs" id="btn-notificacion-administracion" style="border: 1px solid #f0f0f0; padding: 16px; width: 180px; border-radius: 16px; position: relative;">
+                                            <div id="notification-type-buttons" class="d-flex flex-wrap justify-content-center gap-2">
+                                                <button type="button" class="btn btn-light btn-xl text-center m-2 bs notification-type-btn" id="btn-notificacion-administracion" style="border: 1px solid #f0f0f0; padding: 16px; width: 180px; border-radius: 16px; position: relative;">
                                                     <img class="mt-2 mb-1" src="{{url('assets/vendedor.svg')}}" alt="" width="60%">
                                                     <h4 class="mb-0">Administración</h4>
                                                 </button>
 
-                                                <button type="button" class="btn btn-light btn-xl text-center m-2 bs" id="btn-notificacion-entidad" style="border: 1px solid #f0f0f0; padding: 16px; width: 160px; border-radius: 16px;">
+                                                <button type="button" class="btn btn-light btn-xl text-center m-2 bs notification-type-btn" id="btn-notificacion-entidad" style="border: 1px solid #f0f0f0; padding: 16px; width: 180px; border-radius: 16px;">
                                                     <img class="mt-2 mb-1" src="{{url('assets/vendedor.svg')}}" alt="" width="60%">
                                                     <h4 class="mb-0">Entidad</h4>
+                                                </button>
+
+                                                <button type="button" class="btn btn-light btn-xl text-center m-2 bs notification-type-btn" id="btn-notificacion-usuario" style="border: 1px solid #f0f0f0; padding: 16px; width: 200px; border-radius: 16px;">
+                                                    <img class="mt-2 mb-1" src="{{url('assets/vendedor.svg')}}" alt="" width="60%">
+                                                    <h4 class="mb-0">Usuario (push)</h4>
+                                                    <small class="text-muted d-block mt-1">Un solo destinatario</small>
                                                 </button>
                                             </div>
                                         </div>
@@ -144,34 +150,29 @@
 
 <script>
 $(document).ready(function() {
-    // Manejar clic en botón de administración
-    $('#btn-notificacion-administracion').click(function() {
-        // Remover clase activa de todos los botones
-        $('.btn').removeClass('btn-primary').addClass('btn-light');
-        
-        // Agregar clase activa al botón seleccionado
-        $(this).removeClass('btn-light').addClass('btn-primary');
-        
-        // Establecer el valor del tipo
-        $('#notification_type').val('administration');
-        
-        // Habilitar el botón de envío
+    function selectNotificationType(val) {
+        $('#notification-type-buttons .notification-type-btn').removeClass('btn-primary').addClass('btn-light');
+        if (val === 'administration') {
+            $('#btn-notificacion-administracion').removeClass('btn-light').addClass('btn-primary');
+        } else if (val === 'entity') {
+            $('#btn-notificacion-entidad').removeClass('btn-light').addClass('btn-primary');
+        } else if (val === 'user') {
+            $('#btn-notificacion-usuario').removeClass('btn-light').addClass('btn-primary');
+        }
+        $('#notification_type').val(val);
         $('#submit-btn').prop('disabled', false);
+    }
+
+    $('#btn-notificacion-administracion').click(function() {
+        selectNotificationType('administration');
     });
 
-    // Manejar clic en botón de entidad
     $('#btn-notificacion-entidad').click(function() {
-        // Remover clase activa de todos los botones
-        $('.btn').removeClass('btn-primary').addClass('btn-light');
-        
-        // Agregar clase activa al botón seleccionado
-        $(this).removeClass('btn-light').addClass('btn-primary');
-        
-        // Establecer el valor del tipo
-        $('#notification_type').val('entity');
-        
-        // Habilitar el botón de envío
-        $('#submit-btn').prop('disabled', false);
+        selectNotificationType('entity');
+    });
+
+    $('#btn-notificacion-usuario').click(function() {
+        selectNotificationType('user');
     });
 
     // Validar antes de enviar

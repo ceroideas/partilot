@@ -521,7 +521,10 @@ Route::group(['prefix' => 'notifications'], function() {
     Route::get('/dashboard', [NotificationController::class, 'dashboard'])->name('notifications.dashboard');
     Route::get('/create', [NotificationController::class, 'create'])->name('notifications.create');
     Route::post('/store-type', [NotificationController::class, 'storeType'])->name('notifications.store-type');
-    
+
+    Route::get('/push-to-user', [NotificationController::class, 'pushToUserForm'])->name('notifications.push-to-user');
+    Route::post('/push-to-user', [NotificationController::class, 'storeUserPush'])->name('notifications.store-user-push');
+
     // Rutas para selección de entidad
     Route::get('/select-entity', [NotificationController::class, 'selectEntity'])->name('notifications.select-entity');
     Route::post('/store-entity', [NotificationController::class, 'storeEntity'])->name('notifications.store-entity');

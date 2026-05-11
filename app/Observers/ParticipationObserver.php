@@ -9,11 +9,9 @@ use Illuminate\Support\Facades\Log;
 
 class ParticipationObserver
 {
-    protected $firebaseService;
-
-    public function __construct(FirebaseServiceModern $firebaseService)
-    {
-        $this->firebaseService = $firebaseService;
+    public function __construct(
+        protected FirebaseServiceModern $firebaseServiceModern
+    ) {
     }
     /**
      * Handle the Participation "created" event.
@@ -38,28 +36,13 @@ class ParticipationObserver
      */
     public function updated(Participation $participation): void
     {
-        // LOG TEMPORAL: Verificar que el observer se está disparando
-        \Log::info("Observer updated() DISPARADO", [
-            'participation_id' => $participation->id,
-        ]);
-        
-        // Obtener los cambios realizados
         $changes = $participation->getChanges();
         $original = $participation->getOriginal();
-
-        // LOG TEMPORAL: Ver cambios detectados
-        \Log::info("Observer - Cambios detectados", [
-            'participation_id' => $participation->id,
-            'changes' => $changes,
-            'original_seller_id' => $original['seller_id'] ?? null,
-            'new_seller_id' => $participation->seller_id,
-        ]);
 
         // Ignorar actualizaciones de timestamps
         unset($changes['updated_at']);
 
         if (empty($changes)) {
-            \Log::info("Observer - No hay cambios significativos después de quitar timestamps");
             return;
         }
 
@@ -69,25 +52,10 @@ class ParticipationObserver
         $newStatus = $changes['status'] ?? null;
         $oldSellerId = $original['seller_id'] ?? null;
         $newSellerId = $changes['seller_id'] ?? null;
-        
-        \Log::info("Observer - Variables de control", [
-            'statusChanged' => $statusChanged,
-            'sellerChanged' => $sellerChanged,
-            'oldSellerId' => $oldSellerId,
-            'newSellerId' => $newSellerId,
-        ]);
 
         // PRIORIDAD 1: Detectar cuando se QUITA el seller_id (independientemente del estado)
         // Esto debe evaluarse PRIMERO antes que cualquier otro caso
         if ($sellerChanged && $newSellerId === null && $oldSellerId !== null) {
-            \Log::info("Observer - CASO DETECTADO: Devolución por vendedor", [
-                'participation_id' => $participation->id,
-                'old_seller_id' => $oldSellerId,
-                'new_seller_id' => $newSellerId,
-                'old_status' => $oldStatus,
-                'new_status' => $newStatus ?? $oldStatus,
-            ]);
-            
             ParticipationActivityLog::log($participation->id, 'returned_by_seller', [
                 'entity_id' => $participation->entity_id,
                 'seller_id' => $oldSellerId,
@@ -100,8 +68,7 @@ class ParticipationObserver
             
             // Enviar notificación
             $this->sendNotification($participation, 'returned_by_seller');
-            
-            \Log::info("Observer - Registro de devolución creado exitosamente");
+
             return; // Evitar registros duplicados
         }
 
@@ -164,13 +131,6 @@ class ParticipationObserver
 
         // Caso 5: Participación anulada
         if ($statusChanged && $newStatus === 'anulada') {
-            \Log::info("Observer - CASO DETECTADO: Participación anulada", [
-                'participation_id' => $participation->id,
-                'old_status' => $oldStatus,
-                'new_status' => $newStatus,
-                'cancellation_reason' => $participation->cancellation_reason ?? null,
-            ]);
-            
             ParticipationActivityLog::log($participation->id, 'cancelled', [
                 'entity_id' => $participation->entity_id,
                 'seller_id' => $participation->seller_id,
@@ -186,8 +146,7 @@ class ParticipationObserver
             
             // Enviar notificación
             $this->sendNotification($participation, 'cancelled');
-            
-            \Log::info("Observer - Registro de anulación creado exitosamente");
+
             return; // Evitar registros duplicados
         }
 
@@ -332,13 +291,13 @@ class ParticipationObserver
             // Enviar a cada usuario
             foreach ($tokensToNotify as $userInfo) {
                 try {
-                    $this->firebaseService->sendToDevice(
+                    $this->firebaseServiceModern->sendToDevice(
                         $userInfo['token'],
                         $notification['title'],
                         $notification['body'],
                         array_merge($notification['data'], [
-                            'user_id' => (string)$userInfo['user_id'],
-                            'user_role' => $userInfo['role']
+                            'user_id' => (string) $userInfo['user_id'],
+                            'user_role' => (string) $userInfo['role'],
                         ])
                     );
                     

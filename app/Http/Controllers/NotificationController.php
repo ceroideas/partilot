@@ -49,16 +49,97 @@ class NotificationController extends Controller
     public function storeType(Request $request)
     {
         $request->validate([
-            'notification_type' => 'required|in:administration,entity'
+            'notification_type' => 'required|in:administration,entity,user',
         ]);
 
         $request->session()->put('notification_type', $request->notification_type);
 
         if ($request->notification_type === 'entity') {
             return redirect()->route('notifications.select-entity');
-        } else {
-            return redirect()->route('notifications.select-administration');
         }
+
+        if ($request->notification_type === 'user') {
+            return redirect()->route('notifications.push-to-user');
+        }
+
+        return redirect()->route('notifications.select-administration');
+    }
+
+    /**
+     * Formulario: push FCM a un usuario concreto (gestores/vendedores de entidades a las que tienes acceso).
+     */
+    public function pushToUserForm()
+    {
+        $auth = auth()->user();
+        $users = $auth->isSuperAdmin()
+            ? User::query()->with('fcmTokens')->orderBy('name')->get()
+            : $this->collectUsersLinkedToEntities($auth->accessibleEntityIds());
+
+        return view('notifications.push-to-user', [
+            'users' => $users,
+        ]);
+    }
+
+    /**
+     * Envía push FCM al usuario seleccionado (sin crear filas por entidad en `notifications`).
+     */
+    public function storeUserPush(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+        ]);
+
+        $auth = auth()->user();
+        $target = User::query()->with('fcmTokens')->findOrFail((int) $request->user_id);
+
+        if (! $this->authUserMaySendDirectPushTo($auth, $target)) {
+            abort(403, 'No puedes enviar notificaciones a este usuario.');
+        }
+
+        if ($target->fcmTokens->isEmpty()) {
+            return back()
+                ->withInput()
+                ->withErrors(['user_id' => 'Este usuario no tiene dispositivos con token FCM registrados.']);
+        }
+
+        $sent = 0;
+        $failed = 0;
+        foreach ($target->fcmTokens as $device) {
+            try {
+                $ok = $this->firebaseServiceModern->sendToDevice(
+                    $device->token,
+                    $request->title,
+                    $request->message,
+                    [
+                        'type' => 'direct_user_push',
+                        'target_user_id' => (string) $target->id,
+                        'sender_id' => (string) $auth->id,
+                        'sender_name' => (string) $auth->name,
+                        'platform' => (string) $device->platform,
+                    ]
+                );
+                if ($ok) {
+                    $sent++;
+                } else {
+                    $failed++;
+                }
+            } catch (\Throwable $e) {
+                $failed++;
+                \Log::error('storeUserPush FCM: '.$e->getMessage());
+            }
+        }
+
+        if ($sent === 0) {
+            return back()
+                ->withInput()
+                ->withErrors(['user_id' => 'No se pudo entregar el push. Revisa credenciales Firebase y los logs.']);
+        }
+
+        return redirect()
+            ->route('notifications.push-to-user')
+            ->with('success', "Push enviado: {$sent} dispositivo(s)".($failed > 0 ? "; {$failed} fallido(s)." : '.'));
     }
 
     /**
@@ -487,47 +568,70 @@ class NotificationController extends Controller
     }
 
     /**
-     * Obtener usuarios relevantes de las entidades seleccionadas
+     * Gestores y vendedores vinculados a las entidades indicadas (un usuario aparece una vez; prioridad rol gestor).
+     *
+     * @param  array<int|string>  $entityIds
+     * @return \Illuminate\Support\Collection<int, User>
      */
-    private function getUsersFromEntities($entityIds)
+    private function collectUsersLinkedToEntities(array $entityIds): \Illuminate\Support\Collection
     {
-        $users = collect();
-        $processedUserIds = [];
-        
-        // Obtener managers de las entidades
-        $managers = \App\Models\Manager::whereIn('entity_id', $entityIds)
+        $entityIds = array_values(array_unique(array_filter(array_map('intval', $entityIds))));
+        if ($entityIds === []) {
+            return collect();
+        }
+
+        $byId = [];
+
+        $managers = \App\Models\Manager::query()
+            ->whereIn('entity_id', $entityIds)
             ->with('user.fcmTokens')
             ->get();
-        
+
         foreach ($managers as $manager) {
-            if ($manager->user && $manager->user->fcmTokens->isNotEmpty() && !in_array($manager->user->id, $processedUserIds)) {
-                $user = $manager->user;
-                $user->role = 'manager';
-                $users->push($user);
-                $processedUserIds[] = $user->id;
+            if ($manager->user) {
+                $u = $manager->user;
+                $u->role = 'manager';
+                $byId[$u->id] = $u;
             }
         }
-        
-        // Obtener sellers de las entidades
-        $sellers = \App\Models\Seller::whereHas('entities', fn($q) => 
-                $q->whereIn('entities.id', $entityIds)
-            )
-            ->where('seller_type', '!=', 'externo') // Solo sellers vinculados a usuarios
+
+        $sellers = \App\Models\Seller::query()
+            ->whereHas('entities', fn ($q) => $q->whereIn('entities.id', $entityIds))
+            ->where('seller_type', '!=', 'externo')
             ->whereNotNull('user_id')
             ->where('user_id', '>', 0)
             ->with('user.fcmTokens')
             ->get();
-        
+
         foreach ($sellers as $seller) {
-            if ($seller->user && $seller->user->fcmTokens->isNotEmpty() && !in_array($seller->user->id, $processedUserIds)) {
-                $user = $seller->user;
-                $user->role = 'seller';
-                $users->push($user);
-                $processedUserIds[] = $user->id;
+            if ($seller->user && ! isset($byId[$seller->user->id])) {
+                $u = $seller->user;
+                $u->role = 'seller';
+                $byId[$seller->user->id] = $u;
             }
         }
-        
-        return $users;
+
+        return collect($byId)->sortBy('name')->values();
+    }
+
+    private function authUserMaySendDirectPushTo(User $auth, User $target): bool
+    {
+        if ($auth->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->collectUsersLinkedToEntities($auth->accessibleEntityIds())
+            ->contains('id', $target->id);
+    }
+
+    /**
+     * Obtener usuarios relevantes de las entidades seleccionadas (solo con token FCM).
+     */
+    private function getUsersFromEntities($entityIds)
+    {
+        return $this->collectUsersLinkedToEntities(is_array($entityIds) ? $entityIds : [])
+            ->filter(fn (User $u) => $u->fcmTokens->isNotEmpty())
+            ->values();
     }
 
     /**
