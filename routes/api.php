@@ -293,7 +293,10 @@ Route::middleware('auth.api')->group(function () {
         
         // Registrar token FCM para push notifications
         Route::post('/register-token', [NotificationController::class, 'registerToken']);
-        
+
+        // Quitar token de este dispositivo (p. ej. al cerrar sesión)
+        Route::post('/unregister-token', [NotificationController::class, 'unregisterToken']);
+
         // Eliminar notificación
         Route::delete('/{id}', [NotificationController::class, 'apiDestroy']);
     });

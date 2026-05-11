@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\FirebaseServiceModern;
-use App\Models\User;
+use App\Models\UserFcmToken;
 
 class TestFirebaseConnection extends Command
 {
@@ -116,17 +116,18 @@ class TestFirebaseConnection extends Command
         }
         $this->newLine();
 
-        // 5. Test con usuario real
-        $user = User::whereNotNull('fcm_token')->first();
-        
-        if (!$user) {
-            $this->warn('   ⚠️  No hay usuarios con tokens FCM para probar');
+        // 5. Test con dispositivo real
+        $device = UserFcmToken::with('user')->first();
+
+        if (! $device) {
+            $this->warn('   ⚠️  No hay tokens FCM registrados para probar');
+
             return Command::SUCCESS;
         }
 
-        $this->info('5️⃣  Usuario de prueba encontrado');
-        $this->info('   👤 ' . $user->name);
-        $this->info('   🔑 Token: ' . substr($user->fcm_token, 0, 50) . '...');
+        $this->info('5️⃣  Dispositivo de prueba encontrado');
+        $this->info('   👤 ' . ($device->user->name ?? 'user#' . $device->user_id));
+        $this->info('   🔑 Token: ' . substr($device->token, 0, 50) . '...');
         $this->newLine();
 
         if ($this->option('send-test') || $this->confirm('¿Enviar notificación de prueba?', true)) {
@@ -139,7 +140,7 @@ class TestFirebaseConnection extends Command
             
             try {
                 // Intentar crear el mensaje manualmente para ver dónde falla
-                $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $user->fcm_token)
+                $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $device->token)
                     ->withNotification(\Kreait\Firebase\Messaging\Notification::create('🔧 Test de Diagnóstico', 'Prueba desde consola'))
                     ->withData(['test' => 'true']);
                 

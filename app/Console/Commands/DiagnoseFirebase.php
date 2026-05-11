@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\FirebaseServiceModern;
-use App\Models\User;
+use App\Models\UserFcmToken;
 
 class DiagnoseFirebase extends Command
 {
@@ -95,12 +95,12 @@ class DiagnoseFirebase extends Command
         $this->newLine();
 
         // 6. Probar envío con un token real
-        $user = User::whereNotNull('fcm_token')->first();
-        
-        if ($user) {
-            $this->info('6️⃣  Usuario de prueba encontrado:');
-            $this->info('   👤 ' . $user->name);
-            $this->info('   🔑 Token: ' . substr($user->fcm_token, 0, 50) . '...');
+        $device = UserFcmToken::with('user')->first();
+
+        if ($device) {
+            $this->info('6️⃣  Dispositivo de prueba encontrado:');
+            $this->info('   👤 ' . ($device->user->name ?? 'user#' . $device->user_id));
+            $this->info('   🔑 Token: ' . substr($device->token, 0, 50) . '...');
             $this->newLine();
 
             if ($this->confirm('¿Deseas intentar enviar una notificación de prueba ahora?')) {
@@ -109,7 +109,7 @@ class DiagnoseFirebase extends Command
                 try {
                     $firebaseService = app(FirebaseServiceModern::class);
                     $success = $firebaseService->sendToDevice(
-                        $user->fcm_token,
+                        $device->token,
                         '🔧 Diagnóstico Firebase',
                         'Probando envío directo de notificación',
                         ['test' => 'true']
@@ -149,7 +149,7 @@ class DiagnoseFirebase extends Command
                 }
             }
         } else {
-            $this->warn('   ⚠️  No hay usuarios con tokens FCM para probar');
+            $this->warn('   ⚠️  No hay tokens FCM registrados para probar');
         }
 
         $this->newLine();

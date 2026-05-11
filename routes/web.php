@@ -546,7 +546,9 @@ Route::group(['prefix' => 'notifications'], function() {
     
     // Ruta para registrar token FCM (requiere autenticación)
     Route::post('/register-token', [NotificationController::class, 'registerToken'])->name('notifications.register-token');
-    
+
+    Route::post('/unregister-token', [NotificationController::class, 'unregisterToken'])->name('notifications.unregister-token');
+
     // Ruta para enviar notificación de prueba
     Route::post('/send-test', [NotificationController::class, 'sendTest'])->name('notifications.send-test');
     

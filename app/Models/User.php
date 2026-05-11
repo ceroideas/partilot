@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Administration;
@@ -54,7 +55,6 @@ class User extends Authenticatable
         'panel_account_id',
         'panel_login_username',
         'password',
-        'fcm_token',
     ];
 
     /**
@@ -754,6 +754,14 @@ class User extends Authenticatable
     public function managers()
     {
         return $this->hasMany(Manager::class);
+    }
+
+    /**
+     * Tokens FCM por dispositivo (app nativa, web/PWA, etc.).
+     */
+    public function fcmTokens(): HasMany
+    {
+        return $this->hasMany(UserFcmToken::class);
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Models\Notification;
 use App\Models\Entity;
 use App\Models\Administration;
 use App\Models\User;
+use App\Models\UserFcmToken;
 use App\Services\FirebaseService;
 use App\Services\FirebaseServiceModern;
 use Illuminate\Support\Facades\Auth;
@@ -269,9 +270,9 @@ class NotificationController extends Controller
             
             // Obtener usuarios que son managers o sellers de estas entidades
             $relevantUsers = $this->getUsersFromEntities($selectedEntityIds);
-            $firebaseTokensCount = $relevantUsers->count();
-            
-            \Log::info("Usuarios relacionados con las entidades: {$firebaseTokensCount}");
+            $firebaseTokensCount = $relevantUsers->sum(fn ($u) => $u->fcmTokens->count());
+
+            \Log::info('Usuarios con dispositivos: ' . $relevantUsers->count() . ', tokens totales: ' . $firebaseTokensCount);
             
             if ($firebaseTokensCount > 0) {
                 try {
@@ -282,33 +283,36 @@ class NotificationController extends Controller
                     
                     // Enviar a cada usuario individualmente
                     foreach ($relevantUsers as $user) {
-                        try {
-                            \Log::info("  📤 Enviando a: {$user->name} (ID: {$user->id}, Rol: {$user->role})");
-                            
-                            $sent = $this->firebaseServiceModern->sendToDevice(
-                                $user->fcm_token,
-                                $request->title,
-                                $request->message,
-                                [
-                                    'notification_id' => (string)($notification ? $notification->id : ''),
-                                    'sender_name' => Auth::user()->name,
-                                    'type' => 'manual_notification',
-                                    'user_id' => (string)$user->id,
-                                    'user_role' => $user->role,
-                                    'entity_ids' => implode(',', $selectedEntityIds) // Convertir array a string
-                                ]
-                            );
-                            
-                            if ($sent) {
-                                $firebaseSuccessCount++;
-                                \Log::info("  ✅ Enviado exitosamente a {$user->name}");
-                            } else {
+                        foreach ($user->fcmTokens as $device) {
+                            try {
+                                \Log::info("  📤 Enviando a: {$user->name} (ID: {$user->id}, Rol: {$user->role}, {$device->platform})");
+
+                                $sent = $this->firebaseServiceModern->sendToDevice(
+                                    $device->token,
+                                    $request->title,
+                                    $request->message,
+                                    [
+                                        'notification_id' => (string) ($notification ? $notification->id : ''),
+                                        'sender_name' => Auth::user()->name,
+                                        'type' => 'manual_notification',
+                                        'user_id' => (string) $user->id,
+                                        'user_role' => $user->role,
+                                        'entity_ids' => implode(',', $selectedEntityIds),
+                                        'platform' => $device->platform,
+                                    ]
+                                );
+
+                                if ($sent) {
+                                    $firebaseSuccessCount++;
+                                    \Log::info("  ✅ Enviado exitosamente a {$user->name} ({$device->platform})");
+                                } else {
+                                    $firebaseFailCount++;
+                                    \Log::warning("  ⚠️ Falló el envío a {$user->name} ({$device->platform})");
+                                }
+                            } catch (\Exception $e) {
                                 $firebaseFailCount++;
-                                \Log::warning("  ⚠️ Falló el envío a {$user->name}");
+                                \Log::error("  ❌ Error enviando a usuario {$user->id}: " . $e->getMessage());
                             }
-                        } catch (\Exception $e) {
-                            $firebaseFailCount++;
-                            \Log::error("  ❌ Error enviando a usuario {$user->id}: " . $e->getMessage());
                         }
                     }
                     
@@ -400,20 +404,50 @@ class NotificationController extends Controller
     }
 
     /**
-     * Register FCM token for user
+     * Register FCM token for user (app móvil envía `fcm_token`; el panel puede enviar `token`).
      */
     public function registerToken(Request $request)
     {
-        $request->validate([
-            'token' => 'required|string'
-        ]);
+        $token = $request->input('fcm_token') ?? $request->input('token');
+        if (! is_string($token) || $token === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Se requiere el token de dispositivo (campos aceptados: fcm_token o token).',
+            ], 422);
+        }
 
-        // Store token in user's database
+        $platform = strtolower((string) $request->input('platform', 'android'));
+        if (! in_array($platform, ['android', 'ios', 'web'], true)) {
+            $platform = 'android';
+        }
+
         $user = Auth::user();
-        $user->fcm_token = $request->token;
-        $user->save();
+        UserFcmToken::updateOrCreate(
+            ['token' => $token],
+            ['user_id' => $user->id, 'platform' => $platform]
+        );
 
-        \Log::info('FCM Token registered for user ' . Auth::id() . ': ' . $request->token);
+        \Log::info('FCM Token registered for user ' . Auth::id() . ' (' . $platform . '): ' . substr($token, 0, 48) . '...');
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Elimina el token FCM de este dispositivo para el usuario autenticado (evita notificaciones tras cerrar sesión).
+     */
+    public function unregisterToken(Request $request)
+    {
+        $token = $request->input('fcm_token') ?? $request->input('token');
+        if (! is_string($token) || $token === '') {
+            return response()->json(['success' => true]);
+        }
+
+        $deleted = UserFcmToken::query()
+            ->where('user_id', Auth::id())
+            ->where('token', $token)
+            ->delete();
+
+        \Log::info('FCM Token unregistered for user ' . Auth::id() . ', rows deleted: ' . $deleted);
 
         return response()->json(['success' => true]);
     }
@@ -423,8 +457,8 @@ class NotificationController extends Controller
      */
     public function dashboard()
     {
-        $usersWithTokens = User::whereNotNull('fcm_token')->count();
-        $users = User::all();
+        $usersWithTokens = User::has('fcmTokens')->count();
+        $users = User::withCount('fcmTokens')->orderBy('name')->get();
         $totalNotifications = Notification::count();
         $notificationsToday = Notification::whereDate('created_at', today())->count();
         $recentNotifications = Notification::with(['sender', 'entity'])
@@ -462,11 +496,11 @@ class NotificationController extends Controller
         
         // Obtener managers de las entidades
         $managers = \App\Models\Manager::whereIn('entity_id', $entityIds)
-            ->with('user')
+            ->with('user.fcmTokens')
             ->get();
         
         foreach ($managers as $manager) {
-            if ($manager->user && $manager->user->fcm_token && !in_array($manager->user->id, $processedUserIds)) {
+            if ($manager->user && $manager->user->fcmTokens->isNotEmpty() && !in_array($manager->user->id, $processedUserIds)) {
                 $user = $manager->user;
                 $user->role = 'manager';
                 $users->push($user);
@@ -481,11 +515,11 @@ class NotificationController extends Controller
             ->where('seller_type', '!=', 'externo') // Solo sellers vinculados a usuarios
             ->whereNotNull('user_id')
             ->where('user_id', '>', 0)
-            ->with('user')
+            ->with('user.fcmTokens')
             ->get();
         
         foreach ($sellers as $seller) {
-            if ($seller->user && $seller->user->fcm_token && !in_array($seller->user->id, $processedUserIds)) {
+            if ($seller->user && $seller->user->fcmTokens->isNotEmpty() && !in_array($seller->user->id, $processedUserIds)) {
                 $user = $seller->user;
                 $user->role = 'seller';
                 $users->push($user);
@@ -502,46 +536,48 @@ class NotificationController extends Controller
     public function sendTest(Request $request)
     {
         try {
-            $users = User::whereNotNull('fcm_token')->get();
-            
-            if ($users->isEmpty()) {
+            $devices = UserFcmToken::with('user')->get();
+
+            if ($devices->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay usuarios con tokens FCM registrados'
+                    'message' => 'No hay tokens FCM registrados en ningún dispositivo',
                 ], 400);
             }
 
-            \Log::info('📤 Iniciando envío de notificación de prueba a ' . $users->count() . ' usuario(s)');
-            
+            \Log::info('📤 Iniciando envío de notificación de prueba a ' . $devices->count() . ' dispositivo(s)');
+
             $successCount = 0;
             $failCount = 0;
-            
-            // Enviar a cada usuario individualmente (esto sí funciona)
-            foreach ($users as $user) {
+
+            foreach ($devices as $device) {
+                $user = $device->user;
+                $label = $user ? $user->name : ('user#' . $device->user_id);
                 try {
-                    \Log::info('  Enviando a: ' . $user->name . ' (' . substr($user->fcm_token, 0, 50) . '...)');
-                    
+                    \Log::info('  Enviando a: ' . $label . ' [' . $device->platform . '] (' . substr($device->token, 0, 50) . '...)');
+
                     $sent = $this->firebaseServiceModern->sendToDevice(
-                        $user->fcm_token,
+                        $device->token,
                         '🔥 Notificación de Prueba',
                         'Firebase está funcionando correctamente. ¡Las notificaciones push están activas!',
                         [
                             'type' => 'test',
                             'timestamp' => now()->toIso8601String(),
-                            'user_id' => (string)$user->id
+                            'user_id' => (string) $device->user_id,
+                            'platform' => $device->platform,
                         ]
                     );
-                    
+
                     if ($sent) {
                         $successCount++;
-                        \Log::info('  ✅ Enviado exitosamente a ' . $user->name);
+                        \Log::info('  ✅ Enviado exitosamente a ' . $label);
                     } else {
                         $failCount++;
-                        \Log::warning('  ⚠️ Falló el envío a ' . $user->name);
+                        \Log::warning('  ⚠️ Falló el envío a ' . $label);
                     }
                 } catch (\Exception $e) {
                     $failCount++;
-                    \Log::error('  ❌ Error enviando a ' . $user->name . ': ' . $e->getMessage());
+                    \Log::error('  ❌ Error enviando a ' . $label . ': ' . $e->getMessage());
                 }
             }
 
@@ -550,7 +586,7 @@ class NotificationController extends Controller
             if ($successCount > 0) {
                 return response()->json([
                     'success' => true,
-                    'message' => "Notificación enviada a {$successCount} de {$users->count()} usuarios",
+                    'message' => "Notificación enviada a {$successCount} de {$devices->count()} dispositivo(s)",
                     'success_count' => $successCount,
                     'fail_count' => $failCount
                 ]);

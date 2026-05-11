@@ -122,15 +122,14 @@ class FirebaseService
      */
     public function sendToEntity($entityId, $title, $body, $data = [])
     {
-        // Get users with FCM tokens for this entity
-        $users = \App\Models\User::whereNotNull('fcm_token')->get();
-        
-        if ($users->isEmpty()) {
+        $tokens = \App\Models\UserFcmToken::query()->pluck('token')->unique()->filter()->values()->all();
+
+        if ($tokens === []) {
             Log::info('No FCM tokens found for entity notifications');
+
             return false;
         }
-        
-        $tokens = $users->pluck('fcm_token')->toArray();
+
         return $this->sendToMultipleDevices($tokens, $title, $body, $data);
     }
 
@@ -145,15 +144,14 @@ class FirebaseService
      */
     public function sendToAdministration($administrationId, $title, $body, $data = [])
     {
-        // Get users with FCM tokens for this administration
-        $users = \App\Models\User::whereNotNull('fcm_token')->get();
-        
-        if ($users->isEmpty()) {
+        $tokens = \App\Models\UserFcmToken::query()->pluck('token')->unique()->filter()->values()->all();
+
+        if ($tokens === []) {
             Log::info('No FCM tokens found for administration notifications');
+
             return false;
         }
-        
-        $tokens = $users->pluck('fcm_token')->toArray();
+
         return $this->sendToMultipleDevices($tokens, $title, $body, $data);
     }
 

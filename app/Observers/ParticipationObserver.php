@@ -361,67 +361,52 @@ class ParticipationObserver
         $tokens = [];
         
         // Cargar relaciones necesarias
-        $participation->load(['seller.user', 'entity.manager.user']);
-        
-        // Obtener manager de la entidad
-        if ($participation->entity && $participation->entity->manager && $participation->entity->manager->user) {
-            $managerUser = $participation->entity->manager->user;
-            if ($managerUser->fcm_token) {
+        $participation->load(['seller.user.fcmTokens', 'entity.manager.user.fcmTokens']);
+
+        $pushTokensForUser = function ($user, string $role) use (&$tokens): void {
+            if (! $user || $user->fcmTokens->isEmpty()) {
+                return;
+            }
+            foreach ($user->fcmTokens as $row) {
                 $tokens[] = [
-                    'user_id' => $managerUser->id,
-                    'token' => $managerUser->fcm_token,
-                    'name' => $managerUser->name,
-                    'role' => 'manager'
+                    'user_id' => $user->id,
+                    'token' => $row->token,
+                    'name' => $user->name,
+                    'role' => $role,
                 ];
             }
+        };
+
+        // Manager de la entidad
+        if ($participation->entity && $participation->entity->manager && $participation->entity->manager->user) {
+            $pushTokensForUser($participation->entity->manager->user, 'manager');
         }
 
-        // Según el evento, agregar otros usuarios
         switch ($event) {
             case 'assigned':
             case 'reassigned':
-                // Notificar al vendedor asignado
                 if ($participation->seller && $participation->seller->user) {
-                    $sellerUser = $participation->seller->user;
-                    if ($sellerUser->fcm_token) {
-                        $tokens[] = [
-                            'user_id' => $sellerUser->id,
-                            'token' => $sellerUser->fcm_token,
-                            'name' => $sellerUser->name,
-                            'role' => 'seller'
-                        ];
-                    }
+                    $pushTokensForUser($participation->seller->user, 'seller');
                 }
                 break;
 
             case 'sold':
-                // Solo notificar al manager (ya agregado arriba)
                 break;
 
             case 'returned_by_seller':
-                // Notificar al vendedor que devolvió
                 if ($participation->seller && $participation->seller->user) {
-                    $sellerUser = $participation->seller->user;
-                    if ($sellerUser->fcm_token) {
-                        $tokens[] = [
-                            'user_id' => $sellerUser->id,
-                            'token' => $sellerUser->fcm_token,
-                            'name' => $sellerUser->name,
-                            'role' => 'seller'
-                        ];
-                    }
+                    $pushTokensForUser($participation->seller->user, 'seller');
                 }
                 break;
         }
 
-        // Eliminar duplicados (por si el manager es también vendedor)
+        // Un mismo dispositivo no debe recibir duplicados
         $uniqueTokens = [];
-        $seenUserIds = [];
-        
+        $seenTokenValues = [];
         foreach ($tokens as $tokenInfo) {
-            if (!in_array($tokenInfo['user_id'], $seenUserIds)) {
+            if (! in_array($tokenInfo['token'], $seenTokenValues, true)) {
                 $uniqueTokens[] = $tokenInfo;
-                $seenUserIds[] = $tokenInfo['user_id'];
+                $seenTokenValues[] = $tokenInfo['token'];
             }
         }
 

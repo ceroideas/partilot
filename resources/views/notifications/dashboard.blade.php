@@ -223,7 +223,7 @@
                                 <tr>
                                     <th>Usuario</th>
                                     <th>Email</th>
-                                    <th class="text-center">Token</th>
+                                    <th class="text-center">Dispositivos</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -232,10 +232,10 @@
                                     <td>{{ $user->name }}</td>
                                     <td><small>{{ $user->email }}</small></td>
                                     <td class="text-center">
-                                        @if($user->fcm_token)
-                                            <i class="mdi mdi-check-circle text-success" title="Token registrado"></i>
+                                        @if(($user->fcm_tokens_count ?? 0) > 0)
+                                            <span class="badge bg-success" title="Tokens FCM registrados">{{ $user->fcm_tokens_count }}</span>
                                         @else
-                                            <i class="mdi mdi-close-circle text-danger" title="Sin token"></i>
+                                            <span class="badge bg-secondary">0</span>
                                         @endif
                                     </td>
                                 </tr>

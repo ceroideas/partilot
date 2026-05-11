@@ -19,6 +19,37 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::create('user_fcm_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->text('token');
+            /** android | ios | web (PWA / messaging web) */
+            $table->string('platform', 32)->default('android');
+            $table->timestamps();
+
+            $table->unique('token');
+            $table->index(['user_id', 'platform']);
+        });
+
+        if (Schema::hasColumn('users', 'fcm_token')) {
+            $rows = DB::table('users')->whereNotNull('fcm_token')->where('fcm_token', '!=', '')->get(['id', 'fcm_token']);
+            foreach ($rows as $row) {
+                DB::table('user_fcm_tokens')->insert([
+                    'user_id' => $row->id,
+                    'token' => $row->fcm_token,
+                    'platform' => 'android',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('fcm_token');
+            });
+        }
+
+        return "ok";
+        
         if (! Schema::hasTable('design_external_invitations')) {
             return;
         }
