@@ -277,29 +277,21 @@ Route::middleware('auth.api')->group(function () {
     // NOTIFICACIONES
     // ========================================================================
     Route::prefix('notifications')->group(function () {
-        // Listar notificaciones
         Route::get('/', [NotificationController::class, 'apiIndex']);
-        
-        // Obtener notificación específica
-        Route::get('/{id}', [NotificationController::class, 'apiShow']);
-        
-        // Marcar como leída
-        Route::put('/{id}/read', [NotificationController::class, 'apiMarkAsRead']);
-        
-        // Marcar todas como leídas
+
         Route::post('/mark-all-read', [NotificationController::class, 'apiMarkAllAsRead']);
-        
-        // Contar no leídas
+
         Route::get('/unread/count', [NotificationController::class, 'apiUnreadCount']);
-        
-        // Registrar token FCM para push notifications
+
         Route::post('/register-token', [NotificationController::class, 'registerToken']);
 
-        // Quitar token de este dispositivo (p. ej. al cerrar sesión)
         Route::post('/unregister-token', [NotificationController::class, 'unregisterToken']);
 
-        // Eliminar notificación
-        Route::delete('/{id}', [NotificationController::class, 'apiDestroy']);
+        Route::get('/{id}', [NotificationController::class, 'apiShow'])->whereNumber('id');
+
+        Route::put('/{id}/read', [NotificationController::class, 'apiMarkAsRead'])->whereNumber('id');
+
+        Route::delete('/{id}', [NotificationController::class, 'apiDestroy'])->whereNumber('id');
     });
     
     // ========================================================================

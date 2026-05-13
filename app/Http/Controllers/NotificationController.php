@@ -8,9 +8,9 @@ use App\Models\Entity;
 use App\Models\Administration;
 use App\Models\User;
 use App\Models\UserFcmToken;
+use Illuminate\Support\Facades\Auth;
 use App\Services\FirebaseService;
 use App\Services\FirebaseServiceModern;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
@@ -726,5 +726,148 @@ class NotificationController extends Controller
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // API app móvil (Bearer), bandeja de notificaciones
+    // -------------------------------------------------------------------------
+
+    public function apiIndex(Request $request)
+    {
+        $user = Auth::user();
+        $entityIds = $user->accessibleEntityIds();
+
+        $query = Notification::query()
+            ->with(['entity:id,name,image', 'sender:id,name'])
+            ->where(function ($q) use ($user, $entityIds) {
+                $q->where('recipient_user_id', $user->id);
+                if (! empty($entityIds)) {
+                    $q->orWhereIn('entity_id', $entityIds);
+                }
+            })
+            ->orderByDesc('created_at')
+            ->limit(400);
+
+        $notifications = $query->get()->map(fn ($n) => $this->formatNotificationForApp($n));
+
+        return response()->json([
+            'success' => true,
+            'notifications' => $notifications,
+        ]);
+    }
+
+    public function apiShow(Request $request, int $id)
+    {
+        $n = Notification::with(['entity', 'sender'])->findOrFail($id);
+        $this->authorizeNotificationAccess($n, Auth::user());
+
+        return response()->json([
+            'success' => true,
+            'notification' => $this->formatNotificationForApp($n),
+        ]);
+    }
+
+    public function apiMarkAsRead(Request $request, int $id)
+    {
+        $n = Notification::query()->findOrFail($id);
+        $this->authorizeNotificationAccess($n, Auth::user());
+        if ($n->read_at === null) {
+            $n->markAsRead();
+            if ($n->status !== 'read') {
+                $n->update(['status' => 'read']);
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function apiMarkAllAsRead(Request $request)
+    {
+        $user = Auth::user();
+        $entityIds = $user->accessibleEntityIds();
+
+        $q = Notification::query()
+            ->whereNull('read_at')
+            ->where(function ($query) use ($user, $entityIds) {
+                $query->where('recipient_user_id', $user->id);
+                if (! empty($entityIds)) {
+                    $query->orWhereIn('entity_id', $entityIds);
+                }
+            });
+
+        $q->update([
+            'read_at' => now(),
+            'status' => 'read',
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function apiUnreadCount(Request $request)
+    {
+        $user = Auth::user();
+        $entityIds = $user->accessibleEntityIds();
+
+        $count = Notification::query()
+            ->whereNull('read_at')
+            ->where(function ($query) use ($user, $entityIds) {
+                $query->where('recipient_user_id', $user->id);
+                if (! empty($entityIds)) {
+                    $query->orWhereIn('entity_id', $entityIds);
+                }
+            })
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'count' => $count,
+        ]);
+    }
+
+    public function apiDestroy(Request $request, int $id)
+    {
+        $n = Notification::query()->findOrFail($id);
+        $this->authorizeNotificationAccess($n, Auth::user());
+        $n->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    private function authorizeNotificationAccess(Notification $n, User $user): void
+    {
+        if ($n->recipient_user_id && (int) $n->recipient_user_id === (int) $user->id) {
+            return;
+        }
+        $entityIds = array_map('intval', $user->accessibleEntityIds());
+        if ($n->entity_id && in_array((int) $n->entity_id, $entityIds, true)) {
+            return;
+        }
+        abort(403, 'No puedes acceder a esta notificación.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatNotificationForApp(Notification $n): array
+    {
+        $meta = is_array($n->meta) ? $n->meta : [];
+        $kind = $n->kind ?? 'manual';
+        $rol = $meta['rol_context'] ?? (
+            in_array($kind, ['asignacion_participaciones', 'invitacion_vendedor'], true) ? 'vendedor' : 'usuario'
+        );
+
+        return [
+            'id' => $n->id,
+            'tipo' => $kind,
+            'titulo' => $n->title,
+            'mensaje' => $n->message,
+            'fecha' => $n->created_at?->toIso8601String(),
+            'leida' => $n->read_at !== null,
+            'detalle' => $meta['detalle'] ?? null,
+            'rolContext' => $rol,
+            'entidadNombre' => $n->entity?->name ?? ($meta['entidad_nombre'] ?? $n->title),
+            'invitadorTexto' => $meta['invitador_texto'] ?? null,
+            'entity_image' => $n->entity?->image ?? null,
+        ];
     }
 }

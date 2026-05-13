@@ -6,6 +6,7 @@ use App\Models\BackgroundTask;
 use App\Models\EmailCommunicationLog;
 use App\Models\Participation;
 use App\Models\Seller;
+use App\Services\AppInboxNotificationService;
 use App\Services\CommunicationEmailService;
 use App\Services\BackgroundTaskService;
 use Illuminate\Bus\Batchable;
@@ -114,6 +115,7 @@ class ProcessParticipationAssignmentTask implements ShouldQueue
         }
 
         $this->sendAssignmentEmail($seller, $assignedParticipationIds, $assignedCount);
+        $this->notifySellerInboxIfApplicable($seller, $assignedCount, $assignedParticipationIds);
 
         $backgroundTaskService->complete($task, [
             'seller_id' => $seller->id,
@@ -131,6 +133,27 @@ class ProcessParticipationAssignmentTask implements ShouldQueue
             return;
         }
         app(BackgroundTaskService::class)->fail($task, $exception->getMessage());
+    }
+
+    private function notifySellerInboxIfApplicable(Seller $seller, int $assignedCount, array $assignedParticipationIds): void
+    {
+        if ($assignedCount <= 0) {
+            return;
+        }
+        $hint = null;
+        $firstId = $assignedParticipationIds[0] ?? null;
+        if ($firstId) {
+            $p = Participation::with('set.reserve.lottery')->find($firstId);
+            $name = $p?->set?->reserve?->lottery?->name;
+            if ($name) {
+                $hint = 'Sorteo: '.$name.'.';
+            }
+        }
+        try {
+            app(AppInboxNotificationService::class)->notifyParticipationAssigned($seller, $assignedCount, $hint);
+        } catch (\Throwable $e) {
+            \Log::warning('Inbox notify participation assigned: '.$e->getMessage());
+        }
     }
 
     private function sendAssignmentEmail(Seller $seller, array $assignedParticipationIds, int $assignedCount): void

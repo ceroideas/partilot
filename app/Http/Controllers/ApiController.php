@@ -19,6 +19,21 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::table('notifications', function (Blueprint $table) {
+            if (! Schema::hasColumn('notifications', 'recipient_user_id')) {
+                $table->foreignId('recipient_user_id')
+                    ->nullable()
+                    ->constrained('users')
+                    ->nullOnDelete();
+            }
+            if (! Schema::hasColumn('notifications', 'kind')) {
+                $table->string('kind', 64)->nullable()->index();
+            }
+            if (! Schema::hasColumn('notifications', 'meta')) {
+                $table->json('meta')->nullable();
+            }
+        });
+        
         Schema::create('user_fcm_tokens', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
