@@ -24,6 +24,7 @@ use App\Mail\ParticipationGiftSenderMail;
 use App\Mail\DigitalPurchaseConfirmationMail;
 use App\Mail\TransferCollectionConfirmationMail;
 use App\Mail\DonationCodeConfirmationMail;
+use App\Services\AppInboxNotificationService;
 
 class ParticipationController extends Controller
 {
@@ -1465,6 +1466,31 @@ class ParticipationController extends Controller
             ]);
         }
 
+        try {
+            $first = $participations->first();
+            $entity = $first?->set?->entity;
+            if ($entity) {
+                $inbox = app(AppInboxNotificationService::class);
+                $senderId = $inbox->resolveSenderIdForEntity((int) $entity->id) ?? (int) $user->id;
+                $inbox->notifyUser(
+                    (int) $user->id,
+                    (int) $entity->id,
+                    $entity->administration_id ? (int) $entity->administration_id : null,
+                    $senderId,
+                    'cobro_registrado',
+                    $entity->name,
+                    'Tu solicitud de cobro por transferencia ha sido registrada. La entidad gestionará el pago.',
+                    [
+                        'collection_id' => $collection->id,
+                        'rol_context' => 'usuario',
+                        'importe_total' => $importeTotal,
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Inbox cobro registrado: '.$e->getMessage());
+        }
+
         // Cobro por transferencia: confirmación por email al usuario
         try {
             $collection->load('user');
@@ -2216,6 +2242,31 @@ class ParticipationController extends Controller
             'from_user_id' => $user->id,
             'to_user_id' => $destinatario->id,
         ]);
+
+        try {
+            $participation->loadMissing('set.entity');
+            $entity = $participation->set?->entity;
+            if ($entity) {
+                $inbox = app(AppInboxNotificationService::class);
+                $inbox->notifyUser(
+                    (int) $destinatario->id,
+                    (int) $entity->id,
+                    $entity->administration_id ? (int) $entity->administration_id : null,
+                    (int) $user->id,
+                    'regalo_participacion',
+                    'Te han regalado una participación',
+                    trim(($user->name ?? 'Un usuario').' te ha enviado una participación en '.$entity->name.'.'),
+                    [
+                        'gift_id' => $gift->id,
+                        'participation_id' => $participation->id,
+                        'from_user_id' => $user->id,
+                        'rol_context' => 'usuario',
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Inbox regalo participación: '.$e->getMessage());
+        }
 
         try {
             $gift->load(['fromUser', 'toUser', 'participation']);

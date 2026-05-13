@@ -12,7 +12,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Requiere cron: * * * * * php artisan schedule:run
+        // Guía y tabla de `kind`: docs/SCHEDULER_AND_KIND_LABELS.md
+        //
+        // $schedule->command('sipart:pending-payments-check')->dailyAt('08:00');
+        // $schedule->command('sipart:lottery-deadline-reminder')->dailyAt('09:00');
+        // $schedule->command('sipart:new-lotteries-announce')->weeklyOn(1, '10:00');
     }
 
     /**

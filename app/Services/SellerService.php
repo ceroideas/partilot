@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Entity;
 use App\Models\User;
 use App\Models\Seller;
 use App\Mail\SellerConfirmationMail;
@@ -65,6 +66,30 @@ class SellerService
 
                 if ($user->role !== User::ROLE_SELLER) {
                     $user->update(['role' => User::ROLE_SELLER]);
+                }
+
+                try {
+                    $entity = Entity::find($entityId);
+                    if ($entity instanceof Entity) {
+                        $inbox = app(AppInboxNotificationService::class);
+                        $senderId = $inbox->resolveSenderIdForEntity($entityId) ?? (int) $user->id;
+                        $inbox->notifyUser(
+                            (int) $user->id,
+                            $entityId,
+                            $entity->administration_id ? (int) $entity->administration_id : null,
+                            $senderId,
+                            'invitacion_vendedor',
+                            $entity->name,
+                            'Te han invitado como vendedor PARTILOT para esta entidad. Revisa tu correo para confirmar.',
+                            [
+                                'seller_id' => $seller->id,
+                                'entity_id' => $entityId,
+                                'rol_context' => 'vendedor',
+                            ]
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Inbox invitación vendedor: '.$e->getMessage());
                 }
                 
                 Log::info("Vendedor PARTILOT creado pendiente de confirmación, usuario {$user->id} y entidad {$entityId}");

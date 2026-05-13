@@ -6,6 +6,7 @@ use App\Models\Lottery;
 use App\Models\LotteryType;
 use App\Models\Administration;
 use App\Models\LotteryResult;
+use App\Jobs\NotifyLotteryResultsPublishedJob;
 use App\Services\NavidadScrapingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -615,6 +616,8 @@ class LotteryController extends Controller
         }
 
         LotteryResult::create($resultData);
+
+        NotifyLotteryResultsPublishedJob::dispatch($lottery->id, auth()->id());
     }
 
     /**
@@ -657,6 +660,8 @@ class LotteryController extends Controller
         }
 
         $result->update($updateData);
+
+        NotifyLotteryResultsPublishedJob::dispatch((int) $result->lottery_id, auth()->id());
     }
 
     /**

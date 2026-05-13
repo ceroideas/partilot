@@ -112,32 +112,58 @@ class NotificationController extends Controller
 
         $sent = 0;
         $failed = 0;
-        foreach ($target->fcmTokens as $device) {
-            try {
-                $ok = $this->firebaseServiceModern->sendToDevice(
-                    $device->token,
-                    $request->title,
-                    $request->message,
-                    [
-                        'type' => 'direct_user_push',
-                        'target_user_id' => (string) $target->id,
-                        'sender_id' => (string) $auth->id,
-                        'sender_name' => (string) $auth->name,
-                        'platform' => (string) $device->platform,
-                    ]
-                );
-                if ($ok) {
-                    $sent++;
-                } else {
+        $notification = null;
+
+        DB::beginTransaction();
+        try {
+            $notification = Notification::create([
+                'title' => $request->title,
+                'message' => $request->message,
+                'sender_id' => $auth->id,
+                'recipient_user_id' => $target->id,
+                'entity_id' => null,
+                'administration_id' => null,
+                'kind' => 'push_directo_panel',
+                'status' => 'sent',
+                'sent_at' => now(),
+            ]);
+
+            foreach ($target->fcmTokens as $device) {
+                try {
+                    $ok = $this->firebaseServiceModern->sendToDevice(
+                        $device->token,
+                        $request->title,
+                        $request->message,
+                        [
+                            'type' => 'inbox_notification',
+                            'notification_id' => (string) $notification->id,
+                            'kind' => 'push_directo_panel',
+                            'sender_id' => (string) $auth->id,
+                            'sender_name' => (string) $auth->name,
+                            'target_user_id' => (string) $target->id,
+                            'platform' => (string) $device->platform,
+                        ]
+                    );
+                    if ($ok) {
+                        $sent++;
+                    } else {
+                        $failed++;
+                    }
+                } catch (\Throwable $e) {
                     $failed++;
+                    \Log::error('storeUserPush FCM: '.$e->getMessage());
                 }
-            } catch (\Throwable $e) {
-                $failed++;
-                \Log::error('storeUserPush FCM: '.$e->getMessage());
             }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
         }
 
-        if ($sent === 0) {
+        if ($sent === 0 && isset($notification)) {
+            $notification->delete();
+
             return back()
                 ->withInput()
                 ->withErrors(['user_id' => 'No se pudo entregar el push. Revisa credenciales Firebase y los logs.']);
@@ -328,6 +354,8 @@ class NotificationController extends Controller
             ->get();
 
         $notification = null;
+        /** @var array<int, Notification> */
+        $notificationsByEntityId = [];
         $successCount = 0;
         $firebaseSuccess = false;
         $firebaseTokensCount = 0;
@@ -342,17 +370,19 @@ class NotificationController extends Controller
                     'sender_id' => Auth::id(),
                     'entity_id' => $entity->id,
                     'administration_id' => $entity->administration_id,
+                    'kind' => 'manual_entidad',
                     'status' => 'sent',
-                    'sent_at' => now()
+                    'sent_at' => now(),
                 ]);
+                $notificationsByEntityId[(int) $entity->id] = $notification;
                 $successCount++;
             }
 
             // Enviar notificación push solo a usuarios de las entidades seleccionadas
             \Log::info('=== ENVIANDO NOTIFICACIÓN FIREBASE A USUARIOS DE ENTIDADES SELECCIONADAS ===');
             
-            // Obtener IDs de entidades seleccionadas
-            $selectedEntityIds = $selectedEntities->pluck('id')->toArray();
+            // Obtener IDs de entidades seleccionadas (orden determinista para resolver fila por usuario)
+            $selectedEntityIds = $selectedEntities->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
             \Log::info('Entidades seleccionadas: ' . implode(', ', $selectedEntityIds));
             
             // Obtener usuarios que son managers o sellers de estas entidades
@@ -370,6 +400,11 @@ class NotificationController extends Controller
                     
                     // Enviar a cada usuario individualmente
                     foreach ($relevantUsers as $user) {
+                        $entityIdForPush = $this->primarySelectedEntityIdForUser($user, $selectedEntityIds);
+                        $notificationForDevice = ($entityIdForPush !== null && isset($notificationsByEntityId[$entityIdForPush]))
+                            ? $notificationsByEntityId[$entityIdForPush]
+                            : $notification;
+
                         foreach ($user->fcmTokens as $device) {
                             try {
                                 \Log::info("  📤 Enviando a: {$user->name} (ID: {$user->id}, Rol: {$user->role}, {$device->platform})");
@@ -379,13 +414,16 @@ class NotificationController extends Controller
                                     $request->title,
                                     $request->message,
                                     [
-                                        'notification_id' => (string) ($notification ? $notification->id : ''),
-                                        'sender_name' => Auth::user()->name,
-                                        'type' => 'manual_notification',
+                                        'type' => 'inbox_notification',
+                                        'notification_id' => (string) ($notificationForDevice ? $notificationForDevice->id : ''),
+                                        'kind' => 'manual_entidad',
+                                        'sender_name' => (string) Auth::user()->name,
+                                        'sender_id' => (string) Auth::id(),
                                         'user_id' => (string) $user->id,
-                                        'user_role' => $user->role,
+                                        'user_role' => (string) $user->role,
+                                        'entity_id' => $entityIdForPush !== null ? (string) $entityIdForPush : '',
                                         'entity_ids' => implode(',', $selectedEntityIds),
-                                        'platform' => $device->platform,
+                                        'platform' => (string) $device->platform,
                                     ]
                                 );
 
@@ -645,6 +683,34 @@ class NotificationController extends Controller
         return $this->collectUsersLinkedToEntities(is_array($entityIds) ? $entityIds : [])
             ->filter(fn (User $u) => $u->fcmTokens->isNotEmpty())
             ->values();
+    }
+
+    /**
+     * Primera entidad seleccionada a la que el usuario está vinculado como gestor (prioridad) o vendedor.
+     * Sirve para el notification_id del push cuando hay varias entidades en el mismo envío.
+     *
+     * @param  array<int>  $selectedEntityIds
+     */
+    private function primarySelectedEntityIdForUser(User $user, array $selectedEntityIds): ?int
+    {
+        $selectedEntityIds = array_values(array_unique(array_map('intval', $selectedEntityIds)));
+        sort($selectedEntityIds);
+
+        foreach ($selectedEntityIds as $eid) {
+            if (\App\Models\Manager::query()->where('entity_id', $eid)->where('user_id', $user->id)->exists()) {
+                return $eid;
+            }
+        }
+
+        foreach ($selectedEntityIds as $eid) {
+            if (\App\Models\Seller::query()->where('user_id', $user->id)
+                ->whereHas('entities', fn ($q) => $q->where('entities.id', $eid))
+                ->exists()) {
+                return $eid;
+            }
+        }
+
+        return null;
     }
 
     /**
