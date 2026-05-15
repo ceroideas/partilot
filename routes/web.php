@@ -119,6 +119,11 @@ Route::get('/entity-managers/confirm/accept/{token}', [EntityController::class, 
 Route::post('/entity-managers/confirm/accept/{token}', [EntityController::class, 'confirmManagerAcceptStore'])->name('entity-managers.confirm-accept.store');
 Route::get('/entity-managers/confirm/reject/{token}', [EntityController::class, 'confirmManagerReject'])->name('entity-managers.confirm-reject');
 
+// Registro web comprador (venta digital pendiente)
+Route::get('/registro-comprador/{token}', [\App\Http\Controllers\DigitalBuyerRegistrationController::class, 'show'])->name('digital-buyer.register');
+Route::post('/registro-comprador/{token}', [\App\Http\Controllers\DigitalBuyerRegistrationController::class, 'store'])->name('digital-buyer.register.store');
+Route::post('/registro-comprador/sms-code', [\App\Http\Controllers\PhoneVerificationController::class, 'sendCode'])->name('digital-buyer.sms-code');
+
 // Diseño externo por invitación (público, sin login; acceso solo por enlace)
 Route::get('/design/external/invite/{token}', [\App\Http\Controllers\DesignController::class, 'externalInviteByToken'])->name('design.external.invite');
 Route::get('/design/external/editor', [\App\Http\Controllers\DesignController::class, 'externalEditor'])->name('design.external.editor');

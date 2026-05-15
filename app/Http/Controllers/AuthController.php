@@ -317,9 +317,18 @@ class AuthController extends Controller
      */
     public function apiRegister(Request $request)
     {
+        $codeLength = (int) config('sms.code_length', 6);
+
         $request->validate([
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
+            'phone' => 'required|string|max:20',
+            'sms_code' => [
+                \Illuminate\Validation\Rule::requiredIf(fn () => config('sms.enabled')),
+                'nullable',
+                'string',
+                'size:'.$codeLength,
+            ],
             'fecha_nacimiento' => 'required|date|before:today',
             'aceptar_condiciones' => 'required|accepted',
         ], [
@@ -331,9 +340,25 @@ class AuthController extends Controller
             'fecha_nacimiento.required' => 'La fecha de nacimiento es obligatoria.',
             'fecha_nacimiento.date' => 'La fecha de nacimiento no es válida.',
             'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
+            'phone.required' => 'El teléfono móvil es obligatorio.',
+            'sms_code.required' => 'Debes verificar tu teléfono con el código SMS.',
+            'sms_code.size' => 'El código SMS debe tener '.$codeLength.' dígitos.',
             'aceptar_condiciones.required' => 'Debes aceptar las condiciones de uso.',
             'aceptar_condiciones.accepted' => 'Debes aceptar las condiciones de uso.',
         ]);
+
+        $phoneVerification = app(\App\Services\PhoneVerificationService::class);
+        $phone = $phoneVerification->normalizePhone($request->phone);
+
+        if (config('sms.enabled')) {
+            if (! $phoneVerification->verifyCode($phone, (string) $request->sms_code)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Código SMS incorrecto o caducado. Solicita uno nuevo.',
+                    'errors' => ['sms_code' => ['Código SMS incorrecto o caducado.']],
+                ], 422);
+            }
+        }
 
         $name = strstr($request->email, '@', true) ?: 'Usuario';
         $name = substr($name, 0, 255);
@@ -341,6 +366,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $name,
             'email' => $request->email,
+            'phone' => $phone,
             'password' => Hash::make($request->password),
             'birthday' => $request->fecha_nacimiento,
             'role' => User::ROLE_CLIENT,

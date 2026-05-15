@@ -9,6 +9,7 @@ use App\Models\PendingEntityManagerInvitation;
 use App\Models\Seller;
 use App\Models\User;
 use App\Services\CommunicationEmailService;
+use App\Services\PendingDigitalSaleService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -21,6 +22,12 @@ class UserObserver
     {
         $this->attachPendingEntityManagerInvitations($user);
         $user->refresh();
+
+        try {
+            app(PendingDigitalSaleService::class)->completePendingSalesForUser($user);
+        } catch (\Throwable $e) {
+            Log::error('Error al completar ventas digitales pendientes para usuario '.$user->id.': '.$e->getMessage());
+        }
 
         // Buscar vendedores pendientes de vinculación con el mismo email
         // Incluye tanto PARTILOT pendientes como EXTERNO

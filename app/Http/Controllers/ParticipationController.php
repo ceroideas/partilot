@@ -17,6 +17,7 @@ use App\Models\ParticipationCollectionItem;
 use App\Models\ParticipationDonation;
 use App\Models\ParticipationDonationItem;
 use App\Models\User;
+use App\Models\PendingDigitalSale;
 use App\Http\Controllers\ApiController;
 use App\Services\CommunicationEmailService;
 use App\Mail\ParticipationGiftRecipientMail;
@@ -25,6 +26,7 @@ use App\Mail\DigitalPurchaseConfirmationMail;
 use App\Mail\TransferCollectionConfirmationMail;
 use App\Mail\DonationCodeConfirmationMail;
 use App\Services\AppInboxNotificationService;
+use App\Services\PendingDigitalSaleService;
 
 class ParticipationController extends Controller
 {
@@ -572,7 +574,14 @@ class ParticipationController extends Controller
             return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
         }
 
+        $pendingService = app(PendingDigitalSaleService::class);
         $usePool = $request->filled('entity_id') && $request->filled('lottery_id');
+        $pendingService->releaseExpiredForDigitalContext(
+            $usePool ? (int) $request->entity_id : null,
+            $usePool ? (int) $request->lottery_id : null,
+            $request->filled('set_id') ? (int) $request->set_id : null,
+        );
+
         if ($usePool) {
             if (!$seller->entities()->where('entities.id', $request->entity_id)->exists()) {
                 return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
@@ -651,8 +660,68 @@ class ParticipationController extends Controller
     }
 
     /**
-     * Solo crear seller_settlement cuando hay método de pago (efectivo, bizum, transferencia).
-     * Si es omitir o null, no se registra.
+     * API: Reservar venta digital para comprador no registrado y enviar email de registro web.
+     */
+    public function apiSellDigitalPending(Request $request, PendingDigitalSaleService $pendingService)
+    {
+        $request->validate([
+            'set_id' => 'nullable|integer|exists:sets,id',
+            'entity_id' => 'nullable|integer|exists:entities,id',
+            'lottery_id' => 'nullable|integer|exists:lotteries,id',
+            'quantity' => 'required|integer|min:1',
+            'buyer_email' => 'required|email',
+            'payment_method' => 'nullable|string|in:efectivo,bizum,transferencia,omitir,otro',
+        ]);
+
+        $user = $request->user();
+        if (! $user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para realizar esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (! $seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        if (User::where('email', $request->buyer_email)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El correo ya está registrado. Usa la venta directa.',
+            ], 422);
+        }
+
+        try {
+            $pending = $pendingService->createPendingSale(
+                $seller,
+                $user,
+                $request->buyer_email,
+                (int) $request->quantity,
+                $request->payment_method,
+                $request->set_id ? (int) $request->set_id : null,
+                $request->entity_id ? (int) $request->entity_id : null,
+                $request->lottery_id ? (int) $request->lottery_id : null,
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Se ha enviado un correo al comprador para completar el registro.',
+                'pending_id' => $pending->id,
+                'valid_until' => $pending->valid_until?->toIso8601String(),
+                'quantity' => $pending->quantity,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            \Log::error('apiSellDigitalPending: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al reservar la venta: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      */
     private function shouldCreateSettlement($paymentMethod): bool
     {
@@ -1111,6 +1180,53 @@ class ParticipationController extends Controller
                 ],
             ];
         })->filter()->values()->all();
+
+        $pendingHistorial = PendingDigitalSale::where('seller_id', $seller->id)
+            ->pendingNotExpired()
+            ->with(['entity', 'lottery'])
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(function (PendingDigitalSale $p) {
+                $entity = $p->entity;
+                $lottery = $p->lottery;
+                $entidadNombre = $entity ? $entity->name : '—';
+                $fechaSorteo = $lottery && $lottery->draw_date
+                    ? $lottery->draw_date->format('d/m/y')
+                    : '—';
+                $qty = (int) $p->quantity;
+                $importeTotal = (float) $p->sale_amount;
+                $importeJugado = $qty > 0 ? round($importeTotal / $qty, 2) : $importeTotal;
+
+                return [
+                    'id' => 'p-' . $p->id,
+                    'pending_id' => $p->id,
+                    'tipo' => 'venta-digital',
+                    'fecha' => $p->created_at->toIso8601String(),
+                    'formaPago' => $p->payment_method,
+                    'descripcion' => 'Venta digital ' . $entidadNombre . ' · Pendiente de registro',
+                    'pendienteRegistro' => true,
+                    'valid_until' => $p->valid_until?->toIso8601String(),
+                    'participacion' => [
+                        'entidad' => $entidadNombre,
+                        'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
+                        'numero' => $qty . ' dig.',
+                        'fechaSorteo' => $fechaSorteo,
+                        'importeJugado' => $importeJugado,
+                        'importeTotal' => $importeTotal,
+                        'clienteEmail' => $p->email,
+                        'pendienteRegistro' => true,
+                        'validUntil' => $p->valid_until?->format('d/m/Y H:i'),
+                    ],
+                ];
+            })
+            ->all();
+
+        $historial = collect($historial)
+            ->concat($pendingHistorial)
+            ->sortByDesc(fn (array $i) => $i['fecha'] ?? '')
+            ->values()
+            ->all();
 
         return response()->json([
             'success' => true,

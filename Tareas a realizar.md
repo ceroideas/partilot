@@ -1,5 +1,8 @@
 # Tareas a realizar
 
+> **Estado:** Todas las secciones de este archivo están marcadas como ✅ completadas.  
+> **Pendientes nuevos:** [docs/PENDIENTES_DESARROLLO.md](docs/PENDIENTES_DESARROLLO.md)
+
 ---
 
 ## 1. Imagen de la administración en todos los sitios ✅

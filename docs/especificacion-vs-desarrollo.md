@@ -1,3 +1,5 @@
+> Índice documentación: [INDICE_DOCUMENTACION.md](INDICE_DOCUMENTACION.md) · Pendientes: [PENDIENTES_DESARROLLO.md](PENDIENTES_DESARROLLO.md)
+
 ### 1.1 Diseño de participaciones (Se requiere plantillas - 2 días de trabajo desde la fecha que se reciban las plantillas)
 - **Diseño por plantillas**: La especificación indica dos métodos, "Diseño por plantillas" y "Diseño personalizado". Las plantillas serían:  - SIPART, TIKET GESTIÓN, ASG (diseño preestablecido, dimensiones, márgenes, sangres, matriz; solo logotipo y algunos textos personalizables).  - Opción de elegir plantilla para la parte trasera (si no se selecciona, plantilla predeterminada SIPART).- En el código solo existe la elección "Diseño" (ir al formato) o "Enviar a diseñar". No hay flujo específico "por plantillas" con esas tres marcas ni selector de plantilla para el reverso.
 ### 1.2 Generación de Web de venta / TPV e iframes (Se requiere información completa de que se haría aquí para dar un estimado)

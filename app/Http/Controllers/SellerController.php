@@ -565,6 +565,11 @@ class SellerController extends Controller
             return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
         }
 
+        app(\App\Services\PendingDigitalSaleService::class)->releaseExpiredForDigitalContext(
+            (int) $request->entity_id,
+            (int) $request->lottery_id,
+        );
+
         $total = Participation::query()
             ->join('sets', 'participations.set_id', '=', 'sets.id')
             ->join('reserves', 'sets.reserve_id', '=', 'reserves.id')
@@ -898,6 +903,132 @@ class SellerController extends Controller
         }
         $entities = Entity::whereIn('id', $entityIds)->where('status', 1)->select('id', 'name', 'image')->get();
         return response()->json(['success' => true, 'entities' => $entities]);
+    }
+
+    /**
+     * API Gestor: sorteos de una entidad para asignar participaciones (permiso vendedores, no devoluciones).
+     */
+    public function apiManagerAssignmentLotteries(Request $request, $entityId)
+    {
+        $entityId = (int) $entityId;
+        if ($denied = $this->jsonUnlessManagerSellersPermission($request->user(), $entityId)) {
+            return $denied;
+        }
+
+        $lotteries = Lottery::select(['lotteries.id', 'lotteries.name', 'lotteries.description', 'lotteries.draw_date', 'lotteries.image'])
+            ->join('reserves', 'lotteries.id', '=', 'reserves.lottery_id')
+            ->where('reserves.entity_id', $entityId)
+            ->distinct()
+            ->orderBy('lotteries.draw_date', 'desc')
+            ->get();
+
+        return response()->json(['success' => true, 'lotteries' => $lotteries]);
+    }
+
+    /**
+     * API Gestor: sets físicos con participaciones asignables (permiso vendedores).
+     */
+    public function apiManagerAssignmentSets(Request $request, $entityId)
+    {
+        $entityId = (int) $entityId;
+        $request->validate(['lottery_id' => 'required|integer|exists:lotteries,id']);
+
+        if ($denied = $this->jsonUnlessManagerSellersPermission($request->user(), $entityId)) {
+            return $denied;
+        }
+
+        $lotteryId = (int) $request->lottery_id;
+
+        $sets = Set::with(['reserve:id,lottery_id,reservation_numbers', 'reserve.lottery:id,name,draw_date'])
+            ->forUser($request->user())
+            ->where('entity_id', $entityId)
+            ->where('sets.physical_participations', '>', 0)
+            ->whereHas('reserve', fn ($q) => $q->where('lottery_id', $lotteryId))
+            ->whereHas('participations', function ($query) {
+                $query->where('status', 'disponible');
+            })
+            ->select([
+                'sets.id',
+                'sets.set_name',
+                'sets.set_number',
+                'sets.reserve_id',
+                'sets.digital_participations',
+                'sets.physical_participations',
+            ])
+            ->orderBy('sets.set_number')
+            ->get();
+
+        return response()->json(['success' => true, 'sets' => $sets]);
+    }
+
+    /**
+     * API Gestor: resolver referencia QR/código para asignación (permiso vendedores).
+     */
+    public function apiManagerAssignmentValidateReference(Request $request, $entityId)
+    {
+        $entityId = (int) $entityId;
+        $request->validate([
+            'lottery_id' => 'required|integer|exists:lotteries,id',
+            'referencia' => 'required|string|max:120',
+        ]);
+
+        if ($denied = $this->jsonUnlessManagerSellersPermission($request->user(), $entityId)) {
+            return $denied;
+        }
+
+        $lotteryId = (int) $request->lottery_id;
+        $found = $this->findSetAndParticipationByReferenceForUser($request->user(), $request->referencia);
+
+        if (! $found) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encuentra ninguna participación con esa referencia.',
+                'participations' => [],
+            ], 404);
+        }
+
+        $set = $found['set'];
+        if ((int) $set->entity_id !== $entityId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La participación no pertenece a la entidad seleccionada.',
+                'participations' => [],
+            ], 422);
+        }
+
+        $reserve = $set->reserve ?? $set->reserve()->first();
+        if (! $reserve || (int) $reserve->lottery_id !== $lotteryId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La participación no pertenece al sorteo seleccionado.',
+                'participations' => [],
+            ], 422);
+        }
+
+        $participation = Participation::forUser($request->user())
+            ->where('set_id', $set->id)
+            ->where('participation_number', $found['participation_number'])
+            ->where('status', 'disponible')
+            ->first();
+
+        if (! $participation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La participación no está disponible para asignar.',
+                'participations' => [],
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'participations' => [[
+                'id' => $participation->id,
+                'number' => $participation->participation_number,
+                'participation_code' => $participation->participation_code,
+                'set_id' => $set->id,
+                'set_name' => $set->set_name ?? 'Set '.$set->set_number,
+            ]],
+        ]);
     }
 
     /**
@@ -3121,5 +3252,61 @@ class SellerController extends Controller
             'status_text' => $seller->fresh()->status_text,
             'status_class' => $seller->fresh()->status_class,
         ]);
+    }
+
+    /**
+     * Gestor con permiso «Administrar vendedores» (permission_sellers) en la entidad.
+     */
+    private function jsonUnlessManagerSellersPermission(User $user, int $entityId): ?\Illuminate\Http\JsonResponse
+    {
+        if ($user->isSuperAdmin()) {
+            return null;
+        }
+
+        if ($user->isAdministration() && $user->canAccessEntity($entityId)) {
+            return null;
+        }
+
+        $allowed = $user->accessibleEntityIdsByPermission('sellers');
+        if (! in_array($entityId, $allowed, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para administrar vendedores en esta entidad.',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    private function findSetAndParticipationByReferenceForUser(User $user, string $referencia): ?array
+    {
+        $set = Set::forUser($user)->whereNotNull('tickets')->get()->first(function ($s) use ($referencia) {
+            if (! is_array($s->tickets)) {
+                return false;
+            }
+            foreach ($s->tickets as $ticket) {
+                if (isset($ticket['r']) && $ticket['r'] == $referencia) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        if (! $set) {
+            return null;
+        }
+
+        $participationNumber = null;
+        foreach ($set->tickets as $ticket) {
+            if (isset($ticket['r']) && $ticket['r'] == $referencia) {
+                $participationNumber = $ticket['n'] ?? null;
+                break;
+            }
+        }
+
+        return $participationNumber !== null
+            ? ['set' => $set, 'participation_number' => $participationNumber]
+            : null;
     }
 } 

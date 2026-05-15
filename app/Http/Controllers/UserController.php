@@ -365,6 +365,7 @@ class UserController extends Controller
         return response()->json([
             'exists' => $user !== null,
             'user_id' => $user?->id,
+            'can_offer_registration' => $user === null,
         ]);
     }
 

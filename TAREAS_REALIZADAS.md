@@ -1,5 +1,8 @@
 # Tareas realizadas (resumen)
 
+> **Pendientes actuales:** [docs/PENDIENTES_DESARROLLO.md](docs/PENDIENTES_DESARROLLO.md)  
+> **Auditoría global:** [AUDITORIA_DESARROLLO_SIPART.md](AUDITORIA_DESARROLLO_SIPART.md)
+
 Documento con los puntos trabajados y una breve explicación de lo que se hizo en cada uno.
 
 ---

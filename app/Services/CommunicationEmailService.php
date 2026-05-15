@@ -307,6 +307,13 @@ class CommunicationEmailService
             return;
         }
 
+        if ($mailClass === \App\Mail\DigitalSaleRegistrationInviteMail::class) {
+            $pendingId = (int) ($mailPayload['pending_digital_sale_id'] ?? 0);
+            $pending = \App\Models\PendingDigitalSale::with(['entity', 'lottery'])->findOrFail($pendingId);
+            Mail::to($recipientEmail)->send(new \App\Mail\DigitalSaleRegistrationInviteMail($pending));
+            return;
+        }
+
         throw new \RuntimeException("mail_class no soportado para reenviar: {$mailClass}");
     }
 }

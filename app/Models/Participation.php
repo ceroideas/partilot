@@ -245,6 +245,7 @@ class Participation extends Model
             'perdida' => 'Perdida',
             'asignada' => 'Asignada',
             'pagada' => 'Pagada',
+            'reserva_venta_digital' => 'Reservada (venta digital)',
         ];
 
         if ($this->status === 'disponible') {

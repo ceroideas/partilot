@@ -351,6 +351,16 @@
                 font-size: 10px !important;
                 min-width: 80px !important;
             }
+            .badge.bg-primary:not(.rounded-circle) {
+                background-color: #cfe2ff !important;
+                color: #0a58ca !important;
+                border: 1px solid #9ec5fe;
+                border-radius: 8px !important;
+                font-weight: 700;
+                padding: 4px 8px !important;
+                font-size: 10px !important;
+                min-width: 80px !important;
+            }
             .badge.bg-secondary:not(.rounded-circle) {
                 background-color: #e5e6e8 !important;
                 color: #4b5056 !important;

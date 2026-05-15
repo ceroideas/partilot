@@ -93,6 +93,9 @@ Route::prefix('auth')->group(function () {
     
     // Registro (si aplica)
     Route::post('/register', [AuthController::class, 'apiRegister']);
+    Route::get('/sms/config', [\App\Http\Controllers\PhoneVerificationController::class, 'config']);
+    Route::post('/sms/send-code', [\App\Http\Controllers\PhoneVerificationController::class, 'sendCode'])
+        ->middleware('throttle:6,1');
     
     // Obtener usuario autenticado
     Route::middleware('auth.api')->get('/user', function (Request $request) {
@@ -183,8 +186,9 @@ Route::middleware('auth.api')->group(function () {
         // Venta manual
         Route::post('/manual', [ParticipationController::class, 'apiSellManual']);
 
-        // Venta digital (solo usuarios existentes)
+        // Venta digital (usuario existente) o pendiente (email no registrado + invitación)
         Route::post('/digital', [ParticipationController::class, 'apiSellDigital']);
+        Route::post('/digital/pending', [ParticipationController::class, 'apiSellDigitalPending']);
         
         // Historial de ventas del vendedor autenticado (para app móvil)
         Route::get('/me', [ParticipationController::class, 'apiGetMySales']);
@@ -261,6 +265,9 @@ Route::middleware('auth.api')->group(function () {
     // ========================================================================
     Route::prefix('managers')->group(function () {
         Route::get('/me/entities', [SellerController::class, 'apiGetManagerEntities']);
+        Route::get('/me/entities/{entityId}/assignment/lotteries', [SellerController::class, 'apiManagerAssignmentLotteries']);
+        Route::get('/me/entities/{entityId}/assignment/sets', [SellerController::class, 'apiManagerAssignmentSets']);
+        Route::post('/me/entities/{entityId}/assignment/validate-reference', [SellerController::class, 'apiManagerAssignmentValidateReference']);
         Route::get('/me/entities/{entityId}/sellers', [SellerController::class, 'apiGetManagerEntitySellers']);
         Route::get('/me/entities/{entityId}/sellers/{sellerId}/detail', [SellerController::class, 'apiGetManagerSellerDetail']);
         Route::post('/me/entities/{entityId}/sellers/{sellerId}/settlement', [SellerController::class, 'apiManagerStoreSettlement']);
