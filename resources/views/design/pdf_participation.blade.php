@@ -1,8 +1,12 @@
+@php
+    $use_prebuilt_cells = $use_prebuilt_cells ?? false;
+    $pdfDocumentTitle = $pdfDocumentTitle ?? 'Participación PDF';
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Participación PDF</title>
+    <title>{{ $pdfDocumentTitle }}</title>
     <style>
         @page {
             margin:8mm 10mm;
@@ -80,33 +84,62 @@
             image-rendering: pixelated;
         }
 
+        .format-box {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        [id*="containment-wrapper"] {
+            width: unset !important;
+        }	
+
         .margen-izquierdo,.margen-arriba,.margen-derecho,.margen-abajo,.caja-matriz, button {
             display: none;
         }
+        /* @if($use_prebuilt_cells)
+        .participation-box .format-box,
+        .participation-box [id*="containment-wrapper"] {
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        .participation-box .h1, .participation-box .h2, .participation-box .h3,
+        .participation-box .h4, .participation-box .h5, .participation-box .h6,
+        .participation-box h1, .participation-box h2, .participation-box h3,
+        .participation-box h4, .participation-box h5, .participation-box h6 {
+            margin: 0 !important;
+        }
+        @endif */
         
         /* Aquí puedes pegar estilos de Bootstrap en el futuro si lo necesitas */
     </style>
 </head>
 <body>
+@if(!empty($pdfHtmlPreviewBanner))
+<div style="position:sticky;top:0;z-index:99999;background:#fef3c7;color:#78350f;padding:8px 12px;font-size:13px;text-align:center;border-bottom:1px solid #fcd34d;font-family:system-ui,sans-serif;">
+    Vista previa HTML (DESIGN_PDF_HTML_PREVIEW=true). Es el mismo markup que recibe DomPDF; no es el archivo PDF.
+</div>
+@endif
 @foreach($pages as $pageIndex => $page)
     <div class="participation-page" style="@if($pageIndex < count($pages) - 1) page-break-after: always; @endif">
         @for($i = 0; $i < count($page); $i++)
-            @php
-                $ticket = $page[$i];
-                // Procesar HTML base
-                $html = $participation_html;
-                $html = str_replace(['00000000000000000000', '1/0001'], [$ticket['r'], '1/'.str_pad($ticket['n'], 4,'0',STR_PAD_LEFT)], $html);
-                
-                // Obtener QR code desde el array pre-generado (ya está en $qrCodes)
-                $qrCodeBase64 = $qrCodes[$ticket['r']] ?? '';
-                
-                // Método simple: Reemplazar el span ui-draggable-handle con el QR code
-                $html = str_replace(
-                    '<span class="ui-draggable-handle"></span>',
-                    '<img src="' . $qrCodeBase64 . '" class="qr-code" style="width: 60px; height: 60px; display: block;" alt="QR Code" />',
-                    $html
-                );
-            @endphp
+            @if($use_prebuilt_cells)
+                @php $html = $page[$i]; @endphp
+            @else
+                @php
+                    $ticket = $page[$i];
+                    $html = $participation_html;
+                    $html = str_replace(['00000000000000000000', '1/0001'], [$ticket['r'], '1/'.str_pad($ticket['n'], 4,'0',STR_PAD_LEFT)], $html);
+                    $qrCodeBase64 = $qrCodes[$ticket['r']] ?? '';
+                    $html = str_replace(
+                        '<span class="ui-draggable-handle"></span>',
+                        '<img src="' . $qrCodeBase64 . '" class="qr-code" style="width: 60px; height: 60px; display: block;" alt="QR Code" />',
+                        $html
+                    );
+                @endphp
+            @endif
             <div class="participation-box" style="width: {{ 100/$cols }}%; float: left;">
                 {!! $html !!}
             </div>

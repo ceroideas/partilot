@@ -48,12 +48,26 @@
                             $hasCover = !empty($design->cover_html);
                             $hasBack = !empty($design->back_html);
                         @endphp
-                        @if($hasCover && $hasBack)
+                        @if($hasCover)
                         <button type="button"
                             class="btn btn-outline-primary js-design-pdf-async"
-                            data-async-url="{{ route('design.exportCoverBackPdfAsync', $design->id) }}"
-                            data-title="Portada y trasera">
-                            <i class="ri-file-pdf-line me-1"></i> Descargar PDF portada y trasera
+                            data-async-url="{{ route('design.exportCoverPdfAsync', $design->id) }}"
+                            data-title="Portadas">
+                            <i class="ri-file-pdf-line me-1"></i> PDF portadas (tacos)
+                        </button>
+                        @endif
+                        @if($hasBack)
+                        <button type="button"
+                            class="btn btn-outline-secondary js-design-pdf-async"
+                            data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=one"
+                            data-title="Trasera (1)">
+                            <i class="ri-file-pdf-line me-1"></i> PDF trasera (1)
+                        </button>
+                        <button type="button"
+                            class="btn btn-outline-secondary js-design-pdf-async"
+                            data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=all"
+                            data-title="Traseras (todas)">
+                            <i class="ri-file-pdf-line me-1"></i> PDF traseras (todas)
                         </button>
                         @endif
                         @if(!empty($printOrderLock['locked']))

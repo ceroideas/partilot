@@ -111,12 +111,24 @@
                                         $hasCover = !empty($design->cover_html);
                                         $hasBack = !empty($design->back_html);
                                     @endphp
-                                    @if($hasCover && $hasBack)
+                                    @if($hasCover)
                                     <button type="button"
                                         class="btn btn-sm btn-light js-design-pdf-async"
-                                        title="Descargar PDF de portada y trasera"
-                                        data-async-url="{{ route('design.exportCoverBackPdfAsync', $design->id) }}"
-                                        data-title="Portada y trasera"><i class="ri-file-pdf-line"></i></button>
+                                        title="PDF portadas (varias por hoja)"
+                                        data-async-url="{{ route('design.exportCoverPdfAsync', $design->id) }}"
+                                        data-title="Portadas"><i class="ri-book-2-line"></i></button>
+                                    @endif
+                                    @if($hasBack)
+                                    <button type="button"
+                                        class="btn btn-sm btn-light js-design-pdf-async"
+                                        title="PDF trasera (1 ejemplar)"
+                                        data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=one"
+                                        data-title="Trasera (1)"><i class="ri-file-copy-line"></i></button>
+                                    <button type="button"
+                                        class="btn btn-sm btn-light js-design-pdf-async"
+                                        title="PDF traseras (todas las participaciones)"
+                                        data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=all"
+                                        data-title="Traseras (todas)"><i class="ri-stack-line"></i></button>
                                     @endif
                                     @php
                                         $isDigital = $design->set && ($design->set->digital_participations ?? 0) > 0 && (int)($design->set->physical_participations ?? 0) === 0;

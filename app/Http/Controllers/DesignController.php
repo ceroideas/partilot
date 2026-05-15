@@ -1520,6 +1520,29 @@ class DesignController extends Controller
             $qrCodes = $qrService->generateMultipleQrCodes($uniqueReferences);
         }*/
 
+        if ($this->designPdfHtmlPreviewEnabled()) {
+            $previewTickets = $tickets_to_print;
+            if ($total > 500) {
+                $previewTickets = array_slice($tickets_to_print, 0, $per_page);
+            }
+            $previewTotal = count($previewTickets);
+            $previewTotalPages = $previewTotal > 0 ? (int) ceil($previewTotal / $per_page) : 1;
+            $pages = $this->generatePagesOptimized($previewTickets, max(1, $previewTotalPages), $per_page);
+            $this->cleanupTempQrCodes();
+
+            return response()
+                ->view('design.pdf_participation', [
+                    'pages' => $pages,
+                    'participation_html' => $participation_html,
+                    'rows' => $rows,
+                    'cols' => $cols,
+                    'qrCodes' => $qrCodes,
+                    'pdfDocumentTitle' => 'Participación PDF (vista previa)',
+                    'pdfHtmlPreviewBanner' => true,
+                ])
+                ->header('Content-Type', 'text/html; charset=UTF-8');
+        }
+
         // Para PDFs muy grandes (>500 participaciones), usar procesamiento por lotes
         //if ($total > 500) {
         if ($total > 500) {
@@ -1532,7 +1555,7 @@ class DesignController extends Controller
         /*return view('design.pdf_participation', [
             'pages' => $pages,
             'participation_html' => $participation_html,
-            'rows' => $rows,
+            // 'rows' => $rows,
             'cols' => $cols,
             'qrCodes' => $qrCodes,
         ]);*/
@@ -1553,12 +1576,283 @@ class DesignController extends Controller
 
     public function exportCoverPdf($id)
     {
-        return $this->generateOptimizedPdf($id, 'cover_html', 'portada.pdf');
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '1024M');
+
+        $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
+
+        try {
+            if ($this->designPdfHtmlPreviewEnabled()) {
+                $payload = $this->buildGridPdfParticipationViewPayload($design, $this->buildCoverHtmlItems($design), 'Portadas PDF (vista previa)');
+                $payload['data']['pdfHtmlPreviewBanner'] = true;
+
+                return response()
+                    ->view($payload['view'], $payload['data'])
+                    ->header('Content-Type', 'text/html; charset=UTF-8');
+            }
+            $pdf = $this->makeCoverPdfFacade($design);
+        } catch (\InvalidArgumentException $e) {
+            abort(404, $e->getMessage());
+        } catch (\RuntimeException $e) {
+            abort(500, $e->getMessage());
+        }
+
+        return $pdf->download('portadas.pdf');
     }
 
-    public function exportBackPdf($id)
+    public function exportBackPdf(Request $request, $id)
     {
-        return $this->generateOptimizedPdf($id, 'back_html', 'trasera.pdf');
+        ini_set('max_execution_time', 300);
+        ini_set('memory_limit', '1024M');
+
+        $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
+
+        $copies = $this->normalizeBackPdfCopies($request->query('copies', 'all'));
+
+        try {
+            if ($this->designPdfHtmlPreviewEnabled()) {
+                $title = $copies === 'one' ? 'Traseras PDF — 1 ejemplar (vista previa)' : 'Traseras PDF (vista previa)';
+                $payload = $this->buildGridPdfParticipationViewPayload($design, $this->buildBackHtmlItems($design, $copies), $title);
+                $payload['data']['pdfHtmlPreviewBanner'] = true;
+
+                return response()
+                    ->view($payload['view'], $payload['data'])
+                    ->header('Content-Type', 'text/html; charset=UTF-8');
+            }
+            $pdf = $this->makeBackPdfFacade($design, $copies);
+        } catch (\InvalidArgumentException $e) {
+            abort(404, $e->getMessage());
+        } catch (\RuntimeException $e) {
+            abort(500, $e->getMessage());
+        }
+
+        $filename = $copies === 'one' ? 'trasera.pdf' : 'traseras.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * PDF de portadas: una por taco en orden (1, 2, 3…), varias por hoja según filas×columnas del diseño.
+     */
+    public function makeCoverPdfFacade(DesignFormat $design)
+    {
+        $items = $this->buildCoverHtmlItems($design);
+
+        return $this->makeGridPdfFromHtmlItems($design, $items, 'Portadas PDF');
+    }
+
+    /**
+     * PDF de traseras separado. copies=one → 1 ejemplar; copies=all → total de participaciones del set.
+     */
+    public function makeBackPdfFacade(DesignFormat $design, string $copies = 'all')
+    {
+        $copies = $this->normalizeBackPdfCopies($copies);
+        $items = $this->buildBackHtmlItems($design, $copies);
+
+        return $this->makeGridPdfFromHtmlItems($design, $items, 'Traseras PDF');
+    }
+
+    /**
+     * @return string[]
+     */
+    public function buildCoverHtmlItems(DesignFormat $design): array
+    {
+        if (empty($design->cover_html)) {
+            throw new \InvalidArgumentException('Portada no encontrada');
+        }
+
+        $coverTemplate = $this->prepareCoverOrBackHtmlForPdf($design, 'cover_html');
+
+        $output = $design->output ?? [];
+        if (!empty($output['participations_per_book']) && $design->set_id && empty($output['taco_qrs'])) {
+            $output = DesignFormat::mergeTacoQrsIntoOutput($design->set_id, $output);
+        }
+
+        $tacoQrs = $output['taco_qrs'] ?? [];
+        if (empty($tacoQrs)) {
+            return [$coverTemplate];
+        }
+
+        usort($tacoQrs, fn ($a, $b) => ((int) ($a['book_number'] ?? 0)) <=> ((int) ($b['book_number'] ?? 0)));
+
+        $qrService = new \App\Services\EndroidQrCodeService();
+        $items = [];
+        foreach ($tacoQrs as $taco) {
+            $tacoRef = $taco['taco_ref'] ?? '';
+            $bookNumber = (int) ($taco['book_number'] ?? 0);
+            if ($tacoRef === '') {
+                continue;
+            }
+            $qrBase64 = $qrService->generateQrFromTextBase64($tacoRef);
+            $items[] = $this->replaceCoverQrWithTacoQr($coverTemplate, $qrBase64, $bookNumber);
+        }
+
+        if ($items === []) {
+            throw new \RuntimeException('No se pudieron generar las portadas de tacos');
+        }
+
+        return $items;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function buildBackHtmlItems(DesignFormat $design, string $copies = 'all'): array
+    {
+        if (empty($design->back_html)) {
+            throw new \InvalidArgumentException('Trasera no encontrada');
+        }
+
+        $backHtml = $this->prepareCoverOrBackHtmlForPdf($design, 'back_html');
+        $copies = $this->normalizeBackPdfCopies($copies);
+
+        if ($copies === 'one') {
+            return [$backHtml];
+        }
+
+        $set = $design->set_id
+            ? Set::select('id', 'tickets', 'total_participations')->find($design->set_id)
+            : null;
+        $total = (int) ($set->total_participations ?? 0);
+        if ($total <= 0 && $set && $set->tickets) {
+            $tickets = is_array($set->tickets) ? $set->tickets : [];
+            $total = count($tickets);
+        }
+        $total = max(1, $total);
+
+        return array_fill(0, $total, $backHtml);
+    }
+
+    public function prepareCoverOrBackHtmlForPdf(DesignFormat $design, string $htmlField): string
+    {
+        $html = $design->$htmlField ?? '';
+        $imageService = new ImageOptimizationService();
+        $html = $imageService->optimizeHtmlImages($html);
+        $publicPath = public_path();
+        $html = $this->replaceApplicationWebRootsWithPublicPath($html, $publicPath);
+        $html = $this->ensureLocalPathsForPdf($html, $publicPath);
+        $html = $this->preserveInlineStyles($html);
+        $html = $this->adjustWidthsForDomPdf($html);
+
+        return $html;
+    }
+
+    /**
+     * Empaqueta ítems en páginas en orden secuencial (taco 1, 2, 3…), no modo talonario/guillotina.
+     *
+     * @param  string[]  $items
+     * @return string[][][]
+     */
+    public function generatePagesSequential(array $items, int $per_page): array
+    {
+        $per_page = max(1, $per_page);
+
+        return array_values(array_chunk($items, $per_page));
+    }
+
+    /**
+     * Misma vista y datos que DomPDF usa para portadas/traseras en cuadrícula.
+     *
+     * @param  string[]  $items
+     * @return array{view: string, data: array<string, mixed>, page: string, orientation: string}
+     */
+    private function buildGridPdfParticipationViewPayload(DesignFormat $design, array $items, string $documentTitle): array
+    {
+        if ($items === []) {
+            throw new \RuntimeException('No hay elementos para generar el PDF');
+        }
+
+        $rows = max(1, (int) ($design->rows ?? 1));
+        $cols = max(1, (int) ($design->cols ?? 1));
+        $per_page = $rows * $cols;
+        $pages = $this->generatePagesSequential($items, $per_page);
+
+        return [
+            'view' => 'design.pdf_participation',
+            'data' => [
+                'pages' => $pages,
+                'use_prebuilt_cells' => true,
+                'participation_html' => '',
+                'rows' => $rows,
+                'cols' => $cols,
+                'qrCodes' => [],
+                'pdfDocumentTitle' => $documentTitle,
+            ],
+            'page' => $design->page ?? 'a3',
+            'orientation' => $design->orientation ?? 'h',
+        ];
+    }
+
+    /**
+     * @param  string[]  $items
+     */
+    public function makeGridPdfFromHtmlItems(DesignFormat $design, array $items, string $documentTitle)
+    {
+        $payload = $this->buildGridPdfParticipationViewPayload($design, $items, $documentTitle);
+        $pdfOrientation = ($payload['orientation'] === 'h') ? 'landscape' : 'portrait';
+        $pdf = Pdf::loadView($payload['view'], $payload['data'])
+            ->setPaper($payload['page'], $pdfOrientation);
+
+        $this->applyDompdfOptions($pdf);
+
+        return $pdf;
+    }
+
+    /**
+     * Guarda PDF en cuadrícula; trocea si hay muchos ítems (p. ej. todas las traseras).
+     *
+     * @param  string[]  $items
+     */
+    public function saveGridPdfFacadeToPath(DesignFormat $design, array $items, string $finalPath, string $documentTitle): void
+    {
+        $chunkSize = 80;
+        if (count($items) <= $chunkSize) {
+            $this->makeGridPdfFromHtmlItems($design, $items, $documentTitle)->save($finalPath);
+
+            return;
+        }
+
+        $temp_files = [];
+        foreach (array_chunk($items, $chunkSize) as $chunk) {
+            $temp = storage_path('app/temp_pdf_'.uniqid('', true).'.pdf');
+            $this->makeGridPdfFromHtmlItems($design, $chunk, $documentTitle)->save($temp);
+            $temp_files[] = $temp;
+        }
+
+        FpdiPdfMerge::mergeTemporaryFiles($temp_files, $finalPath);
+    }
+
+    private function normalizeBackPdfCopies(?string $copies): string
+    {
+        $copies = strtolower(trim((string) $copies));
+
+        return in_array($copies, ['one', '1', 'single'], true) ? 'one' : 'all';
+    }
+
+    private function designPdfHtmlPreviewEnabled(): bool
+    {
+        return (bool) config('design.pdf_html_preview', false);
+    }
+
+    private function applyDompdfOptions($pdf): void
+    {
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->set('defaultFont', 'Arial');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $options->set('enable_remote', true);
+        $options->set('enable_html5_parser', true);
+        $options->set('enable_php', true);
+        $options->set('enableCssFloat', true);
+        $options->set('enableFontSubsetting', false);
     }
 
     /**
@@ -1641,18 +1935,7 @@ class DesignController extends Controller
 
         $pdf = Pdf::loadView($viewName, $viewData);
         $pdf->setPaper($page, $pdfOrientation);
-
-        $dompdf = $pdf->getDomPDF();
-        $options = $dompdf->getOptions();
-        $options->set('defaultFont', 'Arial');
-        $options->set('isRemoteEnabled', true);
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isPhpEnabled', true);
-        $options->set('enable_remote', true);
-        $options->set('enable_html5_parser', true);
-        $options->set('enable_php', true);
-        $options->set('enableCssFloat', true);
-        $options->set('enableFontSubsetting', false);
+        $this->applyDompdfOptions($pdf);
 
         return $pdf;
     }
@@ -1769,16 +2052,7 @@ class DesignController extends Controller
      */
     public function prepareOptimizedPdfFacade(DesignFormat $design, string $htmlField)
     {
-        $html = $design->$htmlField;
-
-        $imageService = new ImageOptimizationService();
-        $html = $imageService->optimizeHtmlImages($html);
-
-        $publicPath = public_path();
-        $html = $this->replaceApplicationWebRootsWithPublicPath($html, $publicPath);
-        $html = $this->ensureLocalPathsForPdf($html, $publicPath);
-        $html = $this->preserveInlineStyles($html);
-        $html = $this->adjustWidthsForDomPdf($html);
+        $html = $this->prepareCoverOrBackHtmlForPdf($design, $htmlField);
 
         $page = $design->page ?? 'a3';
         $orientation = $design->orientation ?? 'h';
@@ -1793,18 +2067,7 @@ class DesignController extends Controller
 
         $pdf = Pdf::loadView($viewName, ['html' => $html]);
         $pdf->setPaper($page, $pdfOrientation);
-
-        $dompdf = $pdf->getDomPDF();
-        $options = $dompdf->getOptions();
-        $options->set('defaultFont', 'Arial');
-        $options->set('isRemoteEnabled', true);
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isPhpEnabled', true);
-        $options->set('enable_remote', true);
-        $options->set('enable_html5_parser', true);
-        $options->set('enable_php', true);
-        $options->set('enableCssFloat', true);
-        $options->set('enableFontSubsetting', false);
+        $this->applyDompdfOptions($pdf);
 
         return $pdf;
     }
@@ -2500,12 +2763,55 @@ class DesignController extends Controller
      */
     public function exportCoverPdfAsync($id)
     {
-        return $this->generateOptimizedPdfAsync($id, 'cover_html', 'portada.pdf');
+        $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
+        if (empty($design->cover_html)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Portada no encontrada',
+            ], 404);
+        }
+
+        $job_id = 'pdf_cover_grid_'.$id.'_'.time();
+        Queue::push(new \App\Jobs\GenerateCoverPdfJob($id, $job_id));
+
+        return response()->json([
+            'status' => 'processing',
+            'job_id' => $job_id,
+            'message' => 'El PDF de portadas se está generando. Cuando esté listo podrá descargarlo desde el aviso.',
+            'check_url' => route('design.checkPdfStatus', $job_id),
+        ]);
     }
 
-    public function exportBackPdfAsync($id)
+    public function exportBackPdfAsync(Request $request, $id)
     {
-        return $this->generateOptimizedPdfAsync($id, 'back_html', 'trasera.pdf');
+        $design = DesignFormat::findOrFail($id);
+        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para exportar este diseño.');
+        }
+        if (empty($design->back_html)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Trasera no encontrada',
+            ], 404);
+        }
+
+        $copies = $this->normalizeBackPdfCopies($request->query('copies', 'all'));
+        $job_id = 'pdf_back_grid_'.$id.'_'.$copies.'_'.time();
+        $filename = $copies === 'one' ? 'trasera.pdf' : 'traseras.pdf';
+
+        Queue::push(new \App\Jobs\GenerateBackPdfJob($id, $job_id, $copies, $filename));
+
+        return response()->json([
+            'status' => 'processing',
+            'job_id' => $job_id,
+            'message' => $copies === 'one'
+                ? 'El PDF con 1 trasera se está generando.'
+                : 'El PDF con todas las traseras se está generando.',
+            'check_url' => route('design.checkPdfStatus', $job_id),
+        ]);
     }
 
     /**
