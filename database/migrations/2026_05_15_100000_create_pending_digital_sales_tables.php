@@ -28,8 +28,12 @@ return new class extends Migration
 
         Schema::create('pending_digital_sale_participations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pending_digital_sale_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('participation_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('pending_digital_sale_id');
+            $table->unsignedBigInteger('participation_id');
+            $table->foreign('pending_digital_sale_id', 'pds_pdsp_sale_fk')
+                ->references('id')->on('pending_digital_sales')->cascadeOnDelete();
+            $table->foreign('participation_id', 'pds_pdsp_part_fk')
+                ->references('id')->on('participations')->cascadeOnDelete();
             $table->unique(['participation_id']);
         });
 
