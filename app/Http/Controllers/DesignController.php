@@ -1452,7 +1452,7 @@ class DesignController extends Controller
         );
     }
 
-    public function exportParticipationPdf($id)
+    public function exportParticipationPdf(Request $request, $id)
     {
         // Aumentar límites para PDFs grandes
         ini_set('max_execution_time', 300); // 5 minutos
@@ -1461,6 +1461,12 @@ class DesignController extends Controller
         $design = DesignFormat::findOrFail($id);
         if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
             abort(403, 'No tienes permisos para exportar este diseño.');
+        }
+
+        try {
+            [$from, $to] = $this->resolveParticipationPdfRange($request, $design);
+        } catch (\InvalidArgumentException $e) {
+            abort(422, $e->getMessage());
         }
         
         // Cache del HTML procesado (clave versionada; mismo pipeline que el Job en cola)
@@ -1477,27 +1483,16 @@ class DesignController extends Controller
         // Obtener tickets del set con eager loading optimizado
         $set = $design->set_id ? Set::select('id', 'tickets', 'total_participations')->find($design->set_id) : null;
         $tickets = $set && $set->tickets ? $set->tickets : [];
-        $total_participations = $set->total_participations ?? 0;
-
-        // Determinar rango de tickets a imprimir
-        $generate_mode = $design->output['generate_mode'] ?? 1;
-        if ($generate_mode == 1) {
-            $from = 1;
-            $to = $total_participations;
-        } else {
-            $from = $design->output['participation_from'] ?? 1;
-            $to = $design->output['participation_to'] ?? $total_participations;
-        }
         
         // Calcular filas y columnas
         $rows = $design->rows ?? 1;
         $cols = $design->cols ?? 1;
         $per_page = $rows * $cols;
-        $total = $to - $from + 1;
-        $total_pages = ceil($total / $per_page);
+        $total = max(0, $to - $from + 1);
+        $total_pages = $per_page > 0 ? (int) ceil($total / $per_page) : 0;
 
         // Obtener tickets a imprimir
-        $tickets_to_print = array_slice($tickets, $from - 1, $to - $from + 1);
+        $tickets_to_print = $total > 0 ? array_slice($tickets, $from - 1, $total) : [];
 
         // Optimizar HTML de participación (configurable)
         if (config('qr_optimization.optimize_images', false)) {
@@ -1614,25 +1609,34 @@ class DesignController extends Controller
         }
 
         $copies = $this->normalizeBackPdfCopies($request->query('copies', 'all'));
+        $exactCount = $this->parseBackPdfExactCount($request);
 
         try {
             if ($this->designPdfHtmlPreviewEnabled()) {
-                $title = $copies === 'one' ? 'Traseras PDF — 1 ejemplar (vista previa)' : 'Traseras PDF (vista previa)';
-                $payload = $this->buildGridPdfParticipationViewPayload($design, $this->buildBackHtmlItems($design, $copies), $title);
+                if ($exactCount !== null) {
+                    $title = 'Traseras PDF — '.$exactCount.' ejemplar(es) (vista previa)';
+                } else {
+                    $title = $copies === 'one' ? 'Traseras PDF — 1 ejemplar (vista previa)' : 'Traseras PDF (vista previa)';
+                }
+                $payload = $this->buildGridPdfParticipationViewPayload($design, $this->buildBackHtmlItems($design, $copies, $exactCount), $title);
                 $payload['data']['pdfHtmlPreviewBanner'] = true;
 
                 return response()
                     ->view($payload['view'], $payload['data'])
                     ->header('Content-Type', 'text/html; charset=UTF-8');
             }
-            $pdf = $this->makeBackPdfFacade($design, $copies);
+            $pdf = $this->makeBackPdfFacade($design, $copies, $exactCount);
         } catch (\InvalidArgumentException $e) {
             abort(404, $e->getMessage());
         } catch (\RuntimeException $e) {
             abort(500, $e->getMessage());
         }
 
-        $filename = $copies === 'one' ? 'trasera.pdf' : 'traseras.pdf';
+        if ($exactCount !== null) {
+            $filename = 'traseras-'.$exactCount.'.pdf';
+        } else {
+            $filename = $copies === 'one' ? 'trasera.pdf' : 'traseras.pdf';
+        }
 
         return $pdf->download($filename);
     }
@@ -1650,10 +1654,10 @@ class DesignController extends Controller
     /**
      * PDF de traseras separado. copies=one → 1 ejemplar; copies=all → total de participaciones del set.
      */
-    public function makeBackPdfFacade(DesignFormat $design, string $copies = 'all')
+    public function makeBackPdfFacade(DesignFormat $design, string $copies = 'all', ?int $exactCount = null)
     {
         $copies = $this->normalizeBackPdfCopies($copies);
-        $items = $this->buildBackHtmlItems($design, $copies);
+        $items = $this->buildBackHtmlItems($design, $copies, $exactCount);
 
         return $this->makeGridPdfFromHtmlItems($design, $items, 'Traseras PDF');
     }
@@ -1703,7 +1707,7 @@ class DesignController extends Controller
     /**
      * @return string[]
      */
-    public function buildBackHtmlItems(DesignFormat $design, string $copies = 'all'): array
+    public function buildBackHtmlItems(DesignFormat $design, string $copies = 'all', ?int $exactCount = null): array
     {
         if (empty($design->back_html)) {
             throw new \InvalidArgumentException('Trasera no encontrada');
@@ -1711,6 +1715,12 @@ class DesignController extends Controller
 
         $backHtml = $this->prepareCoverOrBackHtmlForPdf($design, 'back_html');
         $copies = $this->normalizeBackPdfCopies($copies);
+
+        if ($exactCount !== null) {
+            $n = max(1, min(100000, (int) $exactCount));
+
+            return array_fill(0, $n, $backHtml);
+        }
 
         if ($copies === 'one') {
             return [$backHtml];
@@ -1826,6 +1836,77 @@ class DesignController extends Controller
         }
 
         FpdiPdfMerge::mergeTemporaryFiles($temp_files, $finalPath);
+    }
+
+    /**
+     * Rango inclusive de participaciones a imprimir.
+     * Query opcional: pdf_from, pdf_to (ambos) para sobrescribir el diseño solo en esta descarga.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function resolveParticipationPdfRange(Request $request, DesignFormat $design): array
+    {
+        $set = $design->set_id ? Set::select('id', 'tickets', 'total_participations')->find($design->set_id) : null;
+        $totalParticipations = (int) ($set->total_participations ?? 0);
+        if ($totalParticipations <= 0 && $set && is_array($set->tickets)) {
+            $totalParticipations = count($set->tickets);
+        }
+
+        $qf = $request->query('pdf_from');
+        $qt = $request->query('pdf_to');
+        $hasCustom = ($qf !== null && $qf !== '') && ($qt !== null && $qt !== '');
+
+        if ($hasCustom) {
+            if ($totalParticipations <= 0) {
+                throw new \InvalidArgumentException('No hay participaciones en el set para imprimir.');
+            }
+            $from = (int) $qf;
+            $to = (int) $qt;
+            $from = max(1, min($totalParticipations, $from));
+            $to = max(1, min($totalParticipations, $to));
+            if ($from > $to) {
+                throw new \InvalidArgumentException('La participación inicial no puede ser mayor que la final.');
+            }
+
+            return [$from, $to];
+        }
+
+        $generate_mode = $design->output['generate_mode'] ?? 1;
+        if ($generate_mode == 1) {
+            return [1, max(0, $totalParticipations)];
+        }
+
+        $from = (int) ($design->output['participation_from'] ?? 1);
+        $to = (int) ($design->output['participation_to'] ?? $totalParticipations);
+        if ($totalParticipations > 0) {
+            $from = max(1, min($totalParticipations, $from));
+            $to = max(1, min($totalParticipations, $to));
+            if ($from > $to) {
+                [$from, $to] = [$to, $from];
+            }
+        }
+
+        return [$from, $to];
+    }
+
+    /**
+     * Número exacto de traseras idénticas (query count). Max 100000.
+     */
+    private function parseBackPdfExactCount(Request $request): ?int
+    {
+        $raw = $request->query('count');
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        if (! is_numeric($raw)) {
+            return null;
+        }
+        $n = (int) $raw;
+        if ($n < 1) {
+            return null;
+        }
+
+        return min(100000, $n);
     }
 
     private function normalizeBackPdfCopies(?string $copies): string
@@ -2481,15 +2562,24 @@ class DesignController extends Controller
     /**
      * Método alternativo para PDFs muy grandes usando colas
      */
-    public function exportParticipationPdfAsync($id)
+    public function exportParticipationPdfAsync(Request $request, $id)
     {
         $design = DesignFormat::findOrFail($id);
         if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
             abort(403, 'No tienes permisos para exportar este diseño.');
         }
 
-        $job_id = 'pdf_part_' . $id . '_' . time();
-        Queue::push(new \App\Jobs\GenerateParticipationPdfJob($id, $job_id));
+        try {
+            [$from, $to] = $this->resolveParticipationPdfRange($request, $design);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        $job_id = 'pdf_part_'.$id.'_'.$from.'_'.$to.'_'.time();
+        Queue::push(new \App\Jobs\GenerateParticipationPdfJob($id, $job_id, $from, $to));
 
         return response()->json([
             'status' => 'processing',
@@ -2799,17 +2889,23 @@ class DesignController extends Controller
         }
 
         $copies = $this->normalizeBackPdfCopies($request->query('copies', 'all'));
-        $job_id = 'pdf_back_grid_'.$id.'_'.$copies.'_'.time();
-        $filename = $copies === 'one' ? 'trasera.pdf' : 'traseras.pdf';
+        $exactCount = $this->parseBackPdfExactCount($request);
 
-        Queue::push(new \App\Jobs\GenerateBackPdfJob($id, $job_id, $copies, $filename));
+        $job_id = 'pdf_back_'.$id.'_'.time();
+        $filename = $exactCount !== null ? 'traseras-'.$exactCount.'.pdf' : ($copies === 'one' ? 'trasera.pdf' : 'traseras.pdf');
+
+        Queue::push(new \App\Jobs\GenerateBackPdfJob($id, $job_id, $copies, $filename, $exactCount));
+
+        $msg = $exactCount !== null
+            ? 'El PDF con '.$exactCount.' traseras se está generando.'
+            : ($copies === 'one'
+                ? 'El PDF con 1 trasera se está generando.'
+                : 'El PDF con todas las traseras se está generando.');
 
         return response()->json([
             'status' => 'processing',
             'job_id' => $job_id,
-            'message' => $copies === 'one'
-                ? 'El PDF con 1 trasera se está generando.'
-                : 'El PDF con todas las traseras se está generando.',
+            'message' => $msg,
             'check_url' => route('design.checkPdfStatus', $job_id),
         ]);
     }

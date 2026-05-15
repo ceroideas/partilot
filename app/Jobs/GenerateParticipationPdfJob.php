@@ -23,10 +23,16 @@ class GenerateParticipationPdfJob implements ShouldQueue
 
     protected string $jobId;
 
-    public function __construct($designId, $jobId)
+    protected int $participationFrom;
+
+    protected int $participationTo;
+
+    public function __construct(int $designId, string $jobId, int $participationFrom, int $participationTo)
     {
-        $this->designId = (int) $designId;
+        $this->designId = $designId;
         $this->jobId = (string) $jobId;
+        $this->participationFrom = $participationFrom;
+        $this->participationTo = $participationTo;
     }
 
     public function handle(): void
@@ -37,7 +43,6 @@ class GenerateParticipationPdfJob implements ShouldQueue
         $design = DesignFormat::findOrFail($this->designId);
         $controller = app(DesignController::class);
 
-        // Misma preparación que exportParticipationPdf() (web): rutas locales + url(uploads/) + anchuras
         $cacheKey = 'participation_html_pdf_v9_'.$this->designId;
         $participation_html = cache()->remember($cacheKey, 3600, function () use ($design, $controller) {
             return $controller->prepareParticipationHtmlForPdf($design->participation_html ?? '');
@@ -45,19 +50,12 @@ class GenerateParticipationPdfJob implements ShouldQueue
 
         $set = $design->set_id ? Set::select('id', 'tickets', 'total_participations')->find($design->set_id) : null;
         $tickets = $set && $set->tickets ? $set->tickets : [];
-        $total_participations = (int) ($set->total_participations ?? 0);
 
-        $generate_mode = $design->output['generate_mode'] ?? 1;
-        if ($generate_mode == 1) {
-            $from = 1;
-            $to = $total_participations;
-        } else {
-            $from = (int) ($design->output['participation_from'] ?? 1);
-            $to = (int) ($design->output['participation_to'] ?? $total_participations);
-        }
+        $from = $this->participationFrom;
+        $to = $this->participationTo;
 
         $tickets_slice = [];
-        if ($from <= $to && $total_participations > 0) {
+        if ($from <= $to && $to >= 1) {
             $tickets_slice = array_slice($tickets, $from - 1, max(0, $to - $from + 1));
         }
 

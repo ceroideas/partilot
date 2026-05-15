@@ -121,14 +121,11 @@
                                     @if($hasBack)
                                     <button type="button"
                                         class="btn btn-sm btn-light js-design-pdf-async"
-                                        title="PDF trasera (1 ejemplar)"
-                                        data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=one"
-                                        data-title="Trasera (1)"><i class="ri-file-copy-line"></i></button>
-                                    <button type="button"
-                                        class="btn btn-sm btn-light js-design-pdf-async"
-                                        title="PDF traseras (todas las participaciones)"
-                                        data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=all"
-                                        data-title="Traseras (todas)"><i class="ri-stack-line"></i></button>
+                                        title="PDF traseras (indique cuántas; son idénticas)"
+                                        data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}"
+                                        data-pdf-dialog="backs"
+                                        data-total-participations="{{ $design->set ? (int)$design->set->total_participations : 0 }}"
+                                        data-title="Traseras"><i class="ri-stack-line"></i></button>
                                     @endif
                                     @php
                                         $isDigital = $design->set && ($design->set->digital_participations ?? 0) > 0 && (int)($design->set->physical_participations ?? 0) === 0;
@@ -140,8 +137,10 @@
                                     @else
                                         <button type="button"
                                             class="btn btn-sm btn-light js-design-pdf-async"
-                                            title="Descargar PDF de participaciones"
+                                            title="Descargar PDF de participaciones (elija rango)"
                                             data-async-url="{{ route('design.exportParticipationPdfAsync', $design->id) }}"
+                                            data-pdf-dialog="participation"
+                                            data-total-participations="{{ $design->set ? (int)$design->set->total_participations : 0 }}"
                                             data-title="Participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></button>
                                     @endif
                                     @if(!empty($printLockCtx['locked']))

@@ -24,12 +24,15 @@ class GenerateBackPdfJob implements ShouldQueue
 
     protected string $filename;
 
-    public function __construct(int $designId, string $jobId, string $copies, string $filename)
+    protected ?int $exactCount;
+
+    public function __construct(int $designId, string $jobId, string $copies, string $filename, ?int $exactCount = null)
     {
         $this->designId = $designId;
         $this->jobId = $jobId;
         $this->copies = $copies;
         $this->filename = $filename;
+        $this->exactCount = $exactCount;
     }
 
     public function handle(): void
@@ -41,7 +44,7 @@ class GenerateBackPdfJob implements ShouldQueue
         $controller = app(DesignController::class);
 
         try {
-            $items = $controller->buildBackHtmlItems($design, $this->copies);
+            $items = $controller->buildBackHtmlItems($design, $this->copies, $this->exactCount);
         } catch (\InvalidArgumentException|\RuntimeException $e) {
             \Log::error('GenerateBackPdfJob #'.$this->designId.': '.$e->getMessage());
             throw $e;

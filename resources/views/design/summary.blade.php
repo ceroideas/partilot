@@ -41,6 +41,8 @@
                         <button type="button"
                             class="btn btn-primary js-design-pdf-async"
                             data-async-url="{{ route('design.exportParticipationPdfAsync', $design->id) }}"
+                            data-pdf-dialog="participation"
+                            data-total-participations="{{ $design->set ? (int)$design->set->total_participations : 0 }}"
                             data-title="Participaciones">
                             <i class="ri-file-pdf-line me-1"></i> Descargar PDF participaciones
                         </button>
@@ -59,15 +61,11 @@
                         @if($hasBack)
                         <button type="button"
                             class="btn btn-outline-secondary js-design-pdf-async"
-                            data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=one"
-                            data-title="Trasera (1)">
-                            <i class="ri-file-pdf-line me-1"></i> PDF trasera (1)
-                        </button>
-                        <button type="button"
-                            class="btn btn-outline-secondary js-design-pdf-async"
-                            data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}?copies=all"
-                            data-title="Traseras (todas)">
-                            <i class="ri-file-pdf-line me-1"></i> PDF traseras (todas)
+                            data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}"
+                            data-pdf-dialog="backs"
+                            data-total-participations="{{ $design->set ? (int)$design->set->total_participations : 0 }}"
+                            data-title="Traseras">
+                            <i class="ri-file-pdf-line me-1"></i> PDF traseras
                         </button>
                         @endif
                         @if(!empty($printOrderLock['locked']))
