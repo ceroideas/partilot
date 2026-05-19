@@ -1094,7 +1094,8 @@ class EntityController extends Controller
             $user = new User;
             $user->name = $request->manager_name . ' ' . $request->manager_last_name;
             $user->email = $request->manager_email;
-            $user->password = bcrypt(12345678);
+            $user->password = User::ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD;
+            $user->role = User::ROLE_ENTITY;
             $user->save();
         }
 
@@ -1107,6 +1108,7 @@ class EntityController extends Controller
             'birthday' => $request->manager_birthday,
             'phone' => $request->manager_phone,
             'comment' => $request->manager_comment,
+            'role' => User::ROLE_ENTITY,
         ]);
 
         // Manejo de imagen del manager

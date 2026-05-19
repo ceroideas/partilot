@@ -7,6 +7,7 @@ use App\Models\ParticipationActivityLog;
 use App\Models\Participation;
 use App\Models\Seller;
 use App\Models\Entity;
+use App\Services\ParticipationOwnerService;
 
 class ParticipationActivityLogController extends Controller
 {
@@ -24,7 +25,7 @@ class ParticipationActivityLogController extends Controller
 
             $activities = $this->applyAccessFilter($activitiesQuery)
                 ->get()
-                ->map(function ($activity) {
+                ->map(function ($activity) use ($participation) {
                     return [
                         'id' => $activity->id,
                         'activity_type' => $activity->activity_type,
@@ -38,7 +39,8 @@ class ParticipationActivityLogController extends Controller
                         'new_status' => $activity->new_status,
                         'old_seller' => $activity->oldSeller ? $activity->oldSeller->full_name : null,
                         'new_seller' => $activity->newSeller ? $activity->newSeller->full_name : null,
-                        'metadata' => $activity->metadata,
+                        'metadata' => $this->enrichActivityMetadata($activity->metadata, $participation),
+                        'owner_user_name' => ParticipationOwnerService::ownerDisplayName($participation),
                         'created_at' => $activity->created_at->format('d/m/Y H:i:s'),
                         'ip_address' => $activity->ip_address,
                     ];
@@ -332,5 +334,33 @@ class ParticipationActivityLogController extends Controller
                 $q->whereRaw('1 = 0');
             }
         });
+    }
+
+    /**
+     * Resuelve owner_user_* en metadata y traduce buyer_name numérico a nombre legible.
+     */
+    private function enrichActivityMetadata(?array $metadata, Participation $participation): array
+    {
+        $metadata = $metadata ?? [];
+
+        if (empty($metadata['owner_user_name'])) {
+            $metadata = array_merge($metadata, ParticipationOwnerService::ownerMetadata($participation));
+        }
+
+        if (! empty($metadata['buyer_name']) && ctype_digit((string) $metadata['buyer_name'])) {
+            $owner = ParticipationOwnerService::resolveOwnerUser($participation);
+            if ($owner) {
+                $metadata['buyer_name'] = ParticipationOwnerService::ownerDisplayName($participation);
+            }
+        }
+
+        if (! empty($metadata['changes']['buyer_name']) && ctype_digit((string) $metadata['changes']['buyer_name'])) {
+            $owner = ParticipationOwnerService::resolveOwnerUser($participation);
+            if ($owner) {
+                $metadata['changes']['buyer_name'] = ParticipationOwnerService::ownerDisplayName($participation);
+            }
+        }
+
+        return $metadata;
     }
 }

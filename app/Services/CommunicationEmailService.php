@@ -315,6 +315,15 @@ class CommunicationEmailService
             return;
         }
 
+        if ($mailClass === \App\Mail\ParticipationWalletLinkedMail::class) {
+            $userId = (int) ($mailPayload['user_id'] ?? 0);
+            $participationId = (int) ($mailPayload['participation_id'] ?? 0);
+            $user = User::findOrFail($userId);
+            $participation = \App\Models\Participation::with(['set.entity', 'set.reserve.lottery'])->findOrFail($participationId);
+            Mail::to($recipientEmail)->send(new \App\Mail\ParticipationWalletLinkedMail($user, $participation));
+            return;
+        }
+
         throw new \RuntimeException("mail_class no soportado para reenviar: {$mailClass}");
     }
 }

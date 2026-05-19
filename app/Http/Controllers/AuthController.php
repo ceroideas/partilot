@@ -158,16 +158,28 @@ class AuthController extends Controller
         }
 
         $request->validate([
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ((string) $value === User::ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD) {
+                        $fail('La nueva contraseña no puede ser 12345678. Elija otra distinta a la provisional.');
+                    }
+                },
+            ],
         ], [
             'password.required' => 'Indique la nueva contraseña.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'La confirmación no coincide.',
         ]);
 
-        $user->update([
-            'password' => $request->input('password'),
-        ]);
+        $user->password = $request->input('password');
+        $user->save();
+        $user->refresh();
+
+        Auth::login($user);
 
         return redirect()->route('dashboard')->with('success', 'Contraseña actualizada correctamente.');
     }

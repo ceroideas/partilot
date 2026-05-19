@@ -16,7 +16,10 @@
     </div>
     <div class="card">
         <div class="card-body p-4">
-            <p class="text-muted small">Su cuenta de gestor usa la contraseña por defecto. Por seguridad, establezca una nueva contraseña para el panel.</p>
+            <p class="text-muted small">Su cuenta de gestor usa la contraseña por defecto <strong>12345678</strong>. Por seguridad, establezca una <strong>nueva contraseña distinta</strong> (mínimo 8 caracteres).</p>
+            @if (session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
             @if ($errors->any())
                 <div class="alert alert-danger">
                     <ul class="mb-0">

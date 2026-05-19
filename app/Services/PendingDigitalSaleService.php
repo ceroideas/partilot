@@ -254,7 +254,7 @@ class PendingDigitalSaleService
                     continue;
                 }
                 $p->markAsSold($seller->id, $pricePer, [
-                    'name' => (string) $buyer->id,
+                    'user_id' => $buyer->id,
                     'email' => $buyer->email,
                 ], $pending->payment_method);
             }
@@ -276,6 +276,9 @@ class PendingDigitalSaleService
                 'completed_user_id' => $buyer->id,
             ]);
         });
+
+        $pending->refresh();
+        app(DigitalParticipationNotificationService::class)->sendPendingClaimed($buyer, $pending);
     }
 
     public function releasePendingSale(PendingDigitalSale $pending, string $status = PendingDigitalSale::STATUS_EXPIRED): void

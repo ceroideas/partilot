@@ -72,6 +72,21 @@ class Participation extends Model
         return $this->belongsTo(Seller::class);
     }
 
+    /**
+     * Usuario de cartera / comprador en app: buyer_name guarda su id (string), no el nombre.
+     */
+    public function walletOwner()
+    {
+        return $this->belongsTo(User::class, 'buyer_name', 'id');
+    }
+
+    public function buyerNameIsWalletUserId(): bool
+    {
+        $key = trim((string) ($this->buyer_name ?? ''));
+
+        return $key !== '' && ctype_digit($key);
+    }
+
     public function returnedBy()
     {
         return $this->belongsTo(User::class, 'returned_by');
@@ -163,17 +178,37 @@ class Participation extends Model
     // Método para marcar como vendida (payment_method por participación para Tarea 3 QR)
     public function markAsSold($sellerId, $saleAmount = null, $buyerInfo = [], $paymentMethod = null)
     {
+        $walletUser = null;
+        if (! empty($buyerInfo['user_id'])) {
+            $walletUser = User::find($buyerInfo['user_id']);
+        } elseif (! empty($buyerInfo['user']) && $buyerInfo['user'] instanceof User) {
+            $walletUser = $buyerInfo['user'];
+        } elseif (! empty($buyerInfo['name']) && ctype_digit((string) $buyerInfo['name'])) {
+            // Legacy: buyerInfo['name'] = (string) user_id en ventas digitales.
+            $walletUser = User::find((int) $buyerInfo['name']);
+        }
+
         $data = [
             'status' => 'vendida',
             'seller_id' => $sellerId,
             'sale_date' => now()->toDateString(),
             'sale_time' => now()->toTimeString(),
             'sale_amount' => $saleAmount,
-            'buyer_name' => $buyerInfo['name'] ?? null,
-            'buyer_phone' => $buyerInfo['phone'] ?? null,
-            'buyer_email' => $buyerInfo['email'] ?? null,
             'buyer_nif' => $buyerInfo['nif'] ?? null,
         ];
+
+        if ($walletUser) {
+            \App\Services\ParticipationOwnerService::assignOwner($this, $walletUser);
+            $data['buyer_name'] = $this->buyer_name;
+            $data['buyer_email'] = $this->buyer_email;
+            $data['buyer_phone'] = $this->buyer_phone;
+        } else {
+            // Sin usuario app: buyer_name puede ser texto libre (venta física).
+            $data['buyer_name'] = $buyerInfo['name'] ?? null;
+            $data['buyer_phone'] = $buyerInfo['phone'] ?? null;
+            $data['buyer_email'] = $buyerInfo['email'] ?? null;
+        }
+
         if ($paymentMethod !== null) {
             $data['payment_method'] = $paymentMethod;
         }

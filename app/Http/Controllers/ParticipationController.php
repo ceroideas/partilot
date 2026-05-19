@@ -27,6 +27,7 @@ use App\Mail\TransferCollectionConfirmationMail;
 use App\Mail\DonationCodeConfirmationMail;
 use App\Services\AppInboxNotificationService;
 use App\Services\PendingDigitalSaleService;
+use App\Services\ParticipationOwnerService;
 
 class ParticipationController extends Controller
 {
@@ -186,7 +187,8 @@ class ParticipationController extends Controller
             'set.reserve.lottery.lotteryType',
             'set.reserve.entity.administration',
             'seller.user',
-            'designFormat'
+            'designFormat',
+            'walletOwner',
         ])
         ->forUser(auth()->user())
         ->findOrFail($id);
@@ -636,7 +638,7 @@ class ParticipationController extends Controller
             DB::beginTransaction();
             foreach ($participations as $p) {
                 $p->markAsSold($seller->id, $pricePerParticipation, [
-                    'name' => (string) $buyer->id,
+                    'user_id' => $buyer->id,
                     'email' => $buyer->email,
                 ], $paymentMethod);
             }
@@ -644,6 +646,17 @@ class ParticipationController extends Controller
                 $this->createSellerSettlementFromSale($seller, $participations, $set, $saleAmount, $paymentMethod, $user->id);
             }
             DB::commit();
+
+            try {
+                app(\App\Services\DigitalParticipationNotificationService::class)->sendPurchaseConfirmation(
+                    $buyer,
+                    $participations,
+                    (float) $saleAmount,
+                    ['source' => 'api_sell_digital', 'seller_id' => $seller->id]
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Fallo enviando confirmación venta digital API: '.$e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -1082,7 +1095,7 @@ class ParticipationController extends Controller
 
         $participations = Participation::where('seller_id', $seller->id)
             ->where('status', 'vendida')
-            ->with(['set.entity', 'set.reserve.lottery', 'set.designFormats'])
+            ->with(['set.entity', 'set.reserve.lottery.lotteryType', 'set.designFormats'])
             ->orderBy('sale_date', 'desc')
             ->orderBy('sale_time', 'desc')
             ->limit(200)
@@ -1167,15 +1180,18 @@ class ParticipationController extends Controller
                 }
             }
 
+            $isDigitalSet = $this->setIsDigitalOnly($set);
+            $setLabel = $this->setHistorialLabel($set);
+
             return [
                 'id' => $p->id,
-                'tipo' => 'venta',
+                'tipo' => $isDigitalSet ? 'venta-digital' : 'venta',
                 'fecha' => $saleDateTime,
                 'formaPago' => $formaPago,
                 'descripcion' => 'Participación ' . $entidadNombre,
                 'participacion' => [
                     'entidad' => $entidadNombre,
-                    'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
+                    'sorteo' => $this->lotteryHistorialLabel($lottery),
                     'numero' => $numeroReservado,
                     'fechaSorteo' => $fechaSorteo,
                     'importeJugado' => $importeJugado,
@@ -1184,13 +1200,16 @@ class ParticipationController extends Controller
                     'numeroParticipacion' => $p->display_participation_code ?? $p->participation_code ?? $p->participation_number . '/' . str_pad($p->participation_number, 4, '0', STR_PAD_LEFT),
                     'numeroReferencia' => $numeroReferencia ?? str_pad((string) $p->id, 19, '0', STR_PAD_LEFT),
                     'snapshotPath' => $snapshotPath,
+                    'esDigital' => $isDigitalSet,
+                    'setLabel' => $setLabel,
+                    'set_number' => $set->set_number ?? null,
                 ],
             ];
         })->filter()->values()->all();
 
         $pendingHistorial = PendingDigitalSale::where('seller_id', $seller->id)
             ->pendingNotExpired()
-            ->with(['entity', 'lottery'])
+            ->with(['entity', 'lottery.lotteryType', 'set'])
             ->orderByDesc('created_at')
             ->limit(50)
             ->get()
@@ -1204,6 +1223,7 @@ class ParticipationController extends Controller
                 $qty = (int) $p->quantity;
                 $importeTotal = (float) $p->sale_amount;
                 $importeJugado = $qty > 0 ? round($importeTotal / $qty, 2) : $importeTotal;
+                $setLabel = $this->setHistorialLabel($p->set);
 
                 return [
                     'id' => 'p-' . $p->id,
@@ -1216,9 +1236,10 @@ class ParticipationController extends Controller
                     'pendienteRegistro' => true,
                     'valid_until' => $p->valid_until?->toIso8601String(),
                     'codigoVinculacion' => $p->link_code,
+                    'setLabel' => $setLabel,
                     'participacion' => [
                         'entidad' => $entidadNombre,
-                        'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
+                        'sorteo' => $this->lotteryHistorialLabel($lottery),
                         'numero' => $qty . ' dig.',
                         'fechaSorteo' => $fechaSorteo,
                         'importeJugado' => $importeJugado,
@@ -1227,6 +1248,9 @@ class ParticipationController extends Controller
                         'codigoVinculacion' => $p->link_code,
                         'pendienteRegistro' => true,
                         'validUntil' => $p->valid_until?->format('d/m/Y H:i'),
+                        'esDigital' => true,
+                        'setLabel' => $setLabel,
+                        'set_number' => $p->set?->set_number,
                     ],
                 ];
             })
@@ -1329,6 +1353,50 @@ class ParticipationController extends Controller
         return $participationNumber !== null ? ['set' => $set, 'participation_number' => $participationNumber] : null;
     }
 
+    private function setHistorialLabel(?\App\Models\Set $set): ?string
+    {
+        if (! $set) {
+            return null;
+        }
+        $name = trim((string) ($set->set_name ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+        $num = (int) ($set->set_number ?? 0);
+
+        return $num > 0 ? 'Set '.$num : null;
+    }
+
+    private function setIsDigitalOnly(?\App\Models\Set $set): bool
+    {
+        if (! $set) {
+            return false;
+        }
+
+        return ($set->digital_participations ?? 0) > 0
+            && (int) ($set->physical_participations ?? 0) <= 0;
+    }
+
+    private function lotteryHistorialLabel(?\App\Models\Lottery $lottery): string
+    {
+        if (! $lottery) {
+            return '—';
+        }
+
+        $name = trim((string) ($lottery->name ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $lottery->loadMissing('lotteryType');
+        $typeName = trim((string) ($lottery->lotteryType->name ?? ''));
+        if ($typeName !== '') {
+            return $typeName;
+        }
+
+        return '—';
+    }
+
     /**
      * Formatear participación para respuesta de cartera/detalle (entidad, fecha, importes, nº referencia).
      */
@@ -1368,14 +1436,14 @@ class ParticipationController extends Controller
         $donativo = (float) ($set->donation_amount ?? 0);
         $importeTotal = $importeJugado + $donativo;
         $participationCode = $participation->participation_code ?? '';
-        $isDigital = str_starts_with($participationCode, '1D/');
+        $isDigital = str_starts_with($participationCode, '1D/') || $this->setIsDigitalOnly($set);
 
         return [
             'id' => $participation->id,
             'referencia' => $referencia,
             'entidad' => $entity ? $entity->name : '—',
             'entity_id' => $entity ? (int) $entity->id : null,
-            'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
+            'sorteo' => $this->lotteryHistorialLabel($lottery),
             'numero' => $participation->participation_number,
             'numeroReservado' => $numeroReservado,
             'fechaSorteo' => $lottery && $lottery->draw_date ? $lottery->draw_date->format('d/m/y') : '—',
@@ -1386,6 +1454,9 @@ class ParticipationController extends Controller
             'numeroReferencia' => $numeroReferencia,
             'snapshot_path' => $snapshotPath,
             'is_digital' => $isDigital,
+            'esDigital' => $isDigital,
+            'setLabel' => $this->setHistorialLabel($set),
+            'set_number' => $set->set_number ?? null,
         ];
     }
 
@@ -2310,8 +2381,19 @@ class ParticipationController extends Controller
                 'message' => 'La participación no se puede vincular porque ya se encuentra leída por otro usuario.',
             ], 422);
         }
-        $participation->buyer_name = $userId;
+        \App\Services\ParticipationOwnerService::assignOwner($participation, $user);
         $participation->save();
+
+        try {
+            app(\App\Services\DigitalParticipationNotificationService::class)->sendWalletLinked(
+                $user,
+                $participation->fresh(['set.entity', 'set.reserve.lottery']),
+                'api_link_wallet'
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando email vinculación cartera: '.$e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Participación añadida a tu cartera.',

@@ -649,11 +649,16 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($this->role !== self::ROLE_ENTITY) {
+        if (! $this->isEntity()) {
             return false;
         }
 
-        return Hash::check(self::ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD, $this->password);
+        $hash = $this->getAuthPassword();
+        if (! $hash) {
+            return false;
+        }
+
+        return Hash::check(self::ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD, $hash);
     }
 
     /**

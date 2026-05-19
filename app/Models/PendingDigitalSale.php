@@ -55,6 +55,11 @@ class PendingDigitalSale extends Model
         return $this->belongsTo(Lottery::class);
     }
 
+    public function set(): BelongsTo
+    {
+        return $this->belongsTo(Set::class);
+    }
+
     public function participations(): BelongsToMany
     {
         return $this->belongsToMany(

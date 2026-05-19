@@ -110,6 +110,26 @@
                     			</div>
                     		</div>
 
+                    		@if($participation->walletOwner || ($participation->buyer_name && !$participation->buyerNameIsWalletUserId()))
+                    		<div class="form-card show-content bs mb-3">
+                    			<h4 class="mb-0 mt-1">Titular / cartera</h4>
+                    			<!-- @if($participation->buyerNameIsWalletUserId())
+                    			<small><i>Usuario app (buyer_name = {{ $participation->buyer_name }})</i></small>
+                    			@endif -->
+                    			<div class="form-group mt-2 mb-0">
+                    				@if($participation->walletOwner)
+                    				<p class="mb-1"><strong>{{ trim($participation->walletOwner->name.' '.($participation->walletOwner->last_name ?? '')) }}</strong></p>
+                    				<p class="mb-0 text-muted small">{{ $participation->walletOwner->email }}</p>
+                    				@else
+                    				<p class="mb-1"><strong>{{ $participation->buyer_name }}</strong></p>
+                    				@if($participation->buyer_email)
+                    				<p class="mb-0 text-muted small">{{ $participation->buyer_email }}</p>
+                    				@endif
+                    				@endif
+                    			</div>
+                    		</div>
+                    		@endif
+
                     		<div class="form-card">
                     			
                     			@php $partEntity = $participation->set && $participation->set->reserve ? $participation->set->reserve->entity : null; @endphp
@@ -746,6 +766,9 @@
 			'buyer_phone': 'Teléfono Comprador',
 			'buyer_email': 'Email Comprador',
 			'buyer_nif': 'NIF Comprador',
+			'owner_user_id': 'ID Usuario titular',
+			'owner_user_name': 'Titular (usuario)',
+			'owner_user_email': 'Email titular',
 			'status': 'Estado',
 			'seller_id': 'ID Vendedor'
 		};

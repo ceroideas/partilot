@@ -49,7 +49,8 @@ class ManagerController extends Controller
             $user = new User;
             $user->name = $request->name . ' ' . $request->last_name;
             $user->email = $request->email;
-            $user->password = bcrypt(12345678);
+            $user->password = User::ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD;
+            $user->role = User::ROLE_ENTITY;
             $user->save();
         }
 
@@ -62,6 +63,7 @@ class ManagerController extends Controller
             'birthday' => $request->birthday,
             'phone' => $request->phone,
             'comment' => $request->comment,
+            'role' => User::ROLE_ENTITY,
         ]);
 
         // Manejo de imagen del manager

@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Participation;
 use App\Models\ParticipationActivityLog;
 use App\Services\FirebaseServiceModern;
+use App\Services\ParticipationOwnerService;
 use Illuminate\Support\Facades\Log;
 
 class ParticipationObserver
@@ -90,18 +91,42 @@ class ParticipationObserver
             return; // Evitar registros duplicados
         }
 
+        // Vinculación a cartera (buyer_name pasa de vacío a id de usuario)
+        if (array_key_exists('buyer_name', $changes)
+            && empty($original['buyer_name'])
+            && ! empty($changes['buyer_name'])
+            && ! ($statusChanged && $newStatus === 'vendida')) {
+            $ownerLabel = ParticipationOwnerService::ownerDisplayName($participation);
+            ParticipationActivityLog::log($participation->id, 'modified', [
+                'entity_id' => $participation->entity_id,
+                'seller_id' => $participation->seller_id,
+                'user_id' => ParticipationOwnerService::resolveOwnerUser($participation)?->id ?? auth()->id(),
+                'description' => $ownerLabel
+                    ? "Participación vinculada a cartera de {$ownerLabel}"
+                    : 'Participación vinculada a cartera de usuario',
+                'metadata' => array_merge(
+                    ParticipationOwnerService::ownerMetadata($participation),
+                    ['changes' => $changes]
+                ),
+            ]);
+
+            return;
+        }
+
         // Caso 2: Participación vendida
         if ($statusChanged && $newStatus === 'vendida') {
+            $ownerLabel = ParticipationOwnerService::ownerDisplayName($participation);
             ParticipationActivityLog::log($participation->id, 'sold', [
                 'entity_id' => $participation->entity_id,
                 'seller_id' => $participation->seller_id,
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus,
-                'description' => "Participación vendida",
+                'description' => $ownerLabel
+                    ? "Participación vendida — titular: {$ownerLabel}"
+                    : 'Participación vendida',
                 'metadata' => array_merge($changes, [
                     'sale_amount' => $participation->sale_amount ?? null,
-                    'buyer_name' => $participation->buyer_name ?? null,
-                ]),
+                ], ParticipationOwnerService::ownerMetadata($participation)),
             ]);
             
             // Enviar notificación
