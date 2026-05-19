@@ -9,14 +9,14 @@
 
 ## Alta prioridad
 
-- [ ] **Diseño — Configurar salida:** tras “Siguiente”, pantalla resumen, PDFs visibles/descargables, vuelta al listado sets.
-- [ ] **Diseño — Imagen de fondo** y **agregar imágenes** (subida + persistencia + render PDF).
-- [ ] **Diseño — Icono imprimir** (error/timeout; valorar jobs async).
-- [ ] **XML sets:** referencias reales 21 dígitos (físicas); referencias únicas (digitales); `<urlweb>`; importe por número; `floor` en cálculo máx. participaciones vs reserva.
+- [-] **Diseño — Configurar salida:** tras “Siguiente”, pantalla resumen, PDFs visibles/descargables, vuelta al listado sets.
+- [-] **Diseño — Imagen de fondo** y **agregar imágenes** (subida + persistencia + render PDF).
+- [-] **Diseño — Icono imprimir** (error/timeout; valorar jobs async).
+- [-] **XML sets:** referencias reales 21 dígitos (físicas); referencias únicas (digitales); `<urlweb>`; importe por número; `floor` en cálculo máx. participaciones vs reserva.
 - [ ] **Sets digitales:** generar imagen participación; flujo asignación; vincular venta a `user_id` cliente (`tacos.md` / 16-02 T13). Ver también **venta digital + SMS** (abajo).
-- [ ] **Magic links administración** (`nuevo desarrollo magic links.md`): envío solo por superadmin, usuario inmutable, establecer contraseña por enlace.
-- [ ] **Gestor responsable:** aceptar/denegar invitación; bloquear entidad si no hay responsable activo (`PRESUPUESTO_ALTA_ADMIN_ENTIDADES.md`).
-- [ ] **Asignación:** rechazar vendedor no activo en `saveAssignments` (auditoría §3.2).
+- [-] **Magic links administración** (`nuevo desarrollo magic links.md`): envío solo por superadmin, usuario inmutable, establecer contraseña por enlace.
+- [-] **Gestor responsable:** aceptar/denegar invitación; bloquear entidad si no hay responsable activo (`PRESUPUESTO_ALTA_ADMIN_ENTIDADES.md`).
+- [-] **Asignación:** rechazar vendedor no activo en `saveAssignments` (auditoría §3.2).
 
 ## Media prioridad
 
@@ -40,25 +40,26 @@ Referencias: `../tacos.md` (líneas ~50, ~127–134) · historial `nuevas tareas
 
 ---
 
-- [ ] Imágenes admin/entidad en: alta gestor, `sets/store-entity`, devoluciones, ficha vendedor (`mejoras.md`).
-- [ ] Navegación atrás en `sets/add/information` → `sets/store-entity`.
-- [ ] Editor: zoom con scroll (no desbordar contenedor); bordes al seleccionar/redimensionar textos.
-- [ ] QR visible en editor de **portada** (16-02 T7.2).
-- [ ] Corregir **total participaciones** por defecto (600) donde no lee del set.
+- [-] Imágenes admin/entidad en: alta gestor, `sets/store-entity`, devoluciones, ficha vendedor (`mejoras.md`).
+- [-] Navegación atrás en `sets/add/information` → `sets/store-entity`.
+- [-] Editor: zoom con scroll (no desbordar contenedor); bordes al seleccionar/redimensionar textos.
+- [-] QR visible en editor de **portada** (16-02 T7.2).
+- [-] Corregir **total participaciones** por defecto (600) donde no lee del set.
 - [ ] Plantillas diseño SIPART / TIKET / ASG + selector reverso (`especificacion-vs-desarrollo.md`).
 - [ ] Web venta / TPV / iframes flujo completo spec.
 - [ ] “Enviar a imprimir”: imprenta, tacos, pago entidad, estados, bloqueo edición (`plan_operativo_impresion.md`).
-- [ ] Informe 22-ene: `Seller.status` sin cast boolean; sync `group_id` solo si viene en request; `SpanishDocument` en User/Entity/Seller; limpiar prefijo ES duplicado en IBAN.
-- [ ] Performance `POST /api/sellers/save-assignments`.
-- [ ] App: API aceptar/rechazar invitación vendedor (hoy “próximamente”).
+- [-] Informe 22-ene: `Seller.status` sin cast boolean; sync `group_id` solo si viene en request; `SpanishDocument` en User/Entity/Seller; limpiar prefijo ES duplicado en IBAN.
+- [-] Performance `POST /api/sellers/save-assignments`.
+- [-] App: API aceptar/rechazar invitación vendedor (hoy “próximamente”).
 - [ ] App: mostrar etiquetas `kind` en notificaciones (mapa en `notification-kind.labels.ts`).
 
 ## Baja / fase 2
 
 - [ ] Implementar lógica en `php artisan sipart:pending-payments-check`, `sipart:lottery-deadline-reminder`, `sipart:new-lotteries-announce` + descomentar `Kernel::schedule()`.
-- [ ] Autosave diseño en servidor; conflictos edición simultánea.
+- [-] Autosave diseño en servidor; conflictos edición simultánea.
 - [ ] Asignación vendedor: firma digital offline + email entidad (spec).
-- [ ] Devoluciones por series/fracciones (pendiente definición negocio).
-- [ ] Diseño externo: revocación, expiración 4 semanas, una invitación activa (`cambios dedign.md`).
-- [ ] Devoluciones participaciones digitales en app (`devoluciones-participaciones-digitales.md`).
-- [ ] Participaciones asignadas: permitir editar comentario sin editar vendedor (`mejoras.md`).
+- [-] Devoluciones por series/fracciones (pendiente definición negocio).
+- [-] Diseño externo: revocación, expiración 4 semanas, una invitación activa (`cambios dedign.md`).
+- [-] Devoluciones participaciones digitales en app (`devoluciones-participaciones-digitales.md`).
+- [-] Participaciones asignadas: permitir editar comentario sin editar vendedor (`mejoras.md`).
+- [ ] Solo puede ver el comentario el superadmin y administracion

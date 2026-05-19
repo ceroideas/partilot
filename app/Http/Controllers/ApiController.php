@@ -19,23 +19,31 @@ class ApiController extends Controller
 
     public function test()
     {
-        // Schema::create('pending_digital_sales', function (Blueprint $table) {
-        //     $table->id();
-        //     $table->string('email')->index();
-        //     $table->foreignId('seller_id')->constrained()->cascadeOnDelete();
-        //     $table->foreignId('entity_id')->constrained()->cascadeOnDelete();
-        //     $table->foreignId('lottery_id')->constrained()->cascadeOnDelete();
-        //     $table->foreignId('set_id')->nullable()->constrained()->nullOnDelete();
-        //     $table->unsignedInteger('quantity');
-        //     $table->decimal('sale_amount', 12, 2)->default(0);
-        //     $table->string('payment_method', 30)->nullable();
-        //     $table->string('registration_token', 64)->unique();
-        //     $table->string('status', 20)->default('pending')->index();
-        //     $table->timestamp('valid_until')->index();
-        //     $table->timestamp('completed_at')->nullable();
-        //     $table->foreignId('completed_user_id')->nullable()->constrained('users')->nullOnDelete();
-        //     $table->timestamps();
-        // });
+        Schema::table('pending_digital_sales', function (Blueprint $table) {
+            $table->string('email')->nullable()->change();
+        });
+        Schema::table('pending_digital_sales', function (Blueprint $table) {
+            $table->string('link_code', 12)->nullable()->unique()->after('registration_token');
+        });
+        return "ok";
+        Schema::create('pending_digital_sales', function (Blueprint $table) {
+            $table->id();
+            $table->string('email')->index();
+            $table->foreignId('seller_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('entity_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('lottery_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('set_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedInteger('quantity');
+            $table->decimal('sale_amount', 12, 2)->default(0);
+            $table->string('payment_method', 30)->nullable();
+            $table->string('registration_token', 64)->unique();
+            $table->string('link_code', 12)->nullable()->unique();
+            $table->string('status', 20)->default('pending')->index();
+            $table->timestamp('valid_until')->index();
+            $table->timestamp('completed_at')->nullable();
+            $table->foreignId('completed_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+        });
 
         Schema::dropIfExists('pending_digital_sale_participations');
 

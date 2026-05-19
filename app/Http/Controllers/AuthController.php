@@ -322,15 +322,17 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'sms_code' => [
-                \Illuminate\Validation\Rule::requiredIf(fn () => config('sms.enabled')),
+                \Illuminate\Validation\Rule::requiredIf(fn () => app(\App\Services\PhoneVerificationService::class)
+                    ->smsVerificationRequired($request->input('phone'))),
                 'nullable',
                 'string',
                 'size:'.$codeLength,
             ],
             'fecha_nacimiento' => 'required|date|before:today',
             'aceptar_condiciones' => 'required|accepted',
+            'link_code' => 'nullable|string|min:5|max:12',
         ], [
             'email.required' => 'El email es obligatorio.',
             'email.email' => 'El formato del email no es válido.',
@@ -340,17 +342,24 @@ class AuthController extends Controller
             'fecha_nacimiento.required' => 'La fecha de nacimiento es obligatoria.',
             'fecha_nacimiento.date' => 'La fecha de nacimiento no es válida.',
             'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
-            'phone.required' => 'El teléfono móvil es obligatorio.',
-            'sms_code.required' => 'Debes verificar tu teléfono con el código SMS.',
+            'sms_code.required' => 'Si indicas teléfono, debes verificarlo con el código SMS.',
             'sms_code.size' => 'El código SMS debe tener '.$codeLength.' dígitos.',
             'aceptar_condiciones.required' => 'Debes aceptar las condiciones de uso.',
             'aceptar_condiciones.accepted' => 'Debes aceptar las condiciones de uso.',
         ]);
 
         $phoneVerification = app(\App\Services\PhoneVerificationService::class);
-        $phone = $phoneVerification->normalizePhone($request->phone);
+        try {
+            $phone = $phoneVerification->resolveOptionalPhone($request->phone);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => ['phone' => [$e->getMessage()]],
+            ], 422);
+        }
 
-        if (config('sms.enabled')) {
+        if ($phoneVerification->smsVerificationRequired($request->phone)) {
             if (! $phoneVerification->verifyCode($phone, (string) $request->sms_code)) {
                 return response()->json([
                     'success' => false,
@@ -395,7 +404,10 @@ class AuthController extends Controller
             'success' => true,
             'token' => $token,
             'user' => $user,
-            'message' => 'Registro exitoso',
+            'message' => $claimedByCode > 0
+                ? 'Registro exitoso. Tus participaciones digitales ya están en tu cartera.'
+                : 'Registro exitoso',
+            'participations_claimed' => $claimedByCode,
         ], 201);
     }
 

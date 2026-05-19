@@ -310,6 +310,7 @@ class CommunicationEmailService
         if ($mailClass === \App\Mail\DigitalSaleRegistrationInviteMail::class) {
             $pendingId = (int) ($mailPayload['pending_digital_sale_id'] ?? 0);
             $pending = \App\Models\PendingDigitalSale::with(['entity', 'lottery'])->findOrFail($pendingId);
+            $pending->ensureLinkCode();
             Mail::to($recipientEmail)->send(new \App\Mail\DigitalSaleRegistrationInviteMail($pending));
             return;
         }

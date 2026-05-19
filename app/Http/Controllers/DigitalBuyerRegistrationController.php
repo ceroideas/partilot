@@ -26,7 +26,10 @@ class DigitalBuyerRegistrationController extends Controller
             return view('auth.digital-buyer-register-exists', compact('pending'));
         }
 
-        return view('auth.digital-buyer-register', compact('pending', 'token'));
+        $pending->ensureLinkCode();
+        $linkCodePrefill = (string) request()->query('codigo', $pending->link_code);
+
+        return view('auth.digital-buyer-register', compact('pending', 'token', 'linkCodePrefill'));
     }
 
     public function store(Request $request, string $token, PendingDigitalSaleService $service)
@@ -46,25 +49,31 @@ class DigitalBuyerRegistrationController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'last_name2' => 'nullable|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'birthday' => ['required', 'date', 'before:today', new MinimumAge(18)],
             'password' => 'required|string|min:6|confirmed',
             'aceptar_condiciones' => 'required|accepted',
+            'link_code' => 'nullable|string|min:5|max:12',
             'sms_code' => [
-                Rule::requiredIf(fn () => config('sms.enabled')),
+                Rule::requiredIf(fn () => app(PhoneVerificationService::class)
+                    ->smsVerificationRequired($request->input('phone'))),
                 'nullable',
                 'string',
                 'size:'.config('sms.code_length', 6),
             ],
         ], [
-            'phone.required' => 'El teléfono móvil es obligatorio.',
+            'sms_code.required' => 'Si indicas teléfono, debes verificarlo con el código SMS.',
             'aceptar_condiciones.accepted' => 'Debes aceptar las condiciones de uso.',
         ]);
 
         $phoneVerification = app(PhoneVerificationService::class);
-        $phone = $phoneVerification->normalizePhone($request->phone);
+        try {
+            $phone = $phoneVerification->resolveOptionalPhone($request->phone);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->withErrors(['phone' => $e->getMessage()]);
+        }
 
-        if (config('sms.enabled')) {
+        if ($phoneVerification->smsVerificationRequired($request->phone)) {
             if (! $phoneVerification->verifyCode($phone, (string) $request->sms_code)) {
                 return back()->withInput()->withErrors(['sms_code' => 'Código SMS incorrecto o caducado. Solicita uno nuevo.']);
             }
@@ -82,6 +91,13 @@ class DigitalBuyerRegistrationController extends Controller
             'status' => true,
         ]);
 
+        if ($request->filled('link_code')) {
+            try {
+                $service->claimByLinkCode($user, (string) $request->link_code);
+            } catch (\InvalidArgumentException $e) {
+                return back()->withInput()->withErrors(['link_code' => $e->getMessage()]);
+            }
+        }
         $service->completePendingSalesForUser($user);
 
         try {

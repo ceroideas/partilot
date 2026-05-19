@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PendingDigitalSaleLinkCode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -26,6 +27,7 @@ class PendingDigitalSale extends Model
         'sale_amount',
         'payment_method',
         'registration_token',
+        'link_code',
         'status',
         'valid_until',
         'completed_at',
@@ -94,6 +96,24 @@ class PendingDigitalSale extends Model
 
     public function registrationUrl(): string
     {
-        return url(config('digital_sale.registration_path', 'registro-comprador').'/'.$this->registration_token);
+        $url = url(config('digital_sale.registration_path', 'registro-comprador').'/'.$this->registration_token);
+        if ($this->link_code) {
+            $url .= '?codigo='.urlencode((string) $this->link_code);
+        }
+
+        return $url;
+    }
+
+    /** Garantiza código de vinculación (ventas anteriores a la migración). */
+    public function ensureLinkCode(): self
+    {
+        if (! $this->link_code) {
+            $this->forceFill([
+                'link_code' => PendingDigitalSaleLinkCode::generateUnique(),
+            ])->save();
+            $this->refresh();
+        }
+
+        return $this;
     }
 }

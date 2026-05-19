@@ -8,6 +8,7 @@ use App\Models\PendingDigitalSale;
 use App\Models\Seller;
 use App\Models\Set;
 use App\Models\User;
+use App\Support\PendingDigitalSaleLinkCode;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -80,17 +81,23 @@ class PendingDigitalSaleService
     public function createPendingSale(
         Seller $seller,
         User $sellerUser,
-        string $buyerEmail,
+        ?string $buyerEmail,
         int $quantity,
         ?string $paymentMethod,
         ?int $setId,
         ?int $entityId,
         ?int $lotteryId
     ): PendingDigitalSale {
-        $email = PendingDigitalSale::normalizeEmail($buyerEmail);
+        $rawEmail = trim((string) ($buyerEmail ?? ''));
+        $sendInviteEmail = $rawEmail !== '';
 
-        if (User::where('email', $email)->exists()) {
-            throw new \InvalidArgumentException('El correo ya está registrado. Usa la venta directa.');
+        if ($sendInviteEmail) {
+            $email = PendingDigitalSale::normalizeEmail($rawEmail);
+            if (User::where('email', $email)->exists()) {
+                throw new \InvalidArgumentException('El correo ya está registrado. Usa la venta directa.');
+            }
+        } else {
+            $email = null;
         }
 
         $participations = $this->selectDigitalParticipations($seller, $quantity, $setId, $entityId, $lotteryId);
@@ -106,6 +113,7 @@ class PendingDigitalSaleService
 
         return DB::transaction(function () use (
             $email,
+            $sendInviteEmail,
             $seller,
             $sellerUser,
             $participations,
@@ -127,6 +135,7 @@ class PendingDigitalSaleService
                 'sale_amount' => $saleAmount,
                 'payment_method' => $paymentMethod,
                 'registration_token' => Str::random(64),
+                'link_code' => PendingDigitalSaleLinkCode::generateUnique(),
                 'status' => PendingDigitalSale::STATUS_PENDING,
                 'valid_until' => $this->validUntilFromConfig(),
             ]);
@@ -136,16 +145,19 @@ class PendingDigitalSaleService
                 $pending->participations()->attach($p->id);
             }
 
-            app(CommunicationEmailService::class)->sendAndLog(
-                recipientEmail: $email,
-                recipientRole: 'usuario',
-                recipientUser: null,
-                messageType: 'digital_sale_registration_invite',
-                templateKey: null,
-                mailClass: DigitalSaleRegistrationInviteMail::class,
-                mailPayload: ['pending_digital_sale_id' => $pending->id],
-                context: ['pending_digital_sale_id' => $pending->id, 'seller_id' => $seller->id],
-            );
+            if ($sendInviteEmail && $email) {
+                $pending->ensureLinkCode();
+                app(CommunicationEmailService::class)->sendAndLog(
+                    recipientEmail: $email,
+                    recipientRole: 'usuario',
+                    recipientUser: null,
+                    messageType: 'digital_sale_registration_invite',
+                    templateKey: null,
+                    mailClass: DigitalSaleRegistrationInviteMail::class,
+                    mailPayload: ['pending_digital_sale_id' => $pending->id],
+                    context: ['pending_digital_sale_id' => $pending->id, 'seller_id' => $seller->id],
+                );
+            }
 
             return $pending->fresh(['entity', 'lottery', 'seller']);
         });
@@ -176,6 +188,40 @@ class PendingDigitalSaleService
         }
 
         return $completed;
+    }
+
+    /**
+     * Vincula una venta pendiente al usuario mediante el código (email incorrecto o registro tardío).
+     */
+    public function claimByLinkCode(User $user, string $rawCode): PendingDigitalSale
+    {
+        $code = PendingDigitalSaleLinkCode::normalizeInput($rawCode);
+        if (! PendingDigitalSaleLinkCode::isValidFormat($code)) {
+            throw new \InvalidArgumentException('Código no válido. Comprueba que tenga 5–6 caracteres.');
+        }
+
+        $pending = PendingDigitalSale::query()
+            ->where('status', PendingDigitalSale::STATUS_PENDING)
+            ->whereNotNull('link_code')
+            ->whereRaw('LOWER(link_code) = ?', [mb_strtolower($code, 'UTF-8')])
+            ->first();
+
+        if (! $pending) {
+            throw new \InvalidArgumentException('No hay ninguna venta pendiente con ese código o ya ha sido utilizada.');
+        }
+
+        if ($pending->isExpired()) {
+            $this->releasePendingSale($pending, PendingDigitalSale::STATUS_EXPIRED);
+            throw new \InvalidArgumentException('El código ha caducado. Las participaciones ya no están reservadas.');
+        }
+
+        if (! $pending->isStillValid()) {
+            throw new \InvalidArgumentException('Esta venta pendiente ya no está disponible.');
+        }
+
+        $this->finalizePendingSale($pending, $user);
+
+        return $pending->fresh(['entity', 'lottery', 'participations']);
     }
 
     public function finalizePendingSale(PendingDigitalSale $pending, User $buyer): void

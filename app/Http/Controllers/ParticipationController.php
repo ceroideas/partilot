@@ -669,7 +669,7 @@ class ParticipationController extends Controller
             'entity_id' => 'nullable|integer|exists:entities,id',
             'lottery_id' => 'nullable|integer|exists:lotteries,id',
             'quantity' => 'required|integer|min:1',
-            'buyer_email' => 'required|email',
+            'buyer_email' => 'nullable|email',
             'payment_method' => 'nullable|string|in:efectivo,bizum,transferencia,omitir,otro',
         ]);
 
@@ -683,7 +683,8 @@ class ParticipationController extends Controller
             return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
         }
 
-        if (User::where('email', $request->buyer_email)->exists()) {
+        $buyerEmail = trim((string) $request->input('buyer_email', ''));
+        if ($buyerEmail !== '' && User::where('email', $buyerEmail)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'El correo ya está registrado. Usa la venta directa.',
@@ -694,7 +695,7 @@ class ParticipationController extends Controller
             $pending = $pendingService->createPendingSale(
                 $seller,
                 $user,
-                $request->buyer_email,
+                $buyerEmail !== '' ? $buyerEmail : null,
                 (int) $request->quantity,
                 $request->payment_method,
                 $request->set_id ? (int) $request->set_id : null,
@@ -702,12 +703,18 @@ class ParticipationController extends Controller
                 $request->lottery_id ? (int) $request->lottery_id : null,
             );
 
+            $codeOnly = $buyerEmail === '';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Se ha enviado un correo al comprador para completar el registro.',
+                'message' => $codeOnly
+                    ? 'Venta reservada. Comparte el código de vinculación con el comprador.'
+                    : 'Se ha enviado un correo al comprador para completar el registro.',
                 'pending_id' => $pending->id,
+                'link_code' => $pending->link_code,
                 'valid_until' => $pending->valid_until?->toIso8601String(),
                 'quantity' => $pending->quantity,
+                'code_only' => $codeOnly,
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -1204,9 +1211,11 @@ class ParticipationController extends Controller
                     'tipo' => 'venta-digital',
                     'fecha' => $p->created_at->toIso8601String(),
                     'formaPago' => $p->payment_method,
+                    'quantity' => $qty,
                     'descripcion' => 'Venta digital ' . $entidadNombre . ' · Pendiente de registro',
                     'pendienteRegistro' => true,
                     'valid_until' => $p->valid_until?->toIso8601String(),
+                    'codigoVinculacion' => $p->link_code,
                     'participacion' => [
                         'entidad' => $entidadNombre,
                         'sorteo' => $lottery ? ($lottery->name ?? '—') : '—',
@@ -1215,6 +1224,7 @@ class ParticipationController extends Controller
                         'importeJugado' => $importeJugado,
                         'importeTotal' => $importeTotal,
                         'clienteEmail' => $p->email,
+                        'codigoVinculacion' => $p->link_code,
                         'pendienteRegistro' => true,
                         'validUntil' => $p->valid_until?->format('d/m/Y H:i'),
                     ],
@@ -2306,6 +2316,44 @@ class ParticipationController extends Controller
             'success' => true,
             'message' => 'Participación añadida a tu cartera.',
             'participation' => $this->formatParticipationForWallet($participation->load(['set.reserve.lottery', 'set.entity', 'set.designFormats']), $request->referencia),
+        ]);
+    }
+
+    /**
+     * API: Vincular venta digital pendiente por código (comprador registrado sin email correcto).
+     */
+    public function apiClaimPendingDigitalByCode(Request $request, PendingDigitalSaleService $pendingService)
+    {
+        $request->validate([
+            'link_code' => 'required|string|min:5|max:12',
+        ], [
+            'link_code.required' => 'Introduce el código de vinculación.',
+        ]);
+
+        $user = $request->user();
+        if (! $user->isClient() && ! $user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        try {
+            $pending = $pendingService->claimByLinkCode($user, (string) $request->link_code);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            \Log::error('apiClaimPendingDigitalByCode: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo vincular las participaciones.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Se han añadido '.$pending->quantity.' participación(es) a tu cartera.',
+            'quantity' => $pending->quantity,
+            'entity' => $pending->entity?->name,
+            'lottery' => $pending->lottery?->name,
         ]);
     }
 

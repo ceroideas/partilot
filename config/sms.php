@@ -6,7 +6,7 @@ return [
     | Con driver "log" el código aparece en storage/logs/laravel.log (desarrollo).
     | Producción: SMS_DRIVER=twilio y credenciales Twilio.
     */
-    'enabled' => (bool) env('SMS_VERIFICATION_ENABLED', true),
+    'enabled' => (bool) env('SMS_VERIFICATION_ENABLED', false),
     'driver' => env('SMS_DRIVER', 'log'),
     'code_length' => (int) env('SMS_CODE_LENGTH', 6),
     'code_ttl_minutes' => (int) env('SMS_CODE_TTL_MINUTES', 10),

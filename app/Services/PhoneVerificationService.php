@@ -65,6 +65,24 @@ class PhoneVerificationService
         return true;
     }
 
+    /**
+     * Normaliza teléfono si el usuario lo indicó; null si dejó el campo vacío.
+     */
+    public function resolveOptionalPhone(?string $phone): ?string
+    {
+        $phone = trim((string) $phone);
+        if ($phone === '') {
+            return null;
+        }
+
+        return $this->normalizePhone($phone);
+    }
+
+    public function smsVerificationRequired(?string $phone): bool
+    {
+        return (bool) config('sms.enabled') && trim((string) $phone) !== '';
+    }
+
     public function normalizePhone(string $phone): string
     {
         $phone = preg_replace('/[^\d+]/', '', trim($phone)) ?? '';

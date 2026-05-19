@@ -29,6 +29,12 @@
             {{ $pending->quantity }} participación(es) · {{ $pending->entity->name ?? '' }} · {{ $pending->lottery->name ?? '' }}
         </p>
         <p class="text-muted small">Válido hasta: <strong>{{ $pending->valid_until->format('d/m/Y H:i') }}</strong></p>
+        @if($pending->link_code)
+        <p class="mb-0 mt-2">
+            Código de vinculación:
+            <strong style="letter-spacing:3px;font-size:1.1rem;">{{ $pending->link_code }}</strong>
+        </p>
+        @endif
     </div>
     <div class="card">
         <div class="card-body p-4">
@@ -45,6 +51,15 @@
                         <input type="email" class="form-control" value="{{ $pending->email }}" readonly>
                     </div>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Código de vinculación</label>
+                    <p class="small text-muted mb-2">Si no recibes el correo o te registras con otro email en la app, usa este código en <strong>Mi cartera</strong>:</p>
+                    <p class="text-center fw-bold mb-2" style="font-size:1.35rem;letter-spacing:4px;">{{ $pending->link_code }}</p>
+                    <div class="group-login">
+                        <input type="text" name="link_code" class="form-control text-center" maxlength="12" autocomplete="off"
+                            value="{{ old('link_code', $linkCodePrefill ?? $pending->link_code) }}" placeholder="Código de vinculación">
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nombre *</label>
@@ -56,12 +71,12 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Teléfono móvil *</label>
-                    <div class="group-login"><input type="tel" name="phone" class="form-control" required value="{{ old('phone') }}" placeholder="600000000"></div>
+                    <label class="form-label">Teléfono móvil <span class="text-muted fw-normal">(opcional)</span></label>
+                    <div class="group-login"><input type="tel" name="phone" class="form-control" value="{{ old('phone') }}" placeholder="600000000"></div>
                     @if(config('sms.enabled'))
-                        <p class="small text-muted mt-1">Te enviaremos un SMS para confirmar que el número es correcto.</p>
+                        <p class="small text-muted mt-1">Si indicas teléfono, te enviaremos un SMS para confirmarlo.</p>
                         <div class="input-group mt-2">
-                            <input type="text" name="sms_code" class="form-control" placeholder="Código SMS ({{ config('sms.code_length', 6) }} dígitos)" maxlength="{{ config('sms.code_length', 6) }}" inputmode="numeric" pattern="[0-9]*" required value="{{ old('sms_code') }}">
+                            <input type="text" name="sms_code" class="form-control" placeholder="Código SMS ({{ config('sms.code_length', 6) }} dígitos)" maxlength="{{ config('sms.code_length', 6) }}" inputmode="numeric" pattern="[0-9]*" value="{{ old('sms_code') }}">
                             <button type="button" class="btn btn-outline-secondary" id="btn-send-sms">Enviar código</button>
                         </div>
                         <p class="small text-muted mt-1" id="sms-cooldown-hint" style="display:none;"></p>

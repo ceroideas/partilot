@@ -13,4 +13,7 @@ return [
 
     /** Ruta web pública de registro (sin dominio). */
     'registration_path' => 'registro-comprador',
+
+    /** Longitud del código de vinculación (5–8). Sin 0, o ni O en el alfabeto. */
+    'link_code_length' => (int) env('DIGITAL_SALE_LINK_CODE_LENGTH', 6),
 ];
