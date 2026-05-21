@@ -108,6 +108,21 @@
 	                    			@endif
 	                    			<div style="clear: both;"></div>
                     			</div>
+
+                    			@if(!empty($pendingDigitalSaleForLinkCode) && $pendingDigitalSaleForLinkCode->link_code)
+                    			<div class="form-group mt-3 mb-0 p-3 rounded" style="background:#fff8f0;border:1px solid #ffeeba;">
+                    				<label class="mb-1 d-block fw-semibold">Código de vinculación</label>
+                    				<p class="mb-1" style="letter-spacing:3px;font-size:1.15rem;font-weight:700;color:#212529;">
+                    					{{ $pendingDigitalSaleForLinkCode->link_code }}
+                    				</p>
+                    				<small class="text-muted d-block">
+                    					Venta digital pendiente de registro en la app
+                    					@if($pendingDigitalSaleForLinkCode->valid_until)
+                    						· válido hasta {{ $pendingDigitalSaleForLinkCode->valid_until->format('d/m/Y H:i') }}
+                    					@endif
+                    				</small>
+                    			</div>
+                    			@endif
                     		</div>
 
                     		@if($participation->walletOwner || ($participation->buyer_name && !$participation->buyerNameIsWalletUserId()))

@@ -109,6 +109,12 @@ class PendingDigitalSale extends Model
         return $url;
     }
 
+    /** Enlace para compartir con el comprador (sin exponer el código al vendedor). */
+    public function registrationUrlForShare(): string
+    {
+        return url(config('digital_sale.registration_path', 'registro-comprador').'/'.$this->registration_token);
+    }
+
     /** Garantiza código de vinculación (ventas anteriores a la migración). */
     public function ensureLinkCode(): self
     {

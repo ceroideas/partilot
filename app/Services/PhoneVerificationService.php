@@ -5,17 +5,18 @@ namespace App\Services;
 use App\Models\PhoneVerificationCode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Twilio\Rest\Client as TwilioClient;
 
 /**
  * Verificación de teléfono por OTP SMS.
  * Desarrollo: SMS_DRIVER=log (código en storage/logs/laravel.log).
- * Producción: SMS_DRIVER=twilio con cuenta Twilio.
+ * Producción: SMS_DRIVER=httpsms (httpSMS + app Android).
  */
 class PhoneVerificationService
 {
+    public function __construct(
+        private HttpSmsClient $httpSms,
+    ) {}
     public function sendVerificationCode(string $phone): void
     {
         $phone = $this->normalizePhone($phone);
@@ -118,17 +119,9 @@ class PhoneVerificationService
             return;
         }
 
-        if ($driver === 'twilio') {
-            if (! config('sms.twilio.sid') || ! config('sms.twilio.token') || ! config('sms.twilio.from')) {
-                throw new \RuntimeException('SMS no configurado: revisa TWILIO_SID, TWILIO_AUTH_TOKEN y TWILIO_FROM en .env');
-            }
-
-            return;
-        }
-
-        if ($driver === 'vonage') {
-            if (! config('sms.vonage.key') || ! config('sms.vonage.secret') || ! config('sms.vonage.from')) {
-                throw new \RuntimeException('SMS no configurado: revisa VONAGE_API_KEY, VONAGE_API_SECRET y VONAGE_FROM en .env');
+        if ($driver === 'httpsms') {
+            if (! $this->httpSms->isConfigured()) {
+                throw new \RuntimeException('SMS no configurado: revisa HTTPSMS_API_KEY y HTTPSMS_FROM_NUMBER en .env');
             }
 
             return;
@@ -140,70 +133,9 @@ class PhoneVerificationService
     private function dispatchSms(string $phone, string $message): void
     {
         match (config('sms.driver', 'log')) {
-            'twilio' => $this->sendViaTwilio($phone, $message),
-            'vonage' => $this->sendViaVonage($phone, $message),
+            'httpsms' => $this->httpSms->send($phone, $message, 'otp-'.sha1($phone)),
             default => Log::info("[SMS verificación] {$phone}: {$message}"),
         };
-    }
-
-    private function sendViaTwilio(string $phone, string $message): void
-    {
-        $sid = (string) config('sms.twilio.sid');
-        $token = (string) config('sms.twilio.token');
-        $from = (string) config('sms.twilio.from');
-
-        if ($sid === '' || $token === '' || $from === '') {
-            throw new \RuntimeException('Configura TWILIO_SID, TWILIO_AUTH_TOKEN y TWILIO_FROM en .env');
-        }
-
-        try {
-            if (class_exists(TwilioClient::class)) {
-                $twilio = new TwilioClient($sid, $token);
-                $twilio->messages->create($phone, [
-                    'from' => $from,
-                    'body' => $message,
-                ]);
-
-                return;
-            }
-
-            $response = Http::withBasicAuth($sid, $token)
-                ->asForm()
-                ->timeout(15)
-                ->post("https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json", [
-                    'To' => $phone,
-                    'From' => $from,
-                    'Body' => $message,
-                ]);
-
-            if (! $response->successful()) {
-                throw new \RuntimeException($response->body());
-            }
-        } catch (\Throwable $e) {
-            Log::error('Twilio SMS error', [
-                'message' => $e->getMessage(),
-                'to' => $phone,
-            ]);
-            throw new \RuntimeException('No se pudo enviar el SMS. Comprueba que el número sea correcto.');
-        }
-    }
-
-    private function sendViaVonage(string $phone, string $message): void
-    {
-        $response = Http::timeout(15)->post('https://rest.nexmo.com/sms/json', [
-            'api_key' => config('sms.vonage.key'),
-            'api_secret' => config('sms.vonage.secret'),
-            'to' => ltrim($phone, '+'),
-            'from' => config('sms.vonage.from'),
-            'text' => $message,
-        ]);
-
-        $data = $response->json();
-        $status = $data['messages'][0]['status'] ?? null;
-        if (! $response->successful() || ($status !== null && $status !== '0')) {
-            Log::error('Vonage SMS error', ['body' => $response->body(), 'to' => $phone]);
-            throw new \RuntimeException('No se pudo enviar el SMS. Comprueba que el número sea correcto.');
-        }
     }
 
     private function generateCode(): string

@@ -17,10 +17,9 @@ class DigitalSaleRegistrationInviteMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $pending = $this->pending->ensureLinkCode();
-        $qty = (int) $pending->quantity;
-        $participaciones = $qty === 1 ? '1 participación digital' : "{$qty} participaciones digitales";
-        $subject = "Partilot: {$participaciones} — código {$pending->link_code}";
+        $qty = (int) $this->pending->quantity;
+        $participaciones = $qty === 1 ? '1 participación digital pendiente' : "{$qty} participaciones digitales pendientes";
+        $subject = "Partilot: {$participaciones} de asignar";
 
         return new Envelope(subject: $subject);
     }

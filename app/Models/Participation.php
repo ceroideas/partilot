@@ -107,6 +107,24 @@ class Participation extends Model
         return $this->hasOne(ParticipationGift::class);
     }
 
+    public function pendingDigitalSales()
+    {
+        return $this->belongsToMany(
+            PendingDigitalSale::class,
+            'pending_digital_sale_participations',
+            'participation_id',
+            'pending_digital_sale_id'
+        );
+    }
+
+    public function activePendingDigitalSale(): ?PendingDigitalSale
+    {
+        return $this->pendingDigitalSales()
+            ->where('pending_digital_sales.status', PendingDigitalSale::STATUS_PENDING)
+            ->orderByDesc('pending_digital_sales.id')
+            ->first();
+    }
+
     // Scopes para consultas comunes
     public function scopeAvailable($query)
     {

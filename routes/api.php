@@ -189,9 +189,13 @@ Route::middleware('auth.api')->group(function () {
         // Venta digital (usuario existente) o pendiente (email no registrado + invitación)
         Route::post('/digital', [ParticipationController::class, 'apiSellDigital']);
         Route::post('/digital/pending', [ParticipationController::class, 'apiSellDigitalPending']);
-        
+        Route::post('/digital/pending/{pendingId}/notify', [ParticipationController::class, 'apiSendPendingDigitalNotify']);
+        Route::post('/digital/pending/{pendingId}/whatsapp', [ParticipationController::class, 'apiSendPendingDigitalWhatsApp']);
+
         // Historial de ventas del vendedor autenticado (para app móvil)
         Route::get('/me', [ParticipationController::class, 'apiGetMySales']);
+        Route::get('/whatsapp/config', [ParticipationController::class, 'apiWhatsAppConfig']);
+        Route::get('/notify/config', [ParticipationController::class, 'apiWhatsAppConfig']);
         
         // Obtener ventas del vendedor (por ID)
         Route::get('/seller/{sellerId}', [ParticipationController::class, 'apiGetSalesBySeller']);

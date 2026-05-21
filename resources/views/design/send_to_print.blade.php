@@ -19,8 +19,16 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('design.submitPrintOrder', $design->id) }}">
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('design.submitPrintOrder', $design->id) }}" id="sendToPrintForm">
         @csrf
+        <input type="hidden" name="stripe_payment_intent_id" id="stripe_payment_intent_id" value="">
         <div class="row g-3">
             <div class="col-lg-7">
                 <div class="card">
@@ -38,13 +46,13 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Participaciones por taco</label>
-                                <input type="number" min="1" max="1000" name="participations_per_book" class="form-control" value="{{ $defaults['participations_per_book'] ?? 50 }}" required>
+                                <input type="number" min="1" max="1000" name="participations_per_book" class="form-control" value="{{ old('participations_per_book', $defaults['participations_per_book'] ?? 50) }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Trasera</label>
                                 <select name="back_mode" class="form-select">
-                                    <option value="bw" {{ ($defaults['back_mode'] ?? 'bw') === 'bw' ? 'selected' : '' }}>Blanco y negro</option>
-                                    <option value="color" {{ ($defaults['back_mode'] ?? '') === 'color' ? 'selected' : '' }}>Color</option>
+                                    <option value="bw" {{ old('back_mode', $defaults['back_mode'] ?? 'bw') === 'bw' ? 'selected' : '' }}>Blanco y negro</option>
+                                    <option value="color" {{ old('back_mode', $defaults['back_mode'] ?? '') === 'color' ? 'selected' : '' }}>Color</option>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -80,17 +88,37 @@
                         <div class="d-flex justify-content-between small mb-2"><span>Trasera</span><strong>{{ number_format(($quote['subtotal']['back'] ?? 0), 2, ',', '.') }}€</strong></div>
                         <div class="d-flex justify-content-between small mb-2"><span>Tacos</span><strong>{{ number_format(($quote['subtotal']['book'] ?? 0), 2, ',', '.') }}€</strong></div>
                         <hr>
-                        <div class="d-flex justify-content-between mb-4">
+                        <div class="d-flex justify-content-between mb-3">
                             <span class="fw-semibold">TOTAL</span>
-                            <strong class="fs-5">{{ number_format(($quote['total'] ?? 0), 2, ',', '.') }}€</strong>
+                            <strong class="fs-5" id="quote-total-display">{{ number_format(($quote['total'] ?? 0), 2, ',', '.') }}€</strong>
                         </div>
+
+                        @if(!($stripePaymentEnabled ?? false))
+                            <div class="alert alert-warning small mb-3">
+                                Stripe no está configurado. Añade las claves en <strong>Configuración → Imprenta</strong> para poder cobrar el envío a imprenta.
+                            </div>
+                        @else
+                            <div class="payment-card-form border rounded p-3 mb-3">
+                                <h6 class="mb-2">Pago con tarjeta</h6>
+                                <div id="stripe-card-element" class="form-control" style="padding-top: 12px; min-height: 46px;"></div>
+                                <div id="stripe-card-errors" class="text-danger small mt-2 d-none"></div>
+                                <p class="form-text small mb-0 mt-2">El importe se recalcula al pulsar «Pagar y enviar» según la configuración del formulario.</p>
+                            </div>
+                        @endif
+
                         <div class="mt-auto d-flex justify-content-between">
                             <a href="{{ route('design.summary', $design->id) }}" class="btn btn-dark">
                                 <i class="ri-arrow-left-line me-1"></i> Volver
                             </a>
-                            <button type="submit" class="btn btn-warning text-dark fw-semibold">
-                                <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
-                            </button>
+                            @if($stripePaymentEnabled ?? false)
+                                <button type="button" id="btn-stripe-pay" class="btn btn-warning text-dark fw-semibold">
+                                    <i class="ri-bank-card-line me-1"></i> Pagar y enviar a imprenta
+                                </button>
+                            @else
+                                <button type="button" class="btn btn-warning text-dark fw-semibold" disabled title="Configura Stripe en Imprenta">
+                                    <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
+                                </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -100,3 +128,102 @@
 </div>
 @endsection
 
+@if($stripePaymentEnabled ?? false)
+@section('scripts')
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+(() => {
+    const payBtn = document.getElementById('btn-stripe-pay');
+    const errorBox = document.getElementById('stripe-card-errors');
+    const paymentIntentInput = document.getElementById('stripe_payment_intent_id');
+    const form = document.getElementById('sendToPrintForm');
+    const cardContainer = document.getElementById('stripe-card-element');
+    if (!payBtn || !errorBox || !paymentIntentInput || !form || !cardContainer) return;
+
+    let stripe = null;
+    let card = null;
+    let publishableKey = @json($stripePublishableKey ?? '');
+
+    function showError(msg) {
+        errorBox.textContent = msg || 'Error procesando el pago.';
+        errorBox.classList.remove('d-none');
+    }
+
+    function clearError() {
+        errorBox.textContent = '';
+        errorBox.classList.add('d-none');
+    }
+
+    function mountCard() {
+        if (!publishableKey) {
+            throw new Error('Stripe no configurado.');
+        }
+        stripe = Stripe(publishableKey);
+        const elements = stripe.elements();
+        if (card) {
+            try { card.unmount(); } catch (e) {}
+        }
+        card = elements.create('card', { hidePostalCode: true });
+        card.mount('#stripe-card-element');
+    }
+
+    async function createPaymentIntent() {
+        const formData = new FormData(form);
+        const res = await fetch(@json(route('design.createPrintOrderPaymentIntent', $design->id)), {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]')?.value || '',
+                'Accept': 'application/json',
+            },
+            body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+            throw new Error(data.message || 'No se pudo iniciar el pago.');
+        }
+        return data;
+    }
+
+    payBtn.addEventListener('click', async () => {
+        try {
+            clearError();
+            payBtn.disabled = true;
+
+            if (!stripe || !card) {
+                mountCard();
+            }
+
+            const intentData = await createPaymentIntent();
+            if (intentData.publishable_key) {
+                publishableKey = intentData.publishable_key;
+            }
+
+            const result = await stripe.confirmCardPayment(intentData.client_secret, {
+                payment_method: { card },
+            });
+
+            if (result.error) {
+                showError(result.error.message || 'Pago rechazado.');
+                payBtn.disabled = false;
+                return;
+            }
+
+            if (!result.paymentIntent || result.paymentIntent.status !== 'succeeded') {
+                showError('El pago no se confirmó correctamente.');
+                payBtn.disabled = false;
+                return;
+            }
+
+            paymentIntentInput.value = result.paymentIntent.id;
+            form.submit();
+        } catch (e) {
+            showError(e.message || 'Error al procesar el pago.');
+            payBtn.disabled = false;
+        }
+    });
+
+    mountCard().catch((e) => showError(e.message || 'No se pudo inicializar Stripe.'));
+})();
+</script>
+@endsection
+@endif

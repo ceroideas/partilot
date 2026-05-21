@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\User;
 use App\Models\Participation;
@@ -34,7 +33,6 @@ class AppServiceProvider extends ServiceProvider
         // Modo debug de correo: forzar TODOS los envíos a un email de pruebas.
         if (config('mail.debug_mode') && filled(config('mail.debug_to'))) {
             Mail::alwaysTo(config('mail.debug_to'));
-            Log::info('MAIL_DEBUG_MODE activo: todos los emails se redirigen a ' . config('mail.debug_to'));
         }
     }
 }

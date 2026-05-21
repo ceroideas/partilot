@@ -26,10 +26,9 @@ class DigitalBuyerRegistrationController extends Controller
             return view('auth.digital-buyer-register-exists', compact('pending'));
         }
 
-        $pending->ensureLinkCode();
-        $linkCodePrefill = (string) request()->query('codigo', $pending->link_code);
+        $pending->loadMissing(['entity', 'lottery']);
 
-        return view('auth.digital-buyer-register', compact('pending', 'token', 'linkCodePrefill'));
+        return view('auth.digital-buyer-register', compact('pending', 'token'));
     }
 
     public function store(Request $request, string $token, PendingDigitalSaleService $service)
@@ -53,7 +52,6 @@ class DigitalBuyerRegistrationController extends Controller
             'birthday' => ['required', 'date', 'before:today', new MinimumAge(18)],
             'password' => 'required|string|min:6|confirmed',
             'aceptar_condiciones' => 'required|accepted',
-            'link_code' => 'nullable|string|min:5|max:12',
             'sms_code' => [
                 Rule::requiredIf(fn () => app(PhoneVerificationService::class)
                     ->smsVerificationRequired($request->input('phone'))),
@@ -91,13 +89,7 @@ class DigitalBuyerRegistrationController extends Controller
             'status' => true,
         ]);
 
-        if ($request->filled('link_code')) {
-            try {
-                $service->claimByLinkCode($user, (string) $request->link_code);
-            } catch (\InvalidArgumentException $e) {
-                return back()->withInput()->withErrors(['link_code' => $e->getMessage()]);
-            }
-        }
+        // El enlace (token) identifica la venta pendiente: no se pide código en el formulario.
         $service->completePendingSalesForUser($user);
 
         try {

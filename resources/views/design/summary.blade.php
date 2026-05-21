@@ -37,7 +37,19 @@
                         Puedes descargar los PDF generados o volver al listado de diseños.
                     </p>
 
+                    @php
+                        $isDigitalSet = $design->set
+                            && ($design->set->digital_participations ?? 0) > 0
+                            && (int) ($design->set->physical_participations ?? 0) === 0;
+                        $hasCover = !empty($design->cover_html);
+                        $hasBack = !empty($design->back_html);
+                    @endphp
                     <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
+                        @if($isDigitalSet)
+                            <a target="_blank" href="{{ route('design.digitalParticipationImage', $design->id) }}" class="btn btn-primary">
+                                <i class="ri-image-line me-1"></i> Descargar imagen participación digital
+                            </a>
+                        @else
                         <button type="button"
                             class="btn btn-primary js-design-pdf-async"
                             data-async-url="{{ route('design.exportParticipationPdfAsync', $design->id) }}"
@@ -46,11 +58,8 @@
                             data-title="Participaciones">
                             <i class="ri-file-pdf-line me-1"></i> Descargar PDF participaciones
                         </button>
-                        @php
-                            $hasCover = !empty($design->cover_html);
-                            $hasBack = !empty($design->back_html);
-                        @endphp
-                        @if($hasCover)
+                        @endif
+                        @if(!$isDigitalSet && $hasCover)
                         <button type="button"
                             class="btn btn-outline-primary js-design-pdf-async"
                             data-async-url="{{ route('design.exportCoverPdfAsync', $design->id) }}"
@@ -58,7 +67,7 @@
                             <i class="ri-file-pdf-line me-1"></i> PDF portadas (tacos)
                         </button>
                         @endif
-                        @if($hasBack)
+                        @if(!$isDigitalSet && $hasBack)
                         <button type="button"
                             class="btn btn-outline-secondary js-design-pdf-async"
                             data-async-url="{{ route('design.exportBackPdfAsync', $design->id) }}"
@@ -68,14 +77,16 @@
                             <i class="ri-file-pdf-line me-1"></i> PDF traseras
                         </button>
                         @endif
-                        @if(!empty($printOrderLock['locked']))
-                            <button type="button" class="btn btn-outline-warning text-dark" disabled title="{{ $printOrderLock['message'] ?? '' }}">
-                                <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
-                            </button>
-                        @else
-                            <a href="{{ route('design.sendToPrint', $design->id) }}" class="btn btn-warning text-dark">
-                                <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
-                            </a>
+                        @if(!$isDigitalSet)
+                            @if(!empty($printOrderLock['locked']))
+                                <button type="button" class="btn btn-outline-warning text-dark" disabled title="{{ $printOrderLock['message'] ?? '' }}">
+                                    <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
+                                </button>
+                            @else
+                                <a href="{{ route('design.sendToPrint', $design->id) }}" class="btn btn-warning text-dark">
+                                    <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
+                                </a>
+                            @endif
                         @endif
                     </div>
 

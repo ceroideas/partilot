@@ -209,7 +209,21 @@ class ParticipationController extends Controller
             }
         }
 
-        return view('participations.show', compact('participation', 'ticketReference'));
+        $pendingDigitalSaleForLinkCode = null;
+        $user = auth()->user();
+        if ($user && $user->canViewPendingDigitalLinkCode()) {
+            $pending = $participation->activePendingDigitalSale();
+            if ($pending) {
+                $pending->ensureLinkCode();
+                $pendingDigitalSaleForLinkCode = $pending;
+            }
+        }
+
+        return view('participations.show', compact(
+            'participation',
+            'ticketReference',
+            'pendingDigitalSaleForLinkCode'
+        ));
     }
 
     /**
@@ -721,10 +735,10 @@ class ParticipationController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $codeOnly
-                    ? 'Venta reservada. Comparte el código de vinculación con el comprador.'
+                    ? 'Venta reservada. Envía el WhatsApp al comprador desde la pantalla de confirmación.'
                     : 'Se ha enviado un correo al comprador para completar el registro.',
                 'pending_id' => $pending->id,
-                'link_code' => $pending->link_code,
+                'buyer_registration_url' => $pending->registrationUrlForShare(),
                 'valid_until' => $pending->valid_until?->toIso8601String(),
                 'quantity' => $pending->quantity,
                 'code_only' => $codeOnly,
@@ -1235,7 +1249,7 @@ class ParticipationController extends Controller
                     'descripcion' => 'Venta digital ' . $entidadNombre . ' · Pendiente de registro',
                     'pendienteRegistro' => true,
                     'valid_until' => $p->valid_until?->toIso8601String(),
-                    'codigoVinculacion' => $p->link_code,
+                    'buyer_registration_url' => $p->registrationUrlForShare(),
                     'setLabel' => $setLabel,
                     'participacion' => [
                         'entidad' => $entidadNombre,
@@ -1245,12 +1259,12 @@ class ParticipationController extends Controller
                         'importeJugado' => $importeJugado,
                         'importeTotal' => $importeTotal,
                         'clienteEmail' => $p->email,
-                        'codigoVinculacion' => $p->link_code,
                         'pendienteRegistro' => true,
                         'validUntil' => $p->valid_until?->format('d/m/Y H:i'),
                         'esDigital' => true,
                         'setLabel' => $setLabel,
                         'set_number' => $p->set?->set_number,
+                        'buyer_registration_url' => $p->registrationUrlForShare(),
                     ],
                 ];
             })
@@ -1262,10 +1276,83 @@ class ParticipationController extends Controller
             ->values()
             ->all();
 
-        return response()->json([
+        $notify = app(\App\Services\DigitalSaleBuyerNotifyService::class);
+
+        return response()->json(array_merge([
             'success' => true,
             'historial' => $historial,
+        ], $notify->configPayload()));
+    }
+
+    public function apiWhatsAppConfig()
+    {
+        return response()->json(array_merge(
+            ['success' => true],
+            app(\App\Services\DigitalSaleBuyerNotifyService::class)->configPayload()
+        ));
+    }
+
+    /**
+     * Envía SMS al comprador vía httpSMS (si está activo).
+     */
+    public function apiSendPendingDigitalNotify(Request $request, int $pendingId)
+    {
+        return $this->handleSendPendingDigitalNotify($request, $pendingId);
+    }
+
+    /**
+     * @deprecated Usar apiSendPendingDigitalNotify (alias histórico).
+     */
+    public function apiSendPendingDigitalWhatsApp(Request $request, int $pendingId)
+    {
+        return $this->handleSendPendingDigitalNotify($request, $pendingId);
+    }
+
+    private function handleSendPendingDigitalNotify(Request $request, int $pendingId)
+    {
+        $user = $request->user();
+        if (! $user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos para esta acción.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (! $seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado.'], 403);
+        }
+
+        $request->validate([
+            'phone' => 'required|string|max:20',
+        ], [
+            'phone.required' => 'Introduce el teléfono del comprador.',
         ]);
+
+        $notify = app(\App\Services\DigitalSaleBuyerNotifyService::class);
+        if ($notify->preferredChannel() === 'manual') {
+            return response()->json([
+                'success' => false,
+                'message' => 'SMS no está configurado. Activa DIGITAL_SALE_SMS_ENABLED y httpSMS (HTTPSMS_API_KEY, HTTPSMS_FROM_NUMBER) en el servidor.',
+            ], 503);
+        }
+
+        try {
+            $result = $notify->sendToBuyer($seller, $pendingId, (string) $request->phone);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'SMS enviado al comprador correctamente.',
+                'channel' => $result['channel'],
+                'message_sid' => $result['message_sid'],
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            \Log::error('apiSendPendingDigitalNotify: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

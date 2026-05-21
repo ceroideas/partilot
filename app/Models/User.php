@@ -196,9 +196,25 @@ class User extends Authenticatable
         return false;
     }
 
+    /**
+     * Teléfono E.164 para notificaciones SMS (httpSMS).
+     */
+    public function routeNotificationForSms(): ?string
+    {
+        $phone = trim((string) ($this->phone ?? ''));
+
+        return $phone !== '' ? $phone : null;
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    /** Panel: ver código de vinculación de ventas digitales pendientes (no vendedor ni gestor). */
+    public function canViewPendingDigitalLinkCode(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdministration() || $this->isEntity();
     }
 
     public function isAdministration(): bool

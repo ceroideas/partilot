@@ -32,6 +32,15 @@ return [
     ],
 
     /*
+     * API externa para enviar SMS por HTTPSMS
+    */
+    
+    'httpsms' => [
+        'key' => env('HTTPSMS_API_KEY'),
+        'from' => env('HTTPSMS_FROM_NUMBER'),
+    ],
+
+    /*
      * API externa para generar códigos prepago (recarga) usables en la web de loterías.
      */
     'prepago_codigos' => [

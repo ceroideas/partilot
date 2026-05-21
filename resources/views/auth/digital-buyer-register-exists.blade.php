@@ -10,7 +10,12 @@
 <div class="container py-5 text-center" style="max-width: 520px;">
     <img src="{{ url('/') }}/logo.svg" alt="PARTILOT" height="40" class="mb-4">
     <h4>Ya tienes cuenta</h4>
-    <p class="text-muted">El correo <strong>{{ $pending->email }}</strong> ya está registrado en Partilot. Inicia sesión en la app para ver tus participaciones.</p>
+    <p class="text-muted">
+        El correo <strong>{{ $pending->email }}</strong> ya está registrado en Partilot.
+        Inicia sesión en la app para recibir
+        <strong>{{ $pending->quantity }}</strong>
+        {{ $pending->quantity === 1 ? 'participación digital pendiente' : 'participaciones digitales pendientes' }}.
+    </p>
 </div>
 </body>
 </html>

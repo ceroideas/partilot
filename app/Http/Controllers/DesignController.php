@@ -2283,6 +2283,10 @@ class DesignController extends Controller
         if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
             abort(403, 'No tienes permisos para esta operación.');
         }
+        if ($this->designSetIsDigitalOnly($design->set)) {
+            return redirect()->route('design.summary', $design->id)
+                ->with('warning', 'Los sets de participaciones digitales no se envían a imprenta.');
+        }
         $printOrderLock = $this->getPrintOrderLockContext($design->id);
         if ($printOrderLock['locked']) {
             return redirect()->route('design.summary', $design->id)
@@ -2297,62 +2301,247 @@ class DesignController extends Controller
         ];
         // Pedido desde diseño ya elaborado en el editor: no se cobra tarifa de diseño (solo imprenta).
         $quote = $this->calculatePrintOrderQuote($design->set, $defaults, chargeDesignFee: false);
+        [$stripePublishableKey, $stripeSecretKey] = $this->resolveStripeKeys();
+        $stripePaymentEnabled = $stripePublishableKey !== '' && $stripeSecretKey !== '';
 
-        return view('design.send_to_print', compact('design', 'defaults', 'quote'));
+        return view('design.send_to_print', compact('design', 'defaults', 'quote', 'stripePublishableKey', 'stripePaymentEnabled'));
+    }
+
+    /**
+     * Crea PaymentIntent de Stripe para enviar a imprenta un diseño ya elaborado.
+     */
+    public function createPrintOrderPaymentIntent(Request $request, $id)
+    {
+        $design = DesignFormat::with(['set', 'lottery', 'entity'])->findOrFail($id);
+        if (! auth()->user()->canAccessEntity((int) $design->entity_id)) {
+            abort(403, 'No tienes permisos para esta operación.');
+        }
+        if ($blockMessage = $this->printOrderSubmissionBlockMessage($design)) {
+            return response()->json(['ok' => false, 'message' => $blockMessage], 422);
+        }
+
+        $data = $request->validate($this->printOrderSubmissionRules());
+        $quote = $this->calculatePrintOrderQuote($design->set, $data, chargeDesignFee: false);
+        $total = (float) ($quote['total'] ?? 0);
+        if ($total <= 0) {
+            return response()->json(['ok' => false, 'message' => 'El importe del pedido debe ser mayor que cero.'], 422);
+        }
+
+        [$publishableKey, $secretKey] = $this->resolveStripeKeys();
+        if ($secretKey === '' || $publishableKey === '') {
+            return response()->json(['ok' => false, 'message' => 'Stripe no está configurado. Revisa Configuración → Imprenta.'], 500);
+        }
+
+        try {
+            $client = new Client(['base_uri' => 'https://api.stripe.com/v1/']);
+            $response = $client->post('payment_intents', [
+                'auth' => [$secretKey, ''],
+                'form_params' => [
+                    'amount' => (int) round($total * 100),
+                    'currency' => 'eur',
+                    'description' => 'Imprenta — diseño #'.$design->id,
+                    'metadata[design_format_id]' => (string) $design->id,
+                    'metadata[set_id]' => (string) $design->set_id,
+                    'metadata[entity_id]' => (string) $design->entity_id,
+                    'automatic_payment_methods[enabled]' => 'true',
+                ],
+            ]);
+
+            $payload = json_decode((string) $response->getBody(), true);
+            if (! is_array($payload) || empty($payload['client_secret']) || empty($payload['id'])) {
+                return response()->json(['ok' => false, 'message' => 'No se pudo crear el PaymentIntent.'], 500);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'client_secret' => (string) $payload['client_secret'],
+                'publishable_key' => $publishableKey,
+                'amount' => $total,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Stripe PaymentIntent (send to print) error', ['error' => $e->getMessage(), 'design_id' => $design->id]);
+
+            return response()->json(['ok' => false, 'message' => 'Error creando el pago con Stripe.'], 500);
+        }
     }
 
     public function submitPrintOrder(Request $request, $id)
     {
         $design = DesignFormat::with(['set', 'lottery', 'entity'])->findOrFail($id);
-        if (!auth()->user()->canAccessEntity((int) $design->entity_id)) {
+        if (! auth()->user()->canAccessEntity((int) $design->entity_id)) {
             abort(403, 'No tienes permisos para esta operación.');
         }
-        $printOrderLock = $this->getPrintOrderLockContext($design->id);
-        if ($printOrderLock['locked']) {
-            return redirect()->route('design.summary', $design->id)
-                ->with('warning', $printOrderLock['message']);
+        if ($redirect = $this->redirectIfPrintOrderSubmissionBlocked($design)) {
+            return $redirect;
         }
 
-        $data = $request->validate([
+        $data = $request->validate(array_merge($this->printOrderSubmissionRules(), [
+            'stripe_payment_intent_id' => 'required|string',
+        ]), [
+            'stripe_payment_intent_id.required' => 'No se encontró el pago de Stripe confirmado.',
+        ]);
+
+        $quote = $this->calculatePrintOrderQuote($design->set, $data, chargeDesignFee: false);
+        $expectedTotal = round((float) ($quote['total'] ?? 0), 2);
+        if ($expectedTotal <= 0) {
+            return redirect()->route('design.sendToPrint', $design->id)
+                ->withInput()
+                ->with('error', 'El importe del pedido debe ser mayor que cero.');
+        }
+
+        $paymentIntentId = (string) $data['stripe_payment_intent_id'];
+        $piPayload = $this->fetchStripePaymentIntent($paymentIntentId);
+        if (! is_array($piPayload) || ($piPayload['status'] ?? '') !== 'succeeded') {
+            return redirect()->route('design.sendToPrint', $design->id)
+                ->withInput()
+                ->with('error', 'El pago no está confirmado en Stripe. Intenta de nuevo.');
+        }
+
+        $piAmount = (int) ($piPayload['amount'] ?? 0);
+        if ($piAmount !== (int) round($expectedTotal * 100)) {
+            return redirect()->route('design.sendToPrint', $design->id)
+                ->withInput()
+                ->with('error', 'El importe pagado no coincide con el presupuesto actual. Vuelve a intentar el pago.');
+        }
+
+        $metadata = is_array($piPayload['metadata'] ?? null) ? $piPayload['metadata'] : [];
+        if ((string) ($metadata['design_format_id'] ?? '') !== (string) $design->id) {
+            return redirect()->route('design.sendToPrint', $design->id)
+                ->withInput()
+                ->with('error', 'El pago no corresponde a este diseño.');
+        }
+
+        $duplicateOrder = null;
+        $lock = Cache::lock('print-order-stripe-pi:'.sha1($paymentIntentId), 25);
+        $lock->block(12);
+        try {
+            DB::transaction(function () use ($paymentIntentId, $design, $data, $quote, &$duplicateOrder) {
+                $existing = PrintOrder::query()
+                    ->where('payment_intent_id', $paymentIntentId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing) {
+                    $duplicateOrder = $existing;
+                    $this->insertPrintOrderAuditRow(
+                        printOrder: $existing,
+                        action: 'duplicate_payment_intent_blocked',
+                        message: 'Intento de registrar otra orden con el mismo PaymentIntent Stripe ('.$paymentIntentId.').',
+                        userId: auth()->id()
+                    );
+
+                    return;
+                }
+
+                $orderCode = 'OPI'.str_pad((string) (PrintOrder::max('id') + 1), 6, '0', STR_PAD_LEFT);
+                $order = PrintOrder::create([
+                    'order_code' => $orderCode,
+                    'design_format_id' => $design->id,
+                    'set_id' => $design->set_id,
+                    'entity_id' => $design->entity_id,
+                    'lottery_id' => $design->lottery_id,
+                    'created_by_user_id' => auth()->id(),
+                    'status' => PrintOrder::STATUS_PENDING_REVIEW,
+                    'payment_provider' => 'stripe',
+                    'payment_intent_id' => $paymentIntentId,
+                    'payment_status' => PrintOrder::PAYMENT_STATUS_PAID,
+                    'print_size' => $data['print_size'],
+                    'participations_per_book' => (int) $data['participations_per_book'],
+                    'back_mode' => $data['back_mode'],
+                    'quoted_amount' => $quote['total'],
+                    'quote_breakdown' => $quote,
+                    'notes' => $data['notes'] ?? null,
+                    'sent_at' => null,
+                    'paid_at' => now(),
+                ]);
+
+                $this->insertPrintOrderAuditRow(
+                    printOrder: $order,
+                    action: 'order_created_stripe',
+                    message: 'Orden creada con pago Stripe (diseño existente). PI: '.$paymentIntentId,
+                    userId: auth()->id()
+                );
+            });
+        } finally {
+            $lock->release();
+        }
+
+        if ($duplicateOrder) {
+            return redirect()->route('design.summary', $design->id)
+                ->with('warning', 'Este pago ya tiene una orden de imprenta registrada ('.$duplicateOrder->order_code.').');
+        }
+
+        return redirect()->route('design.summary', $design->id)
+            ->with('success', 'Pago confirmado y orden de imprenta enviada correctamente.');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function printOrderSubmissionRules(): array
+    {
+        return [
             'print_size' => 'required|string|in:a3_6,a3_8,custom',
             'participations_per_book' => 'required|integer|min:1|max:1000',
             'back_mode' => 'required|string|in:bw,color',
             'notes' => 'nullable|string|max:4000',
-        ]);
+        ];
+    }
 
-        $quote = $this->calculatePrintOrderQuote($design->set, $data, chargeDesignFee: false);
-        $orderCode = 'OPI' . str_pad((string) (PrintOrder::max('id') + 1), 6, '0', STR_PAD_LEFT);
+    private function printOrderSubmissionBlockMessage(DesignFormat $design): ?string
+    {
+        if ($this->designSetIsDigitalOnly($design->set)) {
+            return 'Los sets de participaciones digitales no se envían a imprenta.';
+        }
 
-        $order = PrintOrder::create([
-            'order_code' => $orderCode,
-            'design_format_id' => $design->id,
-            'set_id' => $design->set_id,
-            'entity_id' => $design->entity_id,
-            'lottery_id' => $design->lottery_id,
-            'created_by_user_id' => auth()->id(),
-            'status' => PrintOrder::STATUS_PENDING_REVIEW,
-            'payment_provider' => null,
-            'payment_intent_id' => null,
-            'payment_status' => PrintOrder::PAYMENT_STATUS_NOT_REQUIRED,
-            'print_size' => $data['print_size'],
-            'participations_per_book' => (int) $data['participations_per_book'],
-            'back_mode' => $data['back_mode'],
-            'quoted_amount' => $quote['total'],
-            'quote_breakdown' => $quote,
-            'notes' => $data['notes'] ?? null,
-            'sent_at' => null,
-            'paid_at' => null,
-        ]);
+        $printOrderLock = $this->getPrintOrderLockContext($design->id);
+        if ($printOrderLock['locked']) {
+            return (string) ($printOrderLock['message'] ?? 'Este diseño no puede enviarse a imprenta.');
+        }
 
-        $this->insertPrintOrderAuditRow(
-            printOrder: $order,
-            action: 'order_created_internal',
-            message: 'Pedido sin cobro online (envío desde panel). Importe referencia: '.number_format((float) $quote['total'], 2, ',', '.').' €.',
-            userId: auth()->id()
-        );
+        return null;
+    }
 
-        return redirect()->route('design.summary', $design->id)
-            ->with('success', 'Orden de imprenta enviada correctamente (sin cobro en esta fase).');
+    /**
+     * @return \Illuminate\Http\RedirectResponse|null
+     */
+    private function redirectIfPrintOrderSubmissionBlocked(DesignFormat $design)
+    {
+        $message = $this->printOrderSubmissionBlockMessage($design);
+        if ($message === null) {
+            return null;
+        }
+
+        return redirect()->route('design.summary', $design->id)->with('warning', $message);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fetchStripePaymentIntent(string $paymentIntentId): ?array
+    {
+        if ($paymentIntentId === '') {
+            return null;
+        }
+
+        [, $secretKey] = $this->resolveStripeKeys();
+        if ($secretKey === '') {
+            return null;
+        }
+
+        try {
+            $client = new Client(['base_uri' => 'https://api.stripe.com/v1/']);
+            $response = $client->get('payment_intents/'.$paymentIntentId, [
+                'auth' => [$secretKey, ''],
+            ]);
+            $payload = json_decode((string) $response->getBody(), true);
+
+            return is_array($payload) ? $payload : null;
+        } catch (\Throwable $e) {
+            Log::error('Stripe fetch payment intent error', ['error' => $e->getMessage(), 'pi' => $paymentIntentId]);
+
+            return null;
+        }
     }
 
     /**
@@ -3303,6 +3492,16 @@ class DesignController extends Controller
     /**
      * @return array{locked:bool, message:?string, status:?string, order_code:?string}
      */
+    private function designSetIsDigitalOnly(?\App\Models\Set $set): bool
+    {
+        if (! $set) {
+            return false;
+        }
+
+        return ($set->digital_participations ?? 0) > 0
+            && (int) ($set->physical_participations ?? 0) === 0;
+    }
+
     private function getPrintOrderLockContext(?int $designFormatId): array
     {
         if (!$designFormatId) {

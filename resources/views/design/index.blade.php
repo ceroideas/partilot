@@ -143,14 +143,16 @@
                                             data-total-participations="{{ $design->set ? (int)$design->set->total_participations : 0 }}"
                                             data-title="Participaciones"><img src="{{url('printer.svg')}}" alt="" width="12"></button>
                                     @endif
-                                    @if(!empty($printLockCtx['locked']))
-                                        <button type="button" class="btn btn-sm btn-outline-warning text-dark" disabled title="{{ $printLockCtx['message'] ?? 'Ya existe una orden activa en imprenta.' }}">
-                                            <i class="ri-send-plane-line"></i>
-                                        </button>
-                                    @else
-                                        <a href="{{ route('design.sendToPrint', $design->id) }}" class="btn btn-sm btn-warning text-dark" title="Enviar a imprenta">
-                                            <i class="ri-send-plane-line"></i>
-                                        </a>
+                                    @if(!$isDigital)
+                                        @if(!empty($printLockCtx['locked']))
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark" disabled title="{{ $printLockCtx['message'] ?? 'Ya existe una orden activa en imprenta.' }}">
+                                                <i class="ri-send-plane-line"></i>
+                                            </button>
+                                        @else
+                                            <a href="{{ route('design.sendToPrint', $design->id) }}" class="btn btn-sm btn-warning text-dark" title="Enviar a imprenta">
+                                                <i class="ri-send-plane-line"></i>
+                                            </a>
+                                        @endif
                                     @endif
                                     {{-- <a href="{{ route('design.editFormat', $design->id) }}" class="btn btn-sm btn-light"><img src="{{url('assets/design_1.svg')}}" alt="" width="12"></a> --}}
                                     @if($isLocked)

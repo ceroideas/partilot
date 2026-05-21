@@ -18,6 +18,13 @@
         }
         .group-login input { border: none !important; box-shadow: none !important; background: transparent !important; }
         .group-login input[readonly] { color: #6c757d; }
+        .pending-summary {
+            background: #fff8f0;
+            border: 2px solid #F59200;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body class="auth-fluid-pages pb-0">
@@ -25,16 +32,25 @@
     <div class="text-center mb-4">
         <img src="{{ url('/') }}/logo.svg" alt="PARTILOT" height="40">
         <h4 class="mt-3">Activa tus participaciones digitales</h4>
+        <div class="pending-summary text-start">
+            <p class="mb-2 fw-semibold" style="color:#212529;">
+                Tienes <strong>{{ $pending->quantity }}</strong>
+                {{ $pending->quantity === 1 ? 'participación digital pendiente' : 'participaciones digitales pendientes' }}
+                de asignar a tu cuenta.
+            </p>
+            <p class="mb-1 small text-muted">
+                <strong>Entidad:</strong> {{ $pending->entity->name ?? '—' }}
+            </p>
+            <p class="mb-1 small text-muted">
+                <strong>Sorteo:</strong> {{ $pending->lottery->name ?? '—' }}
+            </p>
+            <p class="mb-0 small text-muted">
+                <strong>Válido hasta:</strong> {{ $pending->valid_until->format('d/m/Y H:i') }}
+            </p>
+        </div>
         <p class="text-muted small mb-0">
-            {{ $pending->quantity }} participación(es) · {{ $pending->entity->name ?? '' }} · {{ $pending->lottery->name ?? '' }}
+            Completa el registro con el formulario. Al crear tu cuenta, las participaciones se vincularán automáticamente.
         </p>
-        <p class="text-muted small">Válido hasta: <strong>{{ $pending->valid_until->format('d/m/Y H:i') }}</strong></p>
-        @if($pending->link_code)
-        <p class="mb-0 mt-2">
-            Código de vinculación:
-            <strong style="letter-spacing:3px;font-size:1.1rem;">{{ $pending->link_code }}</strong>
-        </p>
-        @endif
     </div>
     <div class="card">
         <div class="card-body p-4">
@@ -50,15 +66,7 @@
                     <div class="group-login">
                         <input type="email" class="form-control" value="{{ $pending->email }}" readonly>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Código de vinculación</label>
-                    <p class="small text-muted mb-2">Si no recibes el correo o te registras con otro email en la app, usa este código en <strong>Mi cartera</strong>:</p>
-                    <p class="text-center fw-bold mb-2" style="font-size:1.35rem;letter-spacing:4px;">{{ $pending->link_code }}</p>
-                    <div class="group-login">
-                        <input type="text" name="link_code" class="form-control text-center" maxlength="12" autocomplete="off"
-                            value="{{ old('link_code', $linkCodePrefill ?? $pending->link_code) }}" placeholder="Código de vinculación">
-                    </div>
+                    <p class="small text-muted mt-1 mb-0">Debe coincidir con el correo de la reserva de venta.</p>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
