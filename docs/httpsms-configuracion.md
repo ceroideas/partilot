@@ -21,6 +21,8 @@ SMS_DRIVER=httpsms
 # Venta digital al comprador (vendedor → comprador)
 DIGITAL_SALE_SMS_ENABLED=true
 DIGITAL_SALE_SMS_DRIVER=httpsms
+# Primer envío + reenvíos (1 = máximo 2 SMS por venta pendiente)
+DIGITAL_SALE_SMS_MAX_RESENDS=1
 ```
 
 Desarrollo sin móvil: `SMS_DRIVER=log` y `DIGITAL_SALE_SMS_DRIVER=log` (mensajes en `storage/logs/laravel.log`).

@@ -39,6 +39,7 @@ class DigitalSaleBuyerNotifyService
             'whatsapp_enabled' => false,
             'buyer_notify_channel' => $channel,
             'notify_auto_enabled' => $channel === 'sms',
+            'buyer_sms_max_resends' => $this->sms->maxResends(),
         ];
     }
 
@@ -60,12 +61,19 @@ class DigitalSaleBuyerNotifyService
 
         $pending = $this->sms->findPendingForSeller($seller, $pendingId);
         if (! $pending) {
-            throw new \InvalidArgumentException('Venta pendiente no encontrada o ya no está disponible.');
+            throw new \InvalidArgumentException(
+                'Venta pendiente no encontrada, caducada o ya reclamada por el comprador.'
+            );
         }
+
+        $messageSid = $this->sms->sendToBuyer($pending, $buyerPhone);
+        $pending->refresh();
 
         return [
             'channel' => 'sms',
-            'message_sid' => $this->sms->sendToBuyer($pending, $buyerPhone),
+            'message_sid' => $messageSid,
+            'buyer_sms_sent_count' => (int) $pending->buyer_sms_sent_count,
+            'buyer_sms_sends_remaining' => $this->sms->sendsRemaining($pending),
         ];
     }
 }

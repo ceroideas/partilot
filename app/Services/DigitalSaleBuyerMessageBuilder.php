@@ -38,14 +38,6 @@ class DigitalSaleBuyerMessageBuilder
             return '—';
         }
 
-        $name = trim((string) ($lottery->name ?? ''));
-        if ($name !== '') {
-            return $name;
-        }
-
-        $lottery->loadMissing('lotteryType');
-        $typeName = trim((string) ($lottery->lotteryType->name ?? ''));
-
-        return $typeName !== '' ? $typeName : '—';
+        return $lottery->displayLabel();
     }
 }

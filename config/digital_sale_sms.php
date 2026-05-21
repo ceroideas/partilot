@@ -11,4 +11,7 @@ return [
     'driver' => env('DIGITAL_SALE_SMS_DRIVER', 'httpsms'),
 
     'default_country_code' => env('DIGITAL_SALE_SMS_DEFAULT_COUNTRY_CODE', env('SMS_DEFAULT_COUNTRY_CODE', '34')),
+
+    /** Reenvíos permitidos por venta pendiente (1 = primer envío + 1 reenvío como máximo). */
+    'max_resends' => max(0, (int) env('DIGITAL_SALE_SMS_MAX_RESENDS', 1)),
 ];

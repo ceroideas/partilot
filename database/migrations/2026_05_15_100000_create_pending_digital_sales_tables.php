@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('payment_method', 30)->nullable();
             $table->string('registration_token', 64)->unique();
             $table->string('status', 20)->default('pending')->index();
-            $table->timestamp('valid_until')->index();
+            $table->dateTime('valid_until')->index();
             $table->timestamp('completed_at')->nullable();
             $table->foreignId('completed_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

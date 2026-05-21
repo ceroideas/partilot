@@ -28,6 +28,7 @@ class PendingDigitalSale extends Model
         'payment_method',
         'registration_token',
         'link_code',
+        'buyer_sms_sent_count',
         'status',
         'valid_until',
         'completed_at',
@@ -82,14 +83,18 @@ class PendingDigitalSale extends Model
 
     public function isExpired(): bool
     {
-        return $this->valid_until && $this->valid_until->isPast();
+        if (! $this->valid_until) {
+            return true;
+        }
+
+        return $this->valid_until->lte(now());
     }
 
     public function isStillValid(): bool
     {
         return $this->status === self::STATUS_PENDING
             && $this->valid_until
-            && $this->valid_until->isFuture();
+            && ! $this->isExpired();
     }
 
     public function scopePendingNotExpired($query)

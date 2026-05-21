@@ -1196,6 +1196,7 @@ class ParticipationController extends Controller
 
             $isDigitalSet = $this->setIsDigitalOnly($set);
             $setLabel = $this->setHistorialLabel($set);
+            $sorteoLabel = $this->lotteryHistorialLabel($lottery);
 
             return [
                 'id' => $p->id,
@@ -1203,9 +1204,11 @@ class ParticipationController extends Controller
                 'fecha' => $saleDateTime,
                 'formaPago' => $formaPago,
                 'descripcion' => 'Participación ' . $entidadNombre,
+                'sorteo' => $sorteoLabel,
+                'fechaSorteo' => $fechaSorteo,
                 'participacion' => [
                     'entidad' => $entidadNombre,
-                    'sorteo' => $this->lotteryHistorialLabel($lottery),
+                    'sorteo' => $sorteoLabel,
                     'numero' => $numeroReservado,
                     'fechaSorteo' => $fechaSorteo,
                     'importeJugado' => $importeJugado,
@@ -1228,8 +1231,13 @@ class ParticipationController extends Controller
             ->limit(50)
             ->get()
             ->map(function (PendingDigitalSale $p) {
+                $smsNotify = app(\App\Services\DigitalSaleSmsService::class);
                 $entity = $p->entity;
                 $lottery = $p->lottery;
+                if (! $lottery && $p->set) {
+                    $p->set->loadMissing('reserve.lottery.lotteryType');
+                    $lottery = $p->set->reserve?->lottery;
+                }
                 $entidadNombre = $entity ? $entity->name : '—';
                 $fechaSorteo = $lottery && $lottery->draw_date
                     ? $lottery->draw_date->format('d/m/y')
@@ -1238,6 +1246,7 @@ class ParticipationController extends Controller
                 $importeTotal = (float) $p->sale_amount;
                 $importeJugado = $qty > 0 ? round($importeTotal / $qty, 2) : $importeTotal;
                 $setLabel = $this->setHistorialLabel($p->set);
+                $sorteoLabel = $this->lotteryHistorialLabel($lottery);
 
                 return [
                     'id' => 'p-' . $p->id,
@@ -1250,10 +1259,15 @@ class ParticipationController extends Controller
                     'pendienteRegistro' => true,
                     'valid_until' => $p->valid_until?->toIso8601String(),
                     'buyer_registration_url' => $p->registrationUrlForShare(),
+                    'buyer_sms_sent_count' => (int) ($p->buyer_sms_sent_count ?? 0),
+                    'buyer_sms_can_send' => $smsNotify->isEnabled() && $smsNotify->canSendToBuyer($p),
+                    'buyer_sms_sends_remaining' => $smsNotify->sendsRemaining($p),
                     'setLabel' => $setLabel,
+                    'sorteo' => $sorteoLabel,
+                    'fechaSorteo' => $fechaSorteo,
                     'participacion' => [
                         'entidad' => $entidadNombre,
-                        'sorteo' => $this->lotteryHistorialLabel($lottery),
+                        'sorteo' => $sorteoLabel,
                         'numero' => $qty . ' dig.',
                         'fechaSorteo' => $fechaSorteo,
                         'importeJugado' => $importeJugado,
@@ -1342,6 +1356,8 @@ class ParticipationController extends Controller
                 'message' => 'SMS enviado al comprador correctamente.',
                 'channel' => $result['channel'],
                 'message_sid' => $result['message_sid'],
+                'buyer_sms_sent_count' => $result['buyer_sms_sent_count'] ?? null,
+                'buyer_sms_sends_remaining' => $result['buyer_sms_sends_remaining'] ?? null,
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -1466,22 +1482,7 @@ class ParticipationController extends Controller
 
     private function lotteryHistorialLabel(?\App\Models\Lottery $lottery): string
     {
-        if (! $lottery) {
-            return '—';
-        }
-
-        $name = trim((string) ($lottery->name ?? ''));
-        if ($name !== '') {
-            return $name;
-        }
-
-        $lottery->loadMissing('lotteryType');
-        $typeName = trim((string) ($lottery->lotteryType->name ?? ''));
-        if ($typeName !== '') {
-            return $typeName;
-        }
-
-        return '—';
+        return $lottery ? $lottery->displayLabel() : '—';
     }
 
     /**

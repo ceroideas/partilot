@@ -8,6 +8,7 @@ return [
     | Caducidad: columna valid_until. Se comprueba al vender, consultar disponibles,
     | abrir el enlace de registro o registrarse (sin cron ni comando artisan).
     */
+    // Reserva hasta registro del comprador (prioridad: hold_days si > 0, si no hold_hours; mín. 1 h).
     'hold_hours' => (int) env('DIGITAL_SALE_HOLD_HOURS', 72),
     'hold_days' => (int) env('DIGITAL_SALE_HOLD_DAYS', 0),
 

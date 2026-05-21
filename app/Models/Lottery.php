@@ -67,6 +67,45 @@ class Lottery extends Model
     }
 
     /**
+     * Etiqueta legible para historial, SMS y app (name puede venir vacío en BD).
+     */
+    public function displayLabel(): string
+    {
+        $name = trim((string) ($this->name ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $this->loadMissing('lotteryType');
+        $type = $this->lotteryType;
+        $segments = [];
+
+        if ($type) {
+            $typeName = trim((string) ($type->name ?? ''));
+            if ($typeName !== '') {
+                $segments[] = $typeName;
+            } elseif (! empty($type->identificador)) {
+                $segments[] = trim((string) $type->identificador);
+            }
+        }
+
+        $price = $this->ticket_price ?? $type?->ticket_price;
+        if ($price !== null && (float) $price > 0) {
+            $segments[] = intval((float) $price).'€';
+        }
+
+        if ($segments !== []) {
+            return implode(' · ', $segments);
+        }
+
+        if ($this->draw_date) {
+            return 'Sorteo '.$this->draw_date->format('d/m/Y');
+        }
+
+        return 'Sorteo #'.$this->id;
+    }
+
+    /**
      * Verificar si una administración ha escrutado este sorteo
      */
     public function isScrutinizedByAdministration($administrationId)

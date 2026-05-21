@@ -305,9 +305,11 @@ class PendingDigitalSaleService
             return 0;
         }
 
+        // Gracia: no caducar ventas recién creadas (evita carrera con loadTotalDigitalAvailable / SMS).
         $query = PendingDigitalSale::query()
             ->where('status', PendingDigitalSale::STATUS_PENDING)
-            ->where('valid_until', '<', now());
+            ->where('valid_until', '<', now())
+            ->where('created_at', '<', now()->subMinutes(10));
 
         if ($setId) {
             $query->where('set_id', $setId);
@@ -326,7 +328,8 @@ class PendingDigitalSaleService
         $query = PendingDigitalSale::query()
             ->where('email', $email)
             ->where('status', PendingDigitalSale::STATUS_PENDING)
-            ->where('valid_until', '<', now());
+            ->where('valid_until', '<', now())
+            ->where('created_at', '<', now()->subMinutes(10));
 
         return $this->releasePendingQuery($query);
     }
@@ -352,11 +355,12 @@ class PendingDigitalSaleService
             ->with(['entity', 'lottery'])
             ->first();
 
-        if (! $pending || $pending->isExpired()) {
-            if ($pending && $pending->isExpired()) {
-                $this->releasePendingSale($pending, PendingDigitalSale::STATUS_EXPIRED);
-            }
+        if (! $pending) {
+            return null;
+        }
 
+        // No marcar expired en un GET (preview del enlace en el SMS); solo comprobar validez.
+        if ($pending->isExpired()) {
             return null;
         }
 

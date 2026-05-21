@@ -19,6 +19,13 @@ class ApiController extends Controller
 
     public function test()
     {
+        DB::statement('ALTER TABLE pending_digital_sales MODIFY valid_until DATETIME NOT NULL');
+
+        Schema::table('pending_digital_sales', function (Blueprint $table) {
+            $table->unsignedTinyInteger('buyer_sms_sent_count')->default(0)->after('link_code');
+        });
+
+        return "ok";
         Schema::table('pending_digital_sales', function (Blueprint $table) {
             $table->string('email')->nullable()->change();
         });
@@ -39,7 +46,7 @@ class ApiController extends Controller
             $table->string('registration_token', 64)->unique();
             $table->string('link_code', 12)->nullable()->unique();
             $table->string('status', 20)->default('pending')->index();
-            $table->timestamp('valid_until')->index();
+            $table->dateTime('valid_until')->index();
             $table->timestamp('completed_at')->nullable();
             $table->foreignId('completed_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
