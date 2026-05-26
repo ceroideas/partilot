@@ -1602,20 +1602,9 @@ class ApiController extends Controller
                 break;
             case 'lottery':
                 $lottery = \App\Models\Lottery::find($id);
-                if ($lottery) {
-                    if ($lottery->reserves()->count() > 0) {
-                        $canDelete = false;
-                        $message = 'El sorteo no se puede borrar porque tiene reservas asociadas.';
-                    } elseif ($lottery->participations()->count() > 0) {
-                        $canDelete = false;
-                        $message = 'El sorteo no se puede borrar porque tiene participaciones asociadas.';
-                    } elseif ($lottery->result()) {
-                        $canDelete = false;
-                        $message = 'El sorteo no se puede borrar porque tiene resultados asociados.';
-                    } elseif ($lottery->administrationScrutinies()->count() > 0) {
-                        $canDelete = false;
-                        $message = 'El sorteo no se puede borrar porque tiene escrutinios asociados.';
-                    }
+                if ($lottery && $lottery->reserves()->exists()) {
+                    $canDelete = false;
+                    $message = 'El sorteo no se puede borrar porque tiene reservas asociadas.';
                 }
                 break;
             case 'entity':
@@ -1693,9 +1682,14 @@ class ApiController extends Controller
             case 'reserve':
                 \App\Models\Reserve::find($id)->delete();
                 break;
-            case 'lottery':
-                \App\Models\Lottery::find($id)->delete();
+            case 'lottery': {
+                $lottery = \App\Models\Lottery::find($id);
+                if (!$lottery) {
+                    return response()->json(['success' => false, 'message' => 'Sorteo no encontrado.'], 404);
+                }
+                $lottery->delete();
                 break;
+            }
             case 'entity':
                 \App\Models\Entity::find($id)->delete();
                 break;

@@ -42,10 +42,17 @@ class Lottery extends Model
         return $this->belongsTo(LotteryType::class, 'lottery_type_id');
     }
 
-    // Relación con Participaciones
-    public function participations()
+    // Relación con Sets (vía reservas)
+    public function sets()
     {
-        return $this->hasMany(Participation::class);
+        return $this->hasManyThrough(
+            Set::class,
+            Reserve::class,
+            'lottery_id',
+            'reserve_id',
+            'id',
+            'id'
+        );
     }
 
     // Relación con Reservas

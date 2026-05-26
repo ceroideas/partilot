@@ -285,11 +285,14 @@
     $(this).css('background-color', '');
   });
 
-  // Eliminar sorteo
-  $('.delete-btn').on('click', function(e) {
+  // Eliminar sorteo (delegación: botones en páginas siguientes del DataTable)
+  $('#example2').on('click', '.delete-btn', function(e) {
+    e.preventDefault();
     e.stopPropagation(); // Evitar que se active el clic de la fila
     var id = $(this).data('id');
     var name = $(this).data('name');
+    $('#delete-warning').addClass('d-none');
+    $('#delete-message').text('');
     $('#delete-modal').modal('show');
     $('#delete-item-name').text(name);
     $('#confirm-delete').data('id', id).data('type', 'lottery');
