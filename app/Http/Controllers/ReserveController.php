@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesLotteryDrawDateGuard;
 use App\Models\Reserve;
 use App\Models\Entity;
 use App\Models\Lottery;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ReserveController extends Controller
 {
+    use HandlesLotteryDrawDateGuard;
+
     /**
      * Mostrar lista de reservas
      */
@@ -58,6 +61,7 @@ class ReserveController extends Controller
 
         // Volver a retornar la vista de selección de sorteo como antes
         $lotteries = Lottery::where('status', 1)
+            ->openForOperations()
             ->with(['lotteryType'])
             ->orderBy('draw_date','desc')
             ->get();
@@ -104,6 +108,9 @@ class ReserveController extends Controller
         }
 
         $lottery = Lottery::with(['lotteryType'])->findOrFail($request->lottery_id);
+        if ($response = $this->redirectIfLotteryDrawDateBlocked($lottery, 'reserves.create')) {
+            return $response;
+        }
         $request->session()->put('selected_lottery', $lottery);
         $request->session()->put('selected_lottery_id', $lottery->id);
 
@@ -129,6 +136,9 @@ class ReserveController extends Controller
         }
 
         $lottery = Lottery::with(['lotteryType'])->findOrFail($request->lottery_id);
+        if ($response = $this->jsonIfLotteryDrawDateBlocked($lottery)) {
+            return $response;
+        }
         $request->session()->put('selected_lottery', $lottery);
         $request->session()->put('selected_lottery_id', $lottery->id);
 
@@ -197,6 +207,9 @@ class ReserveController extends Controller
 
         $entity = Entity::forUser(auth()->user())->findOrFail($entityId);
         $lottery = Lottery::with('lotteryType')->findOrFail($lotteryId);
+        if ($response = $this->redirectIfLotteryDrawDateBlocked($lottery, 'reserves.create')) {
+            return $response;
+        }
         // Importe debe ser múltiplo del precio del décimo; siempre redondear al alza
         $ticketPrice = (float) $lottery->ticket_price;
         if ($ticketPrice > 0) {
@@ -296,6 +309,11 @@ class ReserveController extends Controller
             abort(403, 'No tienes permisos para actualizar esta reserva.');
         }
 
+        $reserve->loadMissing('lottery');
+        if ($response = $this->redirectIfLotteryDrawDateBlocked($reserve->lottery)) {
+            return $response;
+        }
+
         $validated = $request->validate([
             'reservation_numbers' => 'required|array|min:1',
             'reservation_numbers.*' => 'required|string|max:10',
@@ -374,6 +392,7 @@ class ReserveController extends Controller
         }
 
         $lotteries = Lottery::where('status', 1) // Solo sorteos activos
+            ->openForOperations()
             ->with(['lotteryType'])
             ->get();
 
@@ -394,6 +413,9 @@ class ReserveController extends Controller
 
         $entity = Entity::forUser(auth()->user())->findOrFail($entityId);
         $lottery = Lottery::with('lotteryType')->findOrFail($lotteryId);
+        if ($response = $this->redirectIfLotteryDrawDateBlocked($lottery, 'reserves.create')) {
+            return $response;
+        }
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_lottery', $lottery);
 

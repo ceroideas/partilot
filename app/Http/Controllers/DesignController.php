@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesLotteryDrawDateGuard;
 use Illuminate\Http\Request;
 use App\Models\Entity;
 use App\Models\Lottery;
@@ -29,6 +30,8 @@ use Illuminate\Support\Facades\Log;
 
 class DesignController extends Controller
 {
+    use HandlesLotteryDrawDateGuard;
+
     // Paso 1: Seleccionar entidad
     public function selectEntity()
     {
@@ -56,6 +59,7 @@ class DesignController extends Controller
                           $setQuery->where('status', 1); // Solo sets activos
                       });
             })
+            ->openForOperations()
             ->whereDate('deadline_date', '!=', date('Y-m-d')) // Excluir sorteos de hoy
             ->orderBy('draw_date', 'desc')
             ->get();
@@ -315,6 +319,10 @@ class DesignController extends Controller
             'stripe_payment_intent_id.required' => 'No se encontró el pago de Stripe confirmado.',
         ]);
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())->findOrFail(session('design_external_invitation_id'));
+        $invitation->loadMissing('set.reserve.lottery');
+        if ($response = $this->redirectIfLotteryDrawDateBlocked($invitation->set?->reserve?->lottery)) {
+            return $response;
+        }
         $quote = $this->calculateExternalInvitationQuote($invitation->set, $invitation);
         $invitation->update([
             'email' => $mode === 'partilot' ? null : $request->email,
@@ -873,6 +881,11 @@ class DesignController extends Controller
             abort(403, 'No tienes permisos para gestionar esta entidad.');
         }
 
+        $lottery = Lottery::findOrFail($request->lottery_id);
+        if ($response = $this->redirectIfLotteryDrawDateBlocked($lottery)) {
+            return $response;
+        }
+
         session(['design_entity_id' => $request->entity_id]);
         session(['design_lottery_id' => $request->lottery_id]);
 
@@ -976,6 +989,10 @@ class DesignController extends Controller
 
         $set = Set::find($data['set_id'] ?? null);
         if ($set) {
+            $set->loadMissing('reserve.lottery');
+            if ($response = $this->jsonIfLotteryDrawDateBlocked($set->reserve?->lottery)) {
+                return $response;
+            }
             $designLock = $this->getSetDesignLockContext($set);
             if ($designLock['locked']) {
                 $this->logDesignLockAudit($set, 'save_format_blocked', $designLock);

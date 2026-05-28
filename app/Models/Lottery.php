@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\LotteryDrawDateGuardService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -59,6 +61,14 @@ class Lottery extends Model
     public function reserves()
     {
         return $this->hasMany(Reserve::class);
+    }
+
+    /**
+     * Sorteos cuyo draw_date no ha pasado (o sin fecha), si LOTTERY_ENFORCE_DRAW_DATE_RULES está activo.
+     */
+    public function scopeOpenForOperations(Builder $query): Builder
+    {
+        return app(LotteryDrawDateGuardService::class)->applyOpenForOperationsScope($query);
     }
 
     // Relación con Resultados

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesLotteryDrawDateGuard;
 use App\Models\Set;
 use App\Models\Entity;
 use App\Models\Reserve;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 
 class SetController extends Controller
 {
+    use HandlesLotteryDrawDateGuard;
+
     /**
      * Mostrar lista de sets
      */
@@ -62,6 +65,7 @@ class SetController extends Controller
         $reserves = Reserve::forUser(auth()->user())
             ->where('entity_id', $entity->id)
             ->where('status', 1) // confirmed
+            ->whereHas('lottery', fn ($q) => $q->openForOperations())
             ->with(['lottery'])
             ->get()
             ->sortByDesc(function ($reserve) {
@@ -129,6 +133,7 @@ class SetController extends Controller
         $reserves = Reserve::forUser(auth()->user())
             ->where('entity_id', $entity->id)
             ->where('status', 1) // confirmed
+            ->whereHas('lottery', fn ($q) => $q->openForOperations())
             ->with(['lottery'])
             ->orderBy('lottery.draw_date','desc')
             ->get();
@@ -173,6 +178,10 @@ class SetController extends Controller
                 ->with('error', 'La reserva seleccionada no pertenece a la entidad actual.');
         }
 
+        if ($response = $this->redirectIfReserveLotteryBlocked($reserve, 'sets.create')) {
+            return $response;
+        }
+
         $entity = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->findOrFail($entityId);
@@ -213,6 +222,10 @@ class SetController extends Controller
             ], 422);
         }
 
+        if ($response = $this->jsonIfLotteryDrawDateBlocked($reserve->lottery)) {
+            return $response;
+        }
+
         $entity = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->findOrFail($entityId);
@@ -247,6 +260,10 @@ class SetController extends Controller
         if ($reserve->entity_id !== $entity->id) {
             return redirect()->route('sets.create')
                 ->with('error', 'La reserva seleccionada no pertenece a la entidad actual.');
+        }
+
+        if ($response = $this->redirectIfReserveLotteryBlocked($reserve, 'sets.create')) {
+            return $response;
         }
 
         session([
@@ -301,6 +318,10 @@ class SetController extends Controller
         if ($reserve->entity_id !== $entity->id) {
             return redirect()->route('sets.create')
                 ->with('error', 'La reserva seleccionada no pertenece a la entidad actual.');
+        }
+
+        if ($response = $this->redirectIfReserveLotteryBlocked($reserve, 'sets.create')) {
+            return $response;
         }
 
         $request->session()->put('selected_entity', $entity);
