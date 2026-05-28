@@ -397,7 +397,7 @@
             .navbar-custom .app-search .search-icon {
                 left: 12px;
                 right: auto;
-                top: 0;
+                top: 4px;
                 color: #8f97ac;
                 pointer-events: none;
                 z-index: 3;
