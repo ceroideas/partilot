@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\HtmlText;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -27,6 +29,39 @@ class Entity extends Model
     protected $casts = [
         'status' => 'integer',
     ];
+
+    protected function name(): Attribute
+    {
+        return $this->htmlDecodedTextAttribute();
+    }
+
+    protected function city(): Attribute
+    {
+        return $this->htmlDecodedTextAttribute();
+    }
+
+    protected function address(): Attribute
+    {
+        return $this->htmlDecodedTextAttribute();
+    }
+
+    protected function comments(): Attribute
+    {
+        return $this->htmlDecodedTextAttribute();
+    }
+
+    protected function province(): Attribute
+    {
+        return $this->htmlDecodedTextAttribute();
+    }
+
+    private function htmlDecodedTextAttribute(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => HtmlText::decode($value),
+            set: fn (?string $value) => HtmlText::decode($value),
+        );
+    }
 
     /**
      * Relación con Administration

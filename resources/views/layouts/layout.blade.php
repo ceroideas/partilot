@@ -1,10 +1,66 @@
 <!DOCTYPE html>
-<html lang="es" data-topbar-color="light" data-layout-mode="detached" data-bs-theme="light">
+<html lang="es" class="partilot-loading" data-topbar-color="light" data-layout-mode="detached" data-bs-theme="light">
 
     
 <!-- Mirrored from coderthemes.com/ubold/layouts/default/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 25 May 2025 15:56:35 GMT -->
 <head>
         <meta charset="utf-8" />
+        <style id="partilot-preloader-critical">
+            html.partilot-loading,
+            html.partilot-loading body {
+                overflow: hidden;
+            }
+            html.partilot-loading #wrapper,
+            html.partilot-loading .offcanvas,
+            html.partilot-loading .modal {
+                visibility: hidden;
+            }
+            #partilot-preloader {
+                position: fixed;
+                inset: 0;
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f3f4f8;
+                transition: opacity 0.35s ease, visibility 0.35s ease;
+            }
+            #partilot-preloader.partilot-preloader--hide {
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+            }
+            .partilot-preloader__inner {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 18px;
+            }
+            .partilot-preloader__logo {
+                width: 120px;
+                height: auto;
+                display: block;
+            }
+            .partilot-preloader__spinner {
+                width: 40px;
+                height: 40px;
+                border: 3px solid #d9dde8;
+                border-top-color: #1f2430;
+                border-radius: 50%;
+                animation: partilot-preloader-spin 0.75s linear infinite;
+            }
+            .partilot-preloader__text {
+                margin: 0;
+                font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #737b8f;
+                letter-spacing: 0.02em;
+            }
+            @keyframes partilot-preloader-spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>@yield('title') | PARTILOT</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -172,22 +228,24 @@
             #top-search-wrap,
             #top-search-wrap.app-search,
             .app-search#top-search-wrap {
-                min-width: 400px;
+                flex: 0 0 auto;
+                width: 360px;
+                min-width: 280px;
+                max-width: 360px;
                 position: relative !important;
-                z-index: 10000 !important;
+                z-index: 2;
                 overflow: visible !important;
-                overflow-y: visible !important;
-                overflow-x: visible !important;
             }
-            /* Asegurar que el form dentro también permita overflow */
             #top-search-wrap form,
             .app-search#top-search-wrap form {
+                width: 100%;
                 overflow: visible !important;
-                overflow-y: visible !important;
-                overflow-x: visible !important;
             }
             #top-search {
-                min-width: 400px;
+                width: 100% !important;
+                min-width: 0 !important;
+                position: relative;
+                z-index: 2;
             }
             #search-dropdown {
                 width: 500px !important;
@@ -255,12 +313,15 @@
                 min-height: 64px;
                 padding: 8px 16px;
                 overflow: visible;
+                justify-content: flex-end;
             }
             .navbar-custom .topbar > .topbar-menu:first-child {
                 display: none;
             }
             .navbar-custom .topbar > .topbar-menu:last-child {
                 margin-left: auto;
+                flex: 0 0 auto;
+                width: auto;
                 padding: 12px;
                 border: 1px solid #d9dde8;
                 border-radius: 999px;
@@ -317,8 +378,10 @@
                 z-index: 1100;
             }
             .navbar-custom #top-search-wrap {
-                min-width: 210px !important;
-                margin-right: 8px;
+                width: 360px;
+                min-width: 280px;
+                max-width: 360px;
+                margin-right: 4px;
                 overflow: visible !important;
             }
             .navbar-custom .app-search input.form-control {
@@ -328,15 +391,22 @@
                 height: 38px;
                 font-size: .9rem;
                 padding-left: 38px;
+                padding-right: 12px;
                 pointer-events: auto;
             }
             .navbar-custom .app-search .search-icon {
                 left: 12px;
-                top: 6px;
+                right: auto;
+                top: 0;
                 color: #8f97ac;
+                pointer-events: none;
+                z-index: 3;
             }
             .navbar-custom .app-search .search-icon:before {
                 top: -5px;
+                position: relative;
+            }
+            .topbar-btn-notifications .nav-link {
                 position: relative;
             }
 
@@ -417,6 +487,75 @@
                 width: auto;
                 margin: 3px 0 !important;
             }
+
+            /* Listados: un solo scroll horizontal; sin altura forzada en card */
+            html, body {
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+            #wrapper {
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
+            }
+            .content-page {
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
+            }
+            .content-page .content {
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
+                overflow-y: visible;
+            }
+            .content-page .content > .container-fluid {
+                max-width: 100%;
+                min-width: 0;
+                height: auto !important;
+            }
+            .content-page .content .container-fluid > .row > [class*="col-"] > .card,
+            .content-page .content .container-fluid form > .row > [class*="col-"] > .card {
+                overflow: visible !important;
+                max-width: 100%;
+                height: auto !important;
+            }
+            .content-page .content .container-fluid > .row > [class*="col-"],
+            .content-page .content .container-fluid form > .row > [class*="col-"] {
+                min-width: 0;
+            }
+            .content-page .content .container-fluid > .row > [class*="col-"] > .card > .card-body,
+            .content-page .content .container-fluid form > .row > [class*="col-"] > .card > .card-body {
+                max-width: 100%;
+                min-width: 0;
+                overflow: visible !important;
+            }
+            .content-page .table-responsive,
+            .content-page .panel-table-scroll {
+                width: 100%;
+                max-width: 100%;
+                overflow: visible !important;
+            }
+            /* Único scroll horizontal del listado */
+            .content-page .card-body > .dataTables_wrapper,
+            .content-page .table-responsive > .dataTables_wrapper {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: auto;
+                overflow-y: visible;
+                -webkit-overflow-scrolling: touch;
+            }
+            .content-page .dataTables_wrapper .dataTables_scroll,
+            .content-page .dataTables_wrapper .dataTables_scrollHead,
+            .content-page .dataTables_wrapper .dataTables_scrollHeadInner,
+            .content-page .dataTables_wrapper .dataTables_scrollBody {
+                overflow: visible !important;
+                max-height: none !important;
+                height: auto !important;
+            }
+            .content-page .dataTables_wrapper .dataTables_scrollBody {
+                max-height: none !important;
+            }
             
             @media (max-width: 1200px) {
                 .navbar-custom {
@@ -426,6 +565,19 @@
                     display: none;
                 }
             }
+
+            .dt-bootstrap5 {
+                min-height: calc(100vh - 345px);
+                overflow: unset !important;
+            }
+            .content-page .dataTables_wrapper .dataTables_scroll, table.dataTable, .table.dataTable {
+                overflow: auto !important;
+            }
+
+            .content-page .content .container-fluid > .row > [class*="col-"] > .card,
+            .content-page .content .container-fluid form > .row > [class*="col-"] > .card {
+                margin-bottom: 0;
+            }
         </style>
 
         @yield('styles')
@@ -433,6 +585,14 @@
     </head>
 
     <body>
+
+        <div id="partilot-preloader" role="status" aria-live="polite" aria-label="Cargando Partilot">
+            <div class="partilot-preloader__inner">
+                <img src="{{ url('logo_menu.svg') }}" alt="Partilot" class="partilot-preloader__logo" width="120" height="40">
+                <div class="partilot-preloader__spinner" aria-hidden="true"></div>
+                <p class="partilot-preloader__text">Cargando…</p>
+            </div>
+        </div>
 
         <!-- Begin page -->
         <div id="wrapper">
@@ -839,13 +999,12 @@
 
                         <ul class="topbar-menu d-flex align-items-center">
                             <!-- Topbar Search Form: búsqueda por número de referencia -->
-                            <li class="app-search dropdown me-3 d-none d-lg-block position-relative" id="top-search-wrap" style="min-width: 400px;">
-                                <form class="position-relative" onsubmit="return false;">
+                            <li class="app-search d-none d-lg-block position-relative" id="top-search-wrap">
+                                <form class="position-relative" role="search" onsubmit="return false;">
                                     <input type="search" class="form-control rounded-pill" placeholder="Buscar por referencia..." id="top-search" autocomplete="off"
                                            data-search-url="{{ route('participations.search-by-reference') }}"
-                                           data-min-chars="{{ config('partilot.search_min_chars', 16) }}"
-                                           style="min-width: 400px;">
-                                    <span class="fe-search search-icon font-16"></span>
+                                           data-min-chars="{{ config('partilot.search_min_chars', 16) }}">
+                                    <span class="fe-search search-icon font-16" aria-hidden="true"></span>
                                 </form>
                                 <div class="dropdown-menu dropdown-menu-animated dropdown-lg shadow" id="search-dropdown" 
                                      style="width: 500px; min-width: 500px; max-width: 500px; max-height: 500px; overflow-y: auto; overflow-x: hidden; display: none; position: absolute; top: 100%; left: 0; z-index: 1050; margin-top: 0.5rem; visibility: hidden;">
@@ -958,142 +1117,11 @@
                                 </div>
                             </li> --}}
 
-                            <!-- Notofication dropdown -->
-                            <li class="topbar-btn-settings">
-                                <a class="nav-link waves-effect waves-light" data-bs-toggle="offcanvas" href="#theme-settings-offcanvas">
-                                    <i class="fe-settings font-18"></i>
-                                </a>
-                            </li>
-
-                            <!-- Notofication dropdown -->
-                            <li class="dropdown notification-list topbar-btn-notifications">
-                                <a class="nav-link dropdown-toggle waves-effect waves-light arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                            <!-- Notificaciones (enlace al módulo; contador en futuras iteraciones) -->
+                            <li class="topbar-btn-notifications">
+                                <a class="nav-link waves-effect waves-light" href="{{ route('notifications.index') }}" title="Notificaciones">
                                     <i class="fe-bell font-22"></i>
-                                    <span class="badge bg-danger rounded-circle noti-icon-badge">9</span>
                                 </a>
-                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated dropdown-lg py-0">
-                                    <div class="p-2 border-top-0 border-start-0 border-end-0 border-dashed border">
-                                        <div class="row align-items-center">
-                                            <div class="col">
-                                                <h6 class="m-0 font-16 fw-semibold"> Notification</h6>
-                                            </div>
-                                            <div class="col-auto">
-                                                <a href="javascript: void(0);" class="text-dark text-decoration-underline">
-                                                    <small>Clear All</small>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="px-1" style="max-height: 300px;" data-simplebar>
-
-                                        <h5 class="text-muted font-13 fw-normal mt-2">Today</h5>
-                                        <!-- item-->
-
-                                        <a href="javascript:void(0);" class="dropdown-item p-0 notify-item card unread-noti shadow-none mb-1">
-                                            <div class="card-body">
-                                                <span class="float-end noti-close-btn text-muted"><i class="mdi mdi-close"></i></span>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="flex-shrink-0">
-                                                        <div class="notify-icon bg-primary">
-                                                            <i class="mdi mdi-comment-account-outline"></i>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1 text-truncate ms-2">
-                                                        <h5 class="noti-item-title fw-semibold font-14">Datacorp <small class="fw-normal text-muted ms-1">1 min ago</small></h5>
-                                                        <small class="noti-item-subtitle text-muted">Caleb Flakelar commented on Admin</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </a>
-
-                                        <!-- item-->
-                                        <a href="javascript:void(0);" class="dropdown-item p-0 notify-item card read-noti shadow-none mb-1">
-                                            <div class="card-body">
-                                                <span class="float-end noti-close-btn text-muted"><i class="mdi mdi-close"></i></span>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="flex-shrink-0">
-                                                        <div class="notify-icon bg-info">
-                                                            <i class="mdi mdi-account-plus"></i>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1 text-truncate ms-2">
-                                                        <h5 class="noti-item-title fw-semibold font-14">Admin <small class="fw-normal text-muted ms-1">1 hours ago</small></h5>
-                                                        <small class="noti-item-subtitle text-muted">New user registered</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </a>
-
-                                        <h5 class="text-muted font-13 fw-normal mt-0">Yesterday</h5>
-
-                                        <!-- item-->
-                                        <a href="javascript:void(0);" class="dropdown-item p-0 notify-item card read-noti shadow-none mb-1">
-                                            <div class="card-body">
-                                                <span class="float-end noti-close-btn text-muted"><i class="mdi mdi-close"></i></span>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="flex-shrink-0">
-                                                        <div class="notify-icon">
-                                                            <img src="{{url('default')}}/assets/images/users/avatar-2.jpg" class="img-fluid rounded-circle" alt="" />
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1 text-truncate ms-2">
-                                                        <h5 class="noti-item-title fw-semibold font-14">Cristina Pride <small class="fw-normal text-muted ms-1">1 day ago</small></h5>
-                                                        <small class="noti-item-subtitle text-muted">Hi, How are you? What about our next meeting</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </a>
-
-                                        <h5 class="text-muted font-13 fw-normal mt-0">30 Dec 2021</h5>
-
-                                        <!-- item-->
-                                        <a href="javascript:void(0);" class="dropdown-item p-0 notify-item card read-noti shadow-none mb-1">
-                                            <div class="card-body">
-                                                <span class="float-end noti-close-btn text-muted"><i class="mdi mdi-close"></i></span>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="flex-shrink-0">
-                                                        <div class="notify-icon bg-primary">
-                                                            <i class="mdi mdi-comment-account-outline"></i>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1 text-truncate ms-2">
-                                                        <h5 class="noti-item-title fw-semibold font-14">Datacorp</h5>
-                                                        <small class="noti-item-subtitle text-muted">Caleb Flakelar commented on Admin</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </a>
-
-                                        <!-- item-->
-                                        <a href="javascript:void(0);" class="dropdown-item p-0 notify-item card read-noti shadow-none mb-1">
-                                            <div class="card-body">
-                                                <span class="float-end noti-close-btn text-muted"><i class="mdi mdi-close"></i></span>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="flex-shrink-0">
-                                                        <div class="notify-icon">
-                                                            <img src="{{url('default')}}/assets/images/users/avatar-4.jpg" class="img-fluid rounded-circle" alt="" />
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1 text-truncate ms-2">
-                                                        <h5 class="noti-item-title fw-semibold font-14">Karen Robinson</h5>
-                                                        <small class="noti-item-subtitle text-muted">Wow ! this admin looks good and awesome design</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </a>
-
-                                        <div class="text-center">
-                                            <i class="mdi mdi-dots-circle mdi-spin text-muted h3 mt-0"></i>
-                                        </div>
-                                    </div>
-
-                                    <!-- All-->
-                                    <a href="javascript:void(0);" class="dropdown-item text-center text-primary notify-item border-top border-light py-2">
-                                        View All
-                                    </a>
-
-                                </div>
                             </li>
 
                             <!-- Light/Dark Mode Toggle Button -->
@@ -1102,12 +1130,6 @@
                                     <i class="ri-moon-line font-22"></i>
                                 </div>
                             </li> --}}
-
-                            <li class="topbar-btn-preview">
-                                <a class="nav-link waves-effect waves-light" href="javascript:void(0);">
-                                    <i class="fe-layout font-18"></i>
-                                </a>
-                            </li>
 
                             <!-- User Dropdown -->
                             <li class="dropdown">
@@ -1733,6 +1755,7 @@
 
         <!-- Datatables init -->
         <script src="{{url('default')}}/assets/js/pages/datatables.init.js"></script>
+        <script src="{{url('js/partilot-datatables.js')}}"></script>
 
         {{-- <script src="https://cdn.ckeditor.com/ckeditor5/45.2.0/ckeditor5.umd.js" crossorigin></script>
         <script src="https://cdn.ckeditor.com/ckeditor5/45.2.0/translations/es.umd.js" crossorigin></script>
@@ -1752,6 +1775,60 @@
         
         <!-- Email Validator -->
         <script src="{{url('js/email-validator.js')}}"></script>
+
+        <script>
+            (function () {
+                var MIN_VISIBLE_MS = 400;
+                var MAX_WAIT_MS = 10000;
+                var startedAt = Date.now();
+                var finished = false;
+
+                function hidePartilotPreloader() {
+                    if (finished) {
+                        return;
+                    }
+                    finished = true;
+
+                    var elapsed = Date.now() - startedAt;
+                    var delay = Math.max(0, MIN_VISIBLE_MS - elapsed);
+
+                    window.setTimeout(function () {
+                        var preloader = document.getElementById('partilot-preloader');
+                        document.documentElement.classList.remove('partilot-loading');
+
+                        if (!preloader) {
+                            return;
+                        }
+
+                        preloader.classList.add('partilot-preloader--hide');
+                        window.setTimeout(function () {
+                            if (preloader.parentNode) {
+                                preloader.parentNode.removeChild(preloader);
+                            }
+                        }, 380);
+                    }, delay);
+                }
+
+                function whenReady() {
+                    var loadDone = new Promise(function (resolve) {
+                        if (document.readyState === 'complete') {
+                            resolve();
+                            return;
+                        }
+                        window.addEventListener('load', resolve, { once: true });
+                    });
+
+                    var fontsDone = (document.fonts && document.fonts.ready)
+                        ? document.fonts.ready
+                        : Promise.resolve();
+
+                    Promise.all([loadDone, fontsDone]).then(hidePartilotPreloader);
+                }
+
+                whenReady();
+                window.setTimeout(hidePartilotPreloader, MAX_WAIT_MS);
+            })();
+        </script>
 
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -2079,6 +2156,12 @@
                     });
             }
 
+            searchInput.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+            });
+            searchInput.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
             searchInput.addEventListener('input', function() {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(doSearch, 320);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ParticipationTicketReference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -129,34 +130,32 @@ class Set extends Model
     }
 
     /**
-     * Genera el array de tickets con referencias únicas
+     * Genera el array de tickets con referencias únicas (21 dígitos + dígito de control).
      *
      * @param int $entityId
      * @param int $reserveId
-     * @param \DateTime|string $createdAt
+     * @param \DateTime|string|null $createdAt Reservado por compatibilidad; ya no interviene en la referencia
      * @param int $totalParticipations
-     * @param array $oldTickets (opcional)
+     * @param array $oldTickets (opcional, no usado)
      * @return array
      */
     public static function generateTickets($entityId, $reserveId, $createdAt, $totalParticipations, $oldTickets = [])
     {
         $tickets = [];
-        $created = is_string($createdAt) ? strtotime($createdAt) : ($createdAt instanceof \DateTime ? $createdAt->getTimestamp() : $createdAt);
-        $dateStr = $created; // Usar timestamp directamente
-
-        $input = (str_pad($entityId, 4, "0", STR_PAD_LEFT));
-        $entityId = $input;
-
-        $input = (str_pad($reserveId, 4, "0", STR_PAD_LEFT));
-        $reserveId = $input;
+        $usedReferences = [];
 
         for ($i = 1; $i <= $totalParticipations; $i++) {
-            $referencia = ("{$entityId}{$reserveId}{$dateStr}".str_pad($i, 3, '0', STR_PAD_LEFT));
+            do {
+                $referencia = ParticipationTicketReference::generate((int) $entityId, (int) $reserveId);
+            } while (isset($usedReferences[$referencia]));
+
+            $usedReferences[$referencia] = true;
             $tickets[] = [
                 'n' => $i,
-                'r' => $referencia
+                'r' => $referencia,
             ];
         }
+
         return $tickets;
     }
 

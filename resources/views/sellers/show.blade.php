@@ -248,7 +248,7 @@
                                      </div>
                                      <div class="col-8 text-center mt-2">
                                          <h3 class="mt-2 mb-0">{{ $seller->full_name ?? 'N/A' }}</h3>
-                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-mail-line"></i> {{ $seller->display_email ?? 'N/A' }}
+                                         <i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-mail-line"></i> {{ $seller->display_email ?: 'N/A' }}
                                      </div>
                                  </div>
                              </div>
@@ -456,7 +456,7 @@
                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                 <img src="{{url('assets/form-groups/admin/9.svg')}}" alt="">
                                                             </div>
-                                                            <input class="form-control" type="email" value="{{ $seller->email ?? 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                            <input class="form-control" type="email" value="{{ $seller->display_email ?: 'N/A' }}" style="border-radius: 0 30px 30px 0;" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2669,12 +2669,6 @@ function initDatatable()
           });
       }
   });
-
-  // Actualizar sidebar con la entidad actual (si está seleccionada)
-  @if(isset($currentEntity))
-      $('#sidebar-entity-name').text('{{ $currentEntity->name ?? "Entidad" }}');
-      $('#sidebar-entity-province').text('{{ $currentEntity->province ?? "Provincia" }}');
-  @endif
 
   // Toggle estado vendedor (AJAX)
   document.getElementById('seller-toggle-status') && document.getElementById('seller-toggle-status').addEventListener('click', function() {

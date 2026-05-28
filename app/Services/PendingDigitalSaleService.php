@@ -49,10 +49,11 @@ class PendingDigitalSaleService
             if (($set->digital_participations ?? 0) <= 0) {
                 throw new \InvalidArgumentException('Este set no es de participaciones digitales.');
             }
+            if (! $seller->entities()->where('entities.id', $set->entity_id)->exists()) {
+                throw new \InvalidArgumentException('No tienes acceso a esta entidad.');
+            }
 
-            return Participation::where('set_id', $setId)
-                ->where('seller_id', $seller->id)
-                ->where('status', 'asignada')
+            return $this->queryDigitalDisponibleForSet($setId)
                 ->orderBy('participation_number')
                 ->limit($quantity)
                 ->get();
@@ -375,5 +376,21 @@ class PendingDigitalSaleService
         }
 
         return $pending;
+    }
+
+    /**
+     * Participaciones digitales vendibles de un set (sin asignación a vendedor).
+     */
+    public function queryDigitalDisponibleForSet(int $setId)
+    {
+        return Participation::query()
+            ->where('set_id', $setId)
+            ->whereRaw("participation_code LIKE '1D/%'")
+            ->where('status', 'disponible');
+    }
+
+    public function countDigitalDisponibleForSet(int $setId): int
+    {
+        return (int) $this->queryDigitalDisponibleForSet($setId)->count();
     }
 }

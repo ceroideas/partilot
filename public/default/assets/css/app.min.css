@@ -5811,6 +5811,7 @@ span.flatpickr-weekday {
     margin:auto;
     margin-top: 8%;
     margin-bottom: 10%;
+    min-height: calc(100vh - 449px);
 }
 
 .empty-tables div {
@@ -5870,6 +5871,8 @@ span.flatpickr-weekday {
     font-weight: 700;
     position: relative;
     top: 3px;
+    display: inline-block;
+    width: 21px;
 }
 
 .form-wizard-element img {
@@ -6201,16 +6204,19 @@ html[data-layout-mode="detached"]:not([data-layout="horizontal"]) body:not(.auth
 }
 
 /* Global cards/footer style aligned with sidebar visuals */
-.content-page .content .container-fluid > .row > [class*="col-"] > .card {
+.content-page .content .container-fluid > .row > [class*="col-"] > .card,
+.content-page .content .container-fluid form > .row > [class*="col-"] > .card {
     border: 1px solid #d9dde8;
     border-radius: 18px 18px 0 0;
     box-shadow: none;
-    overflow: hidden;
-    height: 100% !important;
+    overflow: visible;
+    height: auto !important;
     border-bottom: 0 !important;
+    max-width: 100%;
 }
 
-.content-page .content .container-fluid > .row > [class*="col-"] > .card > .card-body {
+.content-page .content .container-fluid > .row > [class*="col-"] > .card > .card-body,
+.content-page .content .container-fluid form > .row > [class*="col-"] > .card > .card-body {
     padding: 24px;
 }
 
@@ -6235,15 +6241,16 @@ html[data-layout-mode="detached"]:not([data-layout="horizontal"]) body:not(.auth
 }
 
 .content > .container-fluid:last-child {
-    height: 100% !important;
+    height: auto !important;
 }
 
 .content > .container-fluid:last-child .row:last-child {
-    height: calc(100% - 60px) !important;
+    height: auto !important;
+    min-height: 0;
 }
 
 .content > .container-fluid:last-child .row:last-child .card {
-    height: 100% !important;
+    height: auto !important;
 }
 
 /* DataTables minimal look */

@@ -790,16 +790,44 @@ class DesignController extends Controller
         $lottery = Lottery::findOrFail(session('design_lottery_id'));
         $reservation_numbers = $set->reserve ? $set->reserve->reservation_numbers : [];
         $isDigitalSet = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
-        // Tarea 7 y 8: diseño por reserva o diseño elegido del listado. "Ir a diseñar" = nuevo (new_design=1)
+        // Un diseño por set: designFormatId = id a actualizar al guardar; $design = HTML a mostrar (puede ser plantilla de otro set).
         $design = null;
+        $designFormatId = null;
+        $existingForSet = DesignFormat::where('entity_id', $entityId)
+            ->where('set_id', $set->id)
+            ->orderByDesc('updated_at')
+            ->first();
+
         if ($request->filled('design_id')) {
-            $design = DesignFormat::where('id', $request->design_id)->where('entity_id', $entityId)->first();
+            $candidate = DesignFormat::where('id', $request->design_id)
+                ->where('entity_id', $entityId)
+                ->first();
+            if ($candidate) {
+                $design = $candidate;
+                if ((int) $candidate->set_id === (int) $set->id) {
+                    $designFormatId = $candidate->id;
+                }
+            }
         }
-        if (! $design && ! $request->filled('new_design')) {
+
+        if ($request->boolean('new_design')) {
+            if ($existingForSet) {
+                $design = $existingForSet;
+                $designFormatId = $existingForSet->id;
+                $forceFreshDraft = false;
+            } else {
+                $forceFreshDraft = true;
+            }
+        } elseif ($existingForSet) {
+            $design = $existingForSet;
+            $designFormatId = $existingForSet->id;
+        } elseif (! $design) {
             $reserveId = $set->reserve_id ?? null;
             if ($reserveId) {
                 $design = DesignFormat::where('entity_id', $entityId)
+                    ->where('set_id', '!=', $set->id)
                     ->whereHas('set', fn ($q) => $q->where('reserve_id', $reserveId))
+                    ->orderByDesc('updated_at')
                     ->first();
             }
         }
@@ -824,8 +852,8 @@ class DesignController extends Controller
             }
         }
         $designLock = $this->getSetDesignLockContext($set);
-        $forceFreshDraft = (bool) $request->filled('new_design');
-        return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers', 'isDigitalSet', 'design', 'designLock', 'forceFreshDraft'));
+        $forceFreshDraft = $forceFreshDraft ?? (bool) $request->filled('new_design');
+        return view('design.format', compact('entity', 'lottery', 'set', 'reservation_numbers', 'isDigitalSet', 'design', 'designFormatId', 'designLock', 'forceFreshDraft'));
     }
 
     // Tarea 8: listado de diseños de la entidad para reutilizar
@@ -1008,44 +1036,22 @@ class DesignController extends Controller
         }
         $data['output'] = DesignFormat::mergeTacoQrsIntoOutput($data['set_id'] ?? null, $data['output'] ?? []);
 
-        // Solo actualizar si el design_id es del MISMO set que estamos guardando (re-guardar el mismo diseño).
-        // Si copiamos un diseño de otro set (ej. set 1 → set 2), NO actualizar el original: crear uno nuevo para el set actual.
-        $designId = $request->input('design_id');
-        if ($designId && $set) {
-            $existing = DesignFormat::find($designId);
-            if ($existing && (int) $existing->entity_id === (int) $data['entity_id'] && (int) $existing->set_id === (int) $data['set_id']) {
-                    $expectedUpdatedAt = $request->input('expected_updated_at');
-                    if ($expectedUpdatedAt) {
-                        $currentUpdatedAt = optional($existing->updated_at)->toISOString();
-                        if ($currentUpdatedAt && $currentUpdatedAt !== $expectedUpdatedAt) {
-                            return response()->json([
-                                'success' => false,
-                                'code' => 'DESIGN_CONFLICT',
-                                'message' => 'El diseño fue actualizado desde otra sesión. Recarga antes de continuar para evitar sobreescritura.',
-                                'current_updated_at' => $currentUpdatedAt,
-                            ], 409);
-                        }
-                    }
-                    $existing->format = $data['format'] ?? $existing->format;
-                    $existing->page = $data['page'] ?? $existing->page;
-                    $existing->rows = $data['rows'] ?? $existing->rows;
-                    $existing->cols = $data['cols'] ?? $existing->cols;
-                    $existing->orientation = $data['orientation'] ?? $existing->orientation;
-                    $existing->blocks = $data['blocks'];
-                    $existing->participation_html = $data['participation_html'];
-                    $existing->cover_html = $data['cover_html'];
-                    $existing->back_html = $data['back_html'];
-                    $existing->backgrounds = $data['backgrounds'];
-                    $existing->output = $data['output'];
-                    $existing->snapshot_path = $data['snapshot_path'];
-                    $existing->save();
-                    $this->linkInvitationToDesignIfNeeded($existing->id);
-                    return response()->json([
-                        'success' => true,
-                        'id' => $existing->id,
-                        'updated_at' => optional($existing->updated_at)->toISOString(),
-                    ]);
+        $existing = $this->resolveDesignFormatForSave($data, $request->input('design_id'));
+        if ($existing) {
+            $conflict = $this->designFormatConflictResponse($existing, $request->input('expected_updated_at'));
+            if ($conflict) {
+                return $conflict;
             }
+
+            $this->fillDesignFormatFromSaveData($existing, $data);
+            $existing->save();
+            $this->linkInvitationToDesignIfNeeded($existing->id);
+
+            return response()->json([
+                'success' => true,
+                'id' => $existing->id,
+                'updated_at' => optional($existing->updated_at)->toISOString(),
+            ]);
         }
 
         $designFormat = DesignFormat::create($data);
@@ -1055,6 +1061,67 @@ class DesignController extends Controller
             'id' => $designFormat->id,
             'updated_at' => optional($designFormat->updated_at)->toISOString(),
         ]);
+    }
+
+    /**
+     * Un solo diseño por set: actualizar por design_id válido o por set_id existente.
+     */
+    private function resolveDesignFormatForSave(array $data, mixed $designIdFromRequest): ?DesignFormat
+    {
+        $setId = (int) ($data['set_id'] ?? 0);
+        $entityId = (int) ($data['entity_id'] ?? 0);
+        if ($setId <= 0 || $entityId <= 0) {
+            return null;
+        }
+
+        if ($designIdFromRequest) {
+            $byId = DesignFormat::find($designIdFromRequest);
+            if ($byId
+                && (int) $byId->entity_id === $entityId
+                && (int) $byId->set_id === $setId) {
+                return $byId;
+            }
+        }
+
+        return DesignFormat::where('entity_id', $entityId)
+            ->where('set_id', $setId)
+            ->orderByDesc('updated_at')
+            ->first();
+    }
+
+    private function designFormatConflictResponse(DesignFormat $existing, ?string $expectedUpdatedAt): ?\Illuminate\Http\JsonResponse
+    {
+        if (! $expectedUpdatedAt) {
+            return null;
+        }
+
+        $currentUpdatedAt = optional($existing->updated_at)->toISOString();
+        if ($currentUpdatedAt && $currentUpdatedAt !== $expectedUpdatedAt) {
+            return response()->json([
+                'success' => false,
+                'code' => 'DESIGN_CONFLICT',
+                'message' => 'El diseño fue actualizado desde otra sesión. Recarga antes de continuar para evitar sobreescritura.',
+                'current_updated_at' => $currentUpdatedAt,
+            ], 409);
+        }
+
+        return null;
+    }
+
+    private function fillDesignFormatFromSaveData(DesignFormat $existing, array $data): void
+    {
+        $existing->format = $data['format'] ?? $existing->format;
+        $existing->page = $data['page'] ?? $existing->page;
+        $existing->rows = $data['rows'] ?? $existing->rows;
+        $existing->cols = $data['cols'] ?? $existing->cols;
+        $existing->orientation = $data['orientation'] ?? $existing->orientation;
+        $existing->blocks = $data['blocks'];
+        $existing->participation_html = $data['participation_html'];
+        $existing->cover_html = $data['cover_html'];
+        $existing->back_html = $data['back_html'];
+        $existing->backgrounds = $data['backgrounds'];
+        $existing->output = $data['output'];
+        $existing->snapshot_path = $data['snapshot_path'];
     }
 
     /**

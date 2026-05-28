@@ -178,7 +178,7 @@
                                                             ->whereHas('entity', function($query) use ($entity) {
                                                                 $query->where('id', $entity->id);
                                                             })
-                                                            ->where('status', 'vendida')
+                                                            ->soldForScrutiny()
                                                             ->count();
 
                                                             $totalDevueltas = \App\Models\Participation::whereHas('set.reserve', function($query) use ($lottery) {

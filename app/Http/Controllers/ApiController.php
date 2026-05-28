@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Entity;
 use Illuminate\Support\Facades\Hash;
 use Exception;
+use App\Support\ParticipationTicketReference;
 
 class ApiController extends Controller
 {
@@ -1188,11 +1189,18 @@ class ApiController extends Controller
     public function checkParticipation(Request $r)
     {
         // Validar que el parámetro 'ref' esté presente
-        $ref = $r->query('ref');
+        $ref = ParticipationTicketReference::normalize($r->query('ref'));
         if (!$ref) {
             return response()->json([
                 'success' => false,
                 'message' => 'El parámetro ref es obligatorio.'
+            ], 400);
+        }
+
+        if (! ParticipationTicketReference::isValid($ref)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La referencia no es válida (formato o dígito de control incorrecto).',
             ], 400);
         }
 

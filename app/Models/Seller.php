@@ -161,7 +161,16 @@ class Seller extends Model
         if ($this->seller_type === 'externo') {
             return $this->attributes['email'] ?? '';
         }
-        return $this->user ? $this->user->email : '';
+
+        $userEmail = ($this->relationLoaded('user') && $this->user)
+            ? ($this->user->email ?? '')
+            : ($this->user?->email ?? '');
+
+        if ($userEmail !== '') {
+            return $userEmail;
+        }
+
+        return $this->attributes['email'] ?? '';
     }
 
     public function getDisplayPhoneAttribute()

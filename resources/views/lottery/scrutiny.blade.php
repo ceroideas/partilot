@@ -144,7 +144,7 @@
                                                             ->whereHas('entity', function($query) use ($administrationId) {
                                                                 $query->where('administration_id', $administrationId);
                                                             })
-                                                            ->where('status', 'vendida')
+                                                            ->soldForScrutiny()
                                                             ->count();
                                                         
                                                         // Participaciones no ganadoras = total asignadas - ganadoras
@@ -185,6 +185,15 @@
                                                         $result = $data['result'];
                                                         $prizeBreakdown = $result->prize_breakdown;
                                                     @endphp
+                                                    @php
+                                                        $entityCategoryResults = $scrutinyResultsByEntity[$entity->id] ?? [];
+                                                        $entityWinningParticipations = (int) ($result->winning_participations ?? 0);
+                                                        if ($entityWinningParticipations === 0 && ! empty($entityCategoryResults)) {
+                                                            foreach ($entityCategoryResults as $categoryResult) {
+                                                                $entityWinningParticipations += (int) (($categoryResult['decimos_info'] ?? [])['total_participations'] ?? 0);
+                                                            }
+                                                        }
+                                                    @endphp
                                                     <tr>
                                                         <td><b>{{ $entity->name }}</b></td>
 
@@ -192,8 +201,8 @@
                                                             Emitidas: <b>{{ $result->total_issued }}</b> <br>
                                                             Vendidas: <b>{{ $result->total_reserved + ($result->total_non_winning ?? 0) }}</b> <br>
                                                             Devueltas: <b>{{ $result->total_returned }}</b> <br>
-                                                            <span class="badge bg-{{ $result->total_winning > 0 ? 'success' : 'secondary' }}">
-                                                                Premiadas: {{ $result->total_winning }} Números
+                                                            <span class="badge bg-{{ $entityWinningParticipations > 0 ? 'success' : 'secondary' }}">
+                                                                Premiadas: {{ $entityWinningParticipations }} Participaciones
                                                             </span>
                                                         </td>
                                                         <td>
@@ -216,10 +225,9 @@
                                                         </td>
                                                     </tr>
                                                     
-                                                    @if($result->total_winning > 0)
+                                                    @if(!empty($entityCategoryResults))
                                                         {{-- Escrutinio por Categoría para esta entidad --}}
-                                                        @if(isset($scrutinyResultsByEntity[$entity->id]))
-                                                            @foreach($scrutinyResultsByEntity[$entity->id] as $categoryResult)
+                                                        @foreach($entityCategoryResults as $categoryResult)
                                                                 @php
                                                                     $decimosInfo = $categoryResult['decimos_info'] ?? [];
                                                                     $setsInfo = $decimosInfo['sets_info'] ?? [];
@@ -282,7 +290,6 @@
                                                                     </tr> --}}
                                                                 @endif
                                                             @endforeach
-                                                        @endif
                                                     @endif
 
                                                 @empty

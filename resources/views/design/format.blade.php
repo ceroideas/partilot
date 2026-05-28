@@ -80,7 +80,7 @@
     $loadBack = $design->back_html ?? ($blocks['back_html'] ?? null);
 @endphp
 <script>
-window.__designId = {{ $design->id }};
+window.__designId = @json($designFormatId ?? $design->id);
 window.__designUpdatedAt = @json(optional($design->updated_at)->toISOString());
 window.__designLoad = {!! json_encode([
     'format' => $design->format,
@@ -142,8 +142,17 @@ window.__forceFreshDraft = @json((bool)($forceFreshDraft ?? false));
     input[disabled],select[disabled] {
         background-color: #cfcfcf !important;
     }
+    /* Redimensionado en el editor (no se guarda en HTML exportado; ver getFormatBoxHtmlForSave) */
+    [id^="containment-wrapper"] .elements,
+    #design-back-bg .elements {
+        resize: both !important;
+        overflow: hidden !important;
+        box-sizing: border-box;
+        min-width: 20px;
+        min-height: 20px;
+    }
     .elements.text {
-        position: relative;
+        position: absolute;
     }
     .elements.text:hover .edit-btn,
     .elements.images:hover .edit-btn {
@@ -1817,6 +1826,7 @@ $('#format').change(function (e) {
         if (localStorage.getItem('step'+step)) {
             $('#containment-wrapper'+step).html(localStorage.getItem('step'+step));
         }
+        enableDesignElementsResize($('#containment-wrapper' + step));
 
         setupDraggable();
         setupResizeObserver();    
@@ -1912,6 +1922,7 @@ $('#format').change(function (e) {
               }
             });
           }
+          enableDesignElementsResize($('#containment-wrapper' + step));
           if (step === 3) ensurePortadaQrPlaceholder();
 
           setupDraggable();
@@ -2094,6 +2105,37 @@ $('#format').change(function (e) {
   var isRestoringState = false; // Flag para evitar guardar durante restauración
   var resizeTimeout; // Para debounce del ResizeObserver
 
+  /** Clona .format-box y elimina resize del HTML guardado sin modificar el canvas en edición. */
+  function getFormatBoxHtmlForSave(selector) {
+    var el = document.querySelector(selector);
+    if (!el) return '';
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll('.elements').forEach(function(node) {
+      node.style.removeProperty('resize');
+    });
+    return clone.outerHTML;
+  }
+
+  function enableDesignElementsResize($scope) {
+    var $els = ($scope && $scope.length)
+      ? $scope.find('.elements')
+      : $('[id^="containment-wrapper"] .elements, #design-back-bg .elements');
+    $els.each(function() {
+      this.style.setProperty('resize', 'both', 'important');
+      this.style.setProperty('overflow', 'hidden', 'important');
+    });
+  }
+
+  function destroyStepDraggables(stepNum) {
+    var $container = $('#containment-wrapper' + stepNum);
+    if (!$container.length) return;
+    $container.find('.elements').each(function() {
+      var $el = $(this);
+      if ($el.data('ui-draggable')) {
+        try { $el.draggable('destroy'); } catch (e) {}
+      }
+    });
+  }
 
   // Funciones del sistema de Undo/Redo
   function saveHistoryState() {
@@ -2225,7 +2267,10 @@ $('#format').change(function (e) {
     var $cont = $('#containment-wrapper'+step);
     if (!$cont.length) return;
 
-    $('.elements').draggable({
+    destroyStepDraggables(step);
+    enableDesignElementsResize($cont);
+
+    $cont.find('.elements').draggable({
       handle: 'span',
       containment: '#containment-wrapper'+step,
       scroll: false,
@@ -2344,6 +2389,7 @@ $('#format').change(function (e) {
 
   function rebindEventsAfterRestore() {
     // Re-vincular todos los eventos después de restaurar el HTML
+    enableDesignElementsResize($('#containment-wrapper' + step));
     setupDraggable();
     setupResizeObserver();
     
@@ -3307,20 +3353,20 @@ $('#format').change(function (e) {
     if (d.page_bottom != null) $('#page-bottom').val(d.page_bottom);
     if (d.participation_html && $('#step-2 .format-box').length) {
       $('#step-2 .format-box').first().replaceWith(d.participation_html);
-      $('#step-2 .format-box .elements').each(function() { $(this).css('resize', 'both').css('overflow', 'hidden'); });
+      enableDesignElementsResize($('#step-2 .format-box'));
       var inner = $('#step-2 #containment-wrapper2').html();
       if (inner) localStorage.setItem('step2', inner);
     }
     if (d.cover_html && $('#step-3 .format-box').length) {
       $('#step-3 .format-box').first().replaceWith(d.cover_html);
-      $('#step-3 .format-box .elements').each(function() { $(this).css('resize', 'both').css('overflow', 'hidden'); });
+      enableDesignElementsResize($('#step-3 .format-box'));
       ensurePortadaQrPlaceholder();
       var inner3 = $('#step-3 #containment-wrapper3').html();
       if (inner3) localStorage.setItem('step3', inner3);
     }
     if (d.back_html && $('#step-4 .format-box').length) {
       $('#step-4 .format-box').first().replaceWith(d.back_html);
-      $('#step-4 .format-box .elements').each(function() { $(this).css('resize', 'both').css('overflow', 'hidden'); });
+      enableDesignElementsResize($('#step-4 .format-box'));
       var inner4 = $('#step-4 #containment-wrapper4').html();
       if (inner4) localStorage.setItem('step4', inner4);
     }
@@ -3364,6 +3410,7 @@ $('#format').change(function (e) {
           if (localStorage.getItem('step'+step)) {
             $('#containment-wrapper'+step).html(localStorage.getItem('step'+step));
           }
+          enableDesignElementsResize($('#containment-wrapper' + step));
           if (step === 3) ensurePortadaQrPlaceholder();
 
           $('.form-wizard-element').removeClass('active');
@@ -3429,21 +3476,10 @@ $('#format').change(function (e) {
     const design_lottery_id = '{{ session('design_lottery_id') }}';
     const design_entity_id = '{{ session('design_entity_id') }}';
 
-    // Quitar 'resize: both;' antes de guardar
-    $('#step-2 .format-box .elements').each(function() {
-      $(this).css('resize', '');
-    });
-    $('#step-3 .format-box .elements').each(function() {
-      $(this).css('resize', '');
-    });
-    $('#step-4 .format-box .elements').each(function() {
-      $(this).css('resize', '');
-    });
-
-    // Paso 2, 3, 4: HTML de los diseños (guardar el elemento .format-box completo)
-    const participation_html = $('#step-2 .format-box')[0]?.outerHTML || '';
-    const cover_html = $('#step-3 .format-box')[0]?.outerHTML || '';
-    const back_html = $('#step-4 .format-box')[0]?.outerHTML || '';
+    // Paso 2, 3, 4: HTML sin resize (clon; el canvas en edición no se toca)
+    const participation_html = getFormatBoxHtmlForSave('#step-2 .format-box');
+    const cover_html = getFormatBoxHtmlForSave('#step-3 .format-box');
+    const back_html = getFormatBoxHtmlForSave('#step-4 .format-box');
 
     // Fondos: leer del DOM (lo que ve el usuario) para guardar siempre los valores reales
     function getBackgroundFromDom(stepNum) {

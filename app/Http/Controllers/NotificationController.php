@@ -28,7 +28,7 @@ class NotificationController extends Controller
      */
     public function index()
     {
-        $notifications = Notification::with(['sender', 'entity', 'administration'])
+        $notifications = Notification::with(['sender', 'entity.manager.user', 'administration'])
             ->orderBy('created_at', 'desc')
             ->get();
 

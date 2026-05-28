@@ -24,6 +24,7 @@ use Carbon\Carbon;
 use App\Models\EmailCommunicationLog;
 use App\Services\CommunicationEmailService;
 use App\Mail\SellerSettlementStatusMail;
+use App\Support\ParticipationTicketReference;
 
 class SellerController extends Controller
 {
@@ -359,7 +360,10 @@ class SellerController extends Controller
      */
     public function show($id, Request $request)
     {
-        $seller = Seller::with(['entities.administration', 'user:id,name,last_name,image'])
+        $seller = Seller::with([
+            'entities.administration',
+            'user:id,name,last_name,last_name2,image,email,phone,birthday,nif_cif',
+        ])
             ->forUser(auth()->user())
             ->findOrFail($id);
 
@@ -428,32 +432,42 @@ class SellerController extends Controller
             ]);
         }
 
+        $setFilterForSeller = function ($q) use ($seller) {
+            $q->where('status', 1)
+                ->whereHas('designFormats')
+                ->where(function ($q2) use ($seller) {
+                    // Digitales: todos los sets de la entidad (no requieren asignación al vendedor)
+                    $q2->where(function ($digital) {
+                        $digital->whereRaw('sets.digital_participations > 0')
+                            ->where('sets.physical_participations', '<=', 0);
+                    })
+                    // Físicas: solo sets con participaciones asignadas a este vendedor
+                        ->orWhereHas('participations', fn ($pq) => $pq->where('seller_id', $seller->id));
+                });
+        };
+
         $reserves = Reserve::whereIn('entity_id', $entityIds)
             ->where('status', 1)
             ->with(['lottery.lotteryType'])
-            ->whereHas('sets', function ($q) use ($seller) {
-                $q->where('status', 1)
-                  ->whereHas('designFormats')
-                  ->whereHas('participations', fn ($pq) => $pq->where('seller_id', $seller->id));
-            })
-            ->with(['sets' => function ($q) use ($seller) {
-                $q->where('status', 1)
-                  ->whereHas('designFormats')
-                  ->whereHas('participations', fn ($pq) => $pq->where('seller_id', $seller->id))
-                  ->select('sets.id', 'sets.reserve_id', 'sets.set_name', 'sets.total_participations', 'sets.total_participation_amount as played_amount', 'sets.physical_participations', 'sets.digital_participations');
+            ->whereHas('sets', $setFilterForSeller)
+            ->with(['sets' => function ($q) use ($setFilterForSeller) {
+                $setFilterForSeller($q);
+                $q->select('sets.id', 'sets.reserve_id', 'sets.set_name', 'sets.total_participations', 'sets.total_participation_amount as played_amount', 'sets.physical_participations', 'sets.digital_participations');
             }])
             ->orderBy('reservation_date', 'desc')
             ->get();
 
-        // Para sets digitales: disponibilidad = participaciones asignadas a este vendedor (disponibles para vender)
+        $pendingService = app(\App\Services\PendingDigitalSaleService::class);
         foreach ($reserves as $reserve) {
             foreach ($reserve->sets as $set) {
                 $isDigital = ($set->digital_participations ?? 0) > 0 && (int) ($set->physical_participations ?? 0) === 0;
                 if ($isDigital) {
-                    $set->setAttribute('digital_available_to_seller', DB::table('participations')
+                    $set->setAttribute('digital_available_to_seller', $pendingService->countDigitalDisponibleForSet((int) $set->id));
+                } elseif ((int) ($set->physical_participations ?? 0) > 0) {
+                    $set->setAttribute('physical_available_to_seller', (int) DB::table('participations')
                         ->where('set_id', $set->id)
                         ->where('seller_id', $seller->id)
-                        ->whereIn('status', ['disponible', 'asignada'])
+                        ->where('status', 'asignada')
                         ->count());
                 }
             }
@@ -551,6 +565,16 @@ class SellerController extends Controller
     public function apiGetTotalDigitalAvailable(Request $request)
     {
         $request->validate([
+            'entity_id' => 'nullable|integer|exists:entities,id',
+            'lottery_id' => 'nullable|integer|exists:lotteries,id',
+            'set_id' => 'nullable|integer|exists:sets,id',
+        ]);
+
+        if ($request->filled('set_id')) {
+            return $this->apiGetDigitalAvailableForSet($request);
+        }
+
+        $request->validate([
             'entity_id' => 'required|integer|exists:entities,id',
             'lottery_id' => 'required|integer|exists:lotteries,id',
         ]);
@@ -595,7 +619,47 @@ class SellerController extends Controller
             'total_digital_available' => $total,
             'price_per_participation' => $priceSet ? (float) $priceSet->played_amount : 0,
         ]);
-        return;
+    }
+
+    /**
+     * Disponibles digitales de un set (pool del set; sin asignación al vendedor).
+     */
+    protected function apiGetDigitalAvailableForSet(Request $request)
+    {
+        $user = $request->user();
+        if (! $user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No tienes permisos.'], 403);
+        }
+
+        $seller = Seller::where('user_id', $user->id)->where('status', Seller::STATUS_ACTIVE)->first();
+        if (! $seller) {
+            return response()->json(['success' => false, 'message' => 'Vendedor no encontrado o inactivo.'], 403);
+        }
+
+        $set = Set::with('reserve')->findOrFail((int) $request->set_id);
+        if (($set->digital_participations ?? 0) <= 0) {
+            return response()->json(['success' => false, 'message' => 'Este set no es de participaciones digitales.'], 422);
+        }
+
+        if (! $seller->entities()->where('entities.id', $set->entity_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+        }
+
+        app(\App\Services\PendingDigitalSaleService::class)->releaseExpiredForDigitalContext(
+            (int) $set->entity_id,
+            (int) ($set->reserve?->lottery_id),
+            (int) $set->id,
+        );
+
+        $total = app(\App\Services\PendingDigitalSaleService::class)
+            ->countDigitalDisponibleForSet((int) $set->id);
+
+        return response()->json([
+            'success' => true,
+            'total_digital_available' => $total,
+            'price_per_participation' => (float) ($set->total_participation_amount ?? $set->played_amount ?? 0),
+            'set_id' => $set->id,
+        ]);
     }
 
     /**
@@ -3280,6 +3344,11 @@ class SellerController extends Controller
 
     private function findSetAndParticipationByReferenceForUser(User $user, string $referencia): ?array
     {
+        $referencia = ParticipationTicketReference::normalize($referencia) ?? '';
+        if ($referencia === '' || ! ParticipationTicketReference::isValid($referencia)) {
+            return null;
+        }
+
         $set = Set::forUser($user)->whereNotNull('tickets')->get()->first(function ($s) use ($referencia) {
             if (! is_array($s->tickets)) {
                 return false;

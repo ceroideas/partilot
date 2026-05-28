@@ -51,8 +51,13 @@
         min-width: 20px;
         min-height: 20px;
     }
+    [id^="containment-wrapper"] .elements,
+    #design-back-bg .elements {
+        resize: both !important;
+        overflow: hidden !important;
+    }
     .elements.text {
-        position: relative;
+        position: absolute;
         box-sizing: border-box !important;
     }
     .elements.text:hover .edit-btn,
@@ -367,9 +372,9 @@
                                 <h4 class="mb-0 mt-1">Diseñar Participación</h4>
                                 <small><i>Edita el diseño de la participación</i></small>
                                 <br>
-                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="max-width: 100%; width: 270mm; height: 54px; margin: auto; padding: 0 10px; box-sizing: border-box;">
                                     <br>
-                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="max-width: 100%; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="2"><i class="ri-zoom-out-line"></i></button>
                                         <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="2"><i class="ri-zoom-in-line"></i></button>
                                         <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -408,6 +413,7 @@
                                         @endif
                                     </div>
                                 </div>
+                                <div class="mt-2 p-2 small text-muted border-top" id="dimensions-info-step2"></div>
                             </div>
                             @if($isDigitalSet ?? false)
                             <div class="row mt-3 mb-3">
@@ -430,9 +436,9 @@
                                 <h4 class="mb-0 mt-1">Diseñar Portada</h4>
                                 <small><i>Edita el diseño de la portada</i></small>
                                 <br>
-                                <div class="format-box-btn" style="width: 270mm; height: 54px; margin: auto; padding-left: 20px;">
+                                <div class="format-box-btn" style="max-width: 100%; width: 270mm; height: 54px; margin: auto; padding: 0 10px; box-sizing: border-box;">
                                     <br>
-                                    <div class="btn-group format-btn-group" style="width: 270mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                    <div class="btn-group format-btn-group" style="max-width: 100%; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                             <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="3"><i class="ri-zoom-out-line"></i></button>
                                             <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="3"><i class="ri-zoom-in-line"></i></button>
                                             <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -466,14 +472,15 @@
                                         {!! $format->cover_html ?? '' !!}
                                     </div>
                                 </div>
+                                <div class="mt-2 p-2 small text-muted border-top" id="dimensions-info-step3"></div>
                             </div>
                                 <div class="form-card fade bs d-none" id="step-4" style="min-height: 658px;">
                                     <h4 class="mb-0 mt-1">Diseñar Trasera</h4>
                                     <small><i>Edita el diseño de la trasera</i></small>
                                     <br>
-                                    <div class="format-box-btn" style="width: 250mm; height: 54px; margin: auto; padding-left: 20px;">
+                                    <div class="format-box-btn" style="max-width: 100%; width: 270mm; height: 54px; margin: auto; padding: 0 10px; box-sizing: border-box;">
                                         <br>
-                                        <div class="btn-group format-btn-group" style="width: 250mm; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
+                                        <div class="btn-group format-btn-group" style="max-width: 100%; width: 100%; display: flex; justify-content: center; flex-wrap: wrap; gap: 1px;">
                                             <button type="button" class="btn btn-sm btn-secondary design-zoom-out" title="Alejar" data-step="4"><i class="ri-zoom-out-line"></i></button>
                                             <button type="button" class="btn btn-sm btn-secondary design-zoom-in" title="Acercar" data-step="4"><i class="ri-zoom-in-line"></i></button>
                                             <span class="align-self-center px-1 design-zoom-label" style="font-size: 12px;">100%</span>
@@ -507,6 +514,7 @@
                                         {!! $format->back_html ?? '' !!}
                                     </div>
                                 </div>
+                                <div class="mt-2 p-2 small text-muted border-top" id="dimensions-info-step4"></div>
                             </div>
                                 <div class="form-card fade bs d-none" id="step-5" style="min-height: 658px;">
                                     <h4 class="mb-0 mt-1">Configurar salida</h4>
@@ -1042,6 +1050,37 @@ var maxHistoryStates = 10;
 var isRestoringState = false;
 var resizeTimeout;
 
+function getFormatBoxHtmlForSave(selector) {
+  var el = document.querySelector(selector);
+  if (!el) return '';
+  var clone = el.cloneNode(true);
+  clone.querySelectorAll('.elements').forEach(function(node) {
+    node.style.removeProperty('resize');
+  });
+  return clone.outerHTML;
+}
+
+function enableDesignElementsResize($scope) {
+  var $els = ($scope && $scope.length)
+    ? $scope.find('.elements')
+    : $('[id^="containment-wrapper"] .elements, #design-back-bg .elements');
+  $els.each(function() {
+    this.style.setProperty('resize', 'both', 'important');
+    this.style.setProperty('overflow', 'hidden', 'important');
+  });
+}
+
+function destroyStepDraggables(stepNum) {
+  var $container = $('#containment-wrapper' + stepNum);
+  if (!$container.length) return;
+  $container.find('.elements').each(function() {
+    var $el = $(this);
+    if ($el.data('ui-draggable')) {
+      try { $el.draggable('destroy'); } catch (e) {}
+    }
+  });
+}
+
 // Zoom del diseño (pasos 2, 3, 4)
 var designZoom = 1;
 var designZoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 3.5, 4];
@@ -1481,6 +1520,29 @@ function getMarginBoundsPx() {
     if (step >= 2 && step <= 4) {
       $('#containment-wrapper'+step+' .elements').each(function() { clampElementToMargins(this); });
     }
+    if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo();
+  }
+
+  function updateDimensionsInfo() {
+    var format = $('#format').val() || '';
+    var sheetText = $('#sheet-size').text() || '';
+    var ticketText = $('#ticket-size').text() || '';
+    var marginTop = parseFloat($('#margin-top').val()) || 0;
+    var marginUp = parseFloat($('#margin-up').val()) || 0;
+    var marginLeft = parseFloat($('#margin-left').val()) || 0;
+    var marginRight = parseFloat($('#margin-right').val()) || 0;
+    var identation = parseFloat($('#identation').val()) || 2.5;
+    var matrix = parseFloat($('#matrix-box').val()) || 40;
+    var marginCustom = parseFloat($('#margin-custom').val()) || 0;
+    var pageRight = parseFloat($('#page-rigth').val()) || 0;
+    var pageBottom = parseFloat($('#page-bottom').val()) || 0;
+    var formatLabel = format === 'a3-h-3x2' ? 'A3 (297 x 420) apaisado 3 x 2' : (format === 'a3-h-4x2' ? 'A3 (297 x 420) apaisado 4 x 2' : (format === 'a4-v-3x1' ? 'A4 (210 x 297) vertical 3 x 1' : (format === 'a4-v-4x1' ? 'A4 (210 x 297) vertical 4 x 1' : (sheetText || 'Personalizado'))));
+    var html = '<strong>Formato:</strong> ' + formatLabel + ' &nbsp;|&nbsp; <strong>Participación:</strong> ' + ticketText +
+      ' &nbsp;|&nbsp; <strong>Márgenes página:</strong> sup ' + marginTop + 'mm, inf ' + marginUp + 'mm, izq ' + marginLeft + 'mm, der ' + marginRight + 'mm';
+    if (marginCustom) html += ' &nbsp;|&nbsp; <strong>Sangres:</strong> ' + marginCustom + 'mm';
+    html += ' &nbsp;|&nbsp; <strong>Matriz:</strong> ' + matrix + 'mm (indent. ' + identation + 'mm)';
+    html += ' &nbsp;|&nbsp; <strong>Espaciado por página:</strong> horiz. ' + pageRight + 'mm, vert. ' + pageBottom + 'mm';
+    $('#dimensions-info-step2, #dimensions-info-step3, #dimensions-info-step4').html(html);
   }
 
   $('.up-z').click(function (e) {
@@ -1674,13 +1736,18 @@ function getMarginBoundsPx() {
       }
       lastTicketDimensions = { w: ticketW, h: ticketH };
       if (typeof applyDigitalFormatBoxStep2 === 'function') applyDigitalFormatBoxStep2();
+      if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo();
   }
 
   // Llamar al cargar y al cambiar cualquier campo relevante
   $(document).ready(function() {
       updateTicketInfo();
+      if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo();
       if (typeof initPreviewFromFormat === 'function') initPreviewFromFormat();
       $('#format,#page,#rows,#cols,#orientation').on('change keyup', updateTicketInfo);
+      $('#margin-top,#margin-up,#margin-left,#margin-right,#identation,#matrix-box,#margin-custom,#page-rigth,#page-bottom').on('change keyup', function() {
+        if (typeof updateDimensionsInfo === 'function') updateDimensionsInfo();
+      });
   });
   // === FIN BLOQUE NUEVO ===
 
@@ -1702,21 +1769,9 @@ function collectDesignData() {
   const horizontal_space = parseFloat($('#page-rigth').val());
   const vertical_space = parseFloat($('#page-bottom').val());
 
-  // Quitar 'resize: both;' antes de guardar
-  $('#step-2 .format-box .elements').each(function() {
-    $(this).css('resize', '');
-  });
-  $('#step-3 .format-box .elements').each(function() {
-    $(this).css('resize', '');
-  });
-  $('#step-4 .format-box .elements').each(function() {
-    $(this).css('resize', '');
-  });
-
-  // Paso 2, 3, 4: HTML de los diseños (guardar el elemento .format-box completo)
-  const participation_html = $('#step-2 .format-box')[0]?.outerHTML || '';
-  const cover_html = $('#step-3 .format-box')[0]?.outerHTML || '';
-  const back_html = $('#step-4 .format-box')[0]?.outerHTML || '';
+  const participation_html = getFormatBoxHtmlForSave('#step-2 .format-box');
+  const cover_html = getFormatBoxHtmlForSave('#step-3 .format-box');
+  const back_html = getFormatBoxHtmlForSave('#step-4 .format-box');
 
   // Fondos: leer del DOM (lo que ve el usuario) para guardar siempre los valores reales
   function getBackgroundFromDom(stepNum) {
@@ -2320,14 +2375,17 @@ $(document).ready(function() {
 });
 
 function reapplyElementEvents() {
+    enableDesignElementsResize($('#containment-wrapper' + step));
+    destroyStepDraggables(step);
+
     // Asegurar que los botones edit-btn existan en los elementos
-    $('.elements.text').each(function() {
+    $('#containment-wrapper' + step).find('.elements.text').each(function() {
       if ($(this).find('.edit-btn').length === 0) {
         $(this).prepend('<button class="edit-btn" title="Editar texto"><i class="ri-edit-line"></i></button>');
       }
     });
     
-    $('.elements.images').each(function() {
+    $('#containment-wrapper' + step).find('.elements.images').each(function() {
       if ($(this).find('.edit-btn').length === 0) {
         $(this).append('<button class="edit-btn" title="Cambiar imagen"><i class="ri-image-line"></i></button>');
       }
@@ -2335,7 +2393,7 @@ function reapplyElementEvents() {
     
     // Compensación de arrastre con zoom
     var dragClickOffsetX, dragClickOffsetY;
-    $( ".elements" ).draggable({ 
+    $('#containment-wrapper' + step).find('.elements').draggable({ 
       handle: 'span', 
       containment: "#containment-wrapper"+step, 
       scroll: false, 
@@ -2487,9 +2545,7 @@ function setBgToContainment(color, img) {
   }
 }
 
-$('.elements').each(function() {
-  $(this).css('resize', 'both');
-});
+enableDesignElementsResize();
 
 // Cargar imágenes de fondo existentes al inicializar
 function loadExistingBackgrounds() {

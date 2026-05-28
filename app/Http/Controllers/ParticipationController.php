@@ -28,6 +28,7 @@ use App\Mail\DonationCodeConfirmationMail;
 use App\Services\AppInboxNotificationService;
 use App\Services\PendingDigitalSaleService;
 use App\Services\ParticipationGiftService;
+use App\Support\ParticipationTicketReference;
 use App\Services\ParticipationOwnerService;
 use App\Services\ParticipationWalletValidityService;
 
@@ -626,9 +627,11 @@ class ParticipationController extends Controller
             if (($set->digital_participations ?? 0) <= 0) {
                 return response()->json(['success' => false, 'message' => 'Este set no es de participaciones digitales.'], 422);
             }
-            $participations = Participation::where('set_id', $request->set_id)
-                ->where('seller_id', $seller->id)
-                ->where('status', 'asignada')
+            if (! $seller->entities()->where('entities.id', $set->entity_id)->exists()) {
+                return response()->json(['success' => false, 'message' => 'No tienes acceso a esta entidad.'], 403);
+            }
+            $participations = app(PendingDigitalSaleService::class)
+                ->queryDigitalDisponibleForSet((int) $request->set_id)
                 ->orderBy('participation_number')
                 ->limit($request->quantity)
                 ->get();
@@ -1434,6 +1437,11 @@ class ParticipationController extends Controller
      */
     private function findSetAndParticipationNumberByReference(string $referencia): ?array
     {
+        $referencia = ParticipationTicketReference::normalize($referencia) ?? '';
+        if ($referencia === '' || ! ParticipationTicketReference::isValid($referencia)) {
+            return null;
+        }
+
         $set = \App\Models\Set::whereNotNull('tickets')->get()->first(function ($s) use ($referencia) {
             if (!is_array($s->tickets)) {
                 return false;

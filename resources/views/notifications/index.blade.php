@@ -4,30 +4,6 @@
 
 @section('content')
 
-
-<style>
-    .empty-tables {
-        text-align: center;
-        padding: 40px 20px;
-    }
-
-    .empty-tables img {
-        opacity: 0.3;
-        filter: grayscale(100%);
-    }
-
-    .empty-tables h3 {
-        color: #333;
-        font-weight: 600;
-        margin: 20px 0 10px 0;
-    }
-
-    .empty-tables small {
-        color: #666;
-        font-size: 0.9em;
-    }
-    
-</style>
 <!-- Start Content-->
 <div class="container-fluid">
     
@@ -42,24 +18,24 @@
                 <h4 class="page-title">Notificaciones</h4>
             </div>
         </div>
-    </div>     
+    </div>
 
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
 
-                    <div class="{{count($notifications) ? '' : 'd-none'}}">
+                    <div class="{{ count($notifications) ? '' : 'd-none' }}">
                         <h4 class="header-title">
 
                             <div class="float-start d-flex align-items-start">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Provincia">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Localidad">
-                                <input type="text" class="form-control" style="margin-right: 8px ;" placeholder="Entidad">
+                                <input type="text" class="form-control" style="margin-right: 8px;" placeholder="Provincia">
+                                <input type="text" class="form-control" style="margin-right: 8px;" placeholder="Localidad">
+                                <input type="text" class="form-control" style="margin-right: 8px;" placeholder="Entidad">
                                 <input type="text" class="form-control" placeholder="Estatus">
                             </div>
 
-                            <a href="{{route('notifications.create')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Nueva</a>
+                            <a href="{{ route('notifications.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Nueva</a>
 
                         </h4>
 
@@ -82,40 +58,37 @@
                                     <th class="no-filter"></th>
                                 </tr>
                             </thead>
-                        
-                        
-                            <tbody>
-                            @foreach($notifications as $notification)
-                            <tr id="notification-{{ $notification->id }}">
-                                <td><a href="#">#NO{{ str_pad($notification->id,5,'0',STR_PAD_LEFT) }}</a></td>
-                                <td>{{ $notification->title }}</td>
-                                <td>{{ Str::limit($notification->message, 50) }}</td>
-                                <td>{{ $notification->entity ? $notification->entity->manager->email ?? 'Sin email' : 'N/A' }}</td>
-                                <td>{{ $notification->sender->name ?? 'N/A' }}</td>
-                                <td>{{ $notification->entity ? $notification->entity->province : 'N/A' }}</td>
-                                <td>{{ $notification->entity ? $notification->entity->city : 'N/A' }}</td>
-                                <td>{{ $notification->sent_at ? $notification->sent_at->format('d/m/Y') : $notification->created_at->format('d/m/Y') }}</td>
-                                <td>{{ $notification->sent_at ? $notification->sent_at->format('H:i') : $notification->created_at->format('H:i') }}</td>
-                                <td>
-                                    <a class="btn btn-sm btn-danger" onclick="deleteNotification({{ $notification->id }})"><i class="ri-delete-bin-6-line"></i></a>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                        </table>
 
-                        <br>
+                            <tbody>
+                                @foreach($notifications as $notification)
+                                <tr id="notification-{{ $notification->id }}">
+                                    <td><a href="#">#NO{{ str_pad($notification->id, 5, '0', STR_PAD_LEFT) }}</a></td>
+                                    <td>{{ $notification->title }}</td>
+                                    <td>{{ Str::limit($notification->message, 50) }}</td>
+                                    <td>{{ $notification->entity?->manager?->user?->email ?? ($notification->entity ? 'Sin email' : 'N/A') }}</td>
+                                    <td>{{ $notification->sender->name ?? 'N/A' }}</td>
+                                    <td>{{ $notification->entity?->province ?? 'N/A' }}</td>
+                                    <td>{{ $notification->entity?->city ?? 'N/A' }}</td>
+                                    <td>{{ $notification->sent_at ? $notification->sent_at->format('d/m/Y') : $notification->created_at->format('d/m/Y') }}</td>
+                                    <td>{{ $notification->sent_at ? $notification->sent_at->format('H:i') : $notification->created_at->format('H:i') }}</td>
+                                    <td class="no-click" style="cursor: default;">
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteNotification({{ $notification->id }})"><i class="ri-delete-bin-6-line"></i></button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
 
                     </div>
 
-                    <div class="{{count($notifications) ? 'd-none' : ''}}">
+                    <div class="{{ count($notifications) ? 'd-none' : '' }}">
+
                         <div class="d-flex align-items-center gap-1">
 
-                            
                             <div class="empty-tables">
 
                                 <div>
-                                    <img src="{{url('icons_/notificaciones.svg')}}" alt="" width="80px">
+                                    <img src="{{ url('icons_/notificaciones.svg') }}" alt="" width="80px">
                                 </div>
 
                                 <h3 class="mb-0">No hay Notificaciones</h3>
@@ -124,7 +97,7 @@
 
                                 <br>
 
-                                <a href="{{route('notifications.create')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Nueva</a>
+                                <a href="{{ route('notifications.create') }}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Nueva</a>
                             </div>
 
                         </div>
@@ -143,7 +116,7 @@
 @section('scripts')
 
 <script>
-    
+
   function initDatatable() 
   {
     $("#example2").DataTable({
@@ -157,12 +130,10 @@
         initComplete: function () {
             var api = this.api();
  
-            // For each column
             api
                 .columns()
                 .eq(0)
                 .each(function (colIdx) {
-                    // Set the header cell to contain the input element
                     var cell = $('.filters th').eq(
                         $(api.column(colIdx).header()).index()
                     );
@@ -173,7 +144,6 @@
                       $(cell).addClass('sorting_disabled').html('<input type="text" class="inline-fields" placeholder="' + title + '" />');
                     }
  
-                    // On every keypress in this input
                     $(
                         'input',
                         $('.filters th').eq($(api.column(colIdx).header()).index())
@@ -182,14 +152,10 @@
                         .on('keyup change', function (e) {
                             e.stopPropagation();
  
-                            // Get the search value
                             $(this).attr('title', $(this).val());
-                            var regexr = '({search})'; //$(this).parents('th').find('select').val();
+                            var regexr = '({search})';
  
                             var cursorPosition = this.selectionStart;
-                            // Search the column for that value
-
-                            // console.log(val.replace(/<select[\s\S]*?<\/select>/,''));
                             let wSelect = false;
                             $.each(api.column(colIdx).data(), function(index, val) {
                                if (val.indexOf('<select') == -1) {
@@ -198,11 +164,6 @@
                                 wSelect = true;
                                }
                             });
-
-                            // $.each(api
-                            //     .column(colIdx).data(), function(index, val) {
-                            //     console.log(val)
-                            // });
 
                             api
                                 .column(colIdx)
@@ -237,25 +198,18 @@
   },100);
 
   function deleteNotification(id) {
-    console.log(id);
     if (confirm('¿Estás seguro de que quieres eliminar esta notificación?')) {
         $.ajax({
-          url: '{{url('/')}}/notifications/delete/' + id,
+          url: '{{ url('/') }}/notifications/delete/' + id,
           type: 'DELETE',
         headers: {
           'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
         success: function(response) {
-          // Eliminar la fila de la tabla en lugar de recargar la página
           location.reload();
-        //   $('#notification-' + id).fadeOut(300, function() {
-        //     // $(this).remove();
-        //     location.reload();
-        //   });
         },
         error: function(xhr) {
             location.reload();
-        //   alert('Error al eliminar la notificación');
         }
       });
     }

@@ -136,6 +136,22 @@ class Participation extends Model
         return $query->where('status', 'vendida');
     }
 
+    /**
+     * Vendidas para escrutinio: definitivas + digitales pendientes de vinculación (venta ya hecha, comprador sin registrar).
+     */
+    public function scopeSoldForScrutiny($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('status', 'vendida')
+                ->orWhere(function ($q2) {
+                    $q2->where('status', 'reserva_venta_digital')
+                        ->whereHas('pendingDigitalSales', function ($pds) {
+                            $pds->where('pending_digital_sales.status', PendingDigitalSale::STATUS_PENDING);
+                        });
+                });
+        });
+    }
+
     public function scopeReturned($query)
     {
         return $query->where('status', 'devuelta');
