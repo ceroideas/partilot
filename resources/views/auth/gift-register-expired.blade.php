@@ -9,12 +9,8 @@
 <body class="auth-fluid-pages pb-0">
 <div class="container py-5 text-center" style="max-width: 520px;">
     <img src="{{ url('/') }}/logo.svg" alt="PARTILOT" height="40" class="mb-4">
-    <h4>Enlace caducado</h4>
-    <p class="text-muted">
-        El plazo para vincular estas participaciones ha expirado
-        ({{ config('digital_sale.wallet_validity_months_after_draw', 3) }} meses después de la fecha del sorteo).
-        Contacta con quien te vendió las participaciones si necesitas ayuda.
-    </p>
+    <h4>Enlace no válido</h4>
+    <p class="text-muted">Este regalo ya no está disponible o el enlace ha caducado. Contacta con quien te lo envió.</p>
 </div>
 </body>
 </html>

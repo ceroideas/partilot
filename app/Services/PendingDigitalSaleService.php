@@ -9,22 +9,27 @@ use App\Models\Seller;
 use App\Models\Set;
 use App\Models\User;
 use App\Support\PendingDigitalSaleLinkCode;
+use App\Services\ParticipationWalletValidityService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PendingDigitalSaleService
 {
+    public function __construct(
+        protected ParticipationWalletValidityService $walletValidity
+    ) {}
+
     public function validUntilFromConfig(): Carbon
     {
-        $days = (int) config('digital_sale.hold_days', 0);
-        if ($days > 0) {
-            return now()->addDays($days);
-        }
+        return $this->walletValidity->validUntilForLottery(null);
+    }
 
-        $hours = (int) config('digital_sale.hold_hours', 72);
+    public function validUntilForPendingSale(int $lotteryId): Carbon
+    {
+        $lottery = \App\Models\Lottery::find($lotteryId);
 
-        return now()->addHours(max(1, $hours));
+        return $this->walletValidity->validUntilForLottery($lottery);
     }
 
     /**
@@ -108,6 +113,7 @@ class PendingDigitalSaleService
         }
 
         $set = $participations->first()->set;
+        $resolvedLotteryId = $lotteryId ?? $set->reserve->lottery_id;
         $pricePer = (float) ($set->played_amount ?? $set->total_participation_amount ?? 0);
         $saleAmount = $participations->count() * $pricePer;
 
@@ -123,7 +129,8 @@ class PendingDigitalSaleService
             $entityId,
             $lotteryId,
             $saleAmount,
-            $set
+            $set,
+            $resolvedLotteryId
         ) {
             $pending = PendingDigitalSale::create([
                 'email' => $email,
@@ -137,7 +144,7 @@ class PendingDigitalSaleService
                 'registration_token' => Str::random(64),
                 'link_code' => PendingDigitalSaleLinkCode::generateUnique(),
                 'status' => PendingDigitalSale::STATUS_PENDING,
-                'valid_until' => $this->validUntilFromConfig(),
+                'valid_until' => $this->validUntilForPendingSale((int) $resolvedLotteryId),
             ]);
 
             foreach ($participations as $p) {
@@ -212,7 +219,10 @@ class PendingDigitalSaleService
 
         if ($pending->isExpired()) {
             $this->releasePendingSale($pending, PendingDigitalSale::STATUS_EXPIRED);
-            throw new \InvalidArgumentException('El código ha caducado. Las participaciones ya no están reservadas.');
+            $months = (int) config('digital_sale.wallet_validity_months_after_draw', 3);
+            throw new \InvalidArgumentException(
+                "El código ha caducado. La vinculación era válida hasta {$months} meses después de la fecha del sorteo."
+            );
         }
 
         if (! $pending->isStillValid()) {

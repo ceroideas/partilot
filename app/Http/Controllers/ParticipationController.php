@@ -27,7 +27,9 @@ use App\Mail\TransferCollectionConfirmationMail;
 use App\Mail\DonationCodeConfirmationMail;
 use App\Services\AppInboxNotificationService;
 use App\Services\PendingDigitalSaleService;
+use App\Services\ParticipationGiftService;
 use App\Services\ParticipationOwnerService;
+use App\Services\ParticipationWalletValidityService;
 
 class ParticipationController extends Controller
 {
@@ -1274,7 +1276,7 @@ class ParticipationController extends Controller
                         'importeTotal' => $importeTotal,
                         'clienteEmail' => $p->email,
                         'pendienteRegistro' => true,
-                        'validUntil' => $p->valid_until?->format('d/m/Y H:i'),
+                        'validUntil' => $p->valid_until?->format('d/m/Y'),
                         'esDigital' => true,
                         'setLabel' => $setLabel,
                         'set_number' => $p->set?->set_number,
@@ -1567,7 +1569,15 @@ class ParticipationController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
+        $acceptedReceivedByParticipationId = ParticipationGift::query()
+            ->where('to_user_id', $user->id)
+            ->where('status', ParticipationGift::STATUS_ACCEPTED)
+            ->with('fromUser')
+            ->get()
+            ->keyBy('participation_id');
+
         $apiController = app(ApiController::class);
+        $giftService = app(ParticipationGiftService::class);
         foreach ($participations as $p) {
             $ref = $this->getReferenceFromParticipation($p);
             $item = $this->formatParticipationForWallet($p, $ref);
@@ -1577,24 +1587,42 @@ class ParticipationController extends Controller
                 $item['estado'] = 'cobrada';
             } elseif ($p->donated_at) {
                 $item['estado'] = 'donada';
-            } elseif ($p->relationLoaded('gift') && $p->gift) {
+            } elseif ($acceptedReceived = $acceptedReceivedByParticipationId->get($p->id)) {
                 $item['estado'] = 'regalada';
-                $item['gifted_to_email'] = $p->gift->toUser->email ?? null;
+                $item = array_merge($item, $giftService->walletGiftFields($acceptedReceived, 'recipient'));
+            } elseif ($p->relationLoaded('gift') && $p->gift && in_array($p->gift->status, [ParticipationGift::STATUS_PENDING, ParticipationGift::STATUS_ACCEPTED], true)) {
+                $item['estado'] = 'regalada';
+                $item = array_merge($item, $giftService->walletGiftFields($p->gift, 'sender'));
             }
             $prizeInfo = $apiController->getPrizeInfoForReference($ref);
             $item['premio'] = $prizeInfo['has_won'] ? $prizeInfo['prize_amount'] : null;
+            $item = $this->applyWalletValidityToWalletItem($item, $p);
+            if (! empty($item['wallet_expired'])) {
+                continue;
+            }
             $items[] = $item;
         }
 
-        // Recibidas como regalo (to_user_id = user)
-        $giftsReceived = ParticipationGift::where('to_user_id', $user->id)
+        // Pendientes de aceptar (aún no son propiedad del destinatario)
+        $userEmail = strtolower((string) $user->email);
+        $giftsReceived = ParticipationGift::query()
+            ->where('status', ParticipationGift::STATUS_PENDING)
+            ->where(function ($q) use ($user, $userEmail) {
+                $q->where('to_user_id', $user->id)
+                    ->orWhere(function ($q2) use ($userEmail) {
+                        $q2->whereNull('to_user_id')
+                            ->whereRaw('LOWER(to_email) = ?', [$userEmail]);
+                    });
+            })
             ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats', 'fromUser'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         foreach ($giftsReceived as $gift) {
             $p = $gift->participation;
-            if (!$p) continue;
+            if (! $p) {
+                continue;
+            }
             $ref = $this->getReferenceFromParticipation($p);
             $item = $this->formatParticipationForWallet($p, $ref);
             if ($p->collected_at) {
@@ -1602,12 +1630,16 @@ class ParticipationController extends Controller
             } elseif ($p->donated_at) {
                 $item['estado'] = 'donada';
             } else {
-                $item['estado'] = 'recibida';
+                $item['estado'] = 'pendiente_regalo';
             }
-            $item['received_from_email'] = $gift->fromUser->email ?? null;
+            $item = array_merge($item, $giftService->walletGiftFields($gift, 'recipient'));
             $item['gifted_to_email'] = null;
             $prizeInfo = $apiController->getPrizeInfoForReference($ref);
             $item['premio'] = $prizeInfo['has_won'] ? $prizeInfo['prize_amount'] : null;
+            $item = $this->applyWalletValidityToWalletItem($item, $p);
+            if (! empty($item['wallet_expired'])) {
+                continue;
+            }
             $items[] = $item;
         }
 
@@ -1643,8 +1675,11 @@ class ParticipationController extends Controller
             ->get();
 
         foreach ($participations as $p) {
-            if ($p->relationLoaded('gift') && $p->gift) {
-                continue; // regalada, no cobrable ni donable por el que la regaló
+            if ($p->relationLoaded('gift') && $p->gift && in_array($p->gift->status, [ParticipationGift::STATUS_PENDING, ParticipationGift::STATUS_ACCEPTED], true)) {
+                continue; // regalada pendiente o aceptada por el destinatario
+            }
+            if (app(ParticipationWalletValidityService::class)->isParticipationWalletExpired($p)) {
+                continue;
             }
             $ref = $this->getReferenceFromParticipation($p);
             $prizeInfo = $apiController->getPrizeInfoForReference($ref);
@@ -1657,17 +1692,24 @@ class ParticipationController extends Controller
             $addedIds[$p->id] = true;
         }
 
-        // 2) Recibidas como regalo (to_user_id = user), no cobradas, no donadas, con premio
+        // 2) Recibidas y aceptadas (buyer_name = user tras aceptar)
         $giftsReceived = ParticipationGift::where('to_user_id', $user->id)
+            ->where('status', ParticipationGift::STATUS_ACCEPTED)
             ->with(['participation.set.reserve.lottery', 'participation.set.entity', 'participation.set.designFormats'])
             ->get();
 
         foreach ($giftsReceived as $gift) {
             $p = $gift->participation;
-            if (!$p || isset($addedIds[$p->id])) {
+            if (! $p || isset($addedIds[$p->id])) {
+                continue;
+            }
+            if ((string) $p->buyer_name !== $userId) {
                 continue;
             }
             if ($p->collected_at || $p->donated_at) {
+                continue;
+            }
+            if (app(ParticipationWalletValidityService::class)->isParticipationWalletExpired($p)) {
                 continue;
             }
             $ref = $this->getReferenceFromParticipation($p);
@@ -1716,6 +1758,14 @@ class ParticipationController extends Controller
 
         if ($participations->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'Ninguna participación válida para cobrar.'], 422);
+        }
+
+        $participations->load('set.reserve.lottery');
+        $walletValidity = app(ParticipationWalletValidityService::class);
+        foreach ($participations as $p) {
+            if ($walletValidity->isParticipationWalletExpired($p)) {
+                return $this->walletExpiredJsonResponse();
+            }
         }
 
         // Todas las participaciones deben ser de la misma entidad
@@ -1832,6 +1882,14 @@ class ParticipationController extends Controller
 
         if ($participations->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'Ninguna participación válida para donar.'], 422);
+        }
+
+        $participations->load('set.reserve.lottery');
+        $walletValidity = app(ParticipationWalletValidityService::class);
+        foreach ($participations as $p) {
+            if ($walletValidity->isParticipationWalletExpired($p)) {
+                return $this->walletExpiredJsonResponse();
+            }
         }
 
         // Todas las participaciones deben ser de la misma entidad
@@ -2358,7 +2416,10 @@ class ParticipationController extends Controller
     {
         $userId = (string) $user->id;
         $ownedIds = Participation::where('buyer_name', $userId)->pluck('id');
-        $receivedIds = ParticipationGift::where('to_user_id', $user->id)->pluck('participation_id');
+        $receivedIds = ParticipationGift::where('to_user_id', $user->id)
+            ->where('status', ParticipationGift::STATUS_ACCEPTED)
+            ->pluck('participation_id');
+
         return $ownedIds->merge($receivedIds)->unique()->values();
     }
 
@@ -2531,26 +2592,28 @@ class ParticipationController extends Controller
      * API: Regalar participación a otro usuario por email.
      * La participación sigue en la cartera del que regala con estado regalada; el destinatario la ve en la suya.
      */
-    public function apiGiftToUser(Request $request)
+    public function apiGiftToUser(Request $request, ParticipationGiftService $giftService)
     {
         $request->validate([
             'participation_id' => 'required|integer|exists:participations,id',
             'email' => 'required|email',
+            'message' => 'nullable|string|max:2000',
         ]);
 
         $user = $request->user();
-        // Permitir tanto usuarios (client) como vendedores (seller) cuando acceden como usuarios normales
-        if (!$user->isClient() && !$user->isSeller()) {
+        if (! $user->isClient() && ! $user->isSeller()) {
             return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
         }
 
         $userId = (string) $user->id;
         $participation = Participation::find($request->participation_id);
-        if (!$participation || $participation->buyer_name !== $userId) {
+        if (! $participation || $participation->buyer_name !== $userId) {
             return response()->json(['success' => false, 'message' => 'La participación no está en tu cartera.'], 404);
         }
 
-        if (ParticipationGift::where('participation_id', $participation->id)->exists()) {
+        if (ParticipationGift::where('participation_id', $participation->id)
+            ->whereIn('status', [ParticipationGift::STATUS_PENDING, ParticipationGift::STATUS_ACCEPTED])
+            ->exists()) {
             return response()->json(['success' => false, 'message' => 'Esta participación ya ha sido regalada.'], 422);
         }
         if ($participation->collected_at) {
@@ -2559,84 +2622,130 @@ class ParticipationController extends Controller
         if ($participation->donated_at) {
             return response()->json(['success' => false, 'message' => 'No se puede regalar una participación ya donada.'], 422);
         }
-
-        $destinatario = User::where('email', $request->email)->first();
-        if (!$destinatario) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No existe ningún usuario con ese correo. El destinatario debe estar registrado como usuario.',
-            ], 422);
-        }
-        if ((string) $destinatario->id === $userId) {
-            return response()->json(['success' => false, 'message' => 'No puedes regalarte la participación a ti mismo.'], 422);
-        }
-
-        $gift = ParticipationGift::create([
-            'participation_id' => $participation->id,
-            'from_user_id' => $user->id,
-            'to_user_id' => $destinatario->id,
-        ]);
-
-        try {
-            $participation->loadMissing('set.entity');
-            $entity = $participation->set?->entity;
-            if ($entity) {
-                $inbox = app(AppInboxNotificationService::class);
-                $inbox->notifyUser(
-                    (int) $destinatario->id,
-                    (int) $entity->id,
-                    $entity->administration_id ? (int) $entity->administration_id : null,
-                    (int) $user->id,
-                    'regalo_participacion',
-                    'Te han regalado una participación',
-                    trim(($user->name ?? 'Un usuario').' te ha enviado una participación en '.$entity->name.'.'),
-                    [
-                        'gift_id' => $gift->id,
-                        'participation_id' => $participation->id,
-                        'from_user_id' => $user->id,
-                        'rol_context' => 'usuario',
-                    ]
-                );
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('Inbox regalo participación: '.$e->getMessage());
+        if (app(ParticipationWalletValidityService::class)->isParticipationWalletExpired($participation)) {
+            return $this->walletExpiredJsonResponse();
         }
 
         try {
-            $gift->load(['fromUser', 'toUser', 'participation']);
-            $communicationEmailService = app(CommunicationEmailService::class);
-
-            $communicationEmailService->sendAndLog(
-                recipientEmail: (string) $destinatario->email,
-                recipientRole: 'usuario',
-                recipientUser: $destinatario,
-                messageType: 'gift_recipient_notification',
-                templateKey: null,
-                mailClass: ParticipationGiftRecipientMail::class,
-                mailPayload: ['gift_id' => $gift->id],
-                context: ['source' => 'api', 'gift_id' => $gift->id],
+            $result = $giftService->createGift(
+                $user,
+                $participation,
+                $request->email,
+                $request->input('message')
             );
-
-            if (!empty($user->email)) {
-                $communicationEmailService->sendAndLog(
-                    recipientEmail: (string) $user->email,
-                    recipientRole: 'usuario',
-                    recipientUser: $user,
-                    messageType: 'gift_sender_confirmation',
-                    templateKey: null,
-                    mailClass: ParticipationGiftSenderMail::class,
-                    mailPayload: ['gift_id' => $gift->id],
-                    context: ['source' => 'api', 'gift_id' => $gift->id],
-                );
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('Fallo enviando emails de regalo: '.$e->getMessage());
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Participación enviada con éxito.',
-            'gifted_to_email' => $destinatario->email,
+            'message' => 'Participación enviada con éxito. El destinatario debe aceptarla para que pase a su cartera.',
+            'gifted_to_email' => $result['gifted_to_email'],
+            'gift_id' => $result['gift']->id,
+            'gift_status' => $result['gift']->status,
+        ]);
+    }
+
+    /**
+     * API: Aceptar participación regalada.
+     */
+    public function apiAcceptGift(Request $request, int $giftId, ParticipationGiftService $giftService)
+    {
+        $user = $request->user();
+        if (! $user->isClient() && ! $user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        $giftService->attachPendingGiftsToUser($user);
+
+        $gift = ParticipationGift::find($giftId);
+        if (! $gift) {
+            return response()->json(['success' => false, 'message' => 'Regalo no encontrado.'], 404);
+        }
+
+        try {
+            $gift = $giftService->acceptGift($gift, $user);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Participación aceptada. Ya forma parte de tu cartera.',
+            'gift_id' => $gift->id,
+        ]);
+    }
+
+    /**
+     * API: Rechazar participación regalada.
+     */
+    public function apiRejectGift(Request $request, int $giftId, ParticipationGiftService $giftService)
+    {
+        $user = $request->user();
+        if (! $user->isClient() && ! $user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        $giftService->attachPendingGiftsToUser($user);
+
+        $gift = ParticipationGift::find($giftId);
+        if (! $gift) {
+            return response()->json(['success' => false, 'message' => 'Regalo no encontrado.'], 404);
+        }
+
+        try {
+            $giftService->rejectGift($gift, $user);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Has rechazado el regalo. La participación vuelve al remitente.',
+        ]);
+    }
+
+    /**
+     * API: Regalos pendientes de aceptar (para aviso al entrar en la app).
+     */
+    public function apiPendingGifts(Request $request)
+    {
+        $user = $request->user();
+        if (! $user->isClient() && ! $user->isSeller()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        app(ParticipationGiftService::class)->attachPendingGiftsToUser($user);
+
+        $userEmail = strtolower((string) $user->email);
+        $gifts = ParticipationGift::query()
+            ->where('status', ParticipationGift::STATUS_PENDING)
+            ->where(function ($q) use ($user, $userEmail) {
+                $q->where('to_user_id', $user->id)
+                    ->orWhere(function ($q2) use ($userEmail) {
+                        $q2->whereNull('to_user_id')->whereRaw('LOWER(to_email) = ?', [$userEmail]);
+                    });
+            })
+            ->with(['fromUser', 'participation.set.entity'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $items = $gifts->map(function (ParticipationGift $gift) {
+            return [
+                'gift_id' => $gift->id,
+                'participation_id' => $gift->participation_id,
+                'from_name' => $gift->fromUser?->name ?? $gift->fromUser?->email,
+                'from_email' => $gift->fromUser?->email,
+                'message' => $gift->message,
+                'gifted_at' => $gift->created_at?->toIso8601String(),
+                'entidad' => $gift->participation?->set?->entity?->name,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'count' => $items->count(),
+            'gifts' => $items,
         ]);
     }
 
@@ -2821,5 +2930,32 @@ class ParticipationController extends Controller
             'message' => 'Pago registrado con éxito.',
             'count' => count($valid),
         ]);
+    }
+
+    /**
+     * Marca caducidad en ítem de cartera (3 meses desde fecha del sorteo).
+     */
+    protected function applyWalletValidityToWalletItem(array $item, Participation $participation): array
+    {
+        $validity = app(ParticipationWalletValidityService::class);
+        $item['wallet_valid_until'] = $validity->walletValidUntilIso($participation);
+
+        if ($validity->isParticipationWalletExpired($participation)
+            && ! in_array($item['estado'] ?? '', ['cobrada', 'donada'], true)) {
+            $item['estado'] = 'caducada';
+            $item['wallet_expired'] = true;
+        }
+
+        return $item;
+    }
+
+    protected function walletExpiredJsonResponse(): \Illuminate\Http\JsonResponse
+    {
+        $months = (int) config('digital_sale.wallet_validity_months_after_draw', 3);
+
+        return response()->json([
+            'success' => false,
+            'message' => "Esta participación ha caducado (plazo de {$months} meses desde la fecha del sorteo).",
+        ], 422);
     }
 }

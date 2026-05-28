@@ -103,10 +103,11 @@ class DigitalSaleSmsService
             if (! $pending->valid_until) {
                 throw new \InvalidArgumentException('Esta venta pendiente no tiene fecha de validez.');
             }
-            $hasta = $pending->valid_until->timezone(config('app.timezone'))->format('d/m/Y H:i');
+            $hasta = $pending->valid_until->timezone(config('app.timezone'))->format('d/m/Y');
+            $months = (int) config('digital_sale.wallet_validity_months_after_draw', 3);
 
             throw new \InvalidArgumentException(
-                "La reserva ha caducado (válida hasta {$hasta}). Ya no se puede enviar el SMS."
+                "La reserva ha caducado (plazo de {$months} meses desde el sorteo, hasta {$hasta}). Ya no se puede enviar el SMS."
             );
         }
 

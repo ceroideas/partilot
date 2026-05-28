@@ -20,7 +20,8 @@
     </p>
     <p>
         Regístrate con este mismo correo (<strong>{{ $pending->email }}</strong>)
-        antes del <strong>{{ $pending->valid_until?->format('d/m/Y H:i') }}</strong>
+        antes del <strong>{{ $pending->valid_until?->format('d/m/Y') }}</strong>
+        ({{ config('digital_sale.wallet_validity_months_after_draw', 3) }} meses después del sorteo)
         usando el enlace de abajo. Al completar el formulario, las participaciones se vincularán automáticamente.
     </p>
 </div>

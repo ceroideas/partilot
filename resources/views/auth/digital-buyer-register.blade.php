@@ -45,7 +45,8 @@
                 <strong>Sorteo:</strong> {{ $pending->lottery->name ?? '—' }}
             </p>
             <p class="mb-0 small text-muted">
-                <strong>Válido hasta:</strong> {{ $pending->valid_until->format('d/m/Y H:i') }}
+                <strong>Válido para vincular hasta:</strong> {{ $pending->valid_until->format('d/m/Y') }}
+                ({{ config('digital_sale.wallet_validity_months_after_draw', 3) }} meses después del sorteo)
             </p>
         </div>
         <p class="text-muted small mb-0">

@@ -371,6 +371,9 @@ Route::middleware('auth.api')->group(function () {
         Route::post('/digital-pending/claim', [ParticipationController::class, 'apiClaimPendingDigitalByCode']);
         // Regalar participación a otro usuario (por email)
         Route::post('/participations/gift', [ParticipationController::class, 'apiGiftToUser']);
+        Route::get('/gifts/pending', [ParticipationController::class, 'apiPendingGifts']);
+        Route::post('/gifts/{giftId}/accept', [ParticipationController::class, 'apiAcceptGift'])->whereNumber('giftId');
+        Route::post('/gifts/{giftId}/reject', [ParticipationController::class, 'apiRejectGift'])->whereNumber('giftId');
     });
     
     // ========================================================================

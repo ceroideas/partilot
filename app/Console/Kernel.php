@@ -15,6 +15,7 @@ class Kernel extends ConsoleKernel
         // Requiere cron: * * * * * php artisan schedule:run
         // Guía y tabla de `kind`: docs/SCHEDULER_AND_KIND_LABELS.md
         //
+        $schedule->command('sipart:expire-pending-gifts')->dailyAt('02:00');
         // $schedule->command('sipart:pending-payments-check')->dailyAt('08:00');
         // $schedule->command('sipart:lottery-deadline-reminder')->dailyAt('09:00');
         // $schedule->command('sipart:new-lotteries-announce')->weeklyOn(1, '10:00');

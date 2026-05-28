@@ -118,7 +118,7 @@
                     				<small class="text-muted d-block">
                     					Venta digital pendiente de registro en la app
                     					@if($pendingDigitalSaleForLinkCode->valid_until)
-                    						· válido hasta {{ $pendingDigitalSaleForLinkCode->valid_until->format('d/m/Y H:i') }}
+                    						· válido hasta {{ $pendingDigitalSaleForLinkCode->valid_until->format('d/m/Y') }}
                     					@endif
                     				</small>
                     			</div>

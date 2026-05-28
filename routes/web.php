@@ -124,6 +124,11 @@ Route::get('/registro-comprador/{token}', [\App\Http\Controllers\DigitalBuyerReg
 Route::post('/registro-comprador/{token}', [\App\Http\Controllers\DigitalBuyerRegistrationController::class, 'store'])->name('digital-buyer.register.store');
 Route::post('/registro-comprador/sms-code', [\App\Http\Controllers\PhoneVerificationController::class, 'sendCode'])->name('digital-buyer.sms-code');
 
+// Registro web destinatario de regalo (email no registrado)
+Route::get('/registro-regalo/{token}', [\App\Http\Controllers\GiftRecipientRegistrationController::class, 'show'])->name('gift-recipient.register');
+Route::post('/registro-regalo/{token}', [\App\Http\Controllers\GiftRecipientRegistrationController::class, 'store'])->name('gift-recipient.register.store');
+Route::post('/registro-regalo/sms-code', [\App\Http\Controllers\PhoneVerificationController::class, 'sendCode'])->name('gift-recipient.sms-code');
+
 // Diseño externo por invitación (público, sin login; acceso solo por enlace)
 Route::get('/design/external/invite/{token}', [\App\Http\Controllers\DesignController::class, 'externalInviteByToken'])->name('design.external.invite');
 Route::get('/design/external/editor', [\App\Http\Controllers\DesignController::class, 'externalEditor'])->name('design.external.editor');

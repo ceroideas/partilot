@@ -10,7 +10,9 @@ use App\Models\User;
 use App\Models\Seller;
 use App\Models\Manager;
 use App\Mail\UserWelcomeMail;
+use App\Models\ParticipationGift;
 use App\Services\CommunicationEmailService;
+use App\Services\ParticipationGiftService;
 
 class AuthController extends Controller
 {
@@ -320,6 +322,12 @@ class AuthController extends Controller
             $response['manager'] = $manager;
         }
 
+        app(ParticipationGiftService::class)->attachPendingGiftsToUser($user);
+        $response['pending_gifts_count'] = ParticipationGift::query()
+            ->where('to_user_id', $user->id)
+            ->where('status', ParticipationGift::STATUS_PENDING)
+            ->count();
+
         return response()->json($response);
     }
 
@@ -393,6 +401,8 @@ class AuthController extends Controller
             'role' => User::ROLE_CLIENT,
             'status' => true,
         ]);
+
+        app(ParticipationGiftService::class)->attachPendingGiftsToUser($user);
 
         try {
             app(CommunicationEmailService::class)->sendAndLog(

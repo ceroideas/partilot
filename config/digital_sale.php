@@ -2,13 +2,16 @@
 
 return [
     /*
-    | Tiempo de reserva de participaciones digitales hasta que el comprador se registre.
-    | Usa DIGITAL_SALE_HOLD_HOURS o DIGITAL_SALE_HOLD_DAYS (días tiene prioridad si > 0).
+    | Venta digital pendiente (reserva hasta registro / código de vinculación):
+    | valid_until = fecha del sorteo + wallet_validity_months_after_draw meses.
+    | No caduca a las 72 h: el comprador puede vincular meses después de la venta
+    | siempre que no hayan pasado esos 3 meses desde el sorteo.
     |
-    | Caducidad: columna valid_until. Se comprueba al vender, consultar disponibles,
-    | abrir el enlace de registro o registrarse (sin cron ni comando artisan).
+    | Tras esa fecha, la participación en cartera queda caducada (no cobrar, regalar ni usar).
     */
-    // Reserva hasta registro del comprador (prioridad: hold_days si > 0, si no hold_hours; mín. 1 h).
+    'wallet_validity_months_after_draw' => (int) env('DIGITAL_SALE_WALLET_VALIDITY_MONTHS', 3),
+
+    /** @deprecated Ya no define valid_until; se mantiene por compatibilidad en .env */
     'hold_hours' => (int) env('DIGITAL_SALE_HOLD_HOURS', 72),
     'hold_days' => (int) env('DIGITAL_SALE_HOLD_DAYS', 0),
 
