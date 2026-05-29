@@ -1506,7 +1506,7 @@ class ParticipationController extends Controller
      */
     private function formatParticipationForWallet(Participation $participation, string $referencia): array
     {
-        $set = $participation->set()->with('reserve.lottery', 'entity', 'designFormats')->first();
+        $set = $participation->set()->with(['reserve.lottery', 'entity.administration', 'designFormats'])->first();
         $reserve = $set->reserve ?? null;
         $lottery = $reserve ? $reserve->lottery : null;
         $entity = $set->entity ?? null;
@@ -1541,12 +1541,16 @@ class ParticipationController extends Controller
         $importeTotal = $importeJugado + $donativo;
         $participationCode = $participation->participation_code ?? '';
         $isDigital = str_starts_with($participationCode, '1D/') || $this->setIsDigitalOnly($set);
+        $administration = $entity?->administration;
+        $prepagoService = app(\App\Services\PrepagoCodigosService::class);
 
         return [
             'id' => $participation->id,
             'referencia' => $referencia,
             'entidad' => $entity ? $entity->name : '—',
             'entity_id' => $entity ? (int) $entity->id : null,
+            'administration_id' => $administration ? (int) $administration->id : null,
+            'can_generate_recharge_code' => $prepagoService->canGenerateCodes($administration),
             'sorteo' => $this->lotteryHistorialLabel($lottery),
             'numero' => $participation->participation_number,
             'numeroReservado' => $numeroReservado,
@@ -1684,7 +1688,7 @@ class ParticipationController extends Controller
         $participations = Participation::where('buyer_name', $userId)
             ->whereNull('collected_at')
             ->whereNull('donated_at')
-            ->with(['set.reserve.lottery', 'set.entity', 'set.designFormats', 'gift'])
+            ->with(['set.reserve.lottery', 'set.entity.administration', 'set.designFormats', 'gift'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -1907,7 +1911,7 @@ class ParticipationController extends Controller
         }
 
         // Todas las participaciones deben ser de la misma entidad
-        $participations->load('set.entity');
+        $participations->load('set.entity.administration');
         $entityIds = $participations->map(fn ($p) => $p->set?->entity_id ?? $p->entity_id)->filter()->unique()->values();
         if ($entityIds->count() > 1) {
             return response()->json(['success' => false, 'message' => 'Solo puedes donar participaciones de la misma entidad.'], 422);
@@ -1917,26 +1921,37 @@ class ParticipationController extends Controller
         $importeCodigo = (float) $request->importe_codigo;
         $importeTotal = $importeDonacion + $importeCodigo;
 
-        // Validar que la suma coincida con el total de las participaciones (Participation usa sale_amount)
-        $totalParticipaciones = $participations->sum(function ($p) {
-            return (float) ($p->sale_amount ?? 0);
-        });
+        // Mismo criterio que la app (premio si hay premio; si no, importeTotal del set).
+        $totalParticipaciones = round($participations->sum(
+            fn (Participation $p) => $this->resolveParticipationWalletAmount($p)
+        ), 2);
 
         if (abs($importeTotal - $totalParticipaciones) > 0.01) {
             return response()->json([
                 'success' => false,
-                'message' => 'La suma de donación y código no coincide con el importe total de las participaciones.'
+                'message' => 'La suma de donación y código no coincide con el importe total de las participaciones.',
             ], 422);
         }
 
-        // Generar código de recarga si hay importe para código (API externa prepago, usable en web de loterías)
+        $entity = Entity::with('administration')->find($entityIds->first());
+        $administration = $entity?->administration;
+        $prepagoService = app(\App\Services\PrepagoCodigosService::class);
+
+        if ($importeCodigo > 0 && ! $prepagoService->canGenerateCodes($administration)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta administración no tiene configurada la generación de códigos de recarga. Dona el importe total sin generar código.',
+            ], 422);
+        }
+
+        // Generar código de recarga si hay importe para código (API de la administración o PARTILOT por defecto)
         $codigoRecarga = null;
         if ($importeCodigo > 0) {
-            $codigoRecarga = $this->generarCodigoPrepagoExterno($importeCodigo);
+            $codigoRecarga = $prepagoService->generateCode($administration, $importeCodigo);
             if ($codigoRecarga === null) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo generar el código de recarga. Compruebe la configuración del servicio de códigos prepago o intente de nuevo más tarde.'
+                    'message' => 'No se pudo generar el código de recarga. Compruebe la configuración del servicio de códigos prepago o intente de nuevo más tarde.',
                 ], 502);
             }
         }
@@ -1994,53 +2009,6 @@ class ParticipationController extends Controller
             'importe_donacion' => $importeDonacion,
             'importe_codigo' => $importeCodigo,
         ]);
-    }
-
-    /**
-     * Generar código de recarga prepago mediante API externa (usable en la web de loterías).
-     * Parámetro importe: mayor que 0; decimales con punto (ej: 1, 1.50, 20.25).
-     * Respuesta esperada: {"status":1,"codigos":["C-XXXXX"]} → se usa codigos[0].
-     */
-    private function generarCodigoPrepagoExterno(float $importe): ?string
-    {
-        $importe = round($importe, 2);
-        if ($importe <= 0) {
-            return null;
-        }
-
-        $url = config('services.prepago_codigos.url');
-        $apikey = config('services.prepago_codigos.apikey');
-        if (empty($url) || empty($apikey)) {
-            Log::warning('Prepago códigos: falta PREPAGO_CODIGOS_URL o PREPAGO_CODIGOS_APIKEY en .env');
-            return null;
-        }
-
-        // Decimales con punto; ej: 1, 1.50, 20.25
-        $importeStr = number_format($importe, 2, '.', '');
-        $importeStr = rtrim(rtrim($importeStr, '0'), '.'); // 1.00 → 1, 1.50 se queda
-
-        $response = Http::timeout(15)->get($url, [
-            'apikey' => $apikey,
-            'n_codigos' => config('services.prepago_codigos.n_codigos', 1),
-            'tamano_cadena' => config('services.prepago_codigos.tamano_cadena', 8),
-            'importe' => $importeStr,
-            'prefijo' => config('services.prepago_codigos.prefijo', 'c-'),
-            'accion' => config('services.prepago_codigos.accion', 'generarCodigosRnd'),
-        ]);
-
-        if (!$response->successful()) {
-            Log::warning('Prepago códigos: request fallido', ['status' => $response->status(), 'body' => $response->body()]);
-            return null;
-        }
-
-        $data = $response->json();
-        if (empty($data['status']) || (int) $data['status'] !== 1 || empty($data['codigos']) || !is_array($data['codigos'])) {
-            Log::warning('Prepago códigos: respuesta inválida', ['response' => $data]);
-            return null;
-        }
-
-        $codigo = $data['codigos'][0] ?? null;
-        return is_string($codigo) && $codigo !== '' ? $codigo : null;
     }
 
     /**
@@ -2408,6 +2376,29 @@ class ParticipationController extends Controller
         });
 
         return $historial;
+    }
+
+    /**
+     * Importe que la cartera usa para cobro/donación: premio si la participación tiene premio; si no, jugado + donativo del set.
+     */
+    private function resolveParticipationWalletAmount(Participation $participation): float
+    {
+        $participation->loadMissing('set');
+
+        $ref = $this->getReferenceFromParticipation($participation);
+        if ($ref !== '') {
+            $prizeInfo = app(ApiController::class)->getPrizeInfoForReference($ref);
+            if (($prizeInfo['has_won'] ?? false) && (float) ($prizeInfo['prize_amount'] ?? 0) > 0) {
+                return (float) $prizeInfo['prize_amount'];
+            }
+        }
+
+        $set = $participation->set;
+        if ($set) {
+            return (float) ($set->played_amount ?? 0) + (float) ($set->donation_amount ?? 0);
+        }
+
+        return (float) ($participation->sale_amount ?? 0);
     }
 
     private function getReferenceFromParticipation(Participation $p): string

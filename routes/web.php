@@ -196,7 +196,8 @@ Route::group(['prefix' => 'administrations', 'middleware' => 'role:super_admin']
 
         return view('admins.edit_manager', compact('administration'));
     })->name('administrations.edit-manager');
-    Route::get('/edit/api/{id}', function() {return view('admins.edit_api');});
+    Route::get('/edit/api/{id}', [AdministratorController::class, 'editApi'])->name('administrations.edit-api');
+    Route::put('/update/api/{id}', [AdministratorController::class, 'updateApi'])->name('administrations.update-api');
 });
 
 Route::group(['prefix' => 'entities'], function() {

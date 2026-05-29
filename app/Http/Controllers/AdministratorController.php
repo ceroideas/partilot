@@ -188,6 +188,49 @@ class AdministratorController extends Controller
         return back()->with('success', 'Se ha enviado el correo con el usuario de acceso y el enlace para establecer la contraseña.');
     }
 
+    public function editApi($id)
+    {
+        $administration = Administration::forUser(auth()->user())->findOrFail($id);
+        $partilotDefaultAvailable = app(\App\Services\PrepagoCodigosService::class)->partilotConfigIsComplete();
+
+        return view('admins.edit_api', compact('administration', 'partilotDefaultAvailable'));
+    }
+
+    public function updateApi(Request $request, $id)
+    {
+        $administration = Administration::forUser(auth()->user())->findOrFail($id);
+
+        $validated = $request->validate([
+            'prepago_integration_name' => 'nullable|string|max:255',
+            'prepago_api_url' => 'nullable|string|max:500|url',
+            'prepago_auth_method' => 'nullable|in:apikey',
+            'prepago_api_prefix' => 'nullable|string|max:32',
+            'prepago_api_key' => 'nullable|string|max:255',
+            'prepago_use_partilot_default' => 'nullable|boolean',
+            'prepago_integration_enabled' => 'nullable|boolean',
+        ]);
+
+        $data = [
+            'prepago_integration_name' => $validated['prepago_integration_name'] ?? null,
+            'prepago_api_url' => $validated['prepago_api_url'] ?? null,
+            'prepago_auth_method' => $validated['prepago_auth_method'] ?? 'apikey',
+            'prepago_api_prefix' => $validated['prepago_api_prefix'] ?? null,
+            'prepago_use_partilot_default' => $request->boolean('prepago_use_partilot_default'),
+            'prepago_integration_enabled' => $request->boolean('prepago_integration_enabled'),
+        ];
+
+        if ($request->filled('prepago_api_key')) {
+            $data['prepago_api_key'] = $request->input('prepago_api_key');
+        }
+
+        $administration->update($data);
+
+        return redirect()
+            ->route('administrations.show', $administration->id)
+            ->with('success', 'Configuración API de códigos de recarga actualizada correctamente.')
+            ->withFragment('configuracion_api');
+    }
+
     public function store_information(CreateAdmin $request)
     {
         // Saneamiento IBAN: quitar espacios, prefijo ES duplicado y dejar solo dígitos

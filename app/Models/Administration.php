@@ -25,11 +25,25 @@ class Administration extends Model
         "phone",
         "account",
         "status",
-        "image"
+        "image",
+        "prepago_integration_name",
+        "prepago_api_url",
+        "prepago_auth_method",
+        "prepago_api_prefix",
+        "prepago_api_key",
+        "prepago_use_partilot_default",
+        "prepago_integration_enabled",
     ];
 
     protected $casts = [
         'status' => 'integer',
+        'prepago_api_key' => 'encrypted',
+        'prepago_use_partilot_default' => 'boolean',
+        'prepago_integration_enabled' => 'boolean',
+    ];
+
+    protected $hidden = [
+        'prepago_api_key',
     ];
 
     /**

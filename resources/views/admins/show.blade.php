@@ -154,7 +154,7 @@
 	                    				<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
 	                    					<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
 	                    				</div>
-	                    				<input class="form-control" type="text" value="{{ $statusText }}" id="admin-status-input" style="border-radius: 0 30px 0 0; border-bottom: 1px solid #dee2e6;" readonly>
+	                    				<input class="form-control" type="text" value="{{ $statusText }}" id="admin-status-input" style="border-radius: 0 !important; border-bottom: 1px solid #dee2e6;" readonly>
 	                    				<button type="button" class="btn btn-sm btn-outline-secondary" id="admin-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
 	                    			</div>
 	                    			<span class="badge badge-lg {{ $statusClass }} mt-2" id="admin-status-badge" style="display: none;">{{ $statusText }}</span>
@@ -681,238 +681,112 @@
                     				</div>
 
                     				<div class="tab-pane fade" id="configuracion_api">
+                    					@php
+                    						$prepagoService = app(\App\Services\PrepagoCodigosService::class);
+                    						$canGenerateCodes = $prepagoService->canGenerateCodes($administration);
+                    						$usesPartilot = $administration->prepago_use_partilot_default;
+                    						$hasOwnConfig = $prepagoService->hasOwnConfig($administration);
+                    						$resolvedSource = $canGenerateCodes
+                    						    ? ($hasOwnConfig ? 'administration' : 'partilot')
+                    						    : null;
+                    					@endphp
                     					<div class="form-card bs" style="min-height: 658px;">
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos generales API
-
-			                    				<a href="{{url('administrations/edit/api/'.$administration->id)}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
-			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
+			                    				<a href="{{ route('administrations.edit-api', $administration->id) }}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;">
+			                    				<img src="{{ url('assets/form-groups/edit.svg') }}" alt="">
 			                    				Editar</a>
 			                    			</h4>
 			                    			<small><i>Todos los campos son obligatorios</i></small>
 			                    			<div style="clear: both;"></div>
 
 			                    			<div class="row">
-			                    				
 		                    					<div class="col-7">
 		                    						<div class="form-group mt-2 mb-3">
 		                    							<label class="label-control">Nombre de la integración</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-						                                      	<img src="{{url('assets/form-groups/admin/1.svg')}}" alt="">
-							                                    </div>
-
-						                                    <input class="form-control" value="El Búho Lotero" type="text" readonly="" placeholder="Nombre Integración" style="border-radius: 0 30px 30px 0;">
-
-						                                </div>
-						                                <small><i>Ayuda: Un nombre fácil de recordar para identificar esta configuración</i></small>
-					                    			</div>
+		                    							<div class="input-group input-group-merge group-form">
+		                    								<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+		                    									<img src="{{ url('assets/form-groups/admin/1.svg') }}" alt="">
+		                    								</div>
+		                    								<input class="form-control" type="text" readonly value="{{ $administration->prepago_integration_name ?: '—' }}" placeholder="Nombre Integración" style="border-radius: 0 30px 30px 0;">
+		                    							</div>
+		                    							<small><i>Ayuda: Un nombre fácil de recordar para identificar esta configuración</i></small>
+		                    						</div>
 		                    					</div>
 		                    					<div class="col-5">
 		                    						<div class="form-group mb-3">
-		                    							
 		                    							<div class="form-check form-switch mt-4" style="margin-top: 3rem !important;">
-															<input disabled="" style="float: right;" class="form-check-input bg-dark" type="checkbox" role="switch" id="api_status" checked>
-															<label style="float: right; margin-right: 50px;" class="form-check-label" for="api_status"><b>Estado de la integración</b></label>
-														</div>
-
-						                    			
-					                    			</div>
+		                    								<input disabled style="float: right;" class="form-check-input bg-dark" type="checkbox" role="switch" id="api_status_view" {{ $administration->prepago_integration_enabled ? 'checked' : '' }}>
+		                    								<label style="float: right; margin-right: 50px;" class="form-check-label" for="api_status_view"><b>Estado de la integración</b></label>
+		                    							</div>
+		                    						</div>
 		                    					</div>
-
 		                    				</div>
 
-		                    				<h4 class="mb-0 mt-1">
-			                    				Datos generales API
-			                    			</h4>
-			                    			<small><i>Todos los campos son obligatorios</i></small>
+		                    				<h4 class="mb-0 mt-1">Datos generales API</h4>
+		                    				<small><i>Todos los campos son obligatorios</i></small>
 
-			                    			<div class="row">
-			                    				
+		                    				<div class="row">
 		                    					<div class="col-7">
 		                    						<div class="form-group mt-2 mb-3">
 		                    							<label class="label-control">URL Base de la API (Endpoint)</label>
-
-						                    			<div class="input-group input-group-merge group-form">
-
-						                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-						                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-						                                    </div>
-
-						                                    <input class="form-control" value="http://api.cliente.com/v1/recargas" type="text" readonly="" placeholder="URL Base de la API" style="border-radius: 0 30px 30px 0;">
-
-						                                </div>
-					                    			</div>
+		                    							<div class="input-group input-group-merge group-form">
+		                    								<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+		                    									<img src="{{ url('assets/form-groups/admin/4.svg') }}" alt="">
+		                    								</div>
+		                    								<input class="form-control" type="text" readonly value="{{ $administration->prepago_api_url ?: '—' }}" placeholder="URL Base de la API" style="border-radius: 0 30px 30px 0;">
+		                    							</div>
+		                    						</div>
 		                    					</div>
-
 		                    					<div class="col-5">
 		                    						<div class="form-group mt-2 mb-3">
 		                    							<label class="label-control">Método de Autenticación</label>
-
-						                    			<div class="input-group input-group-merge group-form">
-
-						                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-						                                      	<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
-						                                    </div>
-
-						                                    <select class="form-control" name="" id="method" disabled>
-						                                    	<option value="" disabled>Elige una opción</option>
-						                                    	<option value="apikey">Clave API (API Key)</option>
-						                                    	<option value="oauth">OAuth 2.0</option>
-						                                    	<option value="bearer">Bearer Token (JWT)</option>
-						                                    	<option value="basic" selected>Básico (Usuario/Contraseña)</option>
-						                                    </select>
-
-						                                </div>
-					                    			</div>
+		                    							<div class="input-group input-group-merge group-form">
+		                    								<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+		                    									<img src="{{ url('assets/form-groups/admin/13.svg') }}" alt="">
+		                    								</div>
+		                    								<select class="form-control" disabled style="border-radius: 0 30px 30px 0;">
+		                    									<option value="apikey" selected>Clave API (API Key)</option>
+		                    								</select>
+		                    							</div>
+		                    						</div>
 		                    					</div>
-		                    					
-
 		                    				</div>
 
-		                    				<div id="apikey" class="d-none mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				Clave API (API Key)
-				                    			</h4>
-
-				                    			<div class="row">
-			                    				
-			                    					<div class="col-12">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">API Key</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" type="text" placeholder="API Key" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-			                    				</div>
-		                    				</div>
-		                    				<div id="oauth" class="d-none mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				OAuth 2.0
-				                    			</h4>
-
-				                    			<div class="row">
-			                    				
-			                    					<div class="col-12">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Token OAuth</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" type="text" placeholder="Token Oauth" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-			                    				</div>
-
-		                    				</div>
-		                    				<div id="bearer" class="d-none mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				Bearer Token (JWT)
-				                    			</h4>
-
-				                    			<div class="row">
-			                    				
-			                    					<div class="col-12">
-			                    						<div class="form-group mt-2 mb-3">
-			                    							<label class="label-control">Bearer Token</label>
-
-							                    			<div class="input-group input-group-merge group-form" {{-- style="border-bottom: none;" --}}>
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <textarea readonly="" class="form-control" placeholder="Bearer Token" name="" id="" rows="4"></textarea>
-
-							                                </div>
-						                    			</div>
-			                    					</div>
-			                    				</div>
-		                    				</div>
-		                    				<div id="basic" class="d-none- mt-3 method">
-		                    					
-		                    					<h4 class="mb-0 mt-1">
-				                    				Básico (Usuario/Contraseña)
-				                    			</h4>
-
-				                    			<div class="row">
-			                    				
-			                    					<div class="col-7">
-		                    						<div class="form-group mt-2 mb-3">
-		                    							<label class="label-control">Usuario</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" value="elbuholotero@partilot.com" readonly="" type="text" placeholder="Usuario" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
+		                    				<div class="mt-3">
+		                    					<h4 class="mb-0 mt-1">Clave API (API Key)</h4>
+		                    					<div class="row">
+		                    						<div class="col-4">
+		                    							<div class="form-group mt-2 mb-3">
+		                    								<label class="label-control">Prefijo del código</label>
+		                    								<div class="input-group input-group-merge group-form">
+		                    									<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+		                    										<img src="{{ url('assets/form-groups/admin/4.svg') }}" alt="">
+		                    									</div>
+		                    									<input class="form-control" type="text" readonly value="{{ $administration->prepago_api_prefix ?: '—' }}" style="border-radius: 0 30px 30px 0;">
+		                    								</div>
+		                    							</div>
+		                    						</div>
+		                    						<div class="col-8">
+		                    							<div class="form-group mt-2 mb-3">
+		                    								<label class="label-control">API Key</label>
+		                    								<input class="form-control" type="text" readonly value="{{ $hasOwnConfig ? 'Configurada' : '—' }}" placeholder="API Key" style="border-radius: 30px;">
+		                    							</div>
+		                    						</div>
 		                    					</div>
+		                    				</div>
 
-		                    					<div class="col-5">
-		                    						<div class="form-group mt-2 mb-3">
-		                    							<label class="label-control">Contraseña</label>
+		                    				<hr class="my-3">
 
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    {{-- <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                        <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
-							                                    </div> --}}
-
-							                                    <input class="form-control" value="12345678" readonly="" type="text" placeholder="Contraseña" style="border-radius: 0 30px 30px 0;">
-
-							                                </div>
-						                    			</div>
-		                    					</div>
-		                    					
-		                    					<div class="col-4">
-		                    						<div class="form-group mt-2 mb-3">
-		                    							<label class="label-control">Formato de Datos de Envío</label>
-
-							                    			<div class="input-group input-group-merge group-form">
-
-							                                    <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-							                                      	<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
-							                                    </div>
-
-							                                    <select class="form-control" name="" id="" disabled>
-							                                    	<option value="" disabled selected>Elige una opción</option>
-							                                    	<option value="json" selected>JSON</option>
-							                                    	<option value="text">Text</option>
-							                                    	<option value="xml">XML</option>
-							                                    </select>
-
-							                                </div>
-						                    			</div>
-		                    					</div>
-
-			                    				</div>
-
-			                    			</div>
-
+		                    				<div class="form-check mb-2">
+		                    					<input class="form-check-input" type="checkbox" disabled {{ $usesPartilot ? 'checked' : '' }}>
+		                    					<label class="form-check-label">Usar integración por defecto de PARTILOT (.env) si no hay configuración propia completa</label>
+		                    				</div>
+		                    				@if($canGenerateCodes)
+		                    					<small class="text-muted d-block">Generación de códigos activa — origen actual: <strong>{{ $resolvedSource === 'administration' ? 'integración propia' : 'PARTILOT (.env)' }}</strong>.</small>
+		                    				@else
+		                    					<small class="text-muted d-block">Sin integración operativa: las donaciones desde la app serán solo a entidad (100% del premio, sin código de recarga).</small>
+		                    				@endif
 			                    		</div>
                     				</div>
 
@@ -936,6 +810,17 @@
 @endsection
 
 @section('scripts')
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.location.hash === '#configuracion_api') {
+        var tabEl = document.querySelector('[data-bs-target="#configuracion_api"]');
+        if (tabEl) {
+            bootstrap.Tab.getOrCreateInstance(tabEl).show();
+        }
+    }
+});
+</script>
 
 <script>
 

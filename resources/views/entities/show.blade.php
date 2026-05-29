@@ -127,7 +127,7 @@
 	                    				<div class="input-group-text" style="border-radius: 30px 0 0 30px;">
 	                    					<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
 	                    				</div>
-	                    				<input class="form-control" type="text" value="{{ $statusText }}" id="entity-status-input" style="border-radius: 0 30px 0 0; border-bottom: 1px solid #dee2e6;" readonly>
+	                    				<input class="form-control" type="text" value="{{ $statusText }}" id="entity-status-input" style="border-radius: 0 !important; border-bottom: 1px solid #dee2e6;" readonly>
 	                    				<button type="button" class="btn btn-sm btn-outline-secondary" id="entity-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
 	                    			</div>
 	                    			<span class="badge badge-lg {{ $statusClass }} mt-2" id="entity-status-badge" style="display: none;">{{ $statusText }}</span>
