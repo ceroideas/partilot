@@ -486,6 +486,8 @@ Route::group(['prefix' => 'configuration', 'middleware' => 'entity.permission:pa
     Route::post('/entity-settings', [App\Http\Controllers\ConfigurationController::class, 'updateEntitySettings'])->name('configuration.entity-settings.update');
     Route::post('/entity-settings/billing', [App\Http\Controllers\ConfigurationController::class, 'updateEntityBilling'])->name('configuration.entity-billing.update');
     Route::post('/entity-settings/managers/{manager}', [App\Http\Controllers\ConfigurationController::class, 'updateEntityManager'])->name('configuration.entity-manager.update');
+    Route::post('/administration-settings', [App\Http\Controllers\ConfigurationController::class, 'updateAdministrationSettings'])->name('configuration.administration-settings.update');
+    Route::post('/administration-settings/billing', [App\Http\Controllers\ConfigurationController::class, 'updateAdministrationBilling'])->name('configuration.administration-billing.update');
     Route::post('/imprenta', [App\Http\Controllers\ConfigurationController::class, 'updateImprenta'])->name('configuration.imprenta.update');
     Route::post('/imprenta/panel-access', [App\Http\Controllers\ConfigurationController::class, 'updatePrintShopPanelAccess'])->name('configuration.imprenta.panel-access');
     Route::post('/print-orders/{printOrder}/status', [App\Http\Controllers\ConfigurationController::class, 'updatePrintOrderStatus'])->name('configuration.print-orders.status');

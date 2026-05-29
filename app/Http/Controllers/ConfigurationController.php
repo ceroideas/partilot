@@ -20,6 +20,7 @@ use App\Models\ParticipationDonation;
 use App\Models\Manager;
 use App\Models\Seller;
 use App\Models\User;
+use App\Models\EmailCommunicationLog;
 use App\Support\ContactEmailRegistry;
 use App\Support\PanelSelectionResolver;
 use Illuminate\Support\Facades\Hash;
@@ -35,13 +36,23 @@ class ConfigurationController extends Controller
     {
         $user = $request->user();
         $configurationEntityScoped = false;
+        $configurationAdministrationScoped = false;
         $scopedEntityId = null;
+        $scopedAdministrationId = null;
         $settingsEntity = null;
+        $settingsAdministration = null;
+        $settingsAdministrationEntities = collect();
+        $settingsLogEntityId = null;
         $settingsManagers = collect();
         $settingsPanelUser = null;
         $entityEmailLogs = collect();
 
-        $defaultSection = ($user && $user->isEntityPanelAccount()) ? 'datos-entidad' : 'datos-partilot';
+        $defaultSection = 'datos-partilot';
+        if ($user && $user->isEntityPanelAccount()) {
+            $defaultSection = 'datos-entidad';
+        } elseif ($user && $user->isAdministrationPanelAccount()) {
+            $defaultSection = 'datos-administracion';
+        }
         $section = $request->get('section', $defaultSection);
         $step = (int) $request->get('step', 1);
         $entityId = $request->get('entity_id');
@@ -52,11 +63,26 @@ class ConfigurationController extends Controller
 
         if ($user && ! $user->canAccessConfigurationSection($section)) {
             $allowed = $user->allowedConfigurationSections();
-            $section = $allowed[0] ?? 'datos-entidad';
+            $section = $allowed[0] ?? $defaultSection;
         }
 
-        $configurationEntityScoped = (bool) PanelSelectionResolver::implicitEntityId($user, 'payments');
-        $scopedEntityId = PanelSelectionResolver::implicitEntityId($user, 'payments');
+        $configurationEntityScoped = (bool) ($user && $user->isEntityPanelAccount());
+        $configurationAdministrationScoped = (bool) ($user && $user->isAdministrationPanelAccount());
+        $scopedEntityId = $user?->scopedConfigurationEntityId();
+        $scopedAdministrationId = $user?->scopedConfigurationAdministrationId();
+
+        if ($configurationAdministrationScoped && $scopedAdministrationId) {
+            $settingsAdministrationEntities = Entity::forUser($user)->orderBy('name')->get();
+            if ($request->filled('entity_id')) {
+                $candidateEntityId = (int) $request->get('entity_id');
+                if ($settingsAdministrationEntities->contains('id', $candidateEntityId)) {
+                    $settingsLogEntityId = $candidateEntityId;
+                }
+            }
+            if (! $settingsLogEntityId && $settingsAdministrationEntities->count() === 1) {
+                $settingsLogEntityId = (int) $settingsAdministrationEntities->first()->id;
+            }
+        }
 
         if ($redirect = $this->redirectConfigurationIfImplicitEntity($request, 'codigos-recarga', 2, $entityId ? (int) $entityId : null, $step)) {
             if ($section === 'codigos-recarga') {
@@ -362,8 +388,21 @@ class ConfigurationController extends Controller
             [$provinces, $provinceCityMap] = $this->getProvinceCityData();
         }
 
+        if ($section === 'datos-administracion' && $scopedAdministrationId) {
+            $settingsAdministration = Administration::forUser($user)->findOrFail($scopedAdministrationId);
+            $settingsPanelUser = User::query()
+                ->where('panel_account_type', 'administration')
+                ->where('panel_account_id', $scopedAdministrationId)
+                ->first();
+            [$provinces, $provinceCityMap] = $this->getProvinceCityData();
+        }
+
         if ($section === 'facturacion-cobros' && $scopedEntityId) {
             $settingsEntity = Entity::forUser($user)->findOrFail($scopedEntityId);
+        }
+
+        if ($section === 'facturacion-cobros' && $scopedAdministrationId) {
+            $settingsAdministration = Administration::forUser($user)->findOrFail($scopedAdministrationId);
         }
 
         if ($section === 'logs-emails' && $scopedEntityId) {
@@ -372,6 +411,16 @@ class ConfigurationController extends Controller
                 ->limit(500)
                 ->get()
                 ->filter(fn (EmailCommunicationLog $log) => (int) data_get($log->context, 'entity_id') === (int) $scopedEntityId)
+                ->take(200)
+                ->values();
+        }
+
+        if (in_array($section, ['logs-emails', 'logs-notificaciones'], true) && $settingsLogEntityId) {
+            $entityEmailLogs = EmailCommunicationLog::query()
+                ->orderByDesc('created_at')
+                ->limit(500)
+                ->get()
+                ->filter(fn (EmailCommunicationLog $log) => (int) data_get($log->context, 'entity_id') === (int) $settingsLogEntityId)
                 ->take(200)
                 ->values();
         }
@@ -410,8 +459,13 @@ class ConfigurationController extends Controller
             'selectedLogSeller',
             'selectedLogUser',
             'configurationEntityScoped',
+            'configurationAdministrationScoped',
             'scopedEntityId',
+            'scopedAdministrationId',
             'settingsEntity',
+            'settingsAdministration',
+            'settingsAdministrationEntities',
+            'settingsLogEntityId',
             'settingsManagers',
             'settingsPanelUser',
             'entityEmailLogs'
@@ -1123,5 +1177,147 @@ class ConfigurationController extends Controller
 
         return redirect()->route('configuration.index', ['section' => 'datos-entidad', 'tab' => 'gestores'])
             ->with('success', 'Datos del gestor actualizados correctamente.');
+    }
+
+    public function updateAdministrationSettings(Request $request)
+    {
+        $user = $request->user();
+        $administrationId = $user?->scopedConfigurationAdministrationId();
+        abort_unless($administrationId && $user?->canMutateAdministrationConfiguration(), 403);
+
+        $administration = Administration::forUser($user)->findOrFail($administrationId);
+
+        $validated = $request->validate([
+            'web' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
+            'society' => 'required|string|max:255',
+            'nif_cif' => ['required', 'string', 'max:255', new \App\Rules\SpanishDocument],
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:10',
+            'address' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:255',
+            'current_password' => 'nullable|required_with:panel_password|string',
+            'panel_password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $panelUser = User::query()
+            ->where('panel_account_type', 'administration')
+            ->where('panel_account_id', $administration->id)
+            ->first();
+
+        $newEmail = trim((string) $validated['email']);
+
+        if ($panelUser) {
+            if (strcasecmp((string) $panelUser->email, $newEmail) !== 0
+                && ContactEmailRegistry::isTaken($newEmail, $panelUser->id, $administration->id, null)) {
+                return back()->withInput()
+                    ->withErrors(['email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.']);
+            }
+        } elseif (strcasecmp((string) $administration->email, $newEmail) !== 0
+            && ContactEmailRegistry::isTaken($newEmail, null, $administration->id, null)) {
+            return back()->withInput()
+                ->withErrors(['email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.']);
+        }
+
+        if ($request->filled('panel_password')) {
+            if (! $panelUser || ! Hash::check((string) $request->input('current_password'), $panelUser->password)) {
+                return back()->withInput()->withErrors([
+                    'current_password' => 'La contraseña actual no es correcta.',
+                ]);
+            }
+        }
+
+        $administration->update([
+            'web' => $validated['web'] ?? '',
+            'name' => $validated['name'],
+            'society' => $validated['society'],
+            'nif_cif' => $validated['nif_cif'],
+            'province' => $validated['province'],
+            'city' => $validated['city'],
+            'postal_code' => $validated['postal_code'],
+            'address' => $validated['address'],
+            'email' => $newEmail,
+            'phone' => $validated['phone'],
+        ]);
+
+        if ($panelUser) {
+            $panelUser->update([
+                'email' => $newEmail,
+                'name' => Administration::panelDisplayNameFromParts($validated['name'], $validated['society']),
+                'phone' => $validated['phone'],
+                'nif_cif' => $validated['nif_cif'],
+            ]);
+            if ($request->filled('panel_password')) {
+                $panelUser->password = $request->input('panel_password');
+                $panelUser->save();
+            }
+        }
+
+        if ($request->filled('panel_password')) {
+            $administration->refresh();
+            if ($administration->status === null || $administration->status === -1) {
+                $administration->update(['status' => 1]);
+            }
+        }
+
+        return redirect()->route('configuration.index', ['section' => 'datos-administracion'])
+            ->with('success', 'Datos de la administración actualizados correctamente.');
+    }
+
+    public function updateAdministrationBilling(Request $request)
+    {
+        $user = $request->user();
+        $administrationId = $user?->scopedConfigurationAdministrationId();
+        abort_unless($administrationId && $user?->canMutateAdministrationConfiguration(), 403);
+
+        $administration = Administration::forUser($user)->findOrFail($administrationId);
+
+        $accountValue = $this->sanitizeIbanAccount($request->input('account'));
+        $request->merge(['account' => $accountValue ?? '']);
+
+        $request->validate([
+            'account' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D/', '', (string) $value);
+                    if ($digits !== '' && strlen($digits) !== 22) {
+                        $fail('La cuenta bancaria debe estar vacía o tener exactamente 22 dígitos.');
+                    }
+                },
+            ],
+        ]);
+
+        if ($accountValue) {
+            $iban = 'ES'.$accountValue;
+            $validator = \Validator::make(['iban' => $iban], [
+                'iban' => [new \App\Rules\SpanishIban],
+            ]);
+
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+        }
+
+        $administration->update([
+            'account' => $accountValue ? ('ES'.$accountValue) : null,
+        ]);
+
+        return redirect()->route('configuration.index', ['section' => 'facturacion-cobros'])
+            ->with('success', 'Datos de facturación actualizados correctamente.');
+    }
+
+    private function sanitizeIbanAccount($value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+        $raw = preg_replace('/\s+/', '', trim((string) $value));
+        $raw = preg_replace('/^ES/i', '', $raw);
+        $digits = preg_replace('/\D/', '', $raw);
+
+        return $digits !== '' ? $digits : null;
     }
 }

@@ -46,6 +46,7 @@
             <div class="form-card bs mb-3" style="background-color: #fff;">
                 @php($onlyPaymentsSection = auth()->user()?->isEntityManagerWithoutPanelAccount())
                 @php($isEntityPanelSettings = auth()->user()?->isEntityPanelAccount())
+                @php($isAdministrationPanelSettings = auth()->user()?->isAdministrationPanelAccount())
                 @if($onlyPaymentsSection)
                     @if($section == 'ordenes-pago-entidades')
                         <div class="form-wizard-element active">
@@ -119,6 +120,72 @@
                         <a href="{{ url('/configuration?section=codigos-recarga') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
                             <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
                             <label>Códigos Recarga</label>
+                        </a>
+                    @endif
+
+                    <div class="configuration-menu-sep"></div>
+
+                    @if($section == 'logs-emails')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['logs-emails']) }}" alt="">
+                            <label>Logs Emails</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=logs-emails') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['logs-emails']) }}" alt="">
+                            <label>Logs Emails</label>
+                        </a>
+                    @endif
+
+                    @if($section == 'logs-notificaciones')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['logs-notificaciones']) }}" alt="">
+                            <label>Logs Notificaciones</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=logs-notificaciones') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['logs-notificaciones']) }}" alt="">
+                            <label>Logs Notificaciones</label>
+                        </a>
+                    @endif
+                @elseif($isAdministrationPanelSettings)
+                    @if($section == 'datos-administracion')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['datos-partilot']) }}" alt="">
+                            <label>Mis datos</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=datos-administracion') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['datos-partilot']) }}" alt="">
+                            <label>Mis datos</label>
+                        </a>
+                    @endif
+
+                    <div class="configuration-menu-sep"></div>
+
+                    @if($section == 'facturacion-cobros')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['facturacion-cobros']) }}" alt="">
+                            <label>Facturación y Cobros</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=facturacion-cobros') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['facturacion-cobros']) }}" alt="">
+                            <label>Facturación y Cobros</label>
+                        </a>
+                    @endif
+
+                    <div class="configuration-menu-sep"></div>
+
+                    @if($section == 'ordenes-pago-entidades')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
+                            <label>Ordenes Pago</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=ordenes-pago-entidades') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
+                            <label>Ordenes Pago</label>
                         </a>
                     @endif
 
@@ -299,6 +366,8 @@
                         @include('configuration.sections.datos-partilot')
                     @elseif($section == 'datos-entidad')
                         @include('configuration.sections.datos-entidad')
+                    @elseif($section == 'datos-administracion')
+                        @include('configuration.sections.datos-administracion')
                     @elseif($section == 'config-factura-auto')
                         @include('configuration.sections.config-factura-auto')
                     @elseif($section == 'facturacion-cobros')

@@ -738,11 +738,31 @@ class User extends Authenticatable
     }
 
     /**
+     * Cuenta de panel vinculada a una administración concreta (ajustes acotados a esa administración).
+     */
+    public function isAdministrationPanelAccount(): bool
+    {
+        return $this->isPanelAccount()
+            && $this->panel_account_type === 'administration'
+            && $this->panel_account_id !== null;
+    }
+
+    /**
      * Entidad única cuando el usuario accede a Ajustes como cuenta panel de entidad.
      */
     public function scopedConfigurationEntityId(): ?int
     {
         return $this->implicitEntityId('payments');
+    }
+
+    /**
+     * Administración única cuando el usuario accede a Ajustes como cuenta panel de administración.
+     */
+    public function scopedConfigurationAdministrationId(): ?int
+    {
+        return $this->isAdministrationPanelAccount()
+            ? (int) $this->panel_account_id
+            : null;
     }
 
     /**
@@ -762,6 +782,16 @@ class User extends Authenticatable
                 'facturacion-cobros',
                 'ordenes-pago-entidades',
                 'codigos-recarga',
+                'logs-emails',
+                'logs-notificaciones',
+            ];
+        }
+
+        if ($this->isAdministrationPanelAccount()) {
+            return [
+                'datos-administracion',
+                'facturacion-cobros',
+                'ordenes-pago-entidades',
                 'logs-emails',
                 'logs-notificaciones',
             ];
@@ -787,6 +817,14 @@ class User extends Authenticatable
     public function canMutateEntityConfiguration(): bool
     {
         return $this->isEntityPanelAccount();
+    }
+
+    /**
+     * La cuenta panel de administración puede guardar cambios solo en rutas de Ajustes propios.
+     */
+    public function canMutateAdministrationConfiguration(): bool
+    {
+        return $this->isAdministrationPanelAccount();
     }
 
     /**
