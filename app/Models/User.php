@@ -32,6 +32,10 @@ class User extends Authenticatable
     public const ROLE_ENTITY = 'entity';
     public const ROLE_SELLER = 'seller';
     public const ROLE_CLIENT = 'client';
+    public const ROLE_PRINT_SHOP = 'print_shop';
+
+    /** Cuenta panel vinculada a print_configurations (imprenta operativa). */
+    public const PANEL_ACCOUNT_PRINT_SHOP = 'print_shop';
 
     /**
      * Contraseña por defecto usada históricamente al dar de alta gestores desde el panel.
@@ -130,6 +134,10 @@ class User extends Authenticatable
             return null;
         }
 
+        if ($this->panel_account_type === self::PANEL_ACCOUNT_PRINT_SHOP) {
+            return url('icons_/diseno.svg');
+        }
+
         return null;
     }
 
@@ -152,6 +160,10 @@ class User extends Authenticatable
 
     public function hasRole(string $role): bool
     {
+        if ($this->isPrintShop()) {
+            return $role === self::ROLE_PRINT_SHOP;
+        }
+
         // Si no es super admin, ni administración, ni tiene registros como gestor,
         // lo consideramos usuario final (vendedor/cliente) y no debe pasar chequeos
         // de rol dentro de la web.
@@ -176,6 +188,10 @@ class User extends Authenticatable
 
         if ($role === self::ROLE_ENTITY) {
             return $this->isEntity();
+        }
+
+        if ($role === self::ROLE_PRINT_SHOP) {
+            return $this->isPrintShop();
         }
 
         // Resto de casos: comparamos contra el campo role
@@ -209,6 +225,37 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    /** Cuenta panel de la imprenta (gestión de órdenes de impresión). */
+    public function isPrintShop(): bool
+    {
+        return $this->panel_account_type === self::PANEL_ACCOUNT_PRINT_SHOP
+            && $this->panel_account_id !== null;
+    }
+
+    /** Puede operar el flujo de órdenes de imprenta (estados, panel dedicado). */
+    public function canManagePrintShopOrders(): bool
+    {
+        return $this->isSuperAdmin() || $this->isPrintShop();
+    }
+
+    /**
+     * Descarga de PDF de diseño: entidad con acceso, super admin o imprenta con orden vinculada.
+     */
+    public function canExportDesignPdf(DesignFormat $design): bool
+    {
+        if ($this->isSuperAdmin() || $this->canAccessEntity((int) $design->entity_id)) {
+            return true;
+        }
+
+        if ($this->isPrintShop()) {
+            return PrintOrder::query()
+                ->where('design_format_id', $design->id)
+                ->exists();
+        }
+
+        return false;
     }
 
     /** Panel: ver código de vinculación de ventas digitales pendientes (no vendedor ni gestor). */
@@ -654,6 +701,92 @@ class User extends Authenticatable
     public function isEntityPanelReadOnly(): bool
     {
         return $this->isPanelAccount() && $this->panel_account_type === 'entity';
+    }
+
+    /**
+     * Entidad única implícita cuando el usuario no debe elegir entidad en wizards.
+     */
+    public function implicitEntityId(?string $permission = null): ?int
+    {
+        return \App\Support\PanelSelectionResolver::implicitEntityId($this, $permission);
+    }
+
+    /**
+     * Administración única implícita (cuenta panel de administración o una sola administración gestionada).
+     */
+    public function implicitAdministrationId(): ?int
+    {
+        return \App\Support\PanelSelectionResolver::implicitAdministrationId($this);
+    }
+
+    public function shouldSkipEntitySelection(?string $permission = null): bool
+    {
+        return $this->implicitEntityId($permission) !== null;
+    }
+
+    public function shouldSkipAdministrationSelection(): bool
+    {
+        return $this->implicitAdministrationId() !== null;
+    }
+
+    /**
+     * Cuenta de panel vinculada a una entidad concreta (ajustes acotados a esa entidad).
+     */
+    public function isEntityPanelAccount(): bool
+    {
+        return $this->isEntityPanelReadOnly() && $this->panel_account_id !== null;
+    }
+
+    /**
+     * Entidad única cuando el usuario accede a Ajustes como cuenta panel de entidad.
+     */
+    public function scopedConfigurationEntityId(): ?int
+    {
+        return $this->implicitEntityId('payments');
+    }
+
+    /**
+     * Secciones de /configuration visibles según rol.
+     *
+     * @return list<string>|array{0: '*'}
+     */
+    public function allowedConfigurationSections(): array
+    {
+        if ($this->isSuperAdmin()) {
+            return ['*'];
+        }
+
+        if ($this->isEntityPanelAccount()) {
+            return [
+                'datos-entidad',
+                'facturacion-cobros',
+                'ordenes-pago-entidades',
+                'codigos-recarga',
+                'logs-emails',
+                'logs-notificaciones',
+            ];
+        }
+
+        if ($this->isEntityManagerWithoutPanelAccount()) {
+            return ['ordenes-pago-entidades', 'codigos-recarga'];
+        }
+
+        return ['*'];
+    }
+
+    public function canAccessConfigurationSection(string $section): bool
+    {
+        $allowed = $this->allowedConfigurationSections();
+
+        return in_array('*', $allowed, true) || in_array($section, $allowed, true);
+    }
+
+    /**
+     * La cuenta panel de entidad puede guardar cambios solo en rutas de Ajustes propios.
+     */
+    public function canMutateEntityConfiguration(): bool
+    {
+        return $this->isEntityPanelAccount();
     }
 
     /**

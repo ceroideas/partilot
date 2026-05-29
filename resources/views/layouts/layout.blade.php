@@ -567,7 +567,7 @@
             }
 
             .dt-bootstrap5 {
-                min-height: calc(100vh - 345px);
+                min-height: calc(100vh - 335px);
                 overflow: unset !important;
             }
             .content-page .dataTables_wrapper .dataTables_scroll, table.dataTable, .table.dataTable {
@@ -578,6 +578,8 @@
             .content-page .content .container-fluid form > .row > [class*="col-"] > .card {
                 margin-bottom: 0;
             }
+
+            .header-title {margin: 0 !important;}
         </style>
 
         @yield('styles')
@@ -707,11 +709,23 @@
                             || $isEntityPanelReadOnly
                             || ($isRestrictedEntityUser && $currentUser->hasEntityManagerPermission('payments'))
                         );
+                        $isPrintShopUser = $currentUser && $currentUser->isPrintShop();
                     @endphp
                     <ul class="menu">
 
                         <li class="menu-title">Navigation</li>
 
+                        @if($isPrintShopUser)
+                            <li class="menu-item @if (Request::is('print-shop') || Request::is('print-shop/*')) menuitem-active @php $selected = 1; @endphp @endif">
+                                <a href="{{ route('print-shop.index') }}" class="menu-link">
+                                    <span class="menu-icon">
+                                        <img src="{{url('icons_')}}/diseno{{$selected == 1 ? '' : ''}}.svg" alt="">
+                                    </span>
+                                    <span class="menu-text"> Órdenes Imprenta </span>
+                                    @php $selected = null; @endphp
+                                </a>
+                            </li>
+                        @else
                         <li class="menu-item @if (Request::is('dashboard') || Request::is('/')) menuitem-active @php $selected = 1; @endphp @endif">
                             <a href="{{url('/dashboard')}}" class="menu-link">
                                 <span class="menu-icon">
@@ -906,6 +920,8 @@
                                     @php $selected = null; @endphp
                                 </a>
                             </li>
+                        @endif
+
                         @endif
 
 

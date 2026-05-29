@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
+
     protected $firebaseService;
     protected $firebaseServiceModern;
 
@@ -177,10 +179,17 @@ class NotificationController extends Controller
     /**
      * Show entity selection form - Step 2a: Entity selection
      */
-    public function selectEntity()
+    public function selectEntity(Request $request)
     {
         if (!session('notification_type')) {
             return redirect()->route('notifications.create');
+        }
+
+        if ($entity = \App\Support\PanelSelectionResolver::resolveEntity($request->user())) {
+            $request->session()->put('selected_entity', $entity);
+            $request->session()->put('selected_entities', [$entity->id]);
+
+            return redirect()->route('notifications.message');
         }
 
         $entities = Entity::with(['administration'])
@@ -212,10 +221,14 @@ class NotificationController extends Controller
     /**
      * Show administration selection form - Step 2b: Administration selection
      */
-    public function selectAdministration()
+    public function selectAdministration(Request $request)
     {
         if (!session('notification_type') || session('notification_type') !== 'administration') {
             return redirect()->route('notifications.create');
+        }
+
+        if ($redirect = $this->redirectIfImplicitAdministration($request, 'notifications.select-administration-entities')) {
+            return $redirect;
         }
 
         $administrations = Administration::forUser(auth()->user())

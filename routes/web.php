@@ -137,9 +137,15 @@ Route::get('/design/external/thank-you', [\App\Http\Controllers\DesignController
 Route::get('/design/external/file/{id}/download', [\App\Http\Controllers\DesignController::class, 'externalDownloadFileSession'])->name('design.external.downloadFile');
 
 // Rutas protegidas por autenticación (cuenta panel entidad: solo lectura vía entity_panel.readonly)
-Route::middleware(['auth', 'entity_panel.readonly', 'entity_manager.legacy_password'])->group(function () {
+Route::middleware(['auth', 'entity_panel.readonly', 'entity_manager.legacy_password', 'print_shop.scope'])->group(function () {
     
     Route::get('dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+
+    Route::prefix('print-shop')->middleware('role:super_admin,print_shop')->group(function () {
+        Route::get('/', [\App\Http\Controllers\PrintShopController::class, 'index'])->name('print-shop.index');
+        Route::get('/orders/{printOrder}', [\App\Http\Controllers\PrintShopController::class, 'show'])->name('print-shop.orders.show');
+        Route::post('/orders/{printOrder}/status', [\App\Http\Controllers\PrintShopController::class, 'updateStatus'])->name('print-shop.orders.status');
+    });
 
     Route::get('gestor/establecer-contrasena', [AuthController::class, 'showEntityManagerLegacyPassword'])->name('entity-manager.legacy-password.show');
     Route::post('gestor/establecer-contrasena', [AuthController::class, 'updateEntityManagerLegacyPassword'])->name('entity-manager.legacy-password.update');
@@ -477,8 +483,13 @@ Route::get('requests',function() {
 // Rutas de configuración/ajustes
 Route::group(['prefix' => 'configuration', 'middleware' => 'entity.permission:payments'], function() {
     Route::get('/', [App\Http\Controllers\ConfigurationController::class, 'index'])->name('configuration.index');
+    Route::post('/entity-settings', [App\Http\Controllers\ConfigurationController::class, 'updateEntitySettings'])->name('configuration.entity-settings.update');
+    Route::post('/entity-settings/billing', [App\Http\Controllers\ConfigurationController::class, 'updateEntityBilling'])->name('configuration.entity-billing.update');
+    Route::post('/entity-settings/managers/{manager}', [App\Http\Controllers\ConfigurationController::class, 'updateEntityManager'])->name('configuration.entity-manager.update');
     Route::post('/imprenta', [App\Http\Controllers\ConfigurationController::class, 'updateImprenta'])->name('configuration.imprenta.update');
+    Route::post('/imprenta/panel-access', [App\Http\Controllers\ConfigurationController::class, 'updatePrintShopPanelAccess'])->name('configuration.imprenta.panel-access');
     Route::post('/print-orders/{printOrder}/status', [App\Http\Controllers\ConfigurationController::class, 'updatePrintOrderStatus'])->name('configuration.print-orders.status');
+    Route::post('/print-orders/{printOrder}/reconcile-payment', [App\Http\Controllers\ConfigurationController::class, 'reconcilePrintOrderPayment'])->name('configuration.print-orders.reconcile-payment');
     Route::delete('ordenes-pago-entidades/collections/{participationCollection}', [App\Http\Controllers\ConfigurationController::class, 'destroyCollection'])->name('ordenes-pago-entidades.collections.destroy');
     Route::post('ordenes-pago-entidades/crear-sepa', [App\Http\Controllers\ConfigurationController::class, 'crearSepa'])->name('ordenes-pago-entidades.crear-sepa');
     Route::get('ordenes-pago-entidades/nueva-orden', [App\Http\Controllers\ConfigurationController::class, 'nuevaOrdenSepa'])->name('ordenes-pago-entidades.nueva-orden');

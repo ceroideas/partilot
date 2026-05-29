@@ -36,7 +36,23 @@ class EntityPanelReadOnly
             return $next($request);
         }
 
+        if ($this->isAllowedConfigurationMutation($request)) {
+            return $next($request);
+        }
+
         return $this->deny($request);
+    }
+
+    private function isAllowedConfigurationMutation(Request $request): bool
+    {
+        $user = $request->user();
+        if (! $user?->canMutateEntityConfiguration()) {
+            return false;
+        }
+
+        $name = (string) ($request->route()?->getName() ?? '');
+
+        return str_starts_with($name, 'configuration.entity-');
     }
 
     private function deny(Request $request): Response

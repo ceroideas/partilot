@@ -405,3 +405,49 @@
         }
     })();
 </script>
+
+@if(auth()->user()?->isSuperAdmin())
+<hr class="my-4">
+<div class="form-card bs pb-3">
+    <h4 class="mb-0 mt-1">Acceso al panel de imprenta</h4>
+    <small class="text-muted"><i>Cuenta dedicada para que la imprenta gestione órdenes de impresión (sin acceso al resto del panel).</i></small>
+
+    @if($printShopPanelUser ?? null)
+        <div class="alert alert-light border small mt-3 mb-3">
+            <div><strong>Usuario panel:</strong> {{ $printShopPanelUser->panel_login_username ?? '—' }}</div>
+            <div><strong>Email acceso:</strong> {{ $printShopPanelUser->email }}</div>
+            <div class="mt-1"><a href="{{ route('print-shop.index') }}" class="text-decoration-none">Abrir panel imprenta <i class="ri-external-link-line"></i></a></div>
+        </div>
+    @else
+        <div class="alert alert-warning small mt-3 mb-3">Todavía no hay cuenta de panel para la imprenta. Complétala abajo.</div>
+    @endif
+
+    <form action="{{ route('configuration.imprenta.panel-access') }}" method="POST" class="row g-3 mt-1">
+        @csrf
+        <div class="col-md-5">
+            <label class="label-control">Email de acceso</label>
+            <input type="email" name="panel_email" class="form-control" required
+                value="{{ old('panel_email', $printShopPanelUser->email ?? ($printConfiguration->email ?? '')) }}"
+                style="border-radius: 30px;">
+        </div>
+        <div class="col-md-3">
+            <label class="label-control">Nueva contraseña</label>
+            <input type="password" name="panel_password" class="form-control" autocomplete="new-password"
+                placeholder="{{ ($printShopPanelUser ?? null) ? 'Opcional' : 'Mín. 8 caracteres' }}"
+                style="border-radius: 30px;">
+        </div>
+        <div class="col-md-3">
+            <label class="label-control">Confirmar contraseña</label>
+            <input type="password" name="panel_password_confirmation" class="form-control" autocomplete="new-password" style="border-radius: 30px;">
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            <button type="submit" class="btn btn-dark w-100" style="border-radius: 30px;">
+                <i class="ri-save-line"></i>
+            </button>
+        </div>
+    </form>
+    @if(!($printShopPanelUser ?? null))
+        <p class="form-text small mb-0 mt-2">Si no indicas contraseña, se usará la provisional <code>12345678</code>.</p>
+    @endif
+</div>
+@endif

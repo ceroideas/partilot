@@ -11,7 +11,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-    @if($step === 1)
+    @if($step === 1 && empty($configurationEntityScoped))
         {{-- Paso 1: Selección Entidad --}}
         <h4 class="mb-0 mt-1">Selección Entidad</h4>
         <small><i>Selecciona la Entidad</i></small>
@@ -180,9 +180,11 @@
             </table>
         </div>
         <div class="d-flex justify-content-end flex-wrap gap-2 mt-3 align-items-center">
+            @if(empty($configurationEntityScoped))
             <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=1') }}" class="btn btn-md btn-dark" style="border-radius: 30px;">
                 <i class="ri-arrow-left-line me-1"></i> Atrás
             </a>
+            @endif
             <a href="{{ route('ordenes-pago-entidades.nueva-orden', ['entity_id' => $entity->id]) }}" class="btn btn-md btn-outline-primary" style="border-radius: 30px;">
                 <i class="ri-add-line me-1"></i> Nueva orden SEPA
             </a>

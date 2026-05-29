@@ -23,7 +23,8 @@ class Entity extends Model
         'phone',
         'email',
         'comments',
-        'status'
+        'status',
+        'billing_iban',
     ];
 
     protected $casts = [

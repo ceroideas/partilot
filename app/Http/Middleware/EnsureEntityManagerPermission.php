@@ -20,6 +20,15 @@ class EnsureEntityManagerPermission
             return $next($request);
         }
 
+        if ($user->isPrintShop()) {
+            abort(403, 'El perfil de imprenta no tiene acceso a esta sección.');
+        }
+
+        // Cuenta panel de entidad: acceso completo a Ajustes acotados a su entidad.
+        if ($user->isEntityPanelAccount()) {
+            return $next($request);
+        }
+
         // Cuenta panel de entidad: misma UI que el gestor en modo supervisión (solo GET/HEAD).
         if ($user->isEntityPanelReadOnly() && ($request->isMethod('GET') || $request->isMethod('HEAD'))) {
             return $next($request);

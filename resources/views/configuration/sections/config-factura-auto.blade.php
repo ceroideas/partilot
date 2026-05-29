@@ -1,6 +1,6 @@
 <div class="form-card bs pb-3" style="min-height: 658px;">
     <h4 class="mb-0 mt-1">
-        Datos legales de la imprenta
+        Datos legales PARTILOT
     </h4>
     <small><i>Todos los campos son obligatorios</i></small>
 

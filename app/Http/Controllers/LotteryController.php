@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Http;
 
 class LotteryController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
+
     /**
      * Mostrar lista de sorteos
      */
@@ -365,8 +367,12 @@ class LotteryController extends Controller
     /**
      * Mostrar lista de administraciones para selección
      */
-    public function showAdministrations()
+    public function showAdministrations(Request $request)
     {
+        if ($redirect = $this->redirectIfImplicitAdministration($request, 'lottery.results')) {
+            return $redirect;
+        }
+
         $administrations = Administration::forUser(auth()->user())
             ->where('status', 1)
             ->get();

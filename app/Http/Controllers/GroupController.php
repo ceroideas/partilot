@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class GroupController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
+
     /**
      * Display a listing of the resource.
      */
@@ -25,8 +27,14 @@ class GroupController extends Controller
     /**
      * Show the form for creating a new resource - Paso 1: Seleccionar entidad
      */
-    public function create()
+    public function create(Request $request)
     {
+        if ($entity = \App\Support\PanelSelectionResolver::resolveEntity($request->user())) {
+            session(['group_entity' => $entity]);
+
+            return redirect()->route('groups.add-information');
+        }
+
         $entities = Entity::with('administration')
             ->forUser(auth()->user())
             ->get();

@@ -43,7 +43,7 @@ class StripeWebhookController extends Controller
             $paymentIntentId = (string) ($object['id'] ?? '');
             if ($paymentIntentId !== '') {
                 PrintOrder::where('payment_intent_id', $paymentIntentId)->update([
-                    'payment_status' => 'failed',
+                    'payment_status' => PrintOrder::PAYMENT_STATUS_FAILED,
                 ]);
             }
         }

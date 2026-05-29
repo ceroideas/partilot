@@ -13,6 +13,7 @@
     @endif
 
     @if((int) $step === 1 || !$entityId)
+        @if(empty($configurationEntityScoped))
         <h4 class="mb-0 mt-1">Selección Entidad</h4>
         <small><i>El listado incluye las donaciones cuya primera participación asociada corresponde a la entidad elegida.</i></small>
 
@@ -96,6 +97,7 @@
                 </button>
             </div>
         </div>
+        @endif
     @endif
 
     @if((int) $step === 2 && $entity)
@@ -152,9 +154,11 @@
         </div>
 
         <div class="d-flex justify-content-end mt-3 pt-3 border-top">
+            @if(empty($configurationEntityScoped))
             <a href="{{ url('/configuration?section=codigos-recarga&step=1') }}" class="btn btn-md btn-dark" style="border-radius: 30px;">
                 <i class="ri-arrow-left-line me-1"></i> Cambiar entidad
             </a>
+            @endif
         </div>
     @endif
 </div>

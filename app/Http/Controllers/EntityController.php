@@ -23,6 +23,8 @@ use Illuminate\Support\Str;
 
 class EntityController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
+
     /**
      * Display a listing of the resource.
      */
@@ -48,9 +50,14 @@ class EntityController extends Controller
      * Show the form for creating a new resource - Paso 1: Seleccionar administración
      * Al iniciar una nueva entidad se limpia entity_information (y la imagen) para no arrastrar datos anteriores.
      */
-    public function create()
+    public function create(Request $request)
     {
         request()->session()->forget('entity_information');
+
+        if ($redirect = $this->redirectIfImplicitAdministration($request, 'entities.add-information')) {
+            return $redirect;
+        }
+
         $administrations = Administration::forUser(auth()->user())->get();
         return view('entities.add', compact('administrations'));
     }

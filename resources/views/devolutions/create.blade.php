@@ -1560,11 +1560,17 @@ $(document).ready(function() {
             },
             "drawCallback": function(settings) {
                 actualizarIndicadoresPasos(pasoActualGlobal);
+                @if(!empty($autoSelectEntityId))
+                if (!entidadSeleccionada && tablaEntidades) {
+                    const $radio = $('#tabla-entidades .seleccionar-entidad[value="{{ (int) $autoSelectEntityId }}"]:not(:disabled)').first();
+                    if ($radio.length) {
+                        $radio.prop('checked', true).trigger('change');
+                        $('#btn-siguiente-entidad').prop('disabled', false);
+                        setTimeout(function() { $('#btn-siguiente-entidad').trigger('click'); }, 150);
+                    }
+                }
+                @endif
             }
-        });
-    }
-
-    // Función para inicializar DataTable de sorteos
     function inicializarDataTableSorteos() {
         if (tablaSorteos) return;
         

@@ -20,18 +20,69 @@ use App\Models\ParticipationDonation;
 use App\Models\Manager;
 use App\Models\Seller;
 use App\Models\User;
+use App\Support\ContactEmailRegistry;
+use App\Support\PanelSelectionResolver;
+use Illuminate\Support\Facades\Hash;
 
 class ConfigurationController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
+
     /**
      * Mostrar la vista principal de configuración
      */
     public function index(Request $request)
     {
-        $section = $request->get('section', 'datos-partilot');
+        $user = $request->user();
+        $configurationEntityScoped = false;
+        $scopedEntityId = null;
+        $settingsEntity = null;
+        $settingsManagers = collect();
+        $settingsPanelUser = null;
+        $entityEmailLogs = collect();
+
+        $defaultSection = ($user && $user->isEntityPanelAccount()) ? 'datos-entidad' : 'datos-partilot';
+        $section = $request->get('section', $defaultSection);
         $step = (int) $request->get('step', 1);
         $entityId = $request->get('entity_id');
-        $user = $request->user();
+
+        if ($user && $user->isPrintShop()) {
+            return redirect()->route('print-shop.index');
+        }
+
+        if ($user && ! $user->canAccessConfigurationSection($section)) {
+            $allowed = $user->allowedConfigurationSections();
+            $section = $allowed[0] ?? 'datos-entidad';
+        }
+
+        $configurationEntityScoped = (bool) PanelSelectionResolver::implicitEntityId($user, 'payments');
+        $scopedEntityId = PanelSelectionResolver::implicitEntityId($user, 'payments');
+
+        if ($redirect = $this->redirectConfigurationIfImplicitEntity($request, 'codigos-recarga', 2, $entityId ? (int) $entityId : null, $step)) {
+            if ($section === 'codigos-recarga') {
+                return $redirect;
+            }
+        }
+
+        if ($redirect = $this->redirectConfigurationIfImplicitEntity($request, 'ordenes-pago-entidades', 2, $entityId ? (int) $entityId : null, $step)) {
+            if ($section === 'ordenes-pago-entidades') {
+                return $redirect;
+            }
+        }
+
+        if ($configurationEntityScoped && $scopedEntityId) {
+            if (in_array($section, ['codigos-recarga', 'ordenes-pago-entidades'], true)) {
+                $entityId = $scopedEntityId;
+                if ($section === 'codigos-recarga' && ((int) $step === 1 || ! $request->get('entity_id'))) {
+                    $step = 2;
+                } elseif ($section === 'ordenes-pago-entidades' && ((int) $step === 1 || ! $request->get('entity_id'))) {
+                    $step = 2;
+                }
+            }
+            if ($section === 'datos-partilot') {
+                $section = 'datos-entidad';
+            }
+        }
 
         // Para gestores de entidad (sin cuenta panel), Ajustes solo permite secciones de pagos.
         if ($user && $user->isEntityManagerWithoutPanelAccount()) {
@@ -52,8 +103,11 @@ class ConfigurationController extends Controller
         $provincias = collect();
         $localidades = collect();
         $printConfiguration = null;
+        $printShopPanelUser = null;
         $printOrders = collect();
         $printOrderAuditsByOrderId = collect();
+        $printOrderIssuesById = [];
+        $printOrdersReconciliationFilter = 'all';
         $provinces = [];
         $provinceCityMap = [];
         $participationDonations = collect();
@@ -249,6 +303,10 @@ class ConfigurationController extends Controller
 
         if ($section === 'imprenta') {
             $printConfiguration = PrintConfiguration::first();
+            if (! $printConfiguration) {
+                $printConfiguration = PrintConfiguration::create([]);
+            }
+            $printShopPanelUser = app(\App\Services\PrintShopPanelUserService::class)->panelUser($printConfiguration);
             [$provinces, $provinceCityMap] = $this->getProvinceCityData();
         }
 
@@ -259,6 +317,16 @@ class ConfigurationController extends Controller
                 ->orderByDesc('id')
                 ->limit(200)
                 ->get();
+
+            $reconciliationService = app(\App\Services\PrintOrderPaymentReconciliationService::class);
+            $printOrderIssuesById = [];
+            foreach ($printOrders as $order) {
+                $issue = $reconciliationService->detectIssue($order);
+                if ($issue) {
+                    $printOrderIssuesById[$order->id] = $issue;
+                }
+            }
+            $printOrdersReconciliationFilter = request()->query('reconciliation', 'all');
 
             $orderIds = $printOrders->pluck('id')->all();
             if (!empty($orderIds)) {
@@ -280,6 +348,34 @@ class ConfigurationController extends Controller
             }
         }
 
+        if ($section === 'datos-entidad' && $scopedEntityId) {
+            $settingsEntity = Entity::with(['managers.user', 'administration'])
+                ->forUser($user)
+                ->findOrFail($scopedEntityId);
+            $settingsPanelUser = User::query()
+                ->where('panel_account_type', 'entity')
+                ->where('panel_account_id', $scopedEntityId)
+                ->first();
+            $settingsManagers = $settingsEntity->managers
+                ->filter(fn (Manager $manager) => ! ($manager->user && $manager->user->isPanelAccount()))
+                ->values();
+            [$provinces, $provinceCityMap] = $this->getProvinceCityData();
+        }
+
+        if ($section === 'facturacion-cobros' && $scopedEntityId) {
+            $settingsEntity = Entity::forUser($user)->findOrFail($scopedEntityId);
+        }
+
+        if ($section === 'logs-emails' && $scopedEntityId) {
+            $entityEmailLogs = EmailCommunicationLog::query()
+                ->orderByDesc('created_at')
+                ->limit(500)
+                ->get()
+                ->filter(fn (EmailCommunicationLog $log) => (int) data_get($log->context, 'entity_id') === (int) $scopedEntityId)
+                ->take(200)
+                ->values();
+        }
+
         return view('configuration.index', compact(
             'section',
             'step',
@@ -292,8 +388,11 @@ class ConfigurationController extends Controller
             'provincias',
             'localidades',
             'printConfiguration',
+            'printShopPanelUser',
             'printOrders',
             'printOrderAuditsByOrderId',
+            'printOrderIssuesById',
+            'printOrdersReconciliationFilter',
             'provinces',
             'provinceCityMap',
             'participationDonations',
@@ -309,7 +408,13 @@ class ConfigurationController extends Controller
             'selectedLogEntity',
             'selectedLogManager',
             'selectedLogSeller',
-            'selectedLogUser'
+            'selectedLogUser',
+            'configurationEntityScoped',
+            'scopedEntityId',
+            'settingsEntity',
+            'settingsManagers',
+            'settingsPanelUser',
+            'entityEmailLogs'
         ));
     }
 
@@ -438,6 +543,10 @@ class ConfigurationController extends Controller
 
     public function updateImprenta(Request $request)
     {
+        if (! $request->user()?->isSuperAdmin()) {
+            abort(403, 'Solo super administrador puede modificar la configuración de imprenta.');
+        }
+
         $data = $request->validate([
             'company_name' => 'nullable|string|max:255',
             'nif_cif' => 'nullable|string|max:50',
@@ -471,6 +580,37 @@ class ConfigurationController extends Controller
             ->with('success', 'Configuración de imprenta actualizada correctamente.');
     }
 
+    public function updatePrintShopPanelAccess(Request $request)
+    {
+        if (! $request->user()?->isSuperAdmin()) {
+            abort(403, 'Solo super administrador puede gestionar el acceso de imprenta.');
+        }
+
+        $data = $request->validate([
+            'panel_email' => 'required|email|max:255',
+            'panel_password' => 'nullable|string|min:8|confirmed',
+        ], [
+            'panel_email.required' => 'Indica el email de acceso al panel de imprenta.',
+            'panel_password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'panel_password.confirmed' => 'La confirmación de contraseña no coincide.',
+        ]);
+
+        $config = PrintConfiguration::first();
+        if (! $config) {
+            $config = PrintConfiguration::create([]);
+        }
+
+        try {
+            $user = app(\App\Services\PrintShopPanelUserService::class)->upsertPanelUser($config, $data);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('configuration.index', ['section' => 'imprenta'])
+                ->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('configuration.index', ['section' => 'imprenta'])
+            ->with('success', 'Acceso al panel de imprenta actualizado. Usuario: '.($user->panel_login_username ?? '—'));
+    }
+
     public function updatePrintOrderStatus(Request $request, PrintOrder $printOrder)
     {
         if (! in_array((int) $printOrder->entity_id, $request->user()->accessibleEntityIds(), true)) {
@@ -487,8 +627,10 @@ class ConfigurationController extends Controller
 
         $target = $data['target_status'];
         if (! $printOrder->canTransitionTo($target)) {
+            $reason = $printOrder->paymentTransitionBlockReason();
+
             return redirect()->route('configuration.index', ['section' => 'ordenes-imprenta'])
-                ->with('error', 'Transición de estado no permitida para esta orden.');
+                ->with('error', $reason ?? 'Transición de estado no permitida para esta orden.');
         }
 
         $from = (string) $printOrder->status;
@@ -509,9 +651,28 @@ class ConfigurationController extends Controller
             ->with('success', 'Estado de la orden actualizado a: ' . PrintOrder::statusLabel($target) . '.');
     }
 
+    public function reconcilePrintOrderPayment(Request $request, PrintOrder $printOrder)
+    {
+        if (! in_array((int) $printOrder->entity_id, $request->user()->accessibleEntityIds(), true)) {
+            abort(403, 'No tienes permisos para esta orden de imprenta.');
+        }
+        if (! $this->canManagePrintOrderWorkflow($request->user())) {
+            return redirect()->route('configuration.index', ['section' => 'ordenes-imprenta'])
+                ->with('error', 'No tienes permisos para conciliar pagos de imprenta.');
+        }
+
+        $result = app(\App\Services\PrintOrderPaymentReconciliationService::class)
+            ->reconcile($printOrder, dryRun: false);
+
+        $flash = ($result['ok'] ?? false) ? 'success' : 'error';
+
+        return redirect()->route('configuration.index', ['section' => 'ordenes-imprenta', 'reconciliation' => 'issues'])
+            ->with($flash, $result['message'] ?? 'Conciliación finalizada.');
+    }
+
     private function canManagePrintOrderWorkflow($user): bool
     {
-        return $user && ($user->isSuperAdmin() || $user->isAdministration());
+        return $user && ($user->isSuperAdmin() || $user->isAdministration() || $user->isPrintShop());
     }
 
     private function logPrintOrderStatusAudit(
@@ -824,5 +985,143 @@ class ConfigurationController extends Controller
             'step' => 2,
             'entity_id' => $entity->id,
         ])->with('success', 'Orden de pago creada. Seleccione la orden en la lista y pulse "Ver detalle" para ver los beneficiarios o generar el XML.');
+    }
+
+    public function updateEntitySettings(Request $request)
+    {
+        $user = $request->user();
+        $entityId = $user?->scopedConfigurationEntityId();
+        abort_unless($entityId && $user?->canMutateEntityConfiguration(), 403);
+
+        $entity = Entity::forUser($user)->findOrFail($entityId);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:10',
+            'address' => 'nullable|string|max:500',
+            'nif_cif' => ['nullable', 'string', 'max:20', new \App\Rules\EntityDocument],
+            'phone' => 'nullable|string|max:20',
+            'email' => 'required|email|max:255',
+            'comments' => 'nullable|string|max:1000',
+            'current_password' => 'nullable|required_with:panel_password|string',
+            'panel_password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $panelUser = User::query()
+            ->where('panel_account_type', 'entity')
+            ->where('panel_account_id', $entity->id)
+            ->first();
+
+        $newEntityEmail = trim((string) ($validated['email'] ?? ''));
+
+        if ($panelUser && $newEntityEmail !== '' && $newEntityEmail !== $panelUser->email) {
+            if (ContactEmailRegistry::isTaken($newEntityEmail, $panelUser->id, null, $entity->id)) {
+                return back()->withInput()
+                    ->withErrors(['email' => 'Este correo ya está en uso en otra administración, entidad o cuenta de usuario.']);
+            }
+        }
+
+        if ($request->filled('panel_password')) {
+            if (! $panelUser || ! Hash::check((string) $request->input('current_password'), $panelUser->password)) {
+                return back()->withInput()->withErrors([
+                    'current_password' => 'La contraseña actual no es correcta.',
+                ]);
+            }
+        }
+
+        $entity->update(collect($validated)->only([
+            'name', 'province', 'city', 'postal_code', 'address', 'nif_cif', 'phone', 'email', 'comments',
+        ])->all());
+
+        $entity->refresh();
+
+        if ($panelUser) {
+            $panelUser->update([
+                'email' => $entity->email,
+                'name' => trim((string) $entity->name) ?: 'Entidad',
+                'phone' => $entity->phone,
+                'nif_cif' => $entity->nif_cif,
+            ]);
+            if ($request->filled('panel_password')) {
+                $panelUser->password = $request->input('panel_password');
+                $panelUser->save();
+            }
+        }
+
+        return redirect()->route('configuration.index', ['section' => 'datos-entidad'])
+            ->with('success', 'Datos de la entidad actualizados correctamente.');
+    }
+
+    public function updateEntityBilling(Request $request)
+    {
+        $user = $request->user();
+        $entityId = $user?->scopedConfigurationEntityId();
+        abort_unless($entityId && $user?->canMutateEntityConfiguration(), 403);
+
+        $entity = Entity::forUser($user)->findOrFail($entityId);
+
+        $validated = $request->validate([
+            'billing_iban' => 'nullable|string|max:34',
+        ]);
+
+        $iban = preg_replace('/\s+/', '', strtoupper((string) ($validated['billing_iban'] ?? '')));
+        $entity->update(['billing_iban' => $iban !== '' ? $iban : null]);
+
+        return redirect()->route('configuration.index', ['section' => 'facturacion-cobros'])
+            ->with('success', 'Datos de facturación actualizados correctamente.');
+    }
+
+    public function updateEntityManager(Request $request, Manager $manager)
+    {
+        $user = $request->user();
+        $entityId = $user?->scopedConfigurationEntityId();
+        abort_unless($entityId && $user?->canMutateEntityConfiguration(), 403);
+        abort_unless((int) $manager->entity_id === $entityId, 403);
+
+        $manager->load('user');
+        if ($manager->user && $manager->user->isPanelAccount()) {
+            abort(403, 'La cuenta de acceso al panel no se edita como gestor.');
+        }
+
+        $managerUser = $manager->user;
+        $userId = $managerUser?->id;
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'last_name2' => 'nullable|string|max:255',
+            'nif_cif' => ['nullable', 'string', 'max:20', 'unique:users,nif_cif'.($userId ? ','.$userId : '')],
+            'birthday' => ['nullable', 'date', new \App\Rules\MinimumAge(18)],
+            'email' => 'required|email|max:255',
+            'phone' => 'nullable|string|max:20',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        if (! $managerUser) {
+            $managerUser = new User;
+            $managerUser->name = $validated['name'].' '.$validated['last_name'];
+            $managerUser->email = $validated['email'];
+            $managerUser->password = User::ENTITY_MANAGER_LEGACY_DEFAULT_PASSWORD;
+            $managerUser->role = User::ROLE_ENTITY;
+            $managerUser->save();
+            $manager->update(['user_id' => $managerUser->id]);
+        }
+
+        $managerUser->update([
+            'name' => $validated['name'],
+            'last_name' => $validated['last_name'],
+            'last_name2' => $validated['last_name2'],
+            'nif_cif' => $validated['nif_cif'],
+            'birthday' => $validated['birthday'] ?? null,
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'comment' => $validated['comment'],
+            'role' => User::ROLE_ENTITY,
+        ]);
+
+        return redirect()->route('configuration.index', ['section' => 'datos-entidad', 'tab' => 'gestores'])
+            ->with('success', 'Datos del gestor actualizados correctamente.');
     }
 }

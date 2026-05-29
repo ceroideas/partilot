@@ -294,7 +294,9 @@ class DevolutionsController extends Controller
             );
         }
 
-        return view('devolutions.create');
+        $autoSelectEntityId = \App\Support\PanelSelectionResolver::implicitEntityId(auth()->user());
+
+        return view('devolutions.create', compact('autoSelectEntityId'));
     }
 
     /**

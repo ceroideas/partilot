@@ -20,6 +20,12 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::table('entities', function (Blueprint $table) {
+            if (! Schema::hasColumn('entities', 'billing_iban')) {
+                $table->string('billing_iban', 34)->nullable()->after('email');
+            }
+        });
+        return "ok";
         DB::statement('ALTER TABLE pending_digital_sales MODIFY valid_until DATETIME NOT NULL');
 
         Schema::table('pending_digital_sales', function (Blueprint $table) {

@@ -1,6 +1,40 @@
+<style>
+    #configuration-content .alert {
+        display: block !important;
+    }
+    #tabla-ordenes-imprenta td.text-truncate-cell {
+        max-width: 200px;
+    }
+    #tabla-ordenes-imprenta .ordenes-imprenta-actions .btn {
+        padding: 0.25rem 0.45rem;
+    }
+    table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control:before,
+    table.dataTable.dtr-inline.collapsed > tbody > tr > th.dtr-control:before {
+        line-height: 1.1em;
+    }
+    table.dataTable > tbody > tr.child ul.dtr-details {
+        width: 100%;
+    }
+    table.dataTable > tbody > tr.child ul.dtr-details > li {
+        border-bottom: 1px solid #eee;
+        padding: 0.35rem 0;
+    }
+</style>
 <div class="form-card bs">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h4 class="mb-0">Órdenes Imprenta</h4>
+        @php
+            $issuesCount = count($printOrderIssuesById ?? []);
+            $reconciliationFilter = $printOrdersReconciliationFilter ?? 'all';
+        @endphp
+        <div class="btn-group btn-group-sm" role="group">
+            <a href="{{ route('configuration.index', ['section' => 'ordenes-imprenta', 'reconciliation' => 'all']) }}"
+               class="btn {{ $reconciliationFilter === 'all' ? 'btn-dark' : 'btn-outline-dark' }}">Todas</a>
+            <a href="{{ route('configuration.index', ['section' => 'ordenes-imprenta', 'reconciliation' => 'issues']) }}"
+               class="btn {{ $reconciliationFilter === 'issues' ? 'btn-warning text-dark' : 'btn-outline-warning' }}">
+                Incidencias cobro @if($issuesCount > 0)<span class="badge bg-danger ms-1">{{ $issuesCount }}</span>@endif
+            </a>
+        </div>
     </div>
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -21,10 +55,17 @@
             No hay órdenes de imprenta registradas todavía.
         </div>
     @else
-        <div class="table-responsive">
-            <table class="table table-striped align-middle">
+        @if($issuesCount > 0)
+            <div class="alert alert-warning py-2 small mb-3">
+                <i class="ri-error-warning-line me-1"></i>
+                Hay {{ $issuesCount }} orden(es) con posible desajuste entre pedido y cobro. Usa «Conciliar» o ejecuta <code>php artisan sipart:pending-payments-check</code>.
+            </div>
+        @endif
+        <div class="table-responsive panel-table-scroll">
+            <table id="tabla-ordenes-imprenta" class="table table-striped table-hover align-middle w-100">
                 <thead class="table-light">
                     <tr>
+                        <th class="dtr-control"></th>
                         <th>Orden</th>
                         <th>Entidad</th>
                         <th>Set</th>
@@ -34,7 +75,7 @@
                         <th>Importe</th>
                         <th>Fecha envío</th>
                         <th>Historial</th>
-                        <th class="text-end">Acciones</th>
+                        <th class="text-end no-export">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -42,10 +83,16 @@
                     @php
                         $canOperate = auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdministration());
                         $orderAudits = $printOrderAuditsByOrderId[$order->id] ?? collect();
+                        $paymentIssue = $printOrderIssuesById[$order->id] ?? null;
+                        if ($reconciliationFilter === 'issues' && !$paymentIssue) {
+                            continue;
+                        }
+                        $paymentBlockReason = $order->paymentTransitionBlockReason();
                     @endphp
                     <tr>
-                        <td>{{ $order->order_code }}</td>
-                        <td>{{ $order->entity->name ?? '—' }}</td>
+                        <td class="dtr-control"></td>
+                        <td data-order="{{ $order->order_code }}"><span class="fw-semibold">{{ $order->order_code }}</span></td>
+                        <td class="text-truncate-cell" title="{{ $order->entity->name ?? '' }}">{{ $order->entity->name ?? '—' }}</td>
                         <td>{{ $order->set->set_name ?? ('#'.$order->set_id) }}</td>
                         <td>{{ $order->lottery->name ?? '—' }}</td>
                         <td>
@@ -60,9 +107,18 @@
                             @if($order->paid_at)
                                 <div class="small text-muted mt-1">{{ $order->paid_at->format('d/m/Y H:i') }}</div>
                             @endif
+                            @if($paymentIssue)
+                                <div class="small mt-1">
+                                    <span class="badge {{ ($paymentIssue['severity'] ?? '') === 'error' ? 'bg-danger' : 'bg-warning text-dark' }} rounded-pill" title="{{ $paymentIssue['label'] ?? '' }}">
+                                        {{ $paymentIssue['label'] ?? 'Incidencia' }}
+                                    </span>
+                                </div>
+                            @endif
                         </td>
-                        <td>{{ number_format((float) $order->quoted_amount, 2, ',', '.') }}€</td>
-                        <td>{{ $order->sent_at ? $order->sent_at->format('d/m/Y H:i') : '—' }}</td>
+                        <td data-order="{{ (float) $order->quoted_amount }}">{{ number_format((float) $order->quoted_amount, 2, ',', '.') }}€</td>
+                        <td data-order="{{ $order->sent_at?->timestamp ?? $order->created_at?->timestamp ?? 0 }}">
+                            {{ $order->sent_at ? $order->sent_at->format('d/m/Y H:i') : '—' }}
+                        </td>
                         <td>
                             @if($orderAudits->isNotEmpty())
                                 <button type="button" class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#order-audit-modal-{{ $order->id }}">
@@ -72,8 +128,17 @@
                                 <span class="text-muted">—</span>
                             @endif
                         </td>
-                        <td class="text-end">
-                            <div class="d-flex justify-content-end gap-1">
+                        <td class="text-end ordenes-imprenta-actions">
+                            <div class="d-flex justify-content-end gap-1 flex-wrap">
+                                @if($canOperate && $order->payment_provider === 'stripe' && $order->payment_intent_id)
+                                    <form method="POST" action="{{ route('configuration.print-orders.reconcile-payment', $order->id) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Consultar Stripe y alinear estado de cobro">
+                                            <i class="ri-refresh-line"></i>
+                                        </button>
+                                    </form>
+                                @endif
+
                                 @if($order->canTransitionTo(\App\Models\PrintOrder::STATUS_IN_PRODUCTION) && $canOperate)
                                     <form method="POST" action="{{ route('configuration.print-orders.status', $order->id) }}" class="d-inline">
                                         @csrf
@@ -113,9 +178,14 @@
                                         </button>
                                     </form>
                                 @endif
+
                                 @if(!$canOperate)
                                     <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Solo administración o super admin puede cambiar estados.">
                                         <i class="ri-lock-line"></i>
+                                    </button>
+                                @elseif($paymentBlockReason && in_array($order->status, [\App\Models\PrintOrder::STATUS_PENDING_REVIEW, \App\Models\PrintOrder::STATUS_IN_PRODUCTION], true))
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="{{ $paymentBlockReason }}">
+                                        <i class="ri-bank-card-line"></i>
                                     </button>
                                 @endif
                             </div>

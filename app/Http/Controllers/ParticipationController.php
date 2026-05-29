@@ -34,6 +34,8 @@ use App\Services\ParticipationWalletValidityService;
 
 class ParticipationController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
+
     /**
      * Calcula resumen de estados para un set.
      * Garantiza coherencia: vendidas + devueltas + anuladas + disponibles = total_configurado.
@@ -66,8 +68,12 @@ class ParticipationController extends Controller
     /**
      * Mostrar lista de participaciones
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($redirect = $this->redirectIfImplicitEntity($request, 'participations.create')) {
+            return $redirect;
+        }
+
         $entities = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->orderBy('created_at', 'desc')

@@ -138,7 +138,7 @@
 
                         <br>
 
-                        <div style="min-height: 358px;">
+                        <div style="min-height: 458px;">
 
                             @if(isset($designFormats))
                                 @foreach($designFormats as $designFormat)

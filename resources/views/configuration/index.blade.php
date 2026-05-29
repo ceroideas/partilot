@@ -45,6 +45,7 @@
         <div class="col-md-3 col-lg-3 configuration-menu-wrapper">
             <div class="form-card bs mb-3" style="background-color: #fff;">
                 @php($onlyPaymentsSection = auth()->user()?->isEntityManagerWithoutPanelAccount())
+                @php($isEntityPanelSettings = auth()->user()?->isEntityPanelAccount())
                 @if($onlyPaymentsSection)
                     @if($section == 'ordenes-pago-entidades')
                         <div class="form-wizard-element active">
@@ -66,6 +67,84 @@
                         <a href="{{ url('/configuration?section=codigos-recarga') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
                             <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
                             <label>Códigos Recarga</label>
+                        </a>
+                    @endif
+                @elseif($isEntityPanelSettings)
+                    @if($section == 'datos-entidad')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['datos-partilot']) }}" alt="">
+                            <label>Mis datos</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=datos-entidad') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['datos-partilot']) }}" alt="">
+                            <label>Mis datos</label>
+                        </a>
+                    @endif
+
+                    <div class="configuration-menu-sep"></div>
+
+                    @if($section == 'facturacion-cobros')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['facturacion-cobros']) }}" alt="">
+                            <label>Facturación y Cobros</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=facturacion-cobros') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['facturacion-cobros']) }}" alt="">
+                            <label>Facturación y Cobros</label>
+                        </a>
+                    @endif
+
+                    <div class="configuration-menu-sep"></div>
+
+                    @if($section == 'ordenes-pago-entidades')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
+                            <label>Ordenes Pago</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=ordenes-pago-entidades') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['ordenes-pago-entidades']) }}" alt="">
+                            <label>Ordenes Pago</label>
+                        </a>
+                    @endif
+
+                    @if($section == 'codigos-recarga')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
+                            <label>Códigos Recarga</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=codigos-recarga') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['codigos-recarga']) }}" alt="">
+                            <label>Códigos Recarga</label>
+                        </a>
+                    @endif
+
+                    <div class="configuration-menu-sep"></div>
+
+                    @if($section == 'logs-emails')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['logs-emails']) }}" alt="">
+                            <label>Logs Emails</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=logs-emails') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['logs-emails']) }}" alt="">
+                            <label>Logs Emails</label>
+                        </a>
+                    @endif
+
+                    @if($section == 'logs-notificaciones')
+                        <div class="form-wizard-element active">
+                            <img src="{{ url($configIcons['logs-notificaciones']) }}" alt="">
+                            <label>Logs Notificaciones</label>
+                        </div>
+                    @else
+                        <a href="{{ url('/configuration?section=logs-notificaciones') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
+                            <img src="{{ url($configIcons['logs-notificaciones']) }}" alt="">
+                            <label>Logs Notificaciones</label>
                         </a>
                     @endif
                 @else
@@ -218,6 +297,8 @@
         <div class="col-md-9 col-lg-9" id="configuration-content">
                     @if($section == 'datos-partilot')
                         @include('configuration.sections.datos-partilot')
+                    @elseif($section == 'datos-entidad')
+                        @include('configuration.sections.datos-entidad')
                     @elseif($section == 'config-factura-auto')
                         @include('configuration.sections.config-factura-auto')
                     @elseif($section == 'facturacion-cobros')
@@ -477,6 +558,55 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+})();
+</script>
+@endif
+
+@if($section == 'ordenes-imprenta' && isset($printOrders) && $printOrders->isNotEmpty())
+<script>
+(function () {
+    function initOrdenesImprentaDataTable() {
+        if (typeof jQuery === 'undefined' || !jQuery.fn.DataTable) {
+            return;
+        }
+        var $table = jQuery('#tabla-ordenes-imprenta');
+        if (!$table.length || jQuery.fn.DataTable.isDataTable($table)) {
+            return;
+        }
+
+        $table.DataTable({
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            autoWidth: false,
+            order: [[9, 'desc']],
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'Todos']],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            columnDefs: [
+                { className: 'dtr-control', orderable: false, targets: 0 },
+                { responsivePriority: 1, targets: [1, 5, 7, 10] },
+                { responsivePriority: 2, targets: [2] },
+                { responsivePriority: 3, targets: [6] },
+                { responsivePriority: 4, targets: [8] },
+                { responsivePriority: 5, targets: [9] },
+                { responsivePriority: 6, targets: [3, 4] },
+                { orderable: false, targets: [0, 9, 10] },
+                { className: 'text-end', targets: 10 }
+            ]
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initOrdenesImprentaDataTable);
+    } else {
+        initOrdenesImprentaDataTable();
+    }
 })();
 </script>
 @endif

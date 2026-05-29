@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Validator;
 class SetController extends Controller
 {
     use HandlesLotteryDrawDateGuard;
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
 
     /**
      * Mostrar lista de sets
@@ -32,8 +33,12 @@ class SetController extends Controller
     /**
      * Mostrar formulario para crear set - Paso 1: Seleccionar entidad
      */
-    public function create()
+    public function create(Request $request)
     {
+        if ($entity = \App\Support\PanelSelectionResolver::resolveEntity($request->user())) {
+            return $this->showReserveSelectionAfterEntity($request, $entity);
+        }
+
         $entities = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->get();
@@ -61,10 +66,14 @@ class SetController extends Controller
         $request->session()->put('selected_entity_id', $entity->id);
         $request->session()->forget(['selected_reserve', 'selected_reserve_id']);
 
-        // Obtener reservas activas de la entidad
-        $reserves = Reserve::forUser(auth()->user())
+        return $this->showReserveSelectionAfterEntity($request, $entity);
+    }
+
+    private function showReserveSelectionAfterEntity(Request $request, Entity $entity)
+    {
+        $reserves = Reserve::forUser($request->user())
             ->where('entity_id', $entity->id)
-            ->where('status', 1) // confirmed
+            ->where('status', 1)
             ->whereHas('lottery', fn ($q) => $q->openForOperations())
             ->with(['lottery'])
             ->get()
@@ -72,7 +81,6 @@ class SetController extends Controller
                 return $reserve->lottery->draw_date ?? now();
             });
 
-        // Total y disponible por reserva: total = números × importe por número; disponible = total − suma sets
         $reserveTotalsAndAvailable = [];
         foreach ($reserves as $reserve) {
             $numNumbers = is_array($reserve->reservation_numbers) ? count($reserve->reservation_numbers) : 0;

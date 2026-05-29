@@ -28,6 +28,8 @@ use App\Support\ParticipationTicketReference;
 
 class SellerController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
+
     /**
      * Display a listing of the resource.
      * Carga conteos de participaciones (asignadas, vendidas, devueltas) y deuda.
@@ -120,8 +122,12 @@ class SellerController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
+        if ($redirect = $this->redirectIfImplicitEntity($request, 'sellers.add-information', [], 'sellers')) {
+            return $redirect;
+        }
+
         $entities = Entity::with('administration')
             ->forUser(auth()->user())
             ->get();

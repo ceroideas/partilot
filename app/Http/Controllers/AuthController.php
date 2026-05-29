@@ -80,6 +80,8 @@ class AuthController extends Controller
                             ->whereKey($user->panel_account_id)
                             ->where('status', 1)
                             ->exists();
+                    } elseif ($user->panel_account_type === User::PANEL_ACCOUNT_PRINT_SHOP) {
+                        $hasActiveAccess = (bool) $user->status;
                     }
                 } else {
                     // Gestores (managers) sin panel_account_type.
@@ -118,6 +120,10 @@ class AuthController extends Controller
 
         if ($user->mustChangeEntityManagerLegacyPassword()) {
             return redirect()->route('entity-manager.legacy-password.show');
+        }
+
+        if ($user->isPrintShop()) {
+            return redirect()->intended(route('print-shop.index'));
         }
 
         return redirect()->intended('/dashboard');
@@ -191,6 +197,10 @@ class AuthController extends Controller
      */
     public function dashboard()
     {
+        if (auth()->user()?->isPrintShop()) {
+            return redirect()->route('print-shop.index');
+        }
+
         return view('welcome');
     }
 

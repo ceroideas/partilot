@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 class ReserveController extends Controller
 {
     use HandlesLotteryDrawDateGuard;
+    use \App\Http\Controllers\Concerns\AutoSelectsPanelScope;
 
     /**
      * Mostrar lista de reservas
@@ -31,8 +32,12 @@ class ReserveController extends Controller
     /**
      * Mostrar formulario para crear reserva - Paso 1: Seleccionar entidad
      */
-    public function create()
+    public function create(Request $request)
     {
+        if ($entity = \App\Support\PanelSelectionResolver::resolveEntity($request->user())) {
+            return $this->showLotterySelectionAfterEntity($request, $entity);
+        }
+
         $entities = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->get();
@@ -59,11 +64,15 @@ class ReserveController extends Controller
         $request->session()->put('selected_entity', $entity);
         $request->session()->put('selected_entity_id', $entity->id);
 
-        // Volver a retornar la vista de selección de sorteo como antes
+        return $this->showLotterySelectionAfterEntity($request, $entity);
+    }
+
+    private function showLotterySelectionAfterEntity(Request $request, Entity $entity)
+    {
         $lotteries = Lottery::where('status', 1)
             ->openForOperations()
             ->with(['lotteryType'])
-            ->orderBy('draw_date','desc')
+            ->orderBy('draw_date', 'desc')
             ->get();
 
         return view('reserves.add_lottery', compact('lotteries', 'entity'));

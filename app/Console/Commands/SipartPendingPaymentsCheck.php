@@ -2,26 +2,49 @@
 
 namespace App\Console\Commands;
 
+use App\Models\PrintOrder;
+use App\Services\PrintOrderPaymentReconciliationService;
 use Illuminate\Console\Command;
 
-/**
- * Punto de entrada para reconciliar pagos pendientes (Stripe, transferencias, etc.).
- * Pendiente: consultar modelos (PrintOrder, …), Stripe API o webhooks reprocesados.
- */
 class SipartPendingPaymentsCheck extends Command
 {
     protected $signature = 'sipart:pending-payments-check
-                            {--dry-run : Solo describe qué haría, sin persistir cambios}';
+                            {--dry-run : Consulta Stripe y muestra cambios sin persistir}';
 
-    protected $description = '[Stub] Revisar y alertar pagos pendientes / incoherentes';
+    protected $description = 'Reconciliar pagos Stripe de órdenes de imprenta y listar incidencias';
 
-    public function handle(): int
+    public function handle(PrintOrderPaymentReconciliationService $reconciliation): int
     {
-        $this->warn('sipart:pending-payments-check — lógica pendiente de implementación.');
-        $this->line('Ideas: órdenes con payment_status pending; reconciliar PaymentIntent; notificar gestores o inbox.');
+        $dryRun = (bool) $this->option('dry-run');
+        if ($dryRun) {
+            $this->info('Modo --dry-run: no se persistirán cambios.');
+        }
 
-        if ($this->option('dry-run')) {
-            $this->info('Modo --dry-run: no se aplicarían cambios.');
+        $summary = $reconciliation->reconcileAll($dryRun);
+        $this->line('Órdenes Stripe revisadas: '.$summary['checked']);
+        $this->line('Actualizadas: '.$summary['changed']);
+        $this->line('Con incidencia tras revisión: '.$summary['issues']);
+
+        foreach ($summary['details'] as $row) {
+            $prefix = ($row['ok'] ?? false) ? '  OK' : '  !!';
+            $this->line($prefix.' '.$row['order_code'].': '.$row['message']);
+        }
+
+        $pending = PrintOrder::query()
+            ->where(function ($q) {
+                $q->whereIn('payment_status', [PrintOrder::PAYMENT_STATUS_PENDING, PrintOrder::PAYMENT_STATUS_FAILED])
+                    ->orWhere(function ($q2) {
+                        $q2->where('payment_provider', 'stripe')
+                            ->whereIn('status', [PrintOrder::STATUS_IN_PRODUCTION, PrintOrder::STATUS_SENT])
+                            ->where('payment_status', '!=', PrintOrder::PAYMENT_STATUS_PAID);
+                    });
+            })
+            ->count();
+
+        if ($pending > 0) {
+            $this->warn('Quedan '.$pending.' orden(es) con posible incidencia de cobro. Revisa Configuración → Órdenes Imprenta.');
+        } else {
+            $this->info('No hay órdenes con cobro claramente pendiente o fallido.');
         }
 
         return self::SUCCESS;
