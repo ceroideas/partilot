@@ -23,7 +23,7 @@ use App\Services\CommunicationEmailService;
 use App\Mail\ParticipationGiftRecipientMail;
 use App\Mail\ParticipationGiftSenderMail;
 use App\Mail\DigitalPurchaseConfirmationMail;
-use App\Mail\TransferCollectionConfirmationMail;
+use App\Mail\TransferCollectionVerificationMail;
 use App\Mail\DonationCodeConfirmationMail;
 use App\Services\AppInboxNotificationService;
 use App\Services\PendingDigitalSaleService;
@@ -1683,11 +1683,13 @@ class ParticipationController extends Controller
         $apiController = app(ApiController::class);
         $items = [];
         $addedIds = [];
+        $reservedIds = ParticipationCollection::reservedParticipationIds();
 
         // 1) Propias (buyer_name = user), no regaladas, no cobradas, no donadas, con premio
         $participations = Participation::where('buyer_name', $userId)
             ->whereNull('collected_at')
             ->whereNull('donated_at')
+            ->when(!empty($reservedIds), fn ($q) => $q->whereNotIn('id', $reservedIds))
             ->with(['set.reserve.lottery', 'set.entity.administration', 'set.designFormats', 'gift'])
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -1769,9 +1771,11 @@ class ParticipationController extends Controller
         $userId = (string) $user->id;
 
         $allowedIds = $this->getParticipationIdsOwnedOrReceivedByUser($user);
+        $reservedIds = ParticipationCollection::reservedParticipationIds();
         $participations = Participation::whereIn('id', $request->participation_ids)
             ->whereIn('id', $allowedIds)
             ->whereNull('collected_at')
+            ->when(!empty($reservedIds), fn ($q) => $q->whereNotIn('id', $reservedIds))
             ->get();
 
         if ($participations->isEmpty()) {
@@ -1795,8 +1799,10 @@ class ParticipationController extends Controller
 
         // Usar el importe total enviado desde el frontend
         $importeTotal = (float) $request->importe_total;
+        $token = ParticipationCollection::generateConfirmationToken();
+        $expiresAt = now()->addHours(ParticipationCollection::verificationExpiryHours());
 
-        // Crear registro de cobro
+        // Crear solicitud pendiente de verificación (doble opt-in por email)
         $collection = ParticipationCollection::create([
             'user_id' => $user->id,
             'nombre' => $request->nombre,
@@ -1804,14 +1810,15 @@ class ParticipationController extends Controller
             'nif' => $request->nif,
             'iban' => $request->iban,
             'importe_total' => $importeTotal,
-            'collected_at' => now(),
+            'status' => ParticipationCollection::STATUS_PENDING_VERIFICATION,
+            'confirmation_token' => $token,
+            'confirmation_sent_at' => now(),
+            'expires_at' => $expiresAt,
+            'collected_at' => null,
         ]);
 
-        // Marcar participaciones como cobradas en la tabla participations
+        // Reservar participaciones (sin marcar collected_at hasta confirmar email)
         $participationIds = $participations->pluck('id')->toArray();
-        Participation::whereIn('id', $participationIds)->update(['collected_at' => now()]);
-
-        // Asociar cada participación al registro de cobro
         foreach ($participationIds as $pid) {
             ParticipationCollectionItem::create([
                 'collection_id' => $collection->id,
@@ -1819,52 +1826,28 @@ class ParticipationController extends Controller
             ]);
         }
 
-        try {
-            $first = $participations->first();
-            $entity = $first?->set?->entity;
-            if ($entity) {
-                $inbox = app(AppInboxNotificationService::class);
-                $senderId = $inbox->resolveSenderIdForEntity((int) $entity->id) ?? (int) $user->id;
-                $inbox->notifyUser(
-                    (int) $user->id,
-                    (int) $entity->id,
-                    $entity->administration_id ? (int) $entity->administration_id : null,
-                    $senderId,
-                    'cobro_registrado',
-                    $entity->name,
-                    'Tu solicitud de cobro por transferencia ha sido registrada. La entidad gestionará el pago.',
-                    [
-                        'collection_id' => $collection->id,
-                        'rol_context' => 'usuario',
-                        'importe_total' => $importeTotal,
-                    ]
-                );
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('Inbox cobro registrado: '.$e->getMessage());
-        }
-
-        // Cobro por transferencia: confirmación por email al usuario
+        // Email con enlace de confirmación / cancelación
         try {
             $collection->load('user');
             app(CommunicationEmailService::class)->sendAndLog(
                 recipientEmail: (string) $user->email,
                 recipientRole: 'usuario',
                 recipientUser: $user,
-                messageType: 'transfer_collection_confirmation',
+                messageType: 'transfer_collection_verification',
                 templateKey: null,
-                mailClass: TransferCollectionConfirmationMail::class,
+                mailClass: TransferCollectionVerificationMail::class,
                 mailPayload: ['collection_id' => $collection->id],
                 context: ['source' => 'api', 'user_id' => $user->id],
             );
         } catch (\Throwable $e) {
-            \Log::warning('Fallo enviando confirmación de cobro transferencia: '.$e->getMessage());
+            \Log::warning('Fallo enviando email de verificación de cobro: '.$e->getMessage());
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Cobro registrado correctamente. La entidad se encargará del pago.',
-            'collected_count' => count($participationIds),
+            'message' => 'Revisa tu email y confirma la solicitud de cobro. Hasta entonces no se procesará el pago.',
+            'pending_verification' => true,
+            'collected_count' => 0,
         ]);
     }
 
@@ -1892,10 +1875,12 @@ class ParticipationController extends Controller
         $userId = (string) $user->id;
 
         $allowedIds = $this->getParticipationIdsOwnedOrReceivedByUser($user);
+        $reservedIds = ParticipationCollection::reservedParticipationIds();
         $participations = Participation::whereIn('id', $request->participation_ids)
             ->whereIn('id', $allowedIds)
             ->whereNull('collected_at')
             ->whereNull('donated_at')
+            ->when(!empty($reservedIds), fn ($q) => $q->whereNotIn('id', $reservedIds))
             ->get();
 
         if ($participations->isEmpty()) {
@@ -2114,10 +2099,14 @@ class ParticipationController extends Controller
             ];
         }
 
-        // 3. Cobros: participaciones cobradas por el usuario
+        // 3. Cobros: solicitudes del usuario (verificadas y pendientes de confirmación)
         $collections = ParticipationCollection::where('user_id', $user->id)
+            ->whereIn('status', [
+                ParticipationCollection::STATUS_VERIFIED,
+                ParticipationCollection::STATUS_PENDING_VERIFICATION,
+            ])
             ->with(['items.participation.set.reserve.lottery', 'items.participation.set.entity', 'items.participation.set.designFormats'])
-            ->orderBy('collected_at', 'desc')
+            ->orderByRaw('COALESCE(collected_at, created_at) DESC')
             ->get();
 
         foreach ($collections as $collection) {
@@ -2130,19 +2119,23 @@ class ParticipationController extends Controller
             }
             
             if (!empty($participaciones)) {
+                $fecha = $collection->collected_at ?? $collection->created_at;
                 $historial[] = [
                     'id' => 'c-' . $collection->id,
                     'tipo' => 'cobro',
-                    'fecha' => $collection->collected_at->toIso8601String(),
+                    'fecha' => $fecha->toIso8601String(),
                     'participaciones' => $participaciones,
                     'importeTotal' => (float) $collection->importe_total,
+                    'estado' => $collection->isPendingVerification() ? 'pendiente_verificacion' : 'confirmado',
                     'datosPersonales' => [
                         'nombre' => $collection->nombre,
                         'apellidos' => $collection->apellidos,
                         'nif' => $collection->nif,
                     ],
                     'iban' => $collection->iban,
-                    'descripcion' => 'Cobro de ' . count($participaciones) . ' participación(es) - €' . number_format($collection->importe_total, 2, ',', '.'),
+                    'descripcion' => ($collection->isPendingVerification()
+                        ? 'Cobro pendiente de confirmación por email'
+                        : 'Cobro de ' . count($participaciones) . ' participación(es)') . ' - €' . number_format($collection->importe_total, 2, ',', '.'),
                 ];
             }
         }

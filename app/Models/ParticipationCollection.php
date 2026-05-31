@@ -2,12 +2,22 @@
 
 namespace App\Models;
 
+use App\Mail\TransferCollectionConfirmationMail;
+use App\Services\AppInboxNotificationService;
+use App\Services\CommunicationEmailService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class ParticipationCollection extends Model
 {
+    public const STATUS_PENDING_VERIFICATION = 'pending_verification';
+    public const STATUS_VERIFIED = 'verified';
+    public const STATUS_EXPIRED = 'expired';
+    public const STATUS_CANCELLED = 'cancelled';
+
     protected $fillable = [
         'user_id',
         'nombre',
@@ -15,12 +25,20 @@ class ParticipationCollection extends Model
         'nif',
         'iban',
         'importe_total',
+        'status',
+        'confirmation_token',
+        'confirmation_sent_at',
+        'verified_at',
+        'expires_at',
         'collected_at',
         'sepa_payment_order_id',
     ];
 
     protected $casts = [
         'collected_at' => 'datetime',
+        'confirmation_sent_at' => 'datetime',
+        'verified_at' => 'datetime',
+        'expires_at' => 'datetime',
         'importe_total' => 'decimal:2',
     ];
 
@@ -41,12 +59,171 @@ class ParticipationCollection extends Model
 
     public function sepaPaymentOrder(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\SepaPaymentOrder::class);
+        return $this->belongsTo(SepaPaymentOrder::class);
     }
 
+    public function scopePendingVerification($query)
+    {
+        return $query->where('status', self::STATUS_PENDING_VERIFICATION)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            });
+    }
+
+    public function scopeVerified($query)
+    {
+        return $query->where('status', self::STATUS_VERIFIED);
+    }
+
+    /** Verificadas y sin orden SEPA asignada (pendientes de gestionar). */
     public function scopePending($query)
     {
-        return $query->whereNull('sepa_payment_order_id');
+        $query = $query->verified();
+        if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
+            $query->whereNull('sepa_payment_order_id');
+        }
+
+        return $query;
+    }
+
+    public function isPendingVerification(): bool
+    {
+        return $this->status === self::STATUS_PENDING_VERIFICATION;
+    }
+
+    public function isVerified(): bool
+    {
+        return $this->status === self::STATUS_VERIFIED;
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            self::STATUS_PENDING_VERIFICATION => 'No verificada',
+            self::STATUS_VERIFIED => 'Pendiente de gestionar',
+            self::STATUS_EXPIRED => 'Expirada',
+            self::STATUS_CANCELLED => 'Cancelada',
+            default => $this->status ?? '—',
+        };
+    }
+
+    public static function generateConfirmationToken(): string
+    {
+        return Str::random(64);
+    }
+
+    public static function verificationExpiryHours(): int
+    {
+        return (int) config('partilot.transfer_collection_verify_hours', 48);
+    }
+
+    /** IDs de participaciones reservadas en solicitudes pendientes de verificación. */
+    public static function reservedParticipationIds(): array
+    {
+        return ParticipationCollectionItem::query()
+            ->whereHas('collection', fn ($q) => $q->pendingVerification())
+            ->pluck('participation_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function confirmVerification(): void
+    {
+        if (!$this->isPendingVerification() || $this->isExpired()) {
+            throw new \RuntimeException('La solicitud no puede confirmarse.');
+        }
+
+        $now = now();
+        $participationIds = $this->items()->pluck('participation_id')->unique()->filter()->values()->all();
+
+        $this->update([
+            'status' => self::STATUS_VERIFIED,
+            'verified_at' => $now,
+            'collected_at' => $now,
+            'confirmation_token' => null,
+        ]);
+
+        if (!empty($participationIds)) {
+            Participation::whereIn('id', $participationIds)->update(['collected_at' => $now]);
+        }
+
+        $this->sendVerifiedNotifications();
+    }
+
+    public function cancelVerification(): void
+    {
+        if (!$this->isPendingVerification()) {
+            return;
+        }
+
+        $this->update(['status' => self::STATUS_CANCELLED, 'confirmation_token' => null]);
+        $this->delete();
+    }
+
+    public function markAsExpired(): void
+    {
+        if (!$this->isPendingVerification()) {
+            return;
+        }
+
+        $this->update(['status' => self::STATUS_EXPIRED, 'confirmation_token' => null]);
+        $this->delete();
+    }
+
+    protected function sendVerifiedNotifications(): void
+    {
+        $this->load(['user', 'items.participation.set.entity']);
+        $user = $this->user;
+        if (!$user) {
+            return;
+        }
+
+        try {
+            $first = $this->items->first()?->participation;
+            $entity = $first?->set?->entity;
+            if ($entity) {
+                $inbox = app(AppInboxNotificationService::class);
+                $senderId = $inbox->resolveSenderIdForEntity((int) $entity->id) ?? (int) $user->id;
+                $inbox->notifyUser(
+                    (int) $user->id,
+                    (int) $entity->id,
+                    $entity->administration_id ? (int) $entity->administration_id : null,
+                    $senderId,
+                    'cobro_registrado',
+                    $entity->name,
+                    'Tu solicitud de cobro por transferencia ha sido confirmada. La entidad gestionará el pago.',
+                    [
+                        'collection_id' => $this->id,
+                        'rol_context' => 'usuario',
+                        'importe_total' => (float) $this->importe_total,
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Inbox cobro confirmado: ' . $e->getMessage());
+        }
+
+        try {
+            app(CommunicationEmailService::class)->sendAndLog(
+                recipientEmail: (string) $user->email,
+                recipientRole: 'usuario',
+                recipientUser: $user,
+                messageType: 'transfer_collection_confirmation',
+                templateKey: null,
+                mailClass: TransferCollectionConfirmationMail::class,
+                mailPayload: ['collection_id' => $this->id],
+                context: ['source' => 'verification', 'user_id' => $user->id],
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Fallo enviando confirmación post-verificación: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -56,7 +233,7 @@ class ParticipationCollection extends Model
     {
         static::deleting(function (ParticipationCollection $collection) {
             $participationIds = $collection->items()->pluck('participation_id')->unique()->filter()->values()->all();
-            if ($participationIds !== [] && \Illuminate\Support\Facades\Schema::hasColumn('participations', 'collected_at')) {
+            if ($participationIds !== [] && Schema::hasColumn('participations', 'collected_at')) {
                 Participation::whereIn('id', $participationIds)->update(['collected_at' => null]);
             }
         });

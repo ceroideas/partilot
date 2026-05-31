@@ -300,6 +300,13 @@ class CommunicationEmailService
             return;
         }
 
+        if ($mailClass === \App\Mail\TransferCollectionVerificationMail::class) {
+            $collectionId = (int) ($mailPayload['collection_id'] ?? 0);
+            $collection = ParticipationCollection::with('user')->findOrFail($collectionId);
+            Mail::to($recipientEmail)->send(new \App\Mail\TransferCollectionVerificationMail($collection));
+            return;
+        }
+
         if ($mailClass === \App\Mail\DonationCodeConfirmationMail::class) {
             $donationId = (int) ($mailPayload['donation_id'] ?? 0);
             $donation = ParticipationDonation::with('user')->findOrFail($donationId);

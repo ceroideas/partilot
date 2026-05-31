@@ -188,33 +188,239 @@ class SepaPaymentOrderController extends Controller
 
     /**
      * Marcar la orden como Listo (pago realizado manualmente por el usuario).
-     * Actualiza a status "pagada" las participaciones vinculadas a esta orden (vía beneficiaries -> participation_collection -> items).
+     * Marca como pagados todos los beneficiarios pendientes vinculados a participation_collections.
      */
-    public function markAsReady(SepaPaymentOrder $sepaPaymentOrder)
+    public function markAsReady(Request $request, SepaPaymentOrder $sepaPaymentOrder)
     {
-        $sepaPaymentOrder->update(['status' => 'listo']);
+        $pendingIds = $sepaPaymentOrder->beneficiaries()
+            ->where('status', SepaPaymentBeneficiary::STATUS_PENDING)
+            ->pluck('id')
+            ->all();
 
-        $participationIds = $sepaPaymentOrder->beneficiaries()
-            ->whereNotNull('participation_collection_id')
-            ->get()
-            ->pluck('participation_collection_id')
+        if (empty($pendingIds)) {
+            return $this->redirectAfterBeneficiaryAction($request, $sepaPaymentOrder)
+                ->withErrors(['error' => 'No hay beneficiarios pendientes para marcar como pagados.']);
+        }
+
+        $count = $this->markBeneficiariesAsPaid($sepaPaymentOrder, $pendingIds);
+
+        return $this->redirectAfterBeneficiaryAction($request, $sepaPaymentOrder)
+            ->with('success', "Se marcaron {$count} beneficiario(s) como pagados.");
+    }
+
+    /**
+     * Marcar beneficiarios seleccionados como pagados.
+     */
+    public function markBeneficiariesPaid(Request $request, SepaPaymentOrder $sepaPaymentOrder)
+    {
+        $validated = $request->validate([
+            'beneficiary_ids' => 'required|array|min:1',
+            'beneficiary_ids.*' => 'integer|exists:sepa_payment_beneficiaries,id',
+            'redirect_to' => 'nullable|string',
+            'entity_id' => 'nullable|integer|exists:entities,id',
+            'order_id' => 'nullable|integer',
+        ]);
+
+        $count = $this->markBeneficiariesAsPaid($sepaPaymentOrder, $validated['beneficiary_ids']);
+
+        if ($count === 0) {
+            return $this->redirectAfterBeneficiaryAction($request, $sepaPaymentOrder)
+                ->withErrors(['error' => 'Ningún beneficiario pendiente seleccionado pudo marcarse como pagado.']);
+        }
+
+        return $this->redirectAfterBeneficiaryAction($request, $sepaPaymentOrder)
+            ->with('success', "Se marcaron {$count} beneficiario(s) como pagados.");
+    }
+
+    /**
+     * Revertir beneficiarios con error bancario: la solicitud de cobro vuelve a pendientes
+     * y las participaciones quedan de nuevo cobrables (collected_at = null, status vendida).
+     */
+    public function revertBeneficiariesToCobrable(Request $request, SepaPaymentOrder $sepaPaymentOrder)
+    {
+        $validated = $request->validate([
+            'beneficiary_ids' => 'required|array|min:1',
+            'beneficiary_ids.*' => 'integer|exists:sepa_payment_beneficiaries,id',
+            'redirect_to' => 'nullable|string',
+            'entity_id' => 'nullable|integer|exists:entities,id',
+            'order_id' => 'nullable|integer',
+        ]);
+
+        $count = $this->revertBeneficiariesAsCobrable($sepaPaymentOrder, $validated['beneficiary_ids']);
+
+        if ($count === 0) {
+            return $this->redirectAfterBeneficiaryAction($request, $sepaPaymentOrder)
+                ->withErrors(['error' => 'Ningún beneficiario pendiente seleccionado pudo revertirse.']);
+        }
+
+        return $this->redirectAfterBeneficiaryAction($request, $sepaPaymentOrder)
+            ->with('success', "Se revirtieron {$count} beneficiario(s). Las participaciones vuelven a estar cobrables.");
+    }
+
+    private function markBeneficiariesAsPaid(SepaPaymentOrder $order, array $beneficiaryIds): int
+    {
+        $beneficiaries = $order->beneficiaries()
+            ->whereIn('id', $beneficiaryIds)
+            ->where('status', SepaPaymentBeneficiary::STATUS_PENDING)
+            ->get();
+
+        if ($beneficiaries->isEmpty()) {
+            return 0;
+        }
+
+        DB::transaction(function () use ($beneficiaries, $order) {
+            foreach ($beneficiaries as $beneficiary) {
+                $beneficiary->update([
+                    'status' => SepaPaymentBeneficiary::STATUS_PAID,
+                    'paid_at' => now(),
+                ]);
+                $this->updateParticipationsForPaidBeneficiary($beneficiary);
+            }
+            $this->syncOrderStatus($order);
+        });
+
+        return $beneficiaries->count();
+    }
+
+    private function revertBeneficiariesAsCobrable(SepaPaymentOrder $order, array $beneficiaryIds): int
+    {
+        $beneficiaries = $order->beneficiaries()
+            ->whereIn('id', $beneficiaryIds)
+            ->where('status', SepaPaymentBeneficiary::STATUS_PENDING)
+            ->get();
+
+        if ($beneficiaries->isEmpty()) {
+            return 0;
+        }
+
+        $revertedCount = 0;
+
+        DB::transaction(function () use ($beneficiaries, $order, &$revertedCount) {
+            foreach ($beneficiaries as $beneficiary) {
+                if ($this->beneficiaryParticipationsArePaid($beneficiary)) {
+                    continue;
+                }
+                $beneficiary->update(['status' => SepaPaymentBeneficiary::STATUS_REVERTED]);
+                $this->revertParticipationsForBeneficiary($beneficiary);
+                $revertedCount++;
+            }
+            $this->syncOrderStatus($order);
+        });
+
+        return $revertedCount;
+    }
+
+    private function updateParticipationsForPaidBeneficiary(SepaPaymentBeneficiary $beneficiary): void
+    {
+        $collectionId = $beneficiary->participation_collection_id;
+        if (!$collectionId) {
+            return;
+        }
+
+        $ids = ParticipationCollectionItem::where('collection_id', $collectionId)
+            ->pluck('participation_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return;
+        }
+
+        $updates = [];
+        if (Schema::hasColumn('participations', 'status')) {
+            $updates['status'] = 'pagada';
+        }
+        if (!empty($updates)) {
+            Participation::whereIn('id', $ids)->update($updates);
+        }
+    }
+
+    private function revertParticipationsForBeneficiary(SepaPaymentBeneficiary $beneficiary): void
+    {
+        $collection = $beneficiary->participationCollection;
+        if (!$collection) {
+            return;
+        }
+
+        if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
+            $collection->update(['sepa_payment_order_id' => null]);
+        }
+
+        $ids = $collection->items()
+            ->pluck('participation_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return;
+        }
+
+        $updates = ['collected_at' => null];
+        if (Schema::hasColumn('participations', 'status')) {
+            Participation::whereIn('id', $ids)->update(array_merge($updates, ['status' => 'vendida']));
+        } else {
+            Participation::whereIn('id', $ids)->update($updates);
+        }
+    }
+
+    private function beneficiaryParticipationsArePaid(SepaPaymentBeneficiary $beneficiary): bool
+    {
+        $collectionId = $beneficiary->participation_collection_id;
+        if (!$collectionId || !Schema::hasColumn('participations', 'status')) {
+            return false;
+        }
+
+        $ids = ParticipationCollectionItem::where('collection_id', $collectionId)
+            ->pluck('participation_id')
             ->unique()
             ->filter()
             ->values();
 
-        if ($participationIds->isNotEmpty() && Schema::hasColumn('participations', 'status')) {
-            $ids = ParticipationCollectionItem::whereIn('collection_id', $participationIds)
-                ->pluck('participation_id')
-                ->unique()
-                ->filter()
-                ->values()
-                ->all();
-            if (!empty($ids)) {
-                Participation::whereIn('id', $ids)->update(['status' => 'pagada']);
-            }
+        if ($ids->isEmpty()) {
+            return false;
         }
 
-        return back()->with('success', 'Orden marcada como Listo (pago realizado).');
+        return Participation::whereIn('id', $ids)->where('status', 'pagada')->exists();
+    }
+
+    private function syncOrderStatus(SepaPaymentOrder $order): void
+    {
+        $order->refresh();
+        $statuses = $order->beneficiaries()->pluck('status');
+
+        if ($statuses->isEmpty()) {
+            return;
+        }
+
+        $allResolved = $statuses->every(fn ($s) => in_array($s, [
+            SepaPaymentBeneficiary::STATUS_PAID,
+            SepaPaymentBeneficiary::STATUS_REVERTED,
+        ], true));
+
+        if ($allResolved) {
+            $order->update(['status' => 'listo']);
+        }
+    }
+
+    private function redirectAfterBeneficiaryAction(Request $request, SepaPaymentOrder $order)
+    {
+        if ($request->input('redirect_to') === 'configuration' && $request->filled('entity_id')) {
+            $params = [
+                'section' => 'ordenes-pago-entidades',
+                'step' => 3,
+                'entity_id' => $request->input('entity_id'),
+            ];
+            if ($request->filled('order_id')) {
+                $params['order_id'] = $request->input('order_id');
+            }
+            return redirect()->route('configuration.index', $params);
+        }
+
+        return redirect()->route('sepa-payments.show', $order->id);
     }
 
     /**

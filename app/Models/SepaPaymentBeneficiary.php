@@ -10,6 +10,10 @@ class SepaPaymentBeneficiary extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_PAID = 'paid';
+    public const STATUS_REVERTED = 'reverted';
+
     protected $fillable = [
         'sepa_payment_order_id',
         'participation_collection_id',
@@ -21,11 +25,37 @@ class SepaPaymentBeneficiary extends Model
         'creditor_iban',
         'purpose_code',
         'remittance_info',
+        'status',
+        'paid_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
+
+    public function isPending(): bool
+    {
+        return ($this->status ?? self::STATUS_PENDING) === self::STATUS_PENDING;
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status ?? self::STATUS_PENDING) {
+            self::STATUS_PAID => 'Pagado',
+            self::STATUS_REVERTED => 'Revertido (cobrable)',
+            default => 'Pendiente',
+        };
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status ?? self::STATUS_PENDING) {
+            self::STATUS_PAID => 'success',
+            self::STATUS_REVERTED => 'warning',
+            default => 'secondary',
+        };
+    }
 
     /**
      * Relación con SepaPaymentOrder

@@ -20,6 +20,42 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::table('participation_collections', function (Blueprint $table) {
+            $table->string('status', 30)->default('pending_verification')->after('importe_total');
+            $table->string('confirmation_token', 64)->nullable()->unique()->after('status');
+            $table->timestamp('confirmation_sent_at')->nullable()->after('confirmation_token');
+            $table->timestamp('verified_at')->nullable()->after('confirmation_sent_at');
+            $table->timestamp('expires_at')->nullable()->after('verified_at');
+        });
+
+        Schema::table('participation_collections', function (Blueprint $table) {
+            $table->timestamp('collected_at')->nullable()->change();
+        });
+
+        // Solicitudes existentes (ya procesadas) → verificadas
+        DB::table('participation_collections')
+            ->whereNotNull('collected_at')
+            ->update([
+                'status' => 'verified',
+                'verified_at' => DB::raw('collected_at'),
+            ]);
+            
+        Schema::table('sepa_payment_beneficiaries', function (Blueprint $table) {
+            $table->string('status', 20)->default('pending')->after('remittance_info');
+            $table->timestamp('paid_at')->nullable()->after('status');
+        });
+
+        // Sincronizar beneficiarios de órdenes ya marcadas como listo (datos previos al cambio)
+        DB::table('sepa_payment_beneficiaries')
+            ->join('sepa_payment_orders', 'sepa_payment_beneficiaries.sepa_payment_order_id', '=', 'sepa_payment_orders.id')
+            ->where('sepa_payment_orders.status', 'listo')
+            ->update([
+                'sepa_payment_beneficiaries.status' => 'paid',
+                'sepa_payment_beneficiaries.paid_at' => DB::raw('COALESCE(sepa_payment_beneficiaries.paid_at, sepa_payment_orders.updated_at)'),
+            ]);
+
+        return "ok";
+        
         Schema::table('administrations', function (Blueprint $table) {
             $table->string('prepago_integration_name')->nullable()->after('account');
             $table->string('prepago_api_url', 500)->nullable()->after('prepago_integration_name');

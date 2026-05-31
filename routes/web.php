@@ -119,6 +119,10 @@ Route::get('/entity-managers/confirm/accept/{token}', [EntityController::class, 
 Route::post('/entity-managers/confirm/accept/{token}', [EntityController::class, 'confirmManagerAcceptStore'])->name('entity-managers.confirm-accept.store');
 Route::get('/entity-managers/confirm/reject/{token}', [EntityController::class, 'confirmManagerReject'])->name('entity-managers.confirm-reject');
 
+// Confirmación doble opt-in cobro por transferencia (sin autenticación)
+Route::get('/cobro-transferencia/confirmar/{token}', [\App\Http\Controllers\TransferCollectionVerificationController::class, 'confirm'])->name('transfer-collection.confirm');
+Route::get('/cobro-transferencia/cancelar/{token}', [\App\Http\Controllers\TransferCollectionVerificationController::class, 'cancel'])->name('transfer-collection.cancel');
+
 // Registro web comprador (venta digital pendiente)
 Route::get('/registro-comprador/{token}', [\App\Http\Controllers\DigitalBuyerRegistrationController::class, 'show'])->name('digital-buyer.register');
 Route::post('/registro-comprador/{token}', [\App\Http\Controllers\DigitalBuyerRegistrationController::class, 'store'])->name('digital-buyer.register.store');
@@ -592,6 +596,8 @@ Route::group(['prefix' => 'sepa-payments', 'middleware' => 'entity.permission:pa
     Route::get('/{sepaPaymentOrder}', [SepaPaymentOrderController::class, 'show'])->name('sepa-payments.show');
     Route::get('/{sepaPaymentOrder}/generate-xml', [SepaPaymentOrderController::class, 'generateXml'])->name('sepa-payments.generate-xml');
     Route::post('/{sepaPaymentOrder}/mark-ready', [SepaPaymentOrderController::class, 'markAsReady'])->name('sepa-payments.mark-ready');
+    Route::post('/{sepaPaymentOrder}/mark-beneficiaries-paid', [SepaPaymentOrderController::class, 'markBeneficiariesPaid'])->name('sepa-payments.mark-beneficiaries-paid');
+    Route::post('/{sepaPaymentOrder}/revert-beneficiaries', [SepaPaymentOrderController::class, 'revertBeneficiariesToCobrable'])->name('sepa-payments.revert-beneficiaries');
     Route::delete('/{sepaPaymentOrder}', [SepaPaymentOrderController::class, 'destroy'])->name('sepa-payments.destroy');
 });
 

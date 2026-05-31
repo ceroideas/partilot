@@ -198,6 +198,10 @@
     @endif
 
     @if($step === 3 && $entity && isset($sepaOrder) && $sepaOrder)
+        @php
+            $hasPendingBeneficiaries = $sepaOrder->beneficiaries->contains(fn($b) => ($b->status ?? 'pending') === 'pending');
+            $canManagePayments = $hasPendingBeneficiaries && in_array($sepaOrder->status ?? '', ['descargado', 'generated', 'listo']);
+        @endphp
         {{-- Paso 3: Detalle de la orden SEPA seleccionada (beneficiarios) --}}
         <div class="d-flex align-items-center gap-3 mb-3">
             <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
@@ -233,51 +237,76 @@
         </div>
 
         <div class="table-responsive mt-3">
-            <table class="table table-striped table-centered mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>End to End ID</th>
-                        <th>Nombre</th>
-                        <th>NIF/CIF</th>
-                        <th>IBAN</th>
-                        <th>Importe</th>
-                        <th>Moneda</th>
-                        <th>Remesa</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($sepaOrder->beneficiaries as $beneficiary)
+            <form id="form-beneficiarios-acciones" method="POST">
+                @csrf
+                <input type="hidden" name="redirect_to" value="configuration">
+                <input type="hidden" name="entity_id" value="{{ $entity->id }}">
+                <input type="hidden" name="order_id" value="{{ $sepaOrder->id }}">
+                <table class="table table-striped table-centered mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td>{{ $beneficiary->end_to_end_id }}</td>
-                            <td>{{ $beneficiary->creditor_name }}</td>
-                            <td>{{ $beneficiary->creditor_nif_cif ?? '—' }}</td>
-                            <td>{{ $beneficiary->creditor_iban }}</td>
-                            <td>{{ number_format($beneficiary->amount, 2, ',', '.') }} €</td>
-                            <td>{{ $beneficiary->currency }}</td>
-                            <td>{{ $beneficiary->remittance_info ?? '—' }}</td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-light text-danger btn-eliminar-beneficiary"
-                                    data-beneficiary-id="{{ $beneficiary->id }}"
-                                    data-creditor-name="{{ e($beneficiary->creditor_name) }}"
-                                    data-amount="{{ number_format($beneficiary->amount, 2, ',', '.') }}"
-                                    data-iban-suffix="{{ strlen($beneficiary->creditor_iban ?? '') >= 4 ? substr($beneficiary->creditor_iban, -4) : '****' }}"
-                                    data-has-collection="{{ $beneficiary->participation_collection_id ? '1' : '0' }}"
-                                    title="Eliminar de la orden">
-                                    <i class="fe-trash-2"></i>
-                                </button>
-                            </td>
+                            @if($canManagePayments)
+                                <th style="width: 40px;">
+                                    <input type="checkbox" class="form-check-input" id="check-all-beneficiaries" title="Seleccionar todos">
+                                </th>
+                            @endif
+                            <th>End to End ID</th>
+                            <th>Nombre</th>
+                            <th>NIF/CIF</th>
+                            <th>IBAN</th>
+                            <th>Importe</th>
+                            <th>Moneda</th>
+                            <th>Remesa</th>
+                            <th>Estado pago</th>
+                            <th></th>
                         </tr>
-                    @endforeach
-                </tbody>
-                <tfoot class="table-light">
-                    <tr>
-                        <th colspan="4" class="text-end">Total:</th>
-                        <th>{{ number_format($sepaOrder->control_sum ?? 0, 2, ',', '.') }} €</th>
-                        <th colspan="3"></th>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach($sepaOrder->beneficiaries as $beneficiary)
+                            @php $isPending = ($beneficiary->status ?? 'pending') === 'pending'; @endphp
+                            <tr>
+                                @if($canManagePayments)
+                                    <td>
+                                        @if($isPending)
+                                            <input type="checkbox" class="form-check-input beneficiary-checkbox" name="beneficiary_ids[]" value="{{ $beneficiary->id }}">
+                                        @endif
+                                    </td>
+                                @endif
+                                <td>{{ $beneficiary->end_to_end_id }}</td>
+                                <td>{{ $beneficiary->creditor_name }}</td>
+                                <td>{{ $beneficiary->creditor_nif_cif ?? '—' }}</td>
+                                <td>{{ $beneficiary->creditor_iban }}</td>
+                                <td>{{ number_format($beneficiary->amount, 2, ',', '.') }} €</td>
+                                <td>{{ $beneficiary->currency }}</td>
+                                <td>{{ $beneficiary->remittance_info ?? '—' }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $beneficiary->statusBadgeClass() }}">{{ $beneficiary->statusLabel() }}</span>
+                                </td>
+                                <td>
+                                    @if($isPending)
+                                        <button type="button" class="btn btn-sm btn-light text-danger btn-eliminar-beneficiary"
+                                            data-beneficiary-id="{{ $beneficiary->id }}"
+                                            data-creditor-name="{{ e($beneficiary->creditor_name) }}"
+                                            data-amount="{{ number_format($beneficiary->amount, 2, ',', '.') }}"
+                                            data-iban-suffix="{{ strlen($beneficiary->creditor_iban ?? '') >= 4 ? substr($beneficiary->creditor_iban, -4) : '****' }}"
+                                            data-has-collection="{{ $beneficiary->participation_collection_id ? '1' : '0' }}"
+                                            title="Eliminar de la orden">
+                                            <i class="fe-trash-2"></i>
+                                        </button>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="{{ $canManagePayments ? 5 : 4 }}" class="text-end">Total:</th>
+                            <th>{{ number_format($sepaOrder->control_sum ?? 0, 2, ',', '.') }} €</th>
+                            <th colspan="4"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </form>
         </div>
 
         {{-- Modal eliminar beneficiario (cuenta vinculada) de la orden --}}
@@ -315,13 +344,19 @@
             @if($sepaOrder->beneficiaries->isNotEmpty())
                 <a href="{{ route('sepa-payments.generate-xml', $sepaOrder->id) }}" class="btn btn-md btn-light" style="border-radius: 30px;"><i class="fe-download me-1"></i> Descargar XML</a>
             @endif
-            @if(in_array($sepaOrder->status ?? '', ['descargado', 'generated']))
-                <form action="{{ route('sepa-payments.mark-ready', $sepaOrder->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar esta orden como Listo (pago realizado)?');">
+            @if($canManagePayments)
+                <button type="button" id="btn-marcar-pagados" class="btn btn-md btn-success" style="border-radius: 30px;" disabled>
+                    <i class="fe-check me-1"></i> Marcar seleccionados como pagados
+                </button>
+                <button type="button" id="btn-revertir-cobrable" class="btn btn-md btn-outline-warning" style="border-radius: 30px;" disabled>
+                    <i class="fe-rotate-ccw me-1"></i> Revertir a cobrable (error banco)
+                </button>
+                <form action="{{ route('sepa-payments.mark-ready', $sepaOrder->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar TODOS los beneficiarios pendientes como pagados?');">
                     @csrf
                     <input type="hidden" name="redirect_to" value="configuration">
                     <input type="hidden" name="entity_id" value="{{ $entity->id }}">
                     <input type="hidden" name="order_id" value="{{ $sepaOrder->id }}">
-                    <button type="submit" class="btn btn-md btn-success" style="border-radius: 30px;"><i class="fe-check me-1"></i> Marcar como Listo</button>
+                    <button type="submit" class="btn btn-md btn-outline-success" style="border-radius: 30px;"><i class="fe-check-circle me-1"></i> Marcar todos como pagados</button>
                 </form>
             @endif
             <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=3&entity_id=' . $entity->id) }}" class="btn btn-md btn-outline-secondary" style="border-radius: 30px;">Pagos pendientes</a>
@@ -339,29 +374,41 @@
                 <small class="text-muted">{{ $entity->province ?? $entity->city ?? '—' }}</small>
             </div>
         </div>
-        <h4 class="mb-0 mt-1">Pagos pendientes</h4>
-        <small><i>Peticiones de cobro que aún no están incluidas en ninguna orden SEPA. Crear orden SEPA para generarla con estos items y descargar el XML.</i></small>
+        @php
+            $activeCollectionTab = $collectionTab ?? 'pending';
+            $unverifiedCount = isset($unverifiedCollections) ? $unverifiedCollections->count() : 0;
+        @endphp
+        <h4 class="mb-0 mt-1">Solicitudes de cobro</h4>
+        <small><i>
+            @if($activeCollectionTab === 'unverified')
+                Solicitudes pendientes de confirmación por email del usuario.
+            @else
+                Peticiones verificadas que aún no están incluidas en ninguna orden SEPA.
+            @endif
+        </i></small>
 
-        <div class="row mt-3 mb-2 g-2">
-            <div class="col-md-3">
-                <label class="form-label small">Provincia</label>
-                <select class="form-select form-select-sm"><option>Todas</option></select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small">Localidad</label>
-                <select class="form-select form-select-sm"><option>Todas</option></select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small">Estatus</label>
-                <select class="form-select form-select-sm"><option>Todos</option></select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small">Busqueda</label>
-                <input type="search" class="form-control form-control-sm" placeholder="Busqueda">
-            </div>
-        </div>
+        <ul class="nav nav-tabs mt-3">
+            <li class="nav-item">
+                <a class="nav-link {{ $activeCollectionTab === 'pending' ? 'active' : '' }}"
+                   href="{{ url('/configuration?section=ordenes-pago-entidades&step=3&entity_id=' . $entity->id . '&tab=pending') }}">
+                    Pendientes de gestionar
+                    @if($activeCollectionTab !== 'unverified' && $collections->isNotEmpty())
+                        <span class="badge bg-secondary ms-1">{{ $collections->count() }}</span>
+                    @endif
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ $activeCollectionTab === 'unverified' ? 'active' : '' }}"
+                   href="{{ url('/configuration?section=ordenes-pago-entidades&step=3&entity_id=' . $entity->id . '&tab=unverified') }}">
+                    No verificadas
+                    @if($unverifiedCount > 0)
+                        <span class="badge bg-warning text-dark ms-1">{{ $unverifiedCount }}</span>
+                    @endif
+                </a>
+            </li>
+        </ul>
 
-        <div class="table-responsive">
+        <div class="table-responsive mt-3">
             <table class="table table-hover table-centered mb-0">
                 <thead class="table-light">
                     <tr>
@@ -369,7 +416,12 @@
                         <th>Fecha Petición</th>
                         <th>Número de cuenta</th>
                         <th>Importe</th>
-                        <th>Petición</th>
+                        <th>Estado</th>
+                        @if($activeCollectionTab === 'unverified')
+                            <th>Expira</th>
+                        @else
+                            <th>Petición</th>
+                        @endif
                         <th></th>
                     </tr>
                 </thead>
@@ -377,10 +429,15 @@
                     @foreach($collections as $col)
                         <tr data-collection-id="{{ $col->id }}" data-collection-amount="{{ number_format($col->importe_total, 2, ',', '') }}" data-collection-date="{{ $col->created_at->format('d/m/Y') }}" data-collection-iban="{{ $col->iban }}">
                             <td>#US{{ str_pad($col->user_id ?? $col->id, 4, '0', STR_PAD_LEFT) }}</td>
-                            <td>{{ $col->created_at->format('d/m/Y') }}</td>
+                            <td>{{ $col->created_at->format('d/m/Y H:i') }}</td>
                             <td>{{ strlen($col->iban ?? '') >= 8 ? substr(preg_replace('/\s+/', '', $col->iban), 0, 4) . str_repeat('*', strlen(preg_replace('/\s+/', '', $col->iban)) - 8) . substr(preg_replace('/\s+/', '', $col->iban), -4) : ($col->iban ?? '—') }}</td>
                             <td>{{ number_format($col->importe_total, 2, ',', '') }} €</td>
-                            <td>WEB - IP: 82.129.80.111</td>
+                            <td><span class="badge bg-{{ $col->isPendingVerification() ? 'warning text-dark' : 'success' }}">{{ $col->statusLabel() }}</span></td>
+                            @if($activeCollectionTab === 'unverified')
+                                <td>{{ $col->expires_at ? $col->expires_at->format('d/m/Y H:i') : '—' }}</td>
+                            @else
+                                <td>WEB - IP: 82.129.80.111</td>
+                            @endif
                             <td>
                                 <button type="button" class="btn btn-sm btn-light text-danger btn-eliminar-collection" title="Eliminar">
                                     <i class="fe-trash-2"></i>
@@ -389,7 +446,13 @@
                         </tr>
                     @endforeach
                     @if($collections->isEmpty())
-                        <tr><td colspan="6" class="text-center text-muted">No hay pagos pendientes para esta entidad (o ya están incluidos en una orden SEPA).</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted">
+                            @if($activeCollectionTab === 'unverified')
+                                No hay solicitudes pendientes de verificación por email.
+                            @else
+                                No hay pagos pendientes de gestionar para esta entidad.
+                            @endif
+                        </td></tr>
                     @endif
                 </tbody>
             </table>
@@ -399,16 +462,18 @@
             <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=2&entity_id=' . $entity->id) }}" class="btn btn-md btn-dark" style="border-radius: 30px;">
                 <i class="ri-arrow-left-line me-1"></i> Órdenes SEPA
             </a>
-            <a href="{{ route('ordenes-pago-entidades.nueva-orden', ['entity_id' => $entity->id]) }}" class="btn btn-md btn-outline-primary" style="border-radius: 30px;">
-                <i class="ri-add-line me-1"></i> Nueva orden SEPA
-            </a>
-            <form action="{{ route('ordenes-pago-entidades.crear-sepa') }}" method="POST" class="d-inline">
-                @csrf
-                <input type="hidden" name="entity_id" value="{{ $entity->id }}">
-                <button type="submit" class="btn btn-md btn-light" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bolder;" {{ $collections->isEmpty() ? 'disabled' : '' }}>
-                    Crear orden SEPA (desde pendientes)
-                </button>
-            </form>
+            @if($activeCollectionTab === 'pending')
+                <a href="{{ route('ordenes-pago-entidades.nueva-orden', ['entity_id' => $entity->id]) }}" class="btn btn-md btn-outline-primary" style="border-radius: 30px;">
+                    <i class="ri-add-line me-1"></i> Nueva orden SEPA
+                </a>
+                <form action="{{ route('ordenes-pago-entidades.crear-sepa') }}" method="POST" class="d-inline">
+                    @csrf
+                    <input type="hidden" name="entity_id" value="{{ $entity->id }}">
+                    <button type="submit" class="btn btn-md btn-light" style="border-radius: 30px; background-color: #e78307; color: #333; font-weight: bolder;" {{ $collections->isEmpty() ? 'disabled' : '' }}>
+                        Crear orden SEPA (desde pendientes)
+                    </button>
+                </form>
+            @endif
         </div>
     @endif
 </div>
@@ -459,6 +524,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 formBenef.action = baseUrl + '/' + id;
                 modalInstance.show();
             });
+        });
+    }
+
+    var checkAll = document.getElementById('check-all-beneficiaries');
+    var checkboxes = document.querySelectorAll('.beneficiary-checkbox');
+    var btnMarcar = document.getElementById('btn-marcar-pagados');
+    var btnRevertir = document.getElementById('btn-revertir-cobrable');
+    var formAcciones = document.getElementById('form-beneficiarios-acciones');
+
+    function updateActionButtons() {
+        var checked = document.querySelectorAll('.beneficiary-checkbox:checked').length;
+        if (btnMarcar) btnMarcar.disabled = checked === 0;
+        if (btnRevertir) btnRevertir.disabled = checked === 0;
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function() {
+            checkboxes.forEach(function(cb) { cb.checked = checkAll.checked; });
+            updateActionButtons();
+        });
+    }
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', updateActionButtons);
+    });
+
+    function submitBeneficiaryAction(action, confirmMsg) {
+        var checked = document.querySelectorAll('.beneficiary-checkbox:checked');
+        if (checked.length === 0) return;
+        if (!confirm(confirmMsg)) return;
+        formAcciones.action = action;
+        formAcciones.submit();
+    }
+
+    if (btnMarcar && formAcciones) {
+        btnMarcar.addEventListener('click', function() {
+            submitBeneficiaryAction(
+                '{{ route("sepa-payments.mark-beneficiaries-paid", $sepaOrder->id) }}',
+                '¿Marcar los beneficiarios seleccionados como pagados?'
+            );
+        });
+    }
+    if (btnRevertir && formAcciones) {
+        btnRevertir.addEventListener('click', function() {
+            submitBeneficiaryAction(
+                '{{ route("sepa-payments.revert-beneficiaries", $sepaOrder->id) }}',
+                '¿Revertir los beneficiarios seleccionados? Las participaciones volverán a estar cobrables y la solicitud reaparecerá en pagos pendientes.'
+            );
         });
     }
 });

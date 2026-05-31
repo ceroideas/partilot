@@ -124,6 +124,8 @@ class ConfigurationController extends Controller
         $entities = collect();
         $entity = null;
         $collections = collect();
+        $unverifiedCollections = collect();
+        $collectionTab = 'pending';
         $sepaOrders = collect();
         $sepaOrder = null;
         $provincias = collect();
@@ -316,13 +318,27 @@ class ConfigurationController extends Controller
                         ->find($orderId);
                 }
                 if (!$sepaOrder) {
-                    $collections = ParticipationCollection::whereHas('items.participation', function ($q) use ($entityId) {
+                    $collectionTab = $request->get('tab', 'pending');
+                    $baseQuery = ParticipationCollection::whereHas('items.participation', function ($q) use ($entityId) {
                         $q->where('entity_id', $entityId);
                     });
-                    if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
-                        $collections = $collections->pending();
+
+                    $unverifiedCollections = (clone $baseQuery)->pendingVerification()
+                        ->with(['user', 'items'])
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+
+                    if ($collectionTab === 'unverified') {
+                        $collections = $unverifiedCollections;
+                    } else {
+                        $collectionsQuery = (clone $baseQuery);
+                        if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
+                            $collectionsQuery = $collectionsQuery->pending();
+                        } else {
+                            $collectionsQuery = $collectionsQuery->verified();
+                        }
+                        $collections = $collectionsQuery->with(['user', 'items'])->orderBy('created_at', 'desc')->get();
                     }
-                    $collections = $collections->with(['user', 'items'])->orderBy('created_at', 'desc')->get();
                 }
             }
         }
@@ -432,6 +448,8 @@ class ConfigurationController extends Controller
             'entities',
             'entity',
             'collections',
+            'unverifiedCollections',
+            'collectionTab',
             'sepaOrders',
             'sepaOrder',
             'provincias',
@@ -868,6 +886,7 @@ class ConfigurationController extends Controller
                 $creditorName = trim($col->nombre . ' ' . $col->apellidos);
                 SepaPaymentBeneficiary::create([
                     'sepa_payment_order_id' => $order->id,
+                    'participation_collection_id' => $col->id,
                     'end_to_end_id' => SepaPaymentBeneficiary::generateEndToEndId(),
                     'amount' => $col->importe_total,
                     'currency' => 'EUR',

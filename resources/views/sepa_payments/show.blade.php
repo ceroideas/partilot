@@ -119,43 +119,67 @@
                     @endif
 
                     <!-- Beneficiarios -->
+                    @php
+                        $hasPendingBeneficiaries = $sepaPaymentOrder->beneficiaries->contains(fn($b) => ($b->status ?? 'pending') === 'pending');
+                        $canManagePayments = $hasPendingBeneficiaries && in_array($sepaPaymentOrder->status ?? '', ['descargado', 'generated', 'listo']);
+                    @endphp
                     <h5 class="mb-3 mt-4">Beneficiarios</h5>
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>End to End ID</th>
-                                    <th>Nombre</th>
-                                    <th>NIF/CIF</th>
-                                    <th>IBAN</th>
-                                    <th>Importe</th>
-                                    <th>Moneda</th>
-                                    <th>Código Propósito</th>
-                                    <th>Remesa</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($sepaPaymentOrder->beneficiaries as $beneficiary)
-                                <tr>
-                                    <td>{{$beneficiary->end_to_end_id}}</td>
-                                    <td>{{$beneficiary->creditor_name}}</td>
-                                    <td>{{$beneficiary->creditor_nif_cif ?? 'N/A'}}</td>
-                                    <td>{{$beneficiary->creditor_iban}}</td>
-                                    <td>{{number_format($beneficiary->amount, 2, ',', '.')}}</td>
-                                    <td>{{$beneficiary->currency}}</td>
-                                    <td>{{$beneficiary->purpose_code}}</td>
-                                    <td>{{$beneficiary->remittance_info ?? 'N/A'}}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <th colspan="4" class="text-end">Total:</th>
-                                    <th>{{number_format($sepaPaymentOrder->control_sum, 2, ',', '.')}} €</th>
-                                    <th colspan="3"></th>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        <form id="form-beneficiarios-acciones" method="POST">
+                            @csrf
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        @if($canManagePayments)
+                                            <th style="width: 40px;">
+                                                <input type="checkbox" class="form-check-input" id="check-all-beneficiaries" title="Seleccionar todos">
+                                            </th>
+                                        @endif
+                                        <th>End to End ID</th>
+                                        <th>Nombre</th>
+                                        <th>NIF/CIF</th>
+                                        <th>IBAN</th>
+                                        <th>Importe</th>
+                                        <th>Moneda</th>
+                                        <th>Código Propósito</th>
+                                        <th>Remesa</th>
+                                        <th>Estado pago</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($sepaPaymentOrder->beneficiaries as $beneficiary)
+                                    @php $isPending = ($beneficiary->status ?? 'pending') === 'pending'; @endphp
+                                    <tr>
+                                        @if($canManagePayments)
+                                            <td>
+                                                @if($isPending)
+                                                    <input type="checkbox" class="form-check-input beneficiary-checkbox" name="beneficiary_ids[]" value="{{ $beneficiary->id }}">
+                                                @endif
+                                            </td>
+                                        @endif
+                                        <td>{{$beneficiary->end_to_end_id}}</td>
+                                        <td>{{$beneficiary->creditor_name}}</td>
+                                        <td>{{$beneficiary->creditor_nif_cif ?? 'N/A'}}</td>
+                                        <td>{{$beneficiary->creditor_iban}}</td>
+                                        <td>{{number_format($beneficiary->amount, 2, ',', '.')}}</td>
+                                        <td>{{$beneficiary->currency}}</td>
+                                        <td>{{$beneficiary->purpose_code}}</td>
+                                        <td>{{$beneficiary->remittance_info ?? 'N/A'}}</td>
+                                        <td>
+                                            <span class="badge bg-{{ $beneficiary->statusBadgeClass() }}">{{ $beneficiary->statusLabel() }}</span>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="{{ $canManagePayments ? 5 : 4 }}" class="text-end">Total:</th>
+                                        <th>{{number_format($sepaPaymentOrder->control_sum, 2, ',', '.')}} €</th>
+                                        <th colspan="4"></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </form>
                     </div>
 
                     <!-- Botones de acción -->
@@ -171,11 +195,17 @@
                                     <i class="ri-file-add-line"></i> Generar XML
                                 </a>
                             @endif
-                            @if(in_array($sepaPaymentOrder->status, ['descargado', 'generated']))
-                                <form action="{{route('sepa-payments.mark-ready', $sepaPaymentOrder->id)}}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar esta orden como Listo (pago realizado)?');">
+                            @if($canManagePayments)
+                                <button type="button" id="btn-marcar-pagados" class="btn btn-success" disabled>
+                                    <i class="ri-check-line"></i> Marcar seleccionados como pagados
+                                </button>
+                                <button type="button" id="btn-revertir-cobrable" class="btn btn-outline-warning" disabled>
+                                    <i class="ri-arrow-go-back-line"></i> Revertir a cobrable (error banco)
+                                </button>
+                                <form action="{{route('sepa-payments.mark-ready', $sepaPaymentOrder->id)}}" method="POST" class="d-inline" onsubmit="return confirm('¿Marcar TODOS los beneficiarios pendientes como pagados?');">
                                     @csrf
-                                    <button type="submit" class="btn btn-success">
-                                        <i class="ri-check-line"></i> Marcar como Listo (pago realizado)
+                                    <button type="submit" class="btn btn-outline-success">
+                                        <i class="ri-check-double-line"></i> Marcar todos como pagados
                                     </button>
                                 </form>
                             @endif
@@ -197,6 +227,61 @@
 
 </div> <!-- container -->
 
+@endsection
+
+@section('scripts')
+@if($canManagePayments ?? false)
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var checkAll = document.getElementById('check-all-beneficiaries');
+    var checkboxes = document.querySelectorAll('.beneficiary-checkbox');
+    var btnMarcar = document.getElementById('btn-marcar-pagados');
+    var btnRevertir = document.getElementById('btn-revertir-cobrable');
+    var formAcciones = document.getElementById('form-beneficiarios-acciones');
+
+    function updateActionButtons() {
+        var checked = document.querySelectorAll('.beneficiary-checkbox:checked').length;
+        if (btnMarcar) btnMarcar.disabled = checked === 0;
+        if (btnRevertir) btnRevertir.disabled = checked === 0;
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function() {
+            checkboxes.forEach(function(cb) { cb.checked = checkAll.checked; });
+            updateActionButtons();
+        });
+    }
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', updateActionButtons);
+    });
+
+    function submitBeneficiaryAction(action, confirmMsg) {
+        var checked = document.querySelectorAll('.beneficiary-checkbox:checked');
+        if (checked.length === 0) return;
+        if (!confirm(confirmMsg)) return;
+        formAcciones.action = action;
+        formAcciones.submit();
+    }
+
+    if (btnMarcar && formAcciones) {
+        btnMarcar.addEventListener('click', function() {
+            submitBeneficiaryAction(
+                '{{ route("sepa-payments.mark-beneficiaries-paid", $sepaPaymentOrder->id) }}',
+                '¿Marcar los beneficiarios seleccionados como pagados?'
+            );
+        });
+    }
+    if (btnRevertir && formAcciones) {
+        btnRevertir.addEventListener('click', function() {
+            submitBeneficiaryAction(
+                '{{ route("sepa-payments.revert-beneficiaries", $sepaPaymentOrder->id) }}',
+                '¿Revertir los beneficiarios seleccionados? Las participaciones volverán a estar cobrables.'
+            );
+        });
+    }
+});
+</script>
+@endif
 @endsection
 
 
