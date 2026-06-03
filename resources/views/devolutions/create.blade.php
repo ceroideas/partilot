@@ -1571,6 +1571,9 @@ $(document).ready(function() {
                 }
                 @endif
             }
+        });
+    }
+
     function inicializarDataTableSorteos() {
         if (tablaSorteos) return;
         

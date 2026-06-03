@@ -1359,9 +1359,14 @@ class DevolutionsController extends Controller
         }
 
         $user = auth()->user();
-        $entityIds = $user->getManagerEntityIds();
-        if (empty($entityIds)) {
+        // Superadmin y administración ven todas sus entidades accesibles; el resto prioriza managers (gestor).
+        if ($user->isSuperAdmin() || $user->isAdministration()) {
             $entityIds = $user->accessibleEntityIds();
+        } else {
+            $entityIds = $user->getManagerEntityIds();
+            if (empty($entityIds)) {
+                $entityIds = $user->accessibleEntityIds();
+            }
         }
         $entityIds = array_values(array_filter(
             $entityIds,
