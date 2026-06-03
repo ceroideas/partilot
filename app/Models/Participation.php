@@ -131,9 +131,10 @@ class Participation extends Model
         return $query->where('status', 'disponible');
     }
 
+    /** Ventas registradas: vendida, pagada (cobrada) y donada (sigue siendo vendida en BD). */
     public function scopeSold($query)
     {
-        return $query->where('status', 'vendida');
+        return $query->whereIn('status', ['vendida', 'pagada']);
     }
 
     /**
@@ -186,7 +187,7 @@ class Participation extends Model
 
     public function isSold()
     {
-        return $this->status === 'vendida';
+        return in_array($this->status, ['vendida', 'pagada'], true);
     }
 
     public function isReturned()

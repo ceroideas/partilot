@@ -606,10 +606,16 @@
                                                                 <small class="text-muted" id="texto-tipo-disponibles">Como entidad en esta reserva</small>
                                                                 <div class="mt-2">
                                                                     <span id="disponibles-devolver-total" class="fw-bold fs-5 text-primary">0</span>
-                                                                    <span class="text-muted"> total</span>
-                                                                    <span class="ms-2 text-muted">(<span id="disponibles-devolver-fisicas">0</span> físicas, <span id="disponibles-devolver-digitales">0</span> digitales)</span>
+                                                                    <span class="text-muted" id="disponibles-devolver-etiqueta-total"> total</span>
+                                                                    <span class="ms-2 text-muted" id="disponibles-devolver-desglose">(<span id="disponibles-devolver-fisicas">0</span> físicas, <span id="disponibles-devolver-digitales">0</span> digitales)</span>
                                                                 </div>
-                                                                <small class="text-muted d-block mt-1">No se pueden devolver las vendidas, donadas ni cobradas.</small>
+                                                                <small class="text-muted d-block mt-1" id="nota-disponibles-devolver">No se pueden devolver las ya vendidas.</small>
+                                                                <div class="alert alert-info py-2 mt-2 mb-0 small" id="mensaje-digitales-entidad" style="display: none;">
+                                                                    Las participaciones <strong>digitales</strong> no se asignan a vendedores (pool de la entidad).
+                                                                    Al confirmar la devolución a administración, las digitales <strong>no vendidas</strong> de esta reserva se marcarán automáticamente como devueltas.
+                                                                    Las digitales <strong>ya vendidas</strong> se incluirán en la liquidación.
+                                                                    En este paso solo seleccionas manualmente las <strong>físicas</strong> a devolver.
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -951,6 +957,10 @@
                                                         <div class="card-body">
                                                             <h5 class="card-title">Resumen Devolución</h5>
                                                             <small class="text-muted" id="liquidacion-resumen-subtitulo">Resumen Devolución Administración</small>
+                                                            <div class="alert alert-info py-2 mt-2 mb-0 small">
+                                                                <strong>Digitales (pool de la entidad):</strong> las no vendidas de la reserva se devuelven automáticamente a administración al confirmar.
+                                                                Las vendidas entran en la liquidación. Las físicas no devueltas se liquidan como vendidas.
+                                                            </div>
                                                             
                                                             <div class="text-center my-3">
                                                                 <img src="{{url('assets/ticket.svg')}}" alt="" width="60px">
@@ -972,12 +982,14 @@
                                                                 </div>
                                                                 <div class="col-6">
                                                                     <div class="mb-2">
-                                                                        <strong>Participaciones Devueltas:</strong>
+                                                                        <strong>Participaciones devueltas:</strong>
                                                                         <span id="liquidacion-participaciones-devueltas">0</span>
+                                                                        <small class="text-muted d-block" id="liquidacion-devueltas-detalle"></small>
                                                                     </div>
                                                                     <div class="mb-2">
-                                                                        <strong>Disponibles:</strong>
+                                                                        <strong>Físicas pendientes:</strong>
                                                                         <span id="liquidacion-disponibles">0</span>
+                                                                        <small class="text-muted d-block">Solo físicas; las digitales del pool van en devueltas</small>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2030,6 +2042,18 @@ $(document).ready(function() {
                     $('#liquidacion-ventas-registradas').text(summary.ventas_registradas !== undefined ? summary.ventas_registradas : summary.sold_participations);
                     $('#liquidacion-participaciones-devueltas').text(summary.returned_participations);
                     $('#liquidacion-disponibles').text(summary.available_participations);
+                    if (tipoDevolucion !== 'vendedor' && (summary.returned_digitales_auto > 0 || summary.returned_fisicas_manual > 0)) {
+                        const partes = [];
+                        if (summary.returned_fisicas_manual > 0) {
+                            partes.push(summary.returned_fisicas_manual + ' físicas seleccionadas');
+                        }
+                        if (summary.returned_digitales_auto > 0) {
+                            partes.push(summary.returned_digitales_auto + ' digitales automáticas (pool)');
+                        }
+                        $('#liquidacion-devueltas-detalle').text(partes.join(' · '));
+                    } else {
+                        $('#liquidacion-devueltas-detalle').text('');
+                    }
                     $('#liquidacion-total-liquidacion').text(summary.total_liquidation.toFixed(2) + '€');
                     $('#liquidacion-pagos-registrados').text(summary.registered_payments.toFixed(2) + '€');
                     $('#liquidacion-total-pagar').text(summary.total_to_pay.toFixed(2) + '€');
@@ -2193,7 +2217,12 @@ $(document).ready(function() {
             datos.seller_id = vendedorSeleccionado.id;
             datos.tipo_devolucion = 'vendedor';
         }
-        $('#texto-tipo-disponibles').text(tipoDevolucion === 'vendedor' ? 'Como vendedor en esta reserva' : 'Como entidad en esta reserva');
+        const esDevolucionVendedor = tipoDevolucion === 'vendedor';
+        $('#texto-tipo-disponibles').text(
+            esDevolucionVendedor
+                ? 'Solo físicas asignadas al vendedor (las digitales no se asignan)'
+                : 'Físicas seleccionables; digitales en pool de la entidad'
+        );
         $.ajax({
             url: "{{ route('devolutions.liquidation-summary') }}",
             method: 'GET',
@@ -2204,9 +2233,17 @@ $(document).ready(function() {
                     const total = s.available_to_return !== undefined ? s.available_to_return : s.available_participations;
                     const fisicas = s.available_to_return_fisicas !== undefined ? s.available_to_return_fisicas : (s.total_fisicas || 0);
                     const digitales = s.available_to_return_digitales !== undefined ? s.available_to_return_digitales : (s.total_digitales || 0);
-                    $('#disponibles-devolver-total').text(total);
-                    $('#disponibles-devolver-fisicas').text(fisicas);
-                    $('#disponibles-devolver-digitales').text(digitales);
+                    if (esDevolucionVendedor) {
+                        $('#disponibles-devolver-total').text(fisicas);
+                        $('#disponibles-devolver-desglose').hide();
+                        $('#mensaje-digitales-entidad').hide();
+                    } else {
+                        $('#disponibles-devolver-total').text(total);
+                        $('#disponibles-devolver-fisicas').text(fisicas);
+                        $('#disponibles-devolver-digitales').text(digitales);
+                        $('#disponibles-devolver-desglose').show();
+                        $('#mensaje-digitales-entidad').show();
+                    }
                     $bloque.show();
                 } else {
                     $bloque.hide();

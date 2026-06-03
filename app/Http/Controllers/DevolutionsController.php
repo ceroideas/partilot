@@ -38,6 +38,47 @@ class DevolutionsController extends Controller
     }
 
     /**
+     * Resumen entidad→administración: las digitales disponibles/asignadas del pool
+     * se devuelven automáticamente al confirmar, por tanto cuentan como "devueltas" en la UI.
+     * "Disponibles" en resumen = solo físicas que aún no se devuelven manualmente.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\Participation>  $baseQuery
+     * @param  iterable<\App\Models\Participation>  $manualReturnParticipations
+     * @return array{returned_participations: int, available_participations: int, returned_digitales_auto: int, returned_fisicas_manual: int}
+     */
+    private function buildAdministrationSummaryParticipationCounts(
+        $baseQuery,
+        iterable $manualReturnParticipations = [],
+        int $alreadyReturnedInDb = 0
+    ): array {
+        $manual = collect($manualReturnParticipations);
+        $manualIds = $manual->pluck('id')->filter()->values()->all();
+        $returnedFisicasManual = $manual->filter(
+            fn ($p) => $p->participation_code === null || ! str_starts_with((string) $p->participation_code, '1D/')
+        )->count();
+
+        $digitalesAutoQuery = (clone $baseQuery)
+            ->whereIn('status', ['disponible', 'asignada'])
+            ->whereRaw("participation_code LIKE '1D/%'");
+        if ($manualIds !== []) {
+            $digitalesAutoQuery->whereNotIn('id', $manualIds);
+        }
+        $digitalesAutoDevolver = $digitalesAutoQuery->count();
+
+        $disponiblesFisicas = (clone $baseQuery)
+            ->whereIn('status', ['disponible', 'asignada'])
+            ->whereRaw("(participation_code IS NULL OR participation_code NOT LIKE '1D/%')")
+            ->count();
+
+        return [
+            'returned_participations' => $alreadyReturnedInDb + $returnedFisicasManual + $digitalesAutoDevolver,
+            'available_participations' => max(0, $disponiblesFisicas - $returnedFisicasManual),
+            'returned_digitales_auto' => $digitalesAutoDevolver,
+            'returned_fisicas_manual' => $returnedFisicasManual,
+        ];
+    }
+
+    /**
      * Determina si el sorteo requiere captura obligatoria de serie/fracción
      * por tener premio especial con serie y fracción.
      */
@@ -623,7 +664,7 @@ class DevolutionsController extends Controller
                             ->count();
                         $digitalesVendidas = Participation::forUser(auth()->user())
                             ->where('set_id', $setId)
-                            ->where('status', 'vendida')
+                            ->sold()
                             ->whereRaw("participation_code LIKE '1D/%'")
                             ->count();
                         $totalLiquidation = ($fisicasNoDevueltas + $digitalesVendidas) * $price;
@@ -644,7 +685,7 @@ class DevolutionsController extends Controller
                             ->count();
                         $digitalesVendidas = Participation::forUser(auth()->user())
                             ->where('set_id', $set->id)
-                            ->where('status', 'vendida')
+                            ->sold()
                             ->whereRaw("participation_code LIKE '1D/%'")
                             ->count();
                         $count = $fisicas + $digitalesVendidas;
@@ -700,7 +741,7 @@ class DevolutionsController extends Controller
                         $toLiquidateFisicas = max(0, $fisicasInSet - $returnedFisicasInSet);
                         $digitalesVendidasInSet = Participation::forUser(auth()->user())
                             ->where('set_id', $setId)
-                            ->where('status', 'vendida')
+                            ->sold()
                             ->whereRaw("participation_code LIKE '1D/%'")
                             ->count();
                         $totalLiquidation += ($toLiquidateFisicas + $digitalesVendidasInSet) * $price;
@@ -2075,7 +2116,7 @@ class DevolutionsController extends Controller
             $totalInReserve = (clone $baseQuery)->count();
             $totalFisicas = (clone $baseQuery)->whereRaw("(participation_code IS NULL OR participation_code NOT LIKE '1D/%')")->count();
             $totalDigitales = (clone $baseQuery)->whereRaw("participation_code LIKE '1D/%'")->count();
-            $ventasRegistradas = (clone $baseQuery)->where('status', 'vendida')->count();
+            $ventasRegistradas = (clone $baseQuery)->sold()->count();
             $devueltas = (clone $baseQuery)->where('status', 'devuelta')->count();
             $disponibles = (clone $baseQuery)->whereIn('status', ['disponible', 'asignada'])->count();
             // Disponibles para devolver (excluye vendida, devuelta, anulada): desglose físicas/digitales
@@ -2103,7 +2144,7 @@ class DevolutionsController extends Controller
                         ->count();
                     $digitalesVendidas = Participation::forUser(auth()->user())
                         ->where('set_id', $set->id)
-                        ->where('status', 'vendida')
+                        ->sold()
                         ->whereRaw("participation_code LIKE '1D/%'")
                         ->count();
                     $count = $fisicas + $digitalesVendidas;
@@ -2124,6 +2165,15 @@ class DevolutionsController extends Controller
                 }
             }
 
+            $summaryCounts = $tipoDevolucion !== 'vendedor'
+                ? $this->buildAdministrationSummaryParticipationCounts($baseQuery, [], $devueltas)
+                : [
+                    'returned_participations' => $devueltas,
+                    'available_participations' => $disponibles,
+                    'returned_digitales_auto' => 0,
+                    'returned_fisicas_manual' => 0,
+                ];
+
             return response()->json([
                 'success' => true,
                 'summary' => [
@@ -2135,8 +2185,10 @@ class DevolutionsController extends Controller
                     'available_to_return_digitales' => $disponiblesDigitales,
                     'ventas_registradas' => $ventasRegistradas,
                     'sold_participations' => $ventasRegistradas,
-                    'returned_participations' => $devueltas,
-                    'available_participations' => $disponibles,
+                    'returned_participations' => $summaryCounts['returned_participations'],
+                    'returned_digitales_auto' => $summaryCounts['returned_digitales_auto'],
+                    'returned_fisicas_manual' => $summaryCounts['returned_fisicas_manual'],
+                    'available_participations' => $summaryCounts['available_participations'],
                     'total_liquidation' => $totalLiquidationReserve,
                     'registered_payments' => 0,
                     'total_to_pay' => $totalLiquidationReserve,
@@ -2167,7 +2219,7 @@ class DevolutionsController extends Controller
             }
 
             $totalInSet = (clone $baseQuery)->count();
-            $ventasRegistradas = (clone $baseQuery)->where('status', 'vendida')->count();
+            $ventasRegistradas = (clone $baseQuery)->sold()->count();
             $devueltas = (clone $baseQuery)->where('status', 'devuelta')->count();
             $disponibles = (clone $baseQuery)->whereIn('status', ['disponible', 'asignada'])->count();
 
@@ -2177,10 +2229,19 @@ class DevolutionsController extends Controller
             } else {
                 // Entidad→admin: físicas no devueltas + digitales SOLO vendidas (digitales disponibles = devueltas, no cuentan)
                 $fisicasNoDevueltas = (clone $baseQuery)->whereRaw("(participation_code IS NULL OR participation_code NOT LIKE '1D/%')")->where('status', '!=', 'devuelta')->count();
-                $digitalesVendidas = Participation::forUser(auth()->user())->where('set_id', $setId)->where('status', 'vendida')->whereRaw("participation_code LIKE '1D/%'")->count();
+                $digitalesVendidas = Participation::forUser(auth()->user())->where('set_id', $setId)->sold()->whereRaw("participation_code LIKE '1D/%'")->count();
                 $toLiquidate = $fisicasNoDevueltas + $digitalesVendidas;
             }
             $totalLiquidation = $toLiquidate * $pricePerParticipation;
+
+            $summaryCounts = $tipoDevolucion !== 'vendedor'
+                ? $this->buildAdministrationSummaryParticipationCounts($baseQuery, [], $devueltas)
+                : [
+                    'returned_participations' => $devueltas,
+                    'available_participations' => $disponibles,
+                    'returned_digitales_auto' => 0,
+                    'returned_fisicas_manual' => 0,
+                ];
 
             return response()->json([
                 'success' => true,
@@ -2188,8 +2249,10 @@ class DevolutionsController extends Controller
                     'total_participations' => $totalInSet,
                     'ventas_registradas' => $ventasRegistradas,
                     'sold_participations' => $ventasRegistradas,
-                    'returned_participations' => $devueltas,
-                    'available_participations' => $disponibles,
+                    'returned_participations' => $summaryCounts['returned_participations'],
+                    'returned_digitales_auto' => $summaryCounts['returned_digitales_auto'],
+                    'returned_fisicas_manual' => $summaryCounts['returned_fisicas_manual'],
+                    'available_participations' => $summaryCounts['available_participations'],
                     'total_liquidation' => $totalLiquidation,
                     'registered_payments' => 0,
                     'total_to_pay' => $totalLiquidation,
@@ -2199,8 +2262,8 @@ class DevolutionsController extends Controller
                         'set_name' => $set->set_name,
                         'total_participations' => $totalInSet,
                         'sold_participations' => $ventasRegistradas,
-                        'returned_participations' => $devueltas,
-                        'available_participations' => $disponibles,
+                        'returned_participations' => $summaryCounts['returned_participations'],
+                        'available_participations' => $summaryCounts['available_participations'],
                         'price_per_participation' => $pricePerParticipation,
                         'liquidation' => $totalLiquidation
                     ]]
@@ -2245,7 +2308,7 @@ class DevolutionsController extends Controller
                     $totalInReserve = (clone $baseQueryReserve)->count();
                     $totalFisicas = (clone $baseQueryReserve)->whereRaw("(participation_code IS NULL OR participation_code NOT LIKE '1D/%')")->count();
                     $totalDigitales = (clone $baseQueryReserve)->whereRaw("participation_code LIKE '1D/%'")->count();
-                    $ventasRegistradas = (clone $baseQueryReserve)->where('status', 'vendida')->count();
+                    $ventasRegistradas = (clone $baseQueryReserve)->sold()->count();
                     $devueltas = (clone $baseQueryReserve)->where('status', 'devuelta')->count();
                     $disponibles = (clone $baseQueryReserve)->whereIn('status', ['disponible', 'asignada'])->count();
 
@@ -2293,7 +2356,7 @@ class DevolutionsController extends Controller
                             $toLiquidateFisicas = max(0, $fisicasInSet - $returnedFisicasInSet);
                             $digitalesVendidasInSet = Participation::forUser(auth()->user())
                                 ->where('set_id', $sid)
-                                ->where('status', 'vendida')
+                                ->sold()
                                 ->whereRaw("participation_code LIKE '1D/%'")
                                 ->count();
                             $totalLiquidation += ($toLiquidateFisicas + $digitalesVendidasInSet) * $price;
@@ -2301,8 +2364,20 @@ class DevolutionsController extends Controller
                         $totalReturnedThisOp += $returnedInSet;
                     }
 
-                    // En el resumen: returned = las que va a devolver; disponibles = las disponibles en reserva menos las que devuelve en esta acción
-                    $disponiblesTrasDevolucion = max(0, $disponibles - $totalReturnedThisOp);
+                    if ($tipoDevolucion !== 'vendedor') {
+                        $summaryCounts = $this->buildAdministrationSummaryParticipationCounts(
+                            $baseQueryReserve,
+                            $participations,
+                            $devueltas
+                        );
+                    } else {
+                        $summaryCounts = [
+                            'returned_participations' => $totalReturnedThisOp,
+                            'available_participations' => max(0, $disponibles - $totalReturnedThisOp),
+                            'returned_digitales_auto' => 0,
+                            'returned_fisicas_manual' => $totalReturnedThisOp,
+                        ];
+                    }
                     return response()->json([
                         'success' => true,
                         'summary' => [
@@ -2311,8 +2386,10 @@ class DevolutionsController extends Controller
                             'total_digitales' => $totalDigitales,
                             'ventas_registradas' => $ventasRegistradas,
                             'sold_participations' => $ventasRegistradas,
-                            'returned_participations' => $totalReturnedThisOp,
-                            'available_participations' => $disponiblesTrasDevolucion,
+                            'returned_participations' => $summaryCounts['returned_participations'],
+                            'returned_digitales_auto' => $summaryCounts['returned_digitales_auto'],
+                            'returned_fisicas_manual' => $summaryCounts['returned_fisicas_manual'],
+                            'available_participations' => $summaryCounts['available_participations'],
                             'total_liquidation' => $totalLiquidation,
                             'registered_payments' => 0,
                             'total_to_pay' => $totalLiquidation,
@@ -2399,7 +2476,7 @@ class DevolutionsController extends Controller
                 $toLiquidateFisicas = max(0, $fisicasInSet - $returnedFisicasInSet);
                 $digitalesVendidasInSet = Participation::forUser(auth()->user())
                     ->where('set_id', $setId)
-                    ->where('status', 'vendida')
+                    ->sold()
                     ->whereRaw("participation_code LIKE '1D/%'")
                     ->count();
                 $soldInSet = $allInSet - $returnedInSet;
