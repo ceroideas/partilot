@@ -40,7 +40,7 @@
 
                     <div class="form-card bs">
                         <h4 class="mb-0 mt-1">Pago Diseño e Impresión</h4>
-                        <small><i>Pantalla de pago mock (lista para integrar con Stripe).</i></small>
+                        <small><i>Pago con la imprenta seleccionada en el resumen.</i></small>
 
                         <form action="{{ route('design.external.sendInvitation') }}" method="POST" id="partilotPaymentForm" class="mt-4">
                             @csrf
@@ -54,23 +54,32 @@
                                                 <div class="payment-amount-label">Importe</div>
                                                 <div class="payment-amount-value">{{ number_format(($quote['total'] ?? 0), 2, ',', '.') }}€</div>
                                             </div>
-                                            <div class="payment-info-line"><span>Comercio:</span> <strong>PARTILOT</strong></div>
-                                            <div class="payment-info-line"><span>Terminal:</span> <strong>TEST-001</strong></div>
+                                            <div class="payment-info-line"><span>Imprenta:</span> <strong>{{ $selectedPrintShop->displayName() }}</strong></div>
                                             <div class="payment-info-line"><span>Pedido:</span> <strong>{{ $invitation->orden_id ?? ('ORD-' . $set->id) }}</strong></div>
                                             <div class="payment-info-line"><span>Fecha:</span> <strong>{{ now()->format('d/m/Y H:i') }}</strong></div>
-                                            <div class="payment-info-line"><span>Descripción:</span> <strong>Diseño e Impresión</strong></div>
+                                            <div class="payment-info-line"><span>Descripción:</span> <strong>Diseño e impresión PARTILOT</strong></div>
+                                            @if(!empty($quote['subtotal']['design']))
+                                                <div class="payment-info-line"><span>Incl. diseño:</span> <strong>{{ number_format($quote['subtotal']['design'], 2, ',', '.') }}€</strong></div>
+                                            @endif
                                         </div>
                                     </div>
 
                                     <div class="col-lg-7">
-                                        <div class="payment-card-form">
-                                            <h5 class="mb-3">PAGAR CON TARJETA</h5>
-                                            <div id="stripe-card-element" class="form-control" style="padding-top: 12px; min-height: 46px;"></div>
-                                            <div id="stripe-card-errors" class="text-danger small mt-2 d-none"></div>
-                                            <div class="form-text mt-3">
-                                                Usa tarjeta de prueba: 4242 4242 4242 4242, fecha futura, CVC cualquiera.
+                                        @if($stripePaymentEnabled ?? false)
+                                            <div class="payment-card-form">
+                                                <h5 class="mb-3">PAGAR CON TARJETA</h5>
+                                                <div id="stripe-card-element" class="form-control" style="padding-top: 12px; min-height: 46px;"></div>
+                                                <div id="stripe-card-errors" class="text-danger small mt-2 d-none"></div>
+                                                <div class="form-text mt-3">
+                                                    Usa tarjeta de prueba: 4242 4242 4242 4242, fecha futura, CVC cualquiera.
+                                                </div>
                                             </div>
-                                        </div>
+                                        @else
+                                            <div class="alert alert-warning mb-0">
+                                                Stripe no está configurado para <strong>{{ $selectedPrintShop->displayName() }}</strong>.
+                                                Configura las claves en Ajustes → Imprenta.
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -81,7 +90,11 @@
                         <a href="{{ route('design.external.step2') }}" class="btn btn-dark rounded-pill">
                             <i class="ri-arrow-left-line me-1"></i> Atrás
                         </a>
-                        <button type="button" id="btn-stripe-pay" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold">Pagar</button>
+                        @if($stripePaymentEnabled ?? false)
+                            <button type="button" id="btn-stripe-pay" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold">Pagar</button>
+                        @else
+                            <button type="button" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold" disabled>Pagar</button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -132,6 +145,7 @@
 </style>
 @endsection
 
+@if($stripePaymentEnabled ?? false)
 @section('scripts')
 <script src="https://js.stripe.com/v3"></script>
 <script>
@@ -217,3 +231,4 @@
 })();
 </script>
 @endsection
+@endif

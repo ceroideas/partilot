@@ -232,11 +232,13 @@ class PrintOrderPaymentReconciliationService
             return null;
         }
 
-        $cfg = PrintConfiguration::first();
-        $secretKey = trim((string) ($cfg->stripe_secret_key ?? ''));
-        if ($secretKey === '') {
-            $secretKey = (string) config('services.stripe.secret');
-        }
+        $order = PrintOrder::query()
+            ->where('payment_intent_id', $paymentIntentId)
+            ->with('printConfiguration')
+            ->first();
+
+        $cfg = $order?->printConfiguration ?? PrintConfiguration::resolveDefault();
+        $secretKey = $cfg->stripeSecretKey();
         if ($secretKey === '') {
             return null;
         }

@@ -441,12 +441,15 @@ Route::group(['prefix' => 'design', 'middleware' => 'entity.permission:design'],
     Route::get('/external/step2', [\App\Http\Controllers\DesignController::class, 'externalStep2'])->name('design.external.step2');
     Route::get('/external/step3', [\App\Http\Controllers\DesignController::class, 'externalStep3'])->name('design.external.step3');
     Route::post('/external/create-payment-intent', [\App\Http\Controllers\DesignController::class, 'externalCreatePaymentIntent'])->name('design.external.createPaymentIntent');
+    Route::post('/external/preview-quote', [\App\Http\Controllers\DesignController::class, 'externalPreviewQuote'])->name('design.external.previewQuote');
+    Route::post('/external/accept-summary', [\App\Http\Controllers\DesignController::class, 'externalAcceptSummary'])->name('design.external.acceptSummary');
     Route::post('/external/store-step1', [\App\Http\Controllers\DesignController::class, 'externalStoreStep1'])->name('design.external.storeStep1');
     Route::post('/external/send-invitation', [\App\Http\Controllers\DesignController::class, 'externalSendInvitation'])->name('design.external.sendInvitation');
     Route::get('/external/list', [\App\Http\Controllers\DesignController::class, 'externalList'])->name('design.external.list');
     Route::get('/external/{invitation}/file/{file}/download', [\App\Http\Controllers\DesignController::class, 'externalDownloadFileAuth'])->name('design.external.downloadFileAuth');
     Route::delete('/external/{id}', [\App\Http\Controllers\DesignController::class, 'externalDestroy'])->name('design.external.destroy');
     Route::get('/send-to-print/{id}', [\App\Http\Controllers\DesignController::class, 'sendToPrint'])->name('design.sendToPrint');
+    Route::post('/send-to-print/{id}/quote', [\App\Http\Controllers\DesignController::class, 'previewPrintOrderQuote'])->name('design.previewPrintOrderQuote');
     Route::post('/send-to-print/{id}/payment-intent', [\App\Http\Controllers\DesignController::class, 'createPrintOrderPaymentIntent'])->name('design.createPrintOrderPaymentIntent');
     Route::post('/send-to-print/{id}', [\App\Http\Controllers\DesignController::class, 'submitPrintOrder'])->name('design.submitPrintOrder');
     // Route::post('design/format', [App\Http\Controllers\DesignController::class, 'storeFormat'])->name('design.storeFormat');

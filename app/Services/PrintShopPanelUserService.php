@@ -41,7 +41,7 @@ class PrintShopPanelUserService
 
         $existing = $this->panelUser($config);
         $username = Administration::ensureUniquePanelLoginUsername(
-            $existing?->panel_login_username ?: 'imprenta',
+            $existing?->panel_login_username ?: ('imprenta-'.$config->id),
             $existing?->id
         );
 

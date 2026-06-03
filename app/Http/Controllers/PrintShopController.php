@@ -16,8 +16,16 @@ class PrintShopController extends Controller
 
         $statusFilter = (string) $request->query('status', 'all');
         $query = PrintOrder::query()
-            ->with(['entity', 'set', 'lottery', 'design'])
+            ->with(['entity', 'set', 'lottery', 'design', 'printConfiguration'])
             ->orderByDesc('id');
+
+        $user = $request->user();
+        if ($user && $user->isPrintShop() && ! $user->isSuperAdmin()) {
+            $panelShopId = (int) ($user->panel_account_id ?? 0);
+            if ($panelShopId > 0) {
+                $query->where('print_configuration_id', $panelShopId);
+            }
+        }
 
         if ($statusFilter !== 'all' && in_array($statusFilter, [
             PrintOrder::STATUS_PENDING_REVIEW,
@@ -42,7 +50,14 @@ class PrintShopController extends Controller
         $orderIds = $printOrders->pluck('id')->all();
         $printOrderAuditsByOrderId = $this->loadOrderAudits($orderIds);
 
-        $counts = PrintOrder::query()
+        $countsQuery = PrintOrder::query();
+        if ($user && $user->isPrintShop() && ! $user->isSuperAdmin()) {
+            $panelShopId = (int) ($user->panel_account_id ?? 0);
+            if ($panelShopId > 0) {
+                $countsQuery->where('print_configuration_id', $panelShopId);
+            }
+        }
+        $counts = $countsQuery
             ->selectRaw('status, COUNT(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
@@ -59,8 +74,9 @@ class PrintShopController extends Controller
     public function show(Request $request, PrintOrder $printOrder)
     {
         $this->authorizePrintShopAccess($request);
+        $this->authorizePrintOrderForPanelUser($request, $printOrder);
 
-        $printOrder->load(['entity', 'set.reserve.lottery', 'lottery', 'design']);
+        $printOrder->load(['entity', 'set.reserve.lottery', 'lottery', 'design', 'printConfiguration']);
         $audits = DB::table('print_order_status_audits')
             ->where('print_order_id', $printOrder->id)
             ->orderByDesc('id')
@@ -86,6 +102,7 @@ class PrintShopController extends Controller
     public function updateStatus(Request $request, PrintOrder $printOrder)
     {
         $this->authorizePrintShopAccess($request);
+        $this->authorizePrintOrderForPanelUser($request, $printOrder);
 
         if (! $this->canOperatePrintOrders($request->user())) {
             return redirect()->back()->with('error', 'No tienes permisos para cambiar el estado de órdenes.');
@@ -132,6 +149,22 @@ class PrintShopController extends Controller
         $user = $request->user();
         if (! $user || (! $user->isPrintShop() && ! $user->isSuperAdmin())) {
             abort(403, 'No tienes acceso al panel de imprenta.');
+        }
+    }
+
+    private function authorizePrintOrderForPanelUser(Request $request, PrintOrder $printOrder): void
+    {
+        $user = $request->user();
+        if (! $user || $user->isSuperAdmin()) {
+            return;
+        }
+        if (! $user->isPrintShop()) {
+            return;
+        }
+
+        $panelShopId = (int) ($user->panel_account_id ?? 0);
+        if ($panelShopId > 0 && (int) $printOrder->print_configuration_id !== $panelShopId) {
+            abort(403, 'Esta orden pertenece a otra imprenta.');
         }
     }
 

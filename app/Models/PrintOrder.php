@@ -24,6 +24,7 @@ class PrintOrder extends Model
     public const PAYMENT_STATUS_FAILED = 'failed';
 
     protected $fillable = [
+        'print_configuration_id',
         'order_code',
         'design_format_id',
         'set_id',
@@ -50,6 +51,11 @@ class PrintOrder extends Model
         'sent_at' => 'datetime',
         'paid_at' => 'datetime',
     ];
+
+    public function printConfiguration()
+    {
+        return $this->belongsTo(PrintConfiguration::class);
+    }
 
     public function design()
     {

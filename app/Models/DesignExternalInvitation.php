@@ -20,6 +20,7 @@ class DesignExternalInvitation extends Model
         'entity_id',
         'lottery_id',
         'set_id',
+        'print_configuration_id',
         'created_by_user_id',
         'comment',
         'print_size',
@@ -59,6 +60,11 @@ class DesignExternalInvitation extends Model
     public function set(): BelongsTo
     {
         return $this->belongsTo(Set::class);
+    }
+
+    public function printConfiguration(): BelongsTo
+    {
+        return $this->belongsTo(PrintConfiguration::class);
     }
 
     public function createdByUser(): BelongsTo

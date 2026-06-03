@@ -131,6 +131,7 @@ class ConfigurationController extends Controller
         $provincias = collect();
         $localidades = collect();
         $printConfiguration = null;
+        $printConfigurations = collect();
         $printShopPanelUser = null;
         $printOrders = collect();
         $printOrderAuditsByOrderId = collect();
@@ -344,18 +345,28 @@ class ConfigurationController extends Controller
         }
 
         if ($section === 'imprenta') {
-            $printConfiguration = PrintConfiguration::first();
-            if (! $printConfiguration) {
-                $printConfiguration = PrintConfiguration::create([]);
+            $printConfigurations = PrintConfiguration::query()
+                ->orderedOldestFirst()
+                ->get();
+            $printConfiguration = null;
+            $printShopPanelUser = null;
+            $printConfigParam = $request->query('print_config_id');
+            if ($printConfigParam === 'new') {
+                $printConfiguration = new PrintConfiguration([
+                    'status' => PrintConfiguration::STATUS_ACTIVE,
+                ]);
+                [$provinces, $provinceCityMap] = $this->getProvinceCityData();
+            } elseif (is_numeric($printConfigParam) && (int) $printConfigParam > 0) {
+                $printConfiguration = PrintConfiguration::findOrFail((int) $printConfigParam);
+                $printShopPanelUser = app(\App\Services\PrintShopPanelUserService::class)->panelUser($printConfiguration);
+                [$provinces, $provinceCityMap] = $this->getProvinceCityData();
             }
-            $printShopPanelUser = app(\App\Services\PrintShopPanelUserService::class)->panelUser($printConfiguration);
-            [$provinces, $provinceCityMap] = $this->getProvinceCityData();
         }
 
         if ($section === 'ordenes-imprenta') {
             $printOrders = PrintOrder::query()
                 ->whereIn('entity_id', $user->accessibleEntityIds())
-                ->with(['entity', 'set', 'lottery'])
+                ->with(['entity', 'set', 'lottery', 'printConfiguration'])
                 ->orderByDesc('id')
                 ->limit(200)
                 ->get();
@@ -454,6 +465,7 @@ class ConfigurationController extends Controller
             'sepaOrder',
             'provincias',
             'localidades',
+            'printConfigurations',
             'printConfiguration',
             'printShopPanelUser',
             'printOrders',
@@ -619,7 +631,10 @@ class ConfigurationController extends Controller
             abort(403, 'Solo super administrador puede modificar la configuración de imprenta.');
         }
 
-        $data = $request->validate([
+        $isNew = $request->input('print_configuration_id') === 'new'
+            || ! $request->filled('print_configuration_id');
+
+        $rules = [
             'company_name' => 'nullable|string|max:255',
             'nif_cif' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255',
@@ -639,17 +654,33 @@ class ConfigurationController extends Controller
             'stripe_publishable_key' => 'nullable|string|max:255',
             'stripe_secret_key' => 'nullable|string|max:2000',
             'stripe_webhook_secret' => 'nullable|string|max:2000',
-        ]);
-
-        $config = PrintConfiguration::first();
-        if (! $config) {
-            $config = new PrintConfiguration();
+        ];
+        if (! $isNew) {
+            $rules['print_configuration_id'] = 'required|integer|exists:print_configurations,id';
+        } else {
+            $rules['print_configuration_id'] = 'nullable';
         }
+
+        $data = $request->validate($rules);
+
+        if ($isNew) {
+            $config = new PrintConfiguration();
+        } else {
+            $config = PrintConfiguration::findOrFail((int) $data['print_configuration_id']);
+        }
+        unset($data['print_configuration_id']);
+        $config->status = $request->boolean('status')
+            ? PrintConfiguration::STATUS_ACTIVE
+            : PrintConfiguration::STATUS_INACTIVE;
         $config->fill($data);
         $config->save();
 
-        return redirect()->route('configuration.index', ['section' => 'imprenta'])
-            ->with('success', 'Configuración de imprenta actualizada correctamente.');
+        $message = $isNew
+            ? 'Imprenta creada correctamente.'
+            : 'Configuración de imprenta actualizada correctamente.';
+
+        return redirect()->route('configuration.index', ['section' => 'imprenta', 'print_config_id' => $config->id])
+            ->with('success', $message);
     }
 
     public function updatePrintShopPanelAccess(Request $request)
@@ -659,6 +690,7 @@ class ConfigurationController extends Controller
         }
 
         $data = $request->validate([
+            'print_configuration_id' => 'required|integer|exists:print_configurations,id',
             'panel_email' => 'required|email|max:255',
             'panel_password' => 'nullable|string|min:8|confirmed',
         ], [
@@ -667,20 +699,22 @@ class ConfigurationController extends Controller
             'panel_password.confirmed' => 'La confirmación de contraseña no coincide.',
         ]);
 
-        $config = PrintConfiguration::first();
-        if (! $config) {
-            $config = PrintConfiguration::create([]);
-        }
+        $config = PrintConfiguration::findOrFail((int) $data['print_configuration_id']);
+        unset($data['print_configuration_id']);
 
         try {
             $user = app(\App\Services\PrintShopPanelUserService::class)->upsertPanelUser($config, $data);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->route('configuration.index', ['section' => 'imprenta'])
-                ->with('error', $e->getMessage());
+            return redirect()->route('configuration.index', [
+                'section' => 'imprenta',
+                'print_config_id' => $config->id,
+            ])->with('error', $e->getMessage());
         }
 
-        return redirect()->route('configuration.index', ['section' => 'imprenta'])
-            ->with('success', 'Acceso al panel de imprenta actualizado. Usuario: '.($user->panel_login_username ?? '—'));
+        return redirect()->route('configuration.index', [
+            'section' => 'imprenta',
+            'print_config_id' => $config->id,
+        ])->with('success', 'Acceso al panel de imprenta actualizado. Usuario: '.($user->panel_login_username ?? '—'));
     }
 
     public function updatePrintOrderStatus(Request $request, PrintOrder $printOrder)

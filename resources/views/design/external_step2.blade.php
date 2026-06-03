@@ -62,9 +62,8 @@
                         @endif
 
                         @if($isPartilotMode)
-                            <form action="{{ route('design.external.sendInvitation') }}" method="POST" id="inviteForm" class="mt-4">
+                            <form action="{{ route('design.external.acceptSummary') }}" method="POST" id="partilotSummaryForm" class="mt-4">
                                 @csrf
-                                <input type="hidden" name="confirm_simulated_payment" value="1">
                                 <div class="">
                                     <div class="row g-3">
                                         <div class="col-lg-2 col-md-4 partilot-field">
@@ -116,15 +115,46 @@
                                         </div>
                                     </div>
 
-                                    <div class="d-flex justify-content-end align-items-end gap-2" style="margin-top: 160px;">
+                                    <div class="row g-3 mt-4">
+                                        <div class="col-lg-6">
+                                            <label class="partilot-field-label mb-2">Imprenta (diseño e impresión)</label>
+                                            @if(($activePrintShops ?? collect())->count() > 1)
+                                                <select name="print_configuration_id" id="external_print_configuration_id" class="form-select" required>
+                                                    @foreach($activePrintShops as $shop)
+                                                        <option value="{{ $shop->id }}"
+                                                            {{ (int) old('print_configuration_id', $selectedPrintShop->id ?? 0) === (int) $shop->id ? 'selected' : '' }}>
+                                                            {{ $shop->displayName() }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="form-text small">La misma imprenta elaborará el diseño e imprimirá el pedido.</div>
+                                            @else
+                                                <input type="hidden" name="print_configuration_id" value="{{ $selectedPrintShop->id }}">
+                                                <div class="partilot-field-value border-0 pb-0">
+                                                    <i class="ri-printer-line"></i>
+                                                    <span id="quote-shop-name">{{ $selectedPrintShop->displayName() }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <div id="external-stripe-hint" class="alert alert-warning small py-2 mb-0 d-none">
+                                                Stripe no está configurado para esta imprenta. Revisa Ajustes → Imprenta.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-end align-items-end gap-2 flex-wrap" style="margin-top: 48px;">
                                         <div class="partilot-meta-box">
-                                            <div><b>Participaciones:</b> {{ (int)($set->total_participations ?? 0) }}</div>
-                                            <div><b>Tacos:</b> {{ $quote['books'] ?? 0 }}</div>
-                                            <div><b>Traseras:</b> {{ ucfirst($invitation->back_mode ?? 'B/N') }}</div>
+                                            <div><b>Participaciones:</b> <span id="quote-participations-count">{{ (int)($set->total_participations ?? 0) }}</span></div>
+                                            <div><b>Tacos:</b> <span id="quote-books-count">{{ $quote['books'] ?? 0 }}</span></div>
+                                            <div><b>Traseras:</b> {{ ($invitation->back_mode ?? 'bw') === 'color' ? 'Color' : 'B/N' }}</div>
+                                            @if(($activePrintShops ?? collect())->count() > 1)
+                                                <div class="mt-1"><b>Imprenta:</b> <span id="quote-shop-name-inline">{{ $quote['print_configuration_name'] ?? ($selectedPrintShop->displayName() ?? '') }}</span></div>
+                                            @endif
                                         </div>
                                         <div class="partilot-total-box">
                                             <span class="partilot-total-label">IMPORTE TOTAL:</span>
-                                            <span class="partilot-total-value">{{ number_format(($quote['total'] ?? 0), 2, ',', '.') }}€</span>
+                                            <span class="partilot-total-value" id="quote-total-display">{{ number_format(($quote['total'] ?? 0), 2, ',', '.') }}€</span>
                                         </div>
                                     </div>
                                 </div>
@@ -159,7 +189,7 @@
                                 <i class="ri-arrow-left-line me-1"></i> Atrás
                             </a>
                             <div class="d-flex align-items-center gap-3">
-                                <a href="{{ route('design.external.step3') }}" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold">Aceptar</a>
+                                <button type="submit" form="partilotSummaryForm" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold">Aceptar</button>
                             </div>
                         </div>
                     @else
@@ -278,3 +308,61 @@
 }
 </style>
 @endsection
+
+@if(($mode ?? 'external') === 'partilot')
+@section('scripts')
+<script>
+(() => {
+    const form = document.getElementById('partilotSummaryForm');
+    const shopSelect = document.getElementById('external_print_configuration_id');
+    const quoteUrl = @json(route('design.external.previewQuote'));
+    const stripeHint = document.getElementById('external-stripe-hint');
+    if (!form || !shopSelect) return;
+
+    const fmtMoney = (n) => (Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '€';
+    let quoteRefreshTimer = null;
+
+    function updateQuoteDisplay(data) {
+        const quote = data.quote || {};
+        const totalEl = document.getElementById('quote-total-display');
+        const booksEl = document.getElementById('quote-books-count');
+        const shopInline = document.getElementById('quote-shop-name-inline');
+        if (totalEl) totalEl.textContent = fmtMoney(quote.total);
+        if (booksEl) booksEl.textContent = quote.books ?? 0;
+        if (shopInline && quote.print_configuration_name) {
+            shopInline.textContent = quote.print_configuration_name;
+        }
+        if (stripeHint) {
+            stripeHint.classList.toggle('d-none', !!data.stripe_payment_enabled);
+        }
+    }
+
+    async function refreshQuote() {
+        const formData = new FormData(form);
+        const res = await fetch(quoteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]')?.value || '',
+                'Accept': 'application/json',
+            },
+            body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+            throw new Error(data.message || 'No se pudo calcular el presupuesto.');
+        }
+        updateQuoteDisplay(data);
+    }
+
+    shopSelect.addEventListener('change', () => {
+        clearTimeout(quoteRefreshTimer);
+        quoteRefreshTimer = setTimeout(() => {
+            refreshQuote().catch((e) => alert(e.message || 'Error al actualizar el presupuesto.'));
+        }, 300);
+    });
+
+    refreshQuote().catch(() => {});
+})();
+</script>
+@endsection
+@endif

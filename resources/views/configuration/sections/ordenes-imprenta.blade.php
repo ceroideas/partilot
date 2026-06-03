@@ -67,6 +67,7 @@
                     <tr>
                         <th class="dtr-control"></th>
                         <th>Orden</th>
+                        <th>Imprenta</th>
                         <th>Entidad</th>
                         <th>Set</th>
                         <th>Sorteo</th>
@@ -92,6 +93,7 @@
                     <tr>
                         <td class="dtr-control"></td>
                         <td data-order="{{ $order->order_code }}"><span class="fw-semibold">{{ $order->order_code }}</span></td>
+                        <td class="text-truncate-cell" title="{{ $order->printConfiguration?->displayName() ?? '' }}">{{ $order->printConfiguration?->displayName() ?? '—' }}</td>
                         <td class="text-truncate-cell" title="{{ $order->entity->name ?? '' }}">{{ $order->entity->name ?? '—' }}</td>
                         <td>{{ $order->set->set_name ?? ('#'.$order->set_id) }}</td>
                         <td>{{ $order->lottery->name ?? '—' }}</td>

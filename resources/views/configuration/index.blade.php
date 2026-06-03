@@ -296,12 +296,12 @@
                 @if($section == 'imprenta')
                     <div class="form-wizard-element active">
                         <img src="{{ url($configIcons['imprenta']) }}" alt="">
-                        <label>Imprenta</label>
+                        <label>Imprentas</label>
                     </div>
                 @else
                     <a href="{{ url('/configuration?section=imprenta') }}" class="form-wizard-element text-decoration-none" style="color: inherit;">
                         <img src="{{ url($configIcons['imprenta']) }}" alt="">
-                        <label>Imprenta</label>
+                        <label>Imprentas</label>
                     </a>
                 @endif
 

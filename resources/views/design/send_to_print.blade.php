@@ -34,11 +34,32 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="mb-2">Configuración del envío</h5>
-                        <p class="text-muted small mb-3">Define los parámetros operativos para generar el presupuesto de imprenta.</p>
+                        <p class="text-muted small mb-3">La misma imprenta diseña e imprime el pedido. El presupuesto se calcula con sus tarifas.</p>
+
+                        @if(($activePrintShops ?? collect())->count() > 1)
+                            <div class="mb-3">
+                                <label class="form-label">Imprenta</label>
+                                <select name="print_configuration_id" id="print_configuration_id" class="form-select" required>
+                                    @foreach($activePrintShops as $shop)
+                                        <option value="{{ $shop->id }}"
+                                            data-stripe-enabled="{{ $shop->hasStripeConfigured() ? '1' : '0' }}"
+                                            {{ (int) old('print_configuration_id', $defaults['print_configuration_id'] ?? $selectedPrintShop->id ?? 0) === (int) $shop->id ? 'selected' : '' }}>
+                                            {{ $shop->displayName() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @else
+                            <input type="hidden" name="print_configuration_id" value="{{ $selectedPrintShop->id }}">
+                            <div class="alert alert-light border small mb-3 py-2">
+                                <i class="ri-printer-line me-1"></i> Imprenta: <strong>{{ $selectedPrintShop->displayName() }}</strong>
+                            </div>
+                        @endif
+
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Formato impresión</label>
-                                <select name="print_size" class="form-select">
+                                <select name="print_size" class="form-select quote-input">
                                     <option value="a3_6" {{ ($defaults['print_size'] ?? '') === 'a3_6' ? 'selected' : '' }}>A3 - 6 participaciones</option>
                                     <option value="a3_8" {{ ($defaults['print_size'] ?? '') === 'a3_8' ? 'selected' : '' }}>A3 - 8 participaciones</option>
                                     <option value="custom" {{ ($defaults['print_size'] ?? '') === 'custom' ? 'selected' : '' }}>Personalizado</option>
@@ -46,11 +67,11 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Participaciones por taco</label>
-                                <input type="number" min="1" max="1000" name="participations_per_book" class="form-control" value="{{ old('participations_per_book', $defaults['participations_per_book'] ?? 50) }}" required>
+                                <input type="number" min="1" max="1000" name="participations_per_book" class="form-control quote-input" value="{{ old('participations_per_book', $defaults['participations_per_book'] ?? 50) }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Trasera</label>
-                                <select name="back_mode" class="form-select">
+                                <select name="back_mode" class="form-select quote-input">
                                     <option value="bw" {{ old('back_mode', $defaults['back_mode'] ?? 'bw') === 'bw' ? 'selected' : '' }}>Blanco y negro</option>
                                     <option value="color" {{ old('back_mode', $defaults['back_mode'] ?? '') === 'color' ? 'selected' : '' }}>Color</option>
                                 </select>
@@ -66,59 +87,56 @@
             <div class="col-lg-5">
                 <div class="card h-100">
                     <div class="card-body d-flex flex-column">
-                        <h5 class="mb-3">Resumen de presupuesto</h5>
+                        <h5 class="mb-1">Resumen de presupuesto</h5>
+                        <p class="text-muted small mb-3" id="quote-shop-name">{{ $quote['print_configuration_name'] ?? ($selectedPrintShop->displayName() ?? '') }}</p>
                         <div class="d-flex justify-content-between small mb-2">
                             <span>Set</span>
                             <strong>{{ $design->set->set_name ?? ('#'.$design->set_id) }}</strong>
                         </div>
                         <div class="d-flex justify-content-between small mb-2">
                             <span>Participaciones</span>
-                            <strong>{{ number_format($quote['total_participations'] ?? 0, 0, ',', '.') }}</strong>
+                            <strong id="quote-participations">{{ number_format($quote['total_participations'] ?? 0, 0, ',', '.') }}</strong>
                         </div>
                         <div class="d-flex justify-content-between small mb-2">
                             <span>Tacos estimados</span>
-                            <strong>{{ $quote['books'] ?? 0 }}</strong>
+                            <strong id="quote-books">{{ $quote['books'] ?? 0 }}</strong>
                         </div>
                         <hr>
                         <div class="d-flex justify-content-between small mb-2 align-items-start">
                             <span>Diseño @if(!empty($quote['design_fee_waived']))<span class="d-block text-muted fw-normal" style="font-size:0.85em;">Sin cargo (realizado en PARTILOT)</span>@endif</span>
-                            <strong>{{ number_format(($quote['subtotal']['design'] ?? 0), 2, ',', '.') }}€</strong>
+                            <strong id="quote-design">{{ number_format(($quote['subtotal']['design'] ?? 0), 2, ',', '.') }}€</strong>
                         </div>
-                        <div class="d-flex justify-content-between small mb-2"><span>Participaciones</span><strong>{{ number_format(($quote['subtotal']['participation'] ?? 0), 2, ',', '.') }}€</strong></div>
-                        <div class="d-flex justify-content-between small mb-2"><span>Trasera</span><strong>{{ number_format(($quote['subtotal']['back'] ?? 0), 2, ',', '.') }}€</strong></div>
-                        <div class="d-flex justify-content-between small mb-2"><span>Tacos</span><strong>{{ number_format(($quote['subtotal']['book'] ?? 0), 2, ',', '.') }}€</strong></div>
+                        <div class="d-flex justify-content-between small mb-2"><span>Participaciones</span><strong id="quote-participation">{{ number_format(($quote['subtotal']['participation'] ?? 0), 2, ',', '.') }}€</strong></div>
+                        <div class="d-flex justify-content-between small mb-2"><span>Trasera</span><strong id="quote-back">{{ number_format(($quote['subtotal']['back'] ?? 0), 2, ',', '.') }}€</strong></div>
+                        <div class="d-flex justify-content-between small mb-2"><span>Tacos</span><strong id="quote-book">{{ number_format(($quote['subtotal']['book'] ?? 0), 2, ',', '.') }}€</strong></div>
                         <hr>
                         <div class="d-flex justify-content-between mb-3">
                             <span class="fw-semibold">TOTAL</span>
                             <strong class="fs-5" id="quote-total-display">{{ number_format(($quote['total'] ?? 0), 2, ',', '.') }}€</strong>
                         </div>
 
-                        @if(!($stripePaymentEnabled ?? false))
-                            <div class="alert alert-warning small mb-3">
-                                Stripe no está configurado. Añade las claves en <strong>Configuración → Imprenta</strong> para poder cobrar el envío a imprenta.
-                            </div>
-                        @else
+                        <div id="stripe-unconfigured-alert" class="alert alert-warning small mb-3 {{ ($stripePaymentEnabled ?? false) ? 'd-none' : '' }}">
+                            Stripe no está configurado para esta imprenta. Añade las claves en <strong>Ajustes → Imprenta</strong>.
+                        </div>
+                        <div id="stripe-payment-block" class="{{ ($stripePaymentEnabled ?? false) ? '' : 'd-none' }}">
                             <div class="payment-card-form border rounded p-3 mb-3">
                                 <h6 class="mb-2">Pago con tarjeta</h6>
                                 <div id="stripe-card-element" class="form-control" style="padding-top: 12px; min-height: 46px;"></div>
                                 <div id="stripe-card-errors" class="text-danger small mt-2 d-none"></div>
-                                <p class="form-text small mb-0 mt-2">El importe se recalcula al pulsar «Pagar y enviar» según la configuración del formulario.</p>
+                                <p class="form-text small mb-0 mt-2">El importe se actualiza al cambiar imprenta u opciones del formulario.</p>
                             </div>
-                        @endif
+                        </div>
 
                         <div class="mt-auto d-flex justify-content-between">
                             <a href="{{ route('design.summary', $design->id) }}" class="btn btn-dark">
                                 <i class="ri-arrow-left-line me-1"></i> Volver
                             </a>
-                            @if($stripePaymentEnabled ?? false)
-                                <button type="button" id="btn-stripe-pay" class="btn btn-warning text-dark fw-semibold">
-                                    <i class="ri-bank-card-line me-1"></i> Pagar y enviar a imprenta
-                                </button>
-                            @else
-                                <button type="button" class="btn btn-warning text-dark fw-semibold" disabled title="Configura Stripe en Imprenta">
-                                    <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
-                                </button>
-                            @endif
+                            <button type="button" id="btn-stripe-pay" class="btn btn-warning text-dark fw-semibold {{ ($stripePaymentEnabled ?? false) ? '' : 'd-none' }}">
+                                <i class="ri-bank-card-line me-1"></i> Pagar y enviar a imprenta
+                            </button>
+                            <button type="button" id="btn-stripe-disabled" class="btn btn-warning text-dark fw-semibold {{ ($stripePaymentEnabled ?? false) ? 'd-none' : '' }}" disabled title="Configura Stripe en la imprenta">
+                                <i class="ri-send-plane-line me-1"></i> Enviar a imprenta
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -128,34 +146,106 @@
 </div>
 @endsection
 
-@if($stripePaymentEnabled ?? false)
 @section('scripts')
 <script src="https://js.stripe.com/v3/"></script>
 <script>
 (() => {
     const payBtn = document.getElementById('btn-stripe-pay');
+    const disabledBtn = document.getElementById('btn-stripe-disabled');
     const errorBox = document.getElementById('stripe-card-errors');
     const paymentIntentInput = document.getElementById('stripe_payment_intent_id');
     const form = document.getElementById('sendToPrintForm');
     const cardContainer = document.getElementById('stripe-card-element');
-    if (!payBtn || !errorBox || !paymentIntentInput || !form || !cardContainer) return;
+    const quoteUrl = @json(route('design.previewPrintOrderQuote', $design->id));
+    const shopSelect = document.getElementById('print_configuration_id');
+
+    if (!form) return;
 
     let stripe = null;
     let card = null;
     let publishableKey = @json($stripePublishableKey ?? '');
+    let quoteRefreshTimer = null;
+
+    const fmtMoney = (n) => (Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '€';
+    const fmtInt = (n) => (Number(n) || 0).toLocaleString('es-ES');
 
     function showError(msg) {
+        if (!errorBox) return;
         errorBox.textContent = msg || 'Error procesando el pago.';
         errorBox.classList.remove('d-none');
     }
 
     function clearError() {
+        if (!errorBox) return;
         errorBox.textContent = '';
         errorBox.classList.add('d-none');
     }
 
-    function mountCard() {
-        if (!publishableKey) {
+    function setStripeUiEnabled(enabled, newPublishableKey) {
+        const alertEl = document.getElementById('stripe-unconfigured-alert');
+        const blockEl = document.getElementById('stripe-payment-block');
+        if (enabled) {
+            alertEl?.classList.add('d-none');
+            blockEl?.classList.remove('d-none');
+            payBtn?.classList.remove('d-none');
+            disabledBtn?.classList.add('d-none');
+            if (newPublishableKey) {
+                publishableKey = newPublishableKey;
+                mountCard().catch((e) => showError(e.message));
+            }
+        } else {
+            alertEl?.classList.remove('d-none');
+            blockEl?.classList.add('d-none');
+            payBtn?.classList.add('d-none');
+            disabledBtn?.classList.remove('d-none');
+            publishableKey = '';
+            if (card) {
+                try { card.unmount(); } catch (e) {}
+                card = null;
+                stripe = null;
+            }
+            clearError();
+        }
+    }
+
+    function updateQuoteDisplay(quote, stripeEnabled, stripeKey) {
+        document.getElementById('quote-shop-name').textContent = quote.print_configuration_name || '';
+        document.getElementById('quote-participations').textContent = fmtInt(quote.total_participations);
+        document.getElementById('quote-books').textContent = quote.books ?? 0;
+        document.getElementById('quote-design').textContent = fmtMoney(quote.subtotal?.design);
+        document.getElementById('quote-participation').textContent = fmtMoney(quote.subtotal?.participation);
+        document.getElementById('quote-back').textContent = fmtMoney(quote.subtotal?.back);
+        document.getElementById('quote-book').textContent = fmtMoney(quote.subtotal?.book);
+        document.getElementById('quote-total-display').textContent = fmtMoney(quote.total);
+        setStripeUiEnabled(!!stripeEnabled, stripeKey || '');
+    }
+
+    async function refreshQuote() {
+        const formData = new FormData(form);
+        const res = await fetch(quoteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]')?.value || '',
+                'Accept': 'application/json',
+            },
+            body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+            throw new Error(data.message || 'No se pudo calcular el presupuesto.');
+        }
+        updateQuoteDisplay(data.quote, data.stripe_payment_enabled, data.stripe_publishable_key);
+    }
+
+    function scheduleQuoteRefresh() {
+        clearTimeout(quoteRefreshTimer);
+        quoteRefreshTimer = setTimeout(() => {
+            refreshQuote().catch((e) => showError(e.message));
+        }, 350);
+    }
+
+    async function mountCard() {
+        if (!publishableKey || !cardContainer) {
             throw new Error('Stripe no configurado.');
         }
         stripe = Stripe(publishableKey);
@@ -184,13 +274,19 @@
         return data;
     }
 
-    payBtn.addEventListener('click', async () => {
+    form.querySelectorAll('.quote-input').forEach((el) => {
+        el.addEventListener('change', scheduleQuoteRefresh);
+        el.addEventListener('input', scheduleQuoteRefresh);
+    });
+    shopSelect?.addEventListener('change', scheduleQuoteRefresh);
+
+    payBtn?.addEventListener('click', async () => {
         try {
             clearError();
             payBtn.disabled = true;
 
             if (!stripe || !card) {
-                mountCard();
+                await mountCard();
             }
 
             const intentData = await createPaymentIntent();
@@ -222,8 +318,7 @@
         }
     });
 
-    mountCard().catch((e) => showError(e.message || 'No se pudo inicializar Stripe.'));
+    refreshQuote().catch(() => {});
 })();
 </script>
 @endsection
-@endif

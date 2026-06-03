@@ -13,13 +13,8 @@ class StripeWebhookController extends Controller
     {
         $payload = $request->getContent();
         $sigHeader = (string) $request->header('Stripe-Signature', '');
-        $cfg = PrintConfiguration::first();
-        $webhookSecret = trim((string) ($cfg->stripe_webhook_secret ?? ''));
-        if ($webhookSecret === '') {
-            $webhookSecret = (string) config('services.stripe.webhook_secret');
-        }
 
-        if ($webhookSecret !== '' && !$this->isValidSignature($payload, $sigHeader, $webhookSecret)) {
+        if (! $this->verifyWebhookSignature($payload, $sigHeader)) {
             return response()->json(['ok' => false, 'message' => 'Invalid signature'], 400);
         }
 
@@ -77,6 +72,37 @@ class StripeWebhookController extends Controller
         $expected = hash_hmac('sha256', $signedPayload, $secret);
 
         return hash_equals($expected, $signature);
+    }
+
+    private function verifyWebhookSignature(string $payload, string $sigHeader): bool
+    {
+        if ($sigHeader === '') {
+            return false;
+        }
+
+        $secrets = PrintConfiguration::query()
+            ->get()
+            ->map(fn (PrintConfiguration $cfg) => $cfg->stripeWebhookSecret())
+            ->filter(fn (string $secret) => $secret !== '')
+            ->unique()
+            ->values();
+
+        $fallback = (string) config('services.stripe.webhook_secret');
+        if ($fallback !== '' && ! $secrets->contains($fallback)) {
+            $secrets->push($fallback);
+        }
+
+        if ($secrets->isEmpty()) {
+            return true;
+        }
+
+        foreach ($secrets as $secret) {
+            if ($this->isValidSignature($payload, $sigHeader, $secret)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
