@@ -53,6 +53,10 @@ class DesignController extends Controller
             $entity_id = session('design_entity_id');
         }
 
+        if ($entity_id) {
+            session(['design_entity_id' => (int) $entity_id]);
+        }
+
         if (!auth()->user()->canAccessEntity((int) $entity_id)) {
             abort(403, 'No tienes permisos para gestionar esta entidad.');
         }

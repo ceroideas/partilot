@@ -69,6 +69,9 @@ class ReserveController extends Controller
 
     private function showLotterySelectionAfterEntity(Request $request, Entity $entity)
     {
+        $this->putSelectedEntityInSession($request, $entity);
+        $request->session()->forget(['selected_lottery', 'selected_lottery_id']);
+
         $lotteries = Lottery::where('status', 1)
             ->openForOperations()
             ->with(['lotteryType'])

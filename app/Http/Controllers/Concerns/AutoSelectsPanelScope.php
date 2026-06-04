@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 
 trait AutoSelectsPanelScope
 {
+    /**
+     * Obligatorio al mostrar un paso 2+ del asistente sin pasar por store_entity
+     * (p. ej. salto automático con una sola entidad en reservas/sets).
+     */
     protected function putSelectedEntityInSession(Request $request, Entity $entity): void
     {
         $request->session()->put('selected_entity', $entity);

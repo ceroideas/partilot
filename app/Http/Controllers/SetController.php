@@ -71,6 +71,9 @@ class SetController extends Controller
 
     private function showReserveSelectionAfterEntity(Request $request, Entity $entity)
     {
+        $this->putSelectedEntityInSession($request, $entity);
+        $request->session()->forget(['selected_reserve', 'selected_reserve_id']);
+
         $reserves = Reserve::forUser($request->user())
             ->where('entity_id', $entity->id)
             ->where('status', 1)
