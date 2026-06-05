@@ -82,7 +82,9 @@
                                     <th>P. Ven.</th>
                                     <th>P. Dev.</th>
                                     <th>Deuda</th>
+                                    @if(empty($hideEntityColumn))
                                     <th>Entidad</th>
+                                    @endif
                                     <th>Provincia</th>
                                     <th>Status</th>
                                     <th class="no-filter">Acciones</th>
@@ -112,13 +114,16 @@
                                     <td>{{ $seller->participaciones_vendidas ?? 0 }}</td>
                                     <td>{{ $seller->participaciones_devueltas ?? 0 }}</td>
                                     <td class="{{ $deuda > 0 ? 'text-danger fw-semibold' : '' }}">{{ number_format($deuda, 2, ',', '.') }}€</td>
+                                    @if(empty($hideEntityColumn))
                                     <td title="{{ $entidadesNombres }}">{{ $entidadesNombres ?: '—' }}</td>
+                                    @endif
                                     <td title="{{ $entidadesProvincias }}">{{ $entidadesProvincias ?: ($entidad?->province ?? '—') }}</td>
                                     <td>
                                         <span class="badge bg-{{ $seller->status_class }}">{{ $seller->status_text }}</span>
                                     </td>
                                     <td class="no-click" style="cursor: default;">
                                         <a href="{{ route('sellers.show', $seller->id) }}" class="btn btn-sm btn-light" title="Ver ficha"><i class="ri-external-link-line"></i></a>
+                                        @if($canManageSellers ?? true)
                                         <a href="{{ route('sellers.edit', $seller->id) }}" class="btn btn-sm btn-light" title="Editar"><i class="ri-pencil-line"></i></a>
                                         <form action="{{ route('sellers.destroy', $seller->id) }}" method="POST" style="display: inline;">
                                             @csrf
@@ -127,6 +132,7 @@
                                                 <i class="ri-delete-bin-6-line"></i>
                                             </button>
                                         </form>
+                                        @endif
                                     </td>
                                 </tr>
                                 @endforeach

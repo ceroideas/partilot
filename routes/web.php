@@ -144,6 +144,8 @@ Route::get('/design/external/file/{id}/download', [\App\Http\Controllers\DesignC
 Route::middleware(['auth', 'entity_panel.readonly', 'entity_manager.legacy_password', 'print_shop.scope'])->group(function () {
     
     Route::get('dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+    Route::post('lottery-deadline-reminders/dismiss', [\App\Http\Controllers\LotteryDeadlineReminderController::class, 'dismiss'])
+        ->name('lottery-deadline-reminders.dismiss');
 
     Route::prefix('print-shop')->middleware('role:super_admin,print_shop')->group(function () {
         Route::get('/', [\App\Http\Controllers\PrintShopController::class, 'index'])->name('print-shop.index');
@@ -262,6 +264,7 @@ Route::group(['prefix' => 'sellers', 'middleware' => ['role:super_admin,administ
     Route::post('/store-existing-user', [SellerController::class, 'store_existing_user'])->name('sellers.store-existing-user');
     Route::post('/store-new-user', [SellerController::class, 'store_new_user'])->name('sellers.store-new-user');
     Route::get('/view/{id}', [SellerController::class, 'show'])->name('sellers.show');
+    Route::post('/view/{id}/comment', [SellerController::class, 'updateComment'])->name('sellers.update-comment');
     Route::get('/edit/{id}', [SellerController::class, 'edit'])->name('sellers.edit');
     Route::put('/update/{id}', [SellerController::class, 'update'])->name('sellers.update');
     Route::post('/{seller}/toggle-status', [SellerController::class, 'toggleStatus'])->name('sellers.toggle-status');

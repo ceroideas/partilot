@@ -69,7 +69,11 @@ class SellerController extends Controller
             $seller->setAttribute('participaciones_devueltas', ($seller->participaciones_devueltas ?? 0) + $extraDevueltas);
         }
 
-        return view('sellers.index', compact('sellers'));
+        $user = auth()->user();
+        $hideEntityColumn = $user && $user->isEntity() && ! $user->isSuperAdmin() && ! $user->isAdministration();
+        $canManageSellers = $user && ($user->isSuperAdmin() || $user->isAdministration());
+
+        return view('sellers.index', compact('sellers', 'hideEntityColumn', 'canManageSellers'));
     }
 
     /**
@@ -368,6 +372,7 @@ class SellerController extends Controller
     {
         $seller = Seller::with([
             'entities.administration',
+            'groups.entity',
             'user:id,name,last_name,last_name2,image,email,phone,birthday,nif_cif',
         ])
             ->forUser(auth()->user())
@@ -411,7 +416,37 @@ class SellerController extends Controller
                 ->get();
         }
 
-        return view('sellers.show', compact('seller', 'currentEntity', 'reserves'));
+        $user = auth()->user();
+        $isEntityRole = $user && $user->isEntity() && ! $user->isSuperAdmin() && ! $user->isAdministration();
+        $hideEntitySidebar = $user && (
+            $user->isEntityPanelReadOnly()
+            || $isEntityRole
+        );
+        $hideEntityBannerInTab = $hideEntitySidebar;
+        $canEditSeller = $user && $user->isSuperAdmin();
+        $canEditSellerObservations = $user && ($user->isSuperAdmin() || $isEntityRole);
+        $hideSellerPersonalData = $user && $user->isAdministration() && ! $user->isSuperAdmin();
+        $hideDatosVendedorTab = $hideSellerPersonalData;
+        $hideSellerSidebarProfile = $hideSellerPersonalData;
+        $defaultSellerTab = $hideDatosVendedorTab ? 'asignacion' : 'datos_vendedor';
+        $canToggleSellerStatus = $canEditSeller;
+        $sellerGroup = $seller->groups->first();
+
+        return view('sellers.show', compact(
+            'seller',
+            'currentEntity',
+            'reserves',
+            'hideEntitySidebar',
+            'hideEntityBannerInTab',
+            'canEditSeller',
+            'canEditSellerObservations',
+            'hideSellerPersonalData',
+            'hideDatosVendedorTab',
+            'hideSellerSidebarProfile',
+            'defaultSellerTab',
+            'canToggleSellerStatus',
+            'sellerGroup'
+        ));
     }
 
     /**
@@ -2098,8 +2133,31 @@ class SellerController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
+    public function updateComment(Request $request, $id)
+    {
+        $user = auth()->user();
+        if (! $user || (! $user->isSuperAdmin() && ! ($user->isEntity() && ! $user->isAdministration()))) {
+            abort(403);
+        }
+
+        $seller = Seller::forUser($user)->findOrFail($id);
+        $validated = $request->validate([
+            'comment' => 'nullable|string|max:5000',
+        ]);
+        $seller->update(['comment' => $validated['comment'] ?? null]);
+
+        return redirect()
+            ->route('sellers.show', ['id' => $seller->id, 'entity_id' => $request->query('entity_id')])
+            ->with('success', 'Observaciones guardadas.');
+    }
+
     public function edit($id)
     {
+        $user = auth()->user();
+        if (! $user || ! $user->isSuperAdmin()) {
+            abort(403, 'Solo el superadministrador puede editar la ficha completa del vendedor.');
+        }
+
         $seller = Seller::with('entities')
             ->forUser(auth()->user())
             ->findOrFail($id);
@@ -2119,7 +2177,12 @@ class SellerController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $seller = Seller::forUser(auth()->user())->findOrFail($id);
+        $user = auth()->user();
+        if (! $user || ! $user->isSuperAdmin()) {
+            abort(403, 'Solo el superadministrador puede editar la ficha completa del vendedor.');
+        }
+
+        $seller = Seller::forUser($user)->findOrFail($id);
 
         $request->validate([
             'name' => 'required|string|max:255',

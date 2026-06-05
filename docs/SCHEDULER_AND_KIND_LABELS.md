@@ -15,10 +15,11 @@ En Windows/XAMPP suele usarse el Programador de tareas llamando a `php artisan s
 | Comando | Propósito |
 |--------|-----------|
 | `php artisan sipart:pending-payments-check` | Pagos pendientes / reconciliación |
-| `php artisan sipart:lottery-deadline-reminder` | Recordatorios por fechas de sorteo |
+| `php artisan sipart:lottery-deadline-reminder` | Avisos 3/2/1/0 días (email + modal) |
+| `php artisan sipart:lottery-deadline-closure` | Cierre automático tras fecha límite (vendidas + deuda) |
 | `php artisan sipart:new-lotteries-announce` | Avisar sorteos nuevos en catálogo |
 
-En `Kernel::schedule()` están **comentadas** las líneas de ejemplo (`dailyAt`, etc.). Descomenta cuando la lógica esté lista.
+En `Kernel::schedule()`: recordatorios 09:00; cierre 00:30 solo si `LOTTERY_AUTO_DEADLINE_CLOSURE_ENABLED=true`.
 
 ## Valores `kind` en BD (backend → campo API `tipo`)
 

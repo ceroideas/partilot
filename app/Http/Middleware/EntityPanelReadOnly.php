@@ -40,7 +40,16 @@ class EntityPanelReadOnly
             return $next($request);
         }
 
+        if ($this->isAllowedReadOnlyMutation($request)) {
+            return $next($request);
+        }
+
         return $this->deny($request);
+    }
+
+    private function isAllowedReadOnlyMutation(Request $request): bool
+    {
+        return $request->route()?->getName() === 'lottery-deadline-reminders.dismiss';
     }
 
     private function isAllowedConfigurationMutation(Request $request): bool

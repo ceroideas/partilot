@@ -76,16 +76,17 @@
 	                    				<img src="{{url('assets/gestor.svg')}}" alt="">
 
 	                    				<label>
-	                    					Datos Gestor
+	                    					{{ $managerTabLabel ?? 'Datos Gestor' }}
 	                    				</label>
 
 	                    			</div>
 
 	                    		</li>
 
+	                    		@if($canManageManagers && empty($hideGestoresTab))
 	                    		<li class="nav-item">
 
-	                    			<div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#gestores">
+	                    			<div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#gestores" id="tab-gestores-trigger">
 	                    				
 	                    				<span>
 	                    					&nbsp;&nbsp;
@@ -99,6 +100,7 @@
 
 	                    			</div>
 	                    		</li>
+	                    		@endif
                     			
                     		</ul>
 
@@ -128,23 +130,25 @@
 	                    					<img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
 	                    				</div>
 	                    				<input class="form-control" type="text" value="{{ $statusText }}" id="entity-status-input" style="border-radius: 0 !important; border-bottom: 1px solid #dee2e6;" readonly>
+	                    				@if($canToggleEntityStatus ?? false)
 	                    				<button type="button" class="btn btn-sm btn-outline-secondary" id="entity-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
+	                    				@endif
 	                    			</div>
 	                    			<span class="badge badge-lg {{ $statusClass }} mt-2" id="entity-status-badge" style="display: none;">{{ $statusText }}</span>
 	                    			<div style="clear: both;"></div>
                     			</div>
                     		</div>
 
-                    		<div class="form-card mb-3 bs">
+                    		<div class="form-card mb-3 bs @if($entityPanelReadOnly ?? false) entity-config-locked @endif">
                     			
                     			<div class="form-check form-switch mt-2 mb-2">
-									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="fin" checked>
-									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="fin"><b>Entidad sin fin lucrativo</b></label>
+									<input class="form-check-input bg-dark" type="checkbox" role="switch" id="fin" checked @if($entityPanelReadOnly ?? false) disabled @endif>
+									<label class="form-check-label" for="fin"><b>Entidad sin fin lucrativo</b></label>
 								</div>
 
 								<div class="form-check form-switch mt-2 mb-2">
-									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="coste" checked>
-									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="coste"><b>Coste gestión</b></label>
+									<input class="form-check-input bg-dark" type="checkbox" role="switch" id="coste" checked @if($entityPanelReadOnly ?? false) disabled @endif>
+									<label class="form-check-label" for="coste"><b>Coste gestión</b></label>
 								</div>
 
                     		</div>
@@ -164,32 +168,28 @@
 			                    			<h4 class="mb-0 mt-1">
 			                    				Datos legales de la entidad
 
+			                    				@if($canEditEntityData ?? false)
 			                    				<a href="{{url('entities/edit',$entity->id)}}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    				<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    				Editar</a>
+			                    				@endif
 			                    			</h4>
 			                    			<small><i>Todos los campos son obligatorios</i></small>
 
 			                    			<div class="form-group mt-2 mb-3">
 
-			                    				<div class="row">
-			                    					<div class="col-1">
-			                    						
-					                    				<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
-					                    					@if(!$entity->image)
-					                    						<i class="ri-account-circle-fill"></i>
-					                    					@endif
-					                    				</div>
-					                    				
-					                    				<div style="clear: both;"></div>
+			                    				<div class="row entity-profile-head align-items-center g-2">
+			                    					<div class="col-auto">
+			                    						<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+			                    							@if(!$entity->image)
+			                    								<i class="ri-account-circle-fill"></i>
+			                    							@endif
+			                    						</div>
 			                    					</div>
 
-			                    					<div class="col-4 text-center mt-3">
-
+			                    					<div class="col min-w-0 text-center text-sm-start mt-2 mt-sm-0">
 			                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin nombre' }}</h4>
-
-			                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small> <br>
-			                    						
+			                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small>
 			                    					</div>
 			                    				</div>
 			                    				
@@ -325,32 +325,23 @@
 			                    			</div>
 
 
+			                    			@if($canSeeAdminComments ?? false)
 			                    			<h4 class="mb-0 mt-1">
 			                    				Comentarios
 			                    			</h4>
-			                    			<small><i>Puedes añadir un comentario si necesitas añadir información adicional <br> sobre la entidad. Puedes añadir comentarios mas tarde.</i></small>
+			                    			<small><i>Observaciones internas de administración (no visibles para la entidad).</i></small>
 
 			                    			<div class="row">
-			                    				
 			                    				<div class="col-8">
-			                    					
 			                    					<div class="form-group mt-2">
 						                    			<label class="label-control">Comentario</label>
-
 						                    			<div class="input-group input-group-merge group-form">
-
 						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{ $entity->comments ?? '' }}</textarea>
 						                                </div>
 					                    			</div>
-
 			                    				</div>
-
-			                    				{{-- <div class="col-12 text-end">
-			                    					<a href="{{url('entities/add/manager')}}" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative;" class="btn btn-md btn-light mt-2">Siguiente
-			                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i></a>
-			                    				</div> --}}
-
 			                    			</div>
+			                    			@endif
 
 			                    		</div>
 
@@ -360,15 +351,15 @@
                     					<div class="form-card bs" style="min-height: 658px;">
 			                    			
 			                    			<h4 class="mb-0 mt-1">
-			                    				Datos de gestor
+			                    				{{ ($isEntityRole ?? false) ? 'Gestor responsable' : 'Datos de gestor' }}
 
-			                    				@if($entity->manager && $entity->manager->user)
+			                    				@if(($canEditManagerData ?? false) && $entity->manager && $entity->manager->user)
 			                    					<a href="{{ route('entities.edit-manager', $entity->id) }}" class="btn btn-light float-end" style="border: 1px solid silver; border-radius: 30px;"> 
 			                    					<img src="{{url('assets/form-groups/edit.svg')}}" alt="">
 			                    					Editar</a>
 			                    				@endif
 			                    			</h4>
-			                    			<small><i>@if($entity->manager && $entity->manager->user)Todos los campos son obligatorios@else Esta entidad no tiene gestor principal asignado. Puedes seleccionar uno de la lista de gestores en la pestaña "Gestores".@endif</i></small>
+			                    			<small><i>@if($entity->manager && $entity->manager->user)Todos los campos son obligatorios@elseif($canManageManagers ?? false) Esta entidad no tiene gestor principal asignado. Puedes seleccionar uno de la lista de gestores en la pestaña "Gestores".@else Esta entidad no tiene gestor principal asignado.@endif</i></small>
 			                    			<div style="clear: both;"></div>
 			                    			
 			                    			@if(!$entity->manager || !$entity->manager->user)
@@ -398,7 +389,11 @@
 			                    						<small>{{ ($entity->manager && $entity->manager->user) ? ($entity->manager->user->name . ' ' . $entity->manager->user->last_name) : 'Sin gestor asignado' }}</small> <br>
 
 			                    						@if($entity->manager)
+			                    							@if(empty($hideAdministrationDetail))
 			                    							<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-computer-line"></i> {{ $entity->administration->receiving ?? '' }}
+			                    							@else
+			                    							<i style="position: relative; top: 3px; font-size: 16px; color: #333" class="ri-map-pin-line"></i> {{ $entity->province ?? 'Sin provincia' }}
+			                    							@endif
 			                    						@endif
 			                    						
 			                    					</div>
@@ -546,31 +541,23 @@
 			                    				
 			                    			</div>
 
+			                    			@if($canSeeAdminComments ?? false)
 			                    			<h4 class="mb-0 mt-1">
 			                    				Comentarios
 			                    			</h4>
-			                    			<small><i>Puedes añadir un comentario si necesitas añadir información adicional <br> sobre la entidad. Puedes añadir comentarios mas tarde.</i></small>
+			                    			<small><i>Observaciones internas de administración (no visibles para la entidad).</i></small>
 
 			                    			<div class="row">
-			                    				
 			                    				<div class="col-8">
-			                    					
 			                    					<div class="form-group mt-2">
 						                    			<label class="label-control">Comentario</label>
-
 						                    			<div class="input-group input-group-merge group-form" style="border: none">
-
 						                                    <textarea readonly="" class="form-control" placeholder="Añade tu comentario" name="" id="" rows="6">{{ ($entity->manager && $entity->manager->user) ? ($entity->manager->user->comment ?? '') : '' }}</textarea>
 						                                </div>
 					                    			</div>
-
 			                    				</div>
-
-			                    				<div class="col-4 text-end">
-			                    					
-			                    				</div>
-
 			                    			</div>
+			                    			@endif
 			                    			
 
 			                    		</div>
@@ -613,7 +600,7 @@
 							                                <td>{{ $manager->user->name ?? '' }} {{ $manager->user->last_name ?? '' }}</td>
 							                                <td>
 							                                	@if($manager->is_primary)
-							                                		Administrador
+							                                		<span class="badge bg-primary">Gestor responsable</span>
 							                                	@elseif($manager->pending_primary)
 							                                		Gestor <span class="badge bg-warning ms-1">Principal pendiente</span>
 							                                	@else
@@ -696,16 +683,18 @@
 							                                	@else
 	                                		@if($managersVisible->where('is_primary', false)->count() > 0)
 	                                			@if(!empty($canManageManagers))
-							                                			<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline" id="change-primary-form-{{ $manager->id }}" onsubmit="return validatePrimaryChange(event, {{ $manager->id }});">
+							                                			<form action="{{ route('entities.set-primary-manager') }}" method="POST" class="d-inline-flex align-items-center gap-1" id="change-primary-form-{{ $manager->id }}" onsubmit="return validatePrimaryChange(event, {{ $manager->id }});">
 							                                				@csrf
 							                                				<input type="hidden" name="entity_id" value="{{ $entity->id }}">
-							                                				<select name="new_primary_manager_id" class="form-select form-select-sm d-inline-block primary-manager-select" style="width: auto;" required>
-							                                					<option value="">-- Seleccione nuevo principal --</option>
+							                                				<select name="new_primary_manager_id" class="form-select form-select-sm primary-manager-select" style="width: auto; max-width: 170px;" required>
+							                                					<option value="">Nuevo responsable</option>
 	                                					@foreach($managersVisible->where('is_primary', false) as $other)
 							                                						<option value="{{ $other->id }}">{{ $other->user->name ?? '' }} {{ $other->user->last_name ?? '' }}</option>
 							                                					@endforeach
 							                                				</select>
-							                                				<button type="submit" class="btn btn-sm btn-outline-secondary" id="change-primary-btn-{{ $manager->id }}" disabled>Cambiar</button>
+							                                				<button type="submit" class="btn btn-sm btn-primary rounded-circle" id="change-primary-btn-{{ $manager->id }}" style="width: 36px; height: 36px; padding: 0;" title="Cambiar gestor responsable" disabled>
+							                                					<i class="ri-user-shared-line"></i>
+							                                				</button>
 							                                			</form>
 	                                			@else
 	                                				<span class="text-muted">-</span>
@@ -741,35 +730,34 @@
 													<h4 class="mb-0 mt-1">
 														Invitación / Registro
 													</h4>
-													<small><i>Elige la manera en la que agregar al Vendedor</i></small>
+													<small><i>Elige la manera en la que agregar al gestor</i></small>
 												</div>
-												<div class="d-none" id="back-to-buttons">
-													<button class="btn btn-sm btn-light return-managers-options" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">
-														<i class="ri-arrow-left-line"></i>
+												<div class="d-flex align-items-center gap-2">
+													<button type="button" class="btn btn-sm btn-outline-secondary return-managers-list" title="Volver a la lista de gestores">
+														<i class="ri-list-check me-1"></i> Lista de gestores
 													</button>
+													<div class="d-none" id="back-to-buttons">
+														<button type="button" class="btn btn-sm btn-light return-managers-options" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;" title="Volver a invitar o registrar">
+															<i class="ri-arrow-left-line"></i>
+														</button>
+													</div>
 												</div>
 											</div>
 
 				                    			<div class="form-group mt-2 mb-3 admin-box">
 
-				                    				<div class="row">
-				                    					<div class="col-1">
-				                    						
-						                    				<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
-						                    					@if(!$entity->image)
-						                    						<i class="ri-account-circle-fill"></i>
-						                    					@endif
-						                    				</div>
-						                    				
-						                    				<div style="clear: both;"></div>
+				                    				<div class="row entity-profile-head align-items-center g-2">
+				                    					<div class="col-auto">
+				                    						<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+				                    							@if(!$entity->image)
+				                    								<i class="ri-account-circle-fill"></i>
+				                    							@endif
+				                    						</div>
 				                    					</div>
 
-				                    					<div class="col-4 text-center mt-3">
-
+				                    					<div class="col min-w-0 text-center text-sm-start mt-2 mt-sm-0">
 				                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin nombre' }}</h4>
-
-				                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small> <br>
-				                    						
+				                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small>
 				                    					</div>
 
 				                    					<div class="col-4">
@@ -805,10 +793,12 @@
 				                    								<h4 class="mb-0">Invitar <br> GESTOR</h4>
 				                    							</button>
 
+				                    							@if(empty($hideRegisterManager))
 				                    							<button class="btn btn-light btn-xl text-center m-2 bs" id="register-manager" style="border: 1px solid #f0f0f0; padding: 16px; width: 150px; border-radius: 16px;">
 				                    								<img class="mt-2" src="{{url('assets/register.svg')}}" alt="">
 				                    								<h4 class="mb-0">Registrar <br> GESTOR</h4>
 				                    							</button>
+				                    							@endif
 
 			                    							</div>
 
@@ -964,33 +954,32 @@
 														</h4>
 														<small><i>Asegúrese de que el email sea el correcto</i></small>
 													</div>
-													<div class="d-none" id="back-to-buttons-2">
-														<button class="btn btn-sm btn-light return-managers-options" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">
-															<i class="ri-arrow-left-line"></i>
+													<div class="d-flex align-items-center gap-2">
+														<button type="button" class="btn btn-sm btn-outline-secondary return-managers-list" title="Volver a la lista de gestores">
+															<i class="ri-list-check me-1"></i> Lista de gestores
 														</button>
+														<div class="d-none" id="back-to-buttons-2">
+															<button type="button" class="btn btn-sm btn-light return-managers-options" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;" title="Volver a invitar o registrar">
+																<i class="ri-arrow-left-line"></i>
+															</button>
+														</div>
 													</div>
 												</div>
 
 				                    			<div class="form-group mt-2 mb-3 admin-box">
 
-				                    				<div class="row">
-				                    					<div class="col-1">
-				                    						
-						                    				<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
-						                    					@if(!$entity->image)
-						                    						<i class="ri-account-circle-fill"></i>
-						                    					@endif
-						                    				</div>
-						                    				
-						                    				<div style="clear: both;"></div>
+				                    				<div class="row entity-profile-head align-items-center g-2">
+				                    					<div class="col-auto">
+				                    						<div class="photo-preview-3 logo-round" @if($entity->image) style="background-image: url('{{ asset('uploads/' . $entity->image) }}');" @endif>
+				                    							@if(!$entity->image)
+				                    								<i class="ri-account-circle-fill"></i>
+				                    							@endif
+				                    						</div>
 				                    					</div>
 
-				                    					<div class="col-4 text-center mt-3">
-
+				                    					<div class="col min-w-0 text-center text-sm-start mt-2 mt-sm-0">
 				                    						<h4 class="mt-0 mb-0">{{ $entity->name ?? 'Sin nombre' }}</h4>
-
-				                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small> <br>
-				                    						
+				                    						<small>{{ $entity->province ?? 'Sin provincia' }}</small>
 				                    					</div>
 
 				                    					<div class="col-4">
@@ -1337,16 +1326,38 @@ $('#register-manager').click(function (e) {
 
 });
 
-$('.return-managers-options').click(function (e) {
-	e.preventDefault();
-
+function returnToManagersList() {
 	$('#invite-form').addClass('d-none');
 	$('#accept-invite').addClass('d-none');
 	$('#register-manager-form').addClass('d-none');
 	$('#back-to-buttons').addClass('d-none');
 	$('#back-to-buttons-2').addClass('d-none');
-	$('#all-managers').addClass('d-none');
-	$('#all-options').removeClass('d-none');
+	$('#all-options').addClass('d-none');
+	$('#all-managers').removeClass('d-none');
+	$('#manager-buttons').removeClass('d-none');
+}
+
+$('.return-managers-list').click(function (e) {
+	e.preventDefault();
+	returnToManagersList();
+});
+
+$('.return-managers-options').click(function (e) {
+	e.preventDefault();
+
+	if (!$('#register-manager-form').hasClass('d-none')) {
+		$('#register-manager-form').addClass('d-none');
+		$('#back-to-buttons-2').addClass('d-none');
+		$('#all-options').removeClass('d-none');
+		$('#manager-buttons').removeClass('d-none');
+		return;
+	}
+
+	$('#invite-form').addClass('d-none');
+	$('#accept-invite').addClass('d-none');
+	$('#coincidence').addClass('d-none');
+	$('#no-coincidence').addClass('d-none');
+	$('#back-to-buttons').addClass('d-none');
 	$('#manager-buttons').removeClass('d-none');
 });
 

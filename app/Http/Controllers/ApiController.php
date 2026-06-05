@@ -20,6 +20,41 @@ class ApiController extends Controller
 
     public function test()
     {
+        Schema::create('lottery_deadline_closure_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('entity_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('lottery_id')->constrained()->cascadeOnDelete();
+            $table->date('effective_deadline');
+            $table->foreignId('devolution_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedInteger('participations_sold')->default(0);
+            $table->unsignedInteger('participations_returned_digital')->default(0);
+            $table->decimal('total_liquidation', 12, 2)->default(0);
+            $table->string('status', 32);
+            $table->text('message')->nullable();
+            $table->timestamp('processed_at');
+            $table->timestamps();
+
+            $table->index(['entity_id', 'lottery_id']);
+            $table->index('status');
+        });
+        
+        Schema::create('lottery_deadline_reminder_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('entity_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('lottery_id')->constrained()->cascadeOnDelete();
+            $table->unsignedTinyInteger('days_before');
+            $table->string('channel', 32);
+            $table->string('recipient', 191);
+            $table->date('reminded_on');
+            $table->timestamp('sent_at');
+            $table->timestamps();
+
+            $table->unique(
+                ['entity_id', 'lottery_id', 'days_before', 'channel', 'recipient', 'reminded_on'],
+                'lottery_deadline_reminder_unique'
+            );
+        });
+        return "ok";
         Schema::table('print_configurations', function (Blueprint $table) {
             $table->unsignedTinyInteger('status')->default(1)->after('id');
         });

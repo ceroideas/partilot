@@ -141,6 +141,44 @@ class User extends Authenticatable
         return null;
     }
 
+    /**
+     * Línea de contexto para cabecera (entidad o administración activa).
+     */
+    public function panelHeaderContextLabel(): ?string
+    {
+        if ($this->isEntityPanelAccount() && $this->panel_account_id) {
+            $entity = Entity::query()->find($this->panel_account_id);
+
+            return $entity ? trim((string) $entity->name) : null;
+        }
+
+        if ($this->isAdministrationPanelAccount() && $this->panel_account_id) {
+            $administration = Administration::query()->find($this->panel_account_id);
+
+            return $administration ? trim((string) $administration->name) : null;
+        }
+
+        if ($this->isEntity() && ! $this->isPanelAccount()) {
+            $entityId = $this->implicitEntityId();
+            if ($entityId) {
+                $entity = Entity::query()->find($entityId);
+
+                return $entity ? trim((string) $entity->name) : null;
+            }
+        }
+
+        if ($this->isAdministration() && ! $this->isPanelAccount()) {
+            $administrationId = $this->implicitAdministrationId();
+            if ($administrationId) {
+                $administration = Administration::query()->find($administrationId);
+
+                return $administration ? trim((string) $administration->name) : null;
+            }
+        }
+
+        return null;
+    }
+
     public function scopeWithoutPanelAccount($query)
     {
         return $query->whereNull('panel_account_type');

@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\View;
 use App\Models\User;
+use App\Services\LotteryDeadlineReminderService;
 use App\Models\Participation;
 use App\Observers\UserObserver;
 use App\Observers\ParticipationObserver;
@@ -34,5 +36,19 @@ class AppServiceProvider extends ServiceProvider
         if (config('mail.debug_mode') && filled(config('mail.debug_to'))) {
             Mail::alwaysTo(config('mail.debug_to'));
         }
+
+        View::composer('layouts.layout', function ($view) {
+            $user = auth()->user();
+            if (! $user) {
+                $view->with('lotteryDeadlineModalAlerts', []);
+
+                return;
+            }
+
+            $view->with(
+                'lotteryDeadlineModalAlerts',
+                app(LotteryDeadlineReminderService::class)->getModalAlertsForUser($user)
+            );
+        });
     }
 }

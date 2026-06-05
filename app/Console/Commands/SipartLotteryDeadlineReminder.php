@@ -2,27 +2,29 @@
 
 namespace App\Console\Commands;
 
+use App\Services\LotteryDeadlineReminderService;
 use Illuminate\Console\Command;
 
-/**
- * Recordatorios automáticos ligados a sorteos (fecha límite de compra, escrutinio, etc.).
- * Pendiente: consultar Lottery.deadline_date / draw_date y usuarios con participaciones.
- */
 class SipartLotteryDeadlineReminder extends Command
 {
     protected $signature = 'sipart:lottery-deadline-reminder
-                            {--dry-run : Solo simula destinatarios}';
+                            {--dry-run : Solo simula destinatarios sin enviar correos}';
 
-    protected $description = '[Stub] Avisos de sorteos próximos a vencer o calendario';
+    protected $description = 'Envía avisos por email 3/2/1/0 días antes del cierre de devoluciones por sorteo';
 
-    public function handle(): int
+    public function handle(LotteryDeadlineReminderService $service): int
     {
-        $this->warn('sipart:lottery-deadline-reminder — lógica pendiente de implementación.');
-        $this->line('Ideas: AppInboxNotificationService + FCM; ventanas N horas antes de deadline_date.');
+        $dryRun = (bool) $this->option('dry-run');
 
-        if ($this->option('dry-run')) {
-            $this->info('Modo --dry-run.');
+        if ($dryRun) {
+            $this->warn('Modo --dry-run: no se enviarán correos ni se guardará log.');
         }
+
+        $result = $service->runEmailReminders($dryRun);
+
+        $this->info("Contextos activos: {$result['contexts']}");
+        $this->info('Correos '.($dryRun ? 'simulados' : 'enviados').": {$result['sent']}");
+        $this->line("Omitidos (ya enviados hoy): {$result['skipped']}");
 
         return self::SUCCESS;
     }

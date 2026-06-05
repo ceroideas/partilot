@@ -13,6 +13,21 @@
         border-color: #333;
     }
 
+    .seller-entity-banner .row {
+        align-items: center;
+    }
+    .seller-entity-banner .seller-entity-banner__logo {
+        width: 72px;
+        height: 72px;
+        min-width: 72px;
+        min-height: 72px;
+        background-size: cover;
+        background-position: center;
+    }
+    .seller-entity-banner .seller-entity-banner__logo i {
+        font-size: 2rem;
+    }
+
     .part-information {
         transition: all 500ms;
     }
@@ -176,21 +191,18 @@
                         <div class="col-md-3" style="position: relative;">
                             <ul class="form-card bs mb-3 nav">
 
+                                @if(empty($hideDatosVendedorTab))
                                 <li class="nav-item">
-
-                                    <div class="form-wizard-element active" data-bs-toggle="tab" data-bs-target="#datos_vendedor">
-                                        <span>
-                                            &nbsp;&nbsp;
-                                        </span>
+                                    <div class="form-wizard-element {{ ($defaultSellerTab ?? 'datos_vendedor') === 'datos_vendedor' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#datos_vendedor">
+                                        <span>&nbsp;&nbsp;</span>
                                         <img src="{{url('icons_/vendedores.svg')}}" alt="">
-                                        <label>
-                                            Dat. Vendedor
-                                        </label>
+                                        <label>Dat. Vendedor</label>
                                     </div>
                                 </li>
+                                @endif
 
                                 <li class="nav-item">
-                                    <div class="form-wizard-element" data-bs-toggle="tab" data-bs-target="#asignacion">
+                                    <div class="form-wizard-element {{ ($defaultSellerTab ?? 'datos_vendedor') === 'asignacion' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#asignacion">
                                         
                                         <span>
                                             &nbsp;&nbsp;
@@ -235,7 +247,8 @@
                                 </li>
                             </ul>
 
-                                                         <!-- Información del Vendedor -->
+                                                         @if(empty($hideSellerSidebarProfile))
+                             <!-- Información del Vendedor -->
                              <div class="form-card bs mb-3">
                                  <div class="row">
                                      <div class="col-4">
@@ -252,7 +265,9 @@
                                      </div>
                                  </div>
                              </div>
+                             @endif
 
+                             @if(empty($hideEntitySidebar))
                              <!-- Información de la Entidad - Sidebar Simple -->
                              <div class="form-card bs mb-3" id="entity-info-sidebar">
                                  <div class="row">
@@ -271,6 +286,7 @@
                                      </div>
                                  </div>
                              </div>
+                             @endif
 
                             <a href="{{ route('sellers.index') }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                                 <i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span>
@@ -331,7 +347,8 @@
                                     
                                     <div class="tab-content p-0">
                                         
-                                        <div class="tab-pane fade active show" id="datos_vendedor">
+                                        @if(empty($hideDatosVendedorTab))
+                                        <div class="tab-pane fade {{ ($defaultSellerTab ?? 'datos_vendedor') === 'datos_vendedor' ? 'active show' : '' }}" id="datos_vendedor">
 
 
                                             <div class="form-card bs" style="min-height: 658px;">
@@ -348,47 +365,65 @@
                                                         <small><i>Detalles completos del vendedor</i></small>
                                                     </div>
                                                     <div>
+                                                        @if($canEditSeller ?? true)
                                                         <a href="{{ route('sellers.edit', $seller->id) }}" class="btn btn-light" style="border: 1px solid silver; border-radius: 30px;"> 
                                                             <img src="{{url('assets/form-groups/edit.svg')}}" alt="">
                                                             Editar
                                                         </a>
+                                                        @endif
                                                     </div>
                                                 </div>
 
-                                            <div class="form-group mt-2 mb-3 admin-box">
+                                            @if(empty($hideEntityBannerInTab))
+                                            <div class="form-group mt-2 mb-3 admin-box seller-entity-banner">
                                                 <div class="row">
-                                                    <div class="col-1">
-                                                        <div class="photo-preview-3 logo-round" style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; @if($currentEntity && ($currentEntity->image ?? null)) background-image: url('{{ asset('uploads/' . $currentEntity->image) }}'); @endif">
+                                                    <div class="col-auto pe-3">
+                                                        <div class="photo-preview-3 logo-round seller-entity-banner__logo" @if($currentEntity && ($currentEntity->image ?? null)) style="background-image: url('{{ asset('uploads/' . $currentEntity->image) }}');" @endif>
                                                             @if(!$currentEntity || !($currentEntity->image ?? null))
                                                                 <i class="ri-building-line"></i>
                                                             @endif
                                                         </div>
-                                                        <div style="clear: both;"></div>
                                                     </div>
 
-                                                    <div class="col-4 text-center mt-3">
+                                                    <div class="col-4 text-center">
                                                         <h4 class="mt-0 mb-0">{{ $currentEntity->name ?? 'Entidad' }}</h4>
                                                         <small>{{ $currentEntity->province ?? 'Provincia' }}</small> <br>
                                                         <small>{{ $currentEntity->administration->name ?? 'Administración' }}</small>
                                                     </div>
 
                                                     <div class="col-3">
-                                                        <div class="mt-3">
+                                                        <div>
                                                             Provincia: {{ $currentEntity->province ?? 'N/A' }} <br>
                                                             Dirección: {{ $currentEntity->address ?? 'N/A' }}
                                                         </div>
                                                     </div>
 
                                                     <div class="col-3">
-                                                        <div class="mt-3">
+                                                        <div>
                                                             Ciudad: {{ $currentEntity->city ?? 'N/A' }} <br>
                                                             Tel: {{ $currentEntity->phone ?? 'N/A' }}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
+                                            @endif
 
                                             <br>
+
+                                            @if(empty($hideSellerPersonalData))
+                                            <div class="row show-content">
+                                                <div class="col-md-4">
+                                                    <div class="form-group mt-2 mb-3">
+                                                        <label class="label-control">Grupo</label>
+                                                        <div class="input-group input-group-merge group-form">
+                                                            <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
+                                                                <img src="{{url('icons_/grupos.svg')}}" alt="" width="18">
+                                                            </div>
+                                                            <input class="form-control" type="text" value="{{ $sellerGroup->name ?? 'Sin grupo' }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                             <div class="row show-content">
                                                 <div class="col-md-4">
@@ -481,37 +516,54 @@
                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
                                                                 <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
                                                             </div>
-                                                            <input class="form-control" type="text" value="{{ $seller->status_text }}" id="seller-status-input" style="border-radius: 0 30px 0 0;" readonly>
+                                                            <input class="form-control" type="text" value="{{ $seller->status_text }}" id="seller-status-input" style="border-radius: 0 30px 30px 0;" readonly>
+                                                            @if($canToggleSellerStatus ?? false)
                                                             <button type="button" class="btn btn-sm btn-outline-secondary" id="seller-toggle-status" title="Cambiar estado" style="border-radius: 0 30px 30px 0; border-left: none;">Cambiar</button>
+                                                            @endif
                                                         </div>
                                                         <span class="badge {{ $seller->status_class }} mt-2" id="seller-status-badge" style="display: none;">{{ $seller->status_text }}</span>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {{-- @if($seller->comment)
-                                            <div class="row">
-                                                <div class="col-md-12">
+                                            @else
+                                            <div class="row show-content">
+                                                <div class="col-md-6">
                                                     <div class="form-group mt-2 mb-3">
-                                                        <label class="label-control">Comentarios</label>
+                                                        <label class="label-control">Estado</label>
                                                         <div class="input-group input-group-merge group-form">
                                                             <div class="input-group-text" style="border-radius: 30px 0 0 30px;">
-                                                                <img src="{{url('assets/form-groups/admin/4.svg')}}" alt="">
+                                                                <img src="{{url('assets/form-groups/admin/13.svg')}}" alt="">
                                                             </div>
-                                                            <input class="form-control" type="text" value="{{ $seller->comment }}" style="border-radius: 0 30px 30px 0;" readonly>
+                                                            <input class="form-control" type="text" value="{{ $seller->status_text }}" readonly style="border-radius: 0 30px 30px 0;">
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            @endif --}}
+                                            @endif
+
+                                            @if($canEditSellerObservations ?? false)
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <form method="POST" action="{{ route('sellers.update-comment', $seller->id) }}?entity_id={{ $currentEntity->id ?? '' }}">
+                                                        @csrf
+                                                        <div class="form-group mt-2 mb-3">
+                                                            <label class="label-control">Observaciones (entidad)</label>
+                                                            <textarea name="comment" class="form-control" rows="4" placeholder="Notas internas sobre este vendedor">{{ old('comment', $seller->comment) }}</textarea>
+                                                        </div>
+                                                        <button type="submit" class="btn btn-sm btn-dark" style="border-radius: 20px;">Guardar observaciones</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            @endif
 
                                         </div>
 
                                     </div>
+                                        @endif
 
 
 
-                                    <div class="tab-pane fade" id="asignacion">
+                                    <div class="tab-pane fade {{ ($defaultSellerTab ?? 'datos_vendedor') === 'asignacion' ? 'active show' : '' }}" id="asignacion">
                                         <div class="form-card bs" style="min-height: 658px;">
                                                                                          <!-- Paso 1: Selección de Reservas -->
                                              <div id="paso-reservas" class="asignacion-paso" style="display: none;">

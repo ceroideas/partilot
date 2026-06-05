@@ -7,6 +7,28 @@
         return;
     }
 
+    var PARTILOT_DT_LANG = {
+        processing: 'Procesando...',
+        lengthMenu: 'Mostrar _MENU_ registros',
+        zeroRecords: 'No se encontraron resultados',
+        emptyTable: 'Ningún dato disponible en esta tabla',
+        info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+        infoEmpty: 'Mostrando registros del 0 al 0 de un total de 0 registros',
+        infoFiltered: '(filtrado de un total de _MAX_ registros)',
+        search: 'Buscar:',
+        loadingRecords: 'Cargando...',
+        paginate: {
+            first: 'Primero',
+            last: 'Último',
+            next: 'Siguiente',
+            previous: 'Anterior',
+        },
+        aria: {
+            sortAscending: ': Activar para ordenar la columna de manera ascendente',
+            sortDescending: ': Activar para ordenar la columna de manera descendente',
+        },
+    };
+
     function normalizeListTableOptions(opts) {
         if (!opts || typeof opts !== 'object') {
             return opts;
@@ -18,7 +40,14 @@
         if (o.autoWidth === undefined) {
             o.autoWidth = false;
         }
+        o.language = $.extend(true, {}, PARTILOT_DT_LANG, o.language || {});
         return o;
+    }
+
+    if ($.fn.dataTable.defaults) {
+        $.extend(true, $.fn.dataTable.defaults, {
+            language: PARTILOT_DT_LANG,
+        });
     }
 
     var originalDataTable = $.fn.DataTable;

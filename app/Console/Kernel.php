@@ -18,7 +18,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('sipart:expire-pending-gifts')->dailyAt('02:00');
         $schedule->command('sipart:expire-unverified-collections')->hourly();
         // $schedule->command('sipart:pending-payments-check')->dailyAt('08:00');
-        // $schedule->command('sipart:lottery-deadline-reminder')->dailyAt('09:00');
+        $schedule->command('sipart:lottery-deadline-reminder')->dailyAt('09:00');
+        $schedule->command('sipart:lottery-deadline-closure')
+            ->dailyAt('00:30')
+            ->when(fn () => (bool) config('lottery.auto_deadline_closure.enabled', false));
         // $schedule->command('sipart:new-lotteries-announce')->weeklyOn(1, '10:00');
     }
 

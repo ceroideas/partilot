@@ -13,4 +13,22 @@ return [
 
     /** Mensaje genérico si no hay fecha de sorteo en el modelo. */
     'draw_date_passed_message' => 'No se puede continuar: la fecha del sorteo ya ha pasado.',
+
+    /*
+    | Cierre automático al vencer la fecha límite de devolución:
+    | participaciones físicas no devueltas → vendidas + deuda (devolución entidad→admin).
+    |
+    | LOTTERY_AUTO_DEADLINE_CLOSURE_ENABLED=false (default) → no ejecuta en cron; usar
+    |   php artisan sipart:lottery-deadline-closure --ignore-disabled para pruebas.
+    | LOTTERY_ENFORCE_DRAW_DATE_RULES=false → sigue permitiendo operar sorteos pasados en panel;
+    |   el cierre solo mira la fecha límite efectiva, no bloquea por draw_date.
+    */
+    'auto_deadline_closure' => [
+        'enabled' => filter_var(
+            env('LOTTERY_AUTO_DEADLINE_CLOSURE_ENABLED', false),
+            FILTER_VALIDATE_BOOLEAN
+        ),
+        'system_user_id' => env('LOTTERY_AUTO_DEADLINE_CLOSURE_USER_ID'),
+        'return_reason' => 'Cierre automático por fecha límite de devolución',
+    ],
 ];

@@ -27,9 +27,9 @@ class LotteryController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        // return $lotteries;
+        $lotteryAccess = \App\Support\LotteryPanelAccess::for(auth()->user());
 
-        return view('lottery.index', compact('lotteries'));
+        return view('lottery.index', compact('lotteries', 'lotteryAccess'));
     }
 
     /**

@@ -24,6 +24,7 @@
 
         <!-- Icons css -->
         <link href="{{url('assets')}}/css/icons.min.css" rel="stylesheet" type="text/css" />
+        <link href="{{url('assets')}}/css/partilot-ui-fixes.css" rel="stylesheet" type="text/css" />
 
         <style>
 

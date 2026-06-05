@@ -87,6 +87,7 @@
 
         <!-- App css -->
         <link href="{{url('default')}}/assets/css/app.min.css" rel="stylesheet" type="text/css" />
+        <link href="{{url('assets')}}/css/partilot-ui-fixes.css" rel="stylesheet" type="text/css" />
 
         <!-- Icons css -->
         <link href="{{url('assets')}}/css/icons.min.css" rel="stylesheet" type="text/css" />
@@ -322,20 +323,25 @@
                 margin-left: auto;
                 flex: 0 0 auto;
                 width: auto;
-                padding: 12px;
+                padding: 10px 14px;
                 border: 1px solid #d9dde8;
                 border-radius: 999px;
                 background: #f8f9fd;
                 gap: 8px;
                 overflow: visible;
                 margin-right: 20px;
+                min-height: 56px;
             }
-            .navbar-custom .topbar .nav-link,
-            .navbar-custom .topbar .nav-user {
+            .navbar-custom .topbar .nav-link {
                 border-radius: 999px;
                 height: 38px;
                 display: inline-flex;
                 align-items: center;
+                justify-content: center;
+            }
+            .navbar-custom .topbar .nav-user {
+                border-radius: 999px;
+                display: inline-flex;
                 justify-content: center;
             }
             .navbar-custom .topbar .nav-link {
@@ -346,10 +352,13 @@
             }
             .navbar-custom .topbar .nav-user {
                 width: auto;
-                padding: 4px 6px 4px 4px !important;
+                min-height: 48px;
+                height: auto !important;
+                padding: 6px 8px 6px 4px !important;
                 gap: 8px;
                 border: 0;
                 background: transparent;
+                align-items: flex-start !important;
             }
             .navbar-custom .topbar .nav-user img {
                 display: none;
@@ -627,49 +636,25 @@
 
                     <!-- User box -->
                     <div class="user-box text-center">
-                        @php $panelHeaderImg = Auth::user()?->panelAccountHeaderImageUrl(); @endphp
+                        @php
+                            $panelHeaderImg = Auth::user()?->panelAccountHeaderImageUrl();
+                            $panelContextLabel = Auth::user()?->panelHeaderContextLabel();
+                        @endphp
                         <img src="{{ $panelHeaderImg ?? url('default').'/assets/images/users/user-1.jpg' }}" alt="" title="{{ Auth::user()->name ?? 'Usuario' }}" class="rounded-circle avatar-md" @if($panelHeaderImg) style="object-fit:cover;width:64px;height:64px;" @endif>
-                        <div class="dropdown">
-                            <a href="javascript: void(0);" class="dropdown-toggle h5 mb-1 d-block" data-bs-toggle="dropdown">{{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }}</a>
-                            <div class="dropdown-menu user-pro-dropdown">
-
-                                <!-- item-->
-                                @if(Auth::check() && Auth::user()->isPanelAccount() && Auth::user()->panel_account_type === 'administration')
-                                <a href="{{ route('account.my-data') }}" class="dropdown-item notify-item">
-                                    <i class="fe-user me-1"></i>
-                                    <span>Mis datos</span>
-                                </a>
-                                @else
-                                <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                    <i class="fe-user me-1"></i>
-                                    <span>Mi Cuenta</span>
-                                </a>
-                                @endif
-
-                                <!-- item-->
-                                <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                    <i class="fe-settings me-1"></i>
-                                    <span>Configuración</span>
-                                </a>
-
-                                <!-- item-->
-                                <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                    <i class="fe-lock me-1"></i>
-                                    <span>Bloquear Pantalla</span>
-                                </a>
-
-                                <!-- item-->
-                                <form method="POST" action="{{ url('logout') }}" style="display: inline;">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item notify-item" style="background: none; border: none; width: 100%; text-align: left;">
-                                        <i class="fe-log-out me-1"></i>
-                                        <span>Cerrar Sesión</span>
-                                    </button>
-                                </form>
-
-                            </div>
-                        </div>
-                        <p class="text-muted mb-0">{{ Auth::user()->email ?? 'admin@partilot.com' }}</p>
+                        <h5 class="mb-1 mt-2">{{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }}</h5>
+                        @if($panelContextLabel)
+                            <p class="user-box-panel-context mb-1" title="{{ $panelContextLabel }}">{{ $panelContextLabel }}</p>
+                        @endif
+                        <p class="text-muted mb-2">{{ Auth::user()->email ?? '' }}</p>
+                        @if(Auth::check() && Auth::user()->isPanelAccount() && Auth::user()->panel_account_type === 'administration')
+                            <a href="{{ route('account.my-data') }}" class="btn btn-sm btn-light mb-2">Mis datos</a>
+                        @endif
+                        <form method="POST" action="{{ url('logout') }}" class="menu-logout-link">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                <i class="fe-log-out me-1"></i> Cerrar sesión
+                            </button>
+                        </form>
                     </div>
 
                     <!--- Menu -->
@@ -1164,51 +1149,37 @@
                                             }
                                         }
                                     @endphp
-                                    <span class="ms-2 d-none d-md-inline-block">
+                                    @php $topbarContextLabel = Auth::user()?->panelHeaderContextLabel(); @endphp
+                                    <span class="ms-2 d-none d-md-inline-block text-start">
+                                        @if($topbarContextLabel)
+                                            <span class="topbar-user-context d-block" title="{{ $topbarContextLabel }}">{{ $topbarContextLabel }}</span>
+                                        @endif
                                         <span class="user-name">{{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }}</span>
                                         <span class="user-role">{{ $topbarRole }}</span>
                                         <i class="mdi mdi-chevron-down"></i>
                                     </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end profile-dropdown ">
-                                    <!-- item-->
                                     <div class="dropdown-header noti-title">
-                                        <h6 class="text-overflow m-0">Welcome !</h6>
+                                        <h6 class="text-overflow m-0">{{ Auth::user()->name ? Auth::user()->name.' '.Auth::user()->last_name : 'Usuario' }}</h6>
+                                        @if($topbarContextLabel)
+                                            <small class="text-muted">{{ $topbarContextLabel }}</small>
+                                        @endif
                                     </div>
 
-                                    <!-- item-->
                                     @if(Auth::check() && Auth::user()->isPanelAccount() && Auth::user()->panel_account_type === 'administration')
                                     <a href="{{ route('account.my-data') }}" class="dropdown-item notify-item">
                                         <i class="fe-user"></i>
                                         <span>Mis datos</span>
                                     </a>
-                                    @else
-                                    <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                        <i class="fe-user"></i>
-                                        <span>Mi Cuenta</span>
-                                    </a>
+                                    <div class="dropdown-divider"></div>
                                     @endif
 
-                                    <!-- item-->
-                                    <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                        <i class="fe-settings"></i>
-                                        <span>Configuración</span>
-                                    </a>
-
-                                    <!-- item-->
-                                    <a href="javascript:void(0);" class="dropdown-item notify-item">
-                                        <i class="fe-lock"></i>
-                                        <span>Bloquear Pantalla</span>
-                                    </a>
-
-                                    <div class="dropdown-divider"></div>
-
-                                    <!-- item-->
-                                    <form method="POST" action="{{ url('logout') }}" style="display: inline;">
+                                    <form method="POST" action="{{ url('logout') }}">
                                         @csrf
-                                        <button type="submit" class="dropdown-item notify-item" style="background: none; border: none; width: 100%; text-align: left;">
+                                        <button type="submit" class="dropdown-item notify-item text-danger" style="background: none; border: none; width: 100%; text-align: left;">
                                             <i class="fe-log-out me-1"></i>
-                                            <span>Cerrar Sesión</span>
+                                            <span>Cerrar sesión</span>
                                         </button>
                                     </form>
 
@@ -1876,7 +1847,7 @@
                     document.querySelectorAll('.ui-pnotify').forEach(function (el) { el.remove(); });
                     new PNotify({
                         type: item.type,
-                        addclass: 'partilot-notify',
+                        addclass: 'partilot-notify' + (item.type === 'error' ? ' partilot-notify-error' : ''),
                         width: '460px',
                         text: item.text,
                         hide: true,
@@ -1899,7 +1870,41 @@
                 });
             });
         </script>
+        @include('partials.lottery-deadline-reminder-modal')
+
         @auth
+        @if(!empty($lotteryDeadlineModalAlerts))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var modalEl = document.getElementById('lotteryDeadlineReminderModal');
+                if (!modalEl || typeof bootstrap === 'undefined') return;
+
+                var modal = new bootstrap.Modal(modalEl);
+                modal.show();
+
+                var dismissBtn = document.getElementById('lotteryDeadlineReminderDismiss');
+                if (!dismissBtn) return;
+
+                dismissBtn.addEventListener('click', function () {
+                    var alertKeys = Array.from(modalEl.querySelectorAll('[data-alert-key]'))
+                        .map(function (el) { return el.getAttribute('data-alert-key'); })
+                        .filter(Boolean);
+
+                    fetch(@json(route('lottery-deadline-reminders.dismiss')), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ alerts: alertKeys })
+                    }).finally(function () {
+                        modal.hide();
+                    });
+                });
+            });
+        </script>
+        @endif
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const pollUrl = @json(route('background-tasks.index', ['mine' => 1, 'limit' => 20]));

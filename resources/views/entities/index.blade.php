@@ -34,7 +34,9 @@
                                 <input type="text" class="form-control" placeholder="Status">
                             </div>
 
+                            @if($canAddEntity ?? true)
                             <a href="{{url('entities/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                            @endif
 
                         </h4>
 
@@ -45,15 +47,17 @@
                         <table id="example2" class="table table-striped nowrap w-100">
                             <thead class="filters">
                                 <tr>
-                                    <th>Order ID</th>
+                                    <th>Código</th>
                                     <th>Entidad</th>
                                     <th>Provincia</th>
                                     <th>Localidad</th>
                                     <th>Gestor</th>
                                     <th>Teléfono</th>
                                     <th>Email</th>
+                                    @if(empty($hideAdministrationColumn))
                                     <th>Administración</th>
-                                    <th>Status</th>
+                                    @endif
+                                    <th>Estado</th>
                                     <th class="no-filter"></th>
                                 </tr>
                             </thead>
@@ -75,7 +79,9 @@
                                     </td>
                                     <td>{{$entity->phone ?? 'Sin teléfono'}}</td>
                                     <td>{{$entity->email ?? 'Sin email'}}</td>
+                                    @if(empty($hideAdministrationColumn))
                                     <td>{{$entity->administration ? $entity->administration->name : 'Sin administración'}}</td>
+                                    @endif
                                     <td>
                                         @php
                                             $statusValue = $entity->status;
@@ -93,11 +99,13 @@
                                         <label class="badge {{ $statusClass }}">{{ $statusText }}</label>
                                     </td>
                                     <td class="no-click" style="cursor: default;">
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/persons.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/design.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
-                                        <a class="btn btn-sm btn-light"><img src="{{url('icons_/returns.svg')}}" alt="" width="12"></a>
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{$entity->id}}" data-name="{{$entity->name}}"><i class="ri-delete-bin-6-line"></i></button>
+                                        <a class="btn btn-sm btn-light" title="Ver entidad" href="{{url('entities/view', $entity->id)}}"><img src="{{url('icons_/persons.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light" title="Diseños" href="{{url('design')}}"><img src="{{url('icons_/design.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light" title="Participaciones"><img src="{{url('icons_/participations.svg')}}" alt="" width="12"></a>
+                                        <a class="btn btn-sm btn-light" title="Devoluciones"><img src="{{url('icons_/returns.svg')}}" alt="" width="12"></a>
+                                        @if($canAddEntity ?? true)
+                                        <button type="button" class="btn btn-sm btn-danger delete-btn" title="Eliminar entidad" data-id="{{$entity->id}}" data-name="{{$entity->name}}"><i class="ri-delete-bin-6-line"></i></button>
+                                        @endif
                                     </td>
                                 </tr>
                                 @endforeach
@@ -118,7 +126,9 @@
 
                                 <br>
 
+                                @if($canAddEntity ?? true)
                                 <a href="{{url('entities/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark mt-2"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
+                                @endif
                             </div>
 
                         </div>

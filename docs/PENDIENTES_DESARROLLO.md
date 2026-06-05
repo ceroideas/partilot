@@ -55,7 +55,8 @@ Referencias: `../tacos.md` (líneas ~50, ~127–134) · historial `nuevas tareas
 
 ## Baja / fase 2
 
-- [ ] Implementar lógica en `php artisan sipart:pending-payments-check`, `sipart:lottery-deadline-reminder`, `sipart:new-lotteries-announce` + descomentar `Kernel::schedule()`.
+- [ ] Implementar lógica en `php artisan sipart:pending-payments-check`, `sipart:new-lotteries-announce` + descomentar en `Kernel::schedule()`.
+- [x] `sipart:lottery-deadline-reminder` (avisos 3/2/1/0 días, email + modal).
 - [-] Autosave diseño en servidor; conflictos edición simultánea.
 - [ ] Asignación vendedor: firma digital offline + email entidad (spec).
 - [-] Devoluciones por series/fracciones (pendiente definición negocio).

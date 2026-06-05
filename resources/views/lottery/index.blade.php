@@ -34,8 +34,10 @@
                                 <input type="text" class="form-control" placeholder="Estado">
                             </div>
 
+                            @if($lotteryAccess['canManageLotteries'] ?? false)
                             <a href="{{url('lottery/add')}}" style="border-radius: 30px; width: 150px;" class="btn btn-md btn-dark float-end"><i style="position: relative; top: 2px;" class="ri-add-line"></i> Añadir</a>
                             <button type="button" data-bs-toggle="modal" data-bs-target="#generateLotteriesModal" style="border-radius: 30px; width: 200px; margin-right: 10px;" class="btn btn-md btn-success float-end"><i style="position: relative; top: 2px;" class="ri-calendar-line"></i> Generar Sorteos</button>
+                            @endif
 
                         </h4>
 
@@ -70,10 +72,25 @@
                                     <td>{{$lottery->draw_time ? \Carbon\Carbon::parse($lottery->draw_time)->format('H:i') : 'No definida'}}</td>
                                     <td><b>{{number_format($lottery->ticket_price, 2)}}€</b></td>
                                     <td class="text-end no-click" style="cursor: default;">
-                                        <a href="{{route('lotteries.show', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                                        @if($lotteryAccess['canViewEntityPrizesOnly'] ?? false)
+                                        <a href="{{ route('lotteries.show', $lottery->id) }}" class="btn btn-sm btn-light" title="Ver premio de mi entidad"><img src="{{url('assets/form-groups/results.svg')}}" alt="" width="12"></a>
+                                        @else
+                                        <a href="{{route('lotteries.show', $lottery->id)}}" class="btn btn-sm btn-light" title="Ver sorteo"><img src="{{url('assets/form-groups/eye.svg')}}" alt="" width="12"></a>
+                                        @if($lotteryAccess['canViewResultsLists'] ?? false)
                                         <a href="{{route('lottery.show-results', $lottery->id)}}" class="btn btn-sm btn-light" title="Ver Resultados"><img src="{{url('assets/form-groups/results.svg')}}" alt="" width="12"></a>
-                                        <a href="{{url('lottery/edit', $lottery->id)}}" class="btn btn-sm btn-light"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{$lottery->id}}" data-name="{{$lottery->name}}"><i class="ri-delete-bin-6-line"></i></button>
+                                        @endif
+                                        @if($lotteryAccess['canEditAdminDeadlineOnly'] ?? false)
+                                        <a href="{{url('lottery/edit', $lottery->id)}}" class="btn btn-sm btn-light" title="Editar fecha límite"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        @elseif($lotteryAccess['canEditLotteryFull'] ?? false)
+                                        <a href="{{url('lottery/edit', $lottery->id)}}" class="btn btn-sm btn-light" title="Editar"><img src="{{url('assets/form-groups/edit.svg')}}" alt="" width="12"></a>
+                                        @endif
+                                        @if($lotteryAccess['canRunScrutiny'] ?? false)
+                                        <a href="{{ route('lottery.scrutiny', $lottery->id) }}" class="btn btn-sm btn-warning" title="Escrutinio"><i class="ri-search-eye-line"></i></a>
+                                        @endif
+                                        @if($lotteryAccess['canManageLotteries'] ?? false)
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{$lottery->id}}" data-name="{{$lottery->name}}" title="Eliminar"><i class="ri-delete-bin-6-line"></i></button>
+                                        @endif
+                                        @endif
                                     </td>
                                 </tr>
                                 @endforeach
@@ -82,13 +99,17 @@
 
                         <br>
 
+                        @if($lotteryAccess['canViewLotteryTypes'] ?? false)
                         <a href="{{url('lottery_types?table=1')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative;" class="btn btn-md btn-dark">
                             <img src="{{url('icons_/tipos_sorteos.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Tipos de Sorteo</a>
+                        @endif
 
+                         @if($lotteryAccess['canViewResultsLists'] ?? false)
                          <a href="{{url('lottery/administrations')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative; background-color: #e78307;" class="btn btn-md btn-light">
                             <img src="{{url('assets/form-groups/results.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">
                          Lista Resultados</a>
+                         @endif
 
                          {{-- <a href="{{route('lottery.results-table')}}" style="border-radius: 30px; width: 180px; top: -12px; left: -12px; position: relative; background-color: #28a745;" class="btn btn-md btn-light">
                             <img src="{{url('assets/form-groups/results.svg')}}" alt="" width="18px" style="position: relative; top: -1px;">

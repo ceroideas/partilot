@@ -43,7 +43,15 @@ class EntityController extends Controller
         $entities = $query
             ->orderBy('created_at', 'desc')
             ->get();
-        return view('entities.index', compact('entities'));
+
+        $hideAdministrationColumn = $user && (
+            $user->isEntityPanelReadOnly()
+            || ($user->isEntity() && ! $user->isSuperAdmin() && ! $user->isAdministration())
+            || ($user->isAdministration() && ! $user->isSuperAdmin())
+        );
+        $canAddEntity = $user && ($user->isSuperAdmin() || $user->isAdministration());
+
+        return view('entities.index', compact('entities', 'hideAdministrationColumn', 'canAddEntity'));
     }
 
     /**
@@ -552,7 +560,12 @@ class EntityController extends Controller
      */
     public function register_manager(Request $request, $id)
     {
-        $entity = Entity::forUser(auth()->user())->findOrFail($id);
+        $user = auth()->user();
+        if (! $user || (! $user->isSuperAdmin() && ! $user->isAdministration())) {
+            abort(403, 'Solo la administración puede registrar gestores desde el panel.');
+        }
+
+        $entity = Entity::forUser($user)->findOrFail($id);
         if (! $this->canManageSecondaryManagers($entity)) {
             return redirect()->route('entities.show', $entity->id)
                 ->with('error', 'Solo el gestor responsable aceptado puede registrar gestores secundarios.');
@@ -831,9 +844,37 @@ class EntityController extends Controller
 
         $canManageManagers = $this->canManageSecondaryManagers($entity);
 
-        $canToggleEntityStatus = auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdministration());
+        $user = auth()->user();
+        $canToggleEntityStatus = $user && ($user->isSuperAdmin() || $user->isAdministration());
+        $entityPanelReadOnly = $user && $user->isEntityPanelReadOnly();
+        $canEditEntityData = $user && ($user->isSuperAdmin() || $user->isAdministration());
+        $canEditManagerData = $canEditEntityData;
+        $isEntityRole = $user && $user->isEntity() && ! $user->isSuperAdmin() && ! $user->isAdministration();
+        $hideGestoresTab = $user && $user->isAdministration() && ! $user->isSuperAdmin();
+        $canSeeAdminComments = $user && ($user->isSuperAdmin() || $user->isAdministration());
+        $hideRegisterManager = ! ($user && ($user->isSuperAdmin() || $user->isAdministration()));
+        $managerTabLabel = $isEntityRole ? 'Gestor responsable' : 'Datos Gestor';
+        $hideAdministrationDetail = $user && (
+            $entityPanelReadOnly
+            || $isEntityRole
+        );
 
-        return view('entities.show', compact('entity', 'managersVisible', 'entityPanelUser', 'canManageManagers', 'canToggleEntityStatus'));
+        return view('entities.show', compact(
+            'entity',
+            'managersVisible',
+            'entityPanelUser',
+            'canManageManagers',
+            'canToggleEntityStatus',
+            'entityPanelReadOnly',
+            'canEditEntityData',
+            'canEditManagerData',
+            'hideAdministrationDetail',
+            'hideGestoresTab',
+            'canSeeAdminComments',
+            'hideRegisterManager',
+            'managerTabLabel',
+            'isEntityRole'
+        ));
     }
 
     /**
@@ -841,6 +882,8 @@ class EntityController extends Controller
      */
     public function edit($id)
     {
+        $this->assertCanEditEntityData();
+
         $entity = Entity::forUser(auth()->user())->findOrFail($id);
         $administrations = Administration::forUser(auth()->user())->get();
         $users = User::whereNull('panel_account_type')->orderBy('name')->get();
@@ -963,6 +1006,8 @@ class EntityController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->assertCanEditEntityData();
+
         $entity = Entity::forUser(auth()->user())->findOrFail($id);
         
         $validated = $request->validate([
@@ -1067,6 +1112,8 @@ class EntityController extends Controller
      */
     public function edit_manager($id)
     {
+        $this->assertCanEditEntityData();
+
         $entity = Entity::with(['administration', 'manager'])
             ->forUser(auth()->user())
             ->findOrFail($id);
@@ -1078,6 +1125,8 @@ class EntityController extends Controller
      */
     public function update_manager(Request $request, $id)
     {
+        $this->assertCanEditEntityData();
+
         $entity = Entity::with('manager')
             ->forUser(auth()->user())
             ->findOrFail($id);
@@ -1747,10 +1796,14 @@ class EntityController extends Controller
             return true;
         }
 
-        if ($user->isAdministration() && $user->canAccessEntity((int) $entity->id)) {
-            return true;
-        }
-
         return $user->isPrimaryAcceptedManagerForEntity((int) $entity->id);
+    }
+
+    private function assertCanEditEntityData(): void
+    {
+        $user = auth()->user();
+        if (! $user || (! $user->isSuperAdmin() && ! $user->isAdministration())) {
+            abort(403, 'No tienes permiso para editar los datos de la entidad.');
+        }
     }
 }

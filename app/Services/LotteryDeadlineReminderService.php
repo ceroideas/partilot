@@ -1,0 +1,343 @@
+<?php
+
+namespace App\Services;
+
+use App\Mail\LotteryDeadlineReminderMail;
+use App\Models\Entity;
+use App\Models\Lottery;
+use App\Models\LotteryDeadlineReminderLog;
+use App\Models\Participation;
+use App\Models\Set;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
+
+class LotteryDeadlineReminderService
+{
+    public const REMINDER_DAYS = [3, 2, 1, 0];
+
+    public function resolveEffectiveDeadline(Entity $entity, Lottery $lottery): ?Carbon
+    {
+        if (! $lottery->deadline_date) {
+            return null;
+        }
+
+        $lotteryDeadline = $lottery->deadline_date->copy()->startOfDay();
+
+        $setDeadlines = Set::query()
+            ->where('entity_id', $entity->id)
+            ->whereHas('reserve', function ($query) use ($lottery) {
+                $query->where('lottery_id', $lottery->id)->where('status', 1);
+            })
+            ->whereNotNull('deadline_date')
+            ->pluck('deadline_date')
+            ->map(fn ($date) => Carbon::parse($date)->startOfDay());
+
+        if ($setDeadlines->isEmpty()) {
+            return $lotteryDeadline;
+        }
+
+        $earliestSetDeadline = $setDeadlines->min();
+
+        return $earliestSetDeadline->lt($lotteryDeadline) ? $earliestSetDeadline : $lotteryDeadline;
+    }
+
+    public function countPendingDevolutionParticipations(int $entityId, int $lotteryId): int
+    {
+        return Participation::query()
+            ->where('entity_id', $entityId)
+            ->whereIn('status', ['disponible', 'asignada'])
+            ->whereHas('set.reserve', function ($query) use ($lotteryId) {
+                $query->where('lottery_id', $lotteryId)->where('status', 1);
+            })
+            ->count();
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function collectReminderContexts(?Carbon $today = null): Collection
+    {
+        $today = ($today ?? now())->copy()->startOfDay();
+        $contexts = collect();
+
+        $lotteries = Lottery::query()
+            ->where('status', 1)
+            ->whereNotNull('deadline_date')
+            ->get();
+
+        foreach ($lotteries as $lottery) {
+            $entities = Entity::query()
+                ->where('status', 1)
+                ->whereHas('reserves', function ($query) use ($lottery) {
+                    $query->where('lottery_id', $lottery->id)->where('status', 1);
+                })
+                ->with(['administration', 'manager.user'])
+                ->get();
+
+            foreach ($entities as $entity) {
+                $deadline = $this->resolveEffectiveDeadline($entity, $lottery);
+                if (! $deadline) {
+                    continue;
+                }
+
+                $daysBefore = (int) $today->diffInDays($deadline, false);
+                if (! in_array($daysBefore, self::REMINDER_DAYS, true)) {
+                    continue;
+                }
+
+                $pendingCount = $this->countPendingDevolutionParticipations($entity->id, $lottery->id);
+                if ($pendingCount <= 0) {
+                    continue;
+                }
+
+                $contexts->push([
+                    'key' => $this->alertKey($entity->id, $lottery->id, $daysBefore),
+                    'entity_id' => $entity->id,
+                    'lottery_id' => $lottery->id,
+                    'entity_name' => $entity->name,
+                    'lottery_name' => $lottery->displayLabel(),
+                    'days_before' => $daysBefore,
+                    'deadline' => $deadline,
+                    'pending_count' => $pendingCount,
+                    'entity' => $entity,
+                    'lottery' => $lottery,
+                ]);
+            }
+        }
+
+        return $contexts->sortBy([
+            ['days_before', 'asc'],
+            ['entity_name', 'asc'],
+        ])->values();
+    }
+
+    /**
+     * @return array{sent: int, skipped: int, contexts: int}
+     */
+    public function runEmailReminders(bool $dryRun = false): array
+    {
+        $today = now()->startOfDay();
+        $contexts = $this->collectReminderContexts($today);
+        $sent = 0;
+        $skipped = 0;
+
+        foreach ($contexts as $context) {
+            $recipients = $this->emailRecipientsForContext($context);
+
+            foreach ($recipients as $channel => $email) {
+                if ($this->wasAlreadySent(
+                    (int) $context['entity_id'],
+                    (int) $context['lottery_id'],
+                    (int) $context['days_before'],
+                    $channel,
+                    $email,
+                    $today
+                )) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                if ($dryRun) {
+                    $sent++;
+
+                    continue;
+                }
+
+                Mail::to($email)->send(new LotteryDeadlineReminderMail($context, $channel));
+
+                LotteryDeadlineReminderLog::create([
+                    'entity_id' => $context['entity_id'],
+                    'lottery_id' => $context['lottery_id'],
+                    'days_before' => $context['days_before'],
+                    'channel' => $channel,
+                    'recipient' => $email,
+                    'reminded_on' => $today->toDateString(),
+                    'sent_at' => now(),
+                ]);
+
+                $sent++;
+            }
+        }
+
+        return [
+            'sent' => $sent,
+            'skipped' => $skipped,
+            'contexts' => $contexts->count(),
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getModalAlertsForUser(User $user): array
+    {
+        if (! $this->userCanSeeModalAlerts($user)) {
+            return [];
+        }
+
+        $accessibleEntityIds = $user->accessibleEntityIds();
+        if ($accessibleEntityIds === []) {
+            return [];
+        }
+
+        $today = now()->startOfDay();
+
+        return $this->collectReminderContexts($today)
+            ->filter(function (array $context) use ($accessibleEntityIds, $user, $today) {
+                if (! in_array((int) $context['entity_id'], $accessibleEntityIds, true)) {
+                    return false;
+                }
+
+                return ! $this->wasAlreadySent(
+                    (int) $context['entity_id'],
+                    (int) $context['lottery_id'],
+                    (int) $context['days_before'],
+                    LotteryDeadlineReminderLog::CHANNEL_MODAL,
+                    (string) $user->id,
+                    $today
+                );
+            })
+            ->map(function (array $context) {
+                return [
+                    'key' => $context['key'],
+                    'entity_id' => $context['entity_id'],
+                    'lottery_id' => $context['lottery_id'],
+                    'entity_name' => $context['entity_name'],
+                    'lottery_name' => $context['lottery_name'],
+                    'days_before' => $context['days_before'],
+                    'deadline_label' => $context['deadline']->format('d/m/Y'),
+                    'pending_count' => $context['pending_count'],
+                    'message' => $this->buildMessage($context),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $alertKeys
+     */
+    public function dismissModalAlertsForUser(User $user, array $alertKeys): void
+    {
+        if ($alertKeys === []) {
+            return;
+        }
+
+        $today = now()->startOfDay();
+        $contexts = $this->collectReminderContexts($today)->keyBy('key');
+
+        foreach ($alertKeys as $alertKey) {
+            $context = $contexts->get($alertKey);
+            if (! $context) {
+                continue;
+            }
+
+            if ($this->wasAlreadySent(
+                (int) $context['entity_id'],
+                (int) $context['lottery_id'],
+                (int) $context['days_before'],
+                LotteryDeadlineReminderLog::CHANNEL_MODAL,
+                (string) $user->id,
+                $today
+            )) {
+                continue;
+            }
+
+            LotteryDeadlineReminderLog::create([
+                'entity_id' => $context['entity_id'],
+                'lottery_id' => $context['lottery_id'],
+                'days_before' => $context['days_before'],
+                'channel' => LotteryDeadlineReminderLog::CHANNEL_MODAL,
+                'recipient' => (string) $user->id,
+                'reminded_on' => $today->toDateString(),
+                'sent_at' => now(),
+            ]);
+        }
+    }
+
+    public function buildMessage(array $context): string
+    {
+        $daysBefore = (int) $context['days_before'];
+        $entityName = (string) $context['entity_name'];
+        $lotteryName = (string) $context['lottery_name'];
+        $pendingCount = (int) $context['pending_count'];
+        $deadlineLabel = $context['deadline']->format('d/m/Y');
+
+        if ($daysBefore === 0) {
+            $intro = "Hoy es el último día ({$deadlineLabel}) para que la entidad {$entityName} registre la devolución de las participaciones no vendidas del sorteo {$lotteryName}.";
+        } elseif ($daysBefore === 1) {
+            $intro = "Queda 1 día para que la entidad {$entityName} registre la devolución de las participaciones no vendidas del sorteo {$lotteryName} (fecha límite: {$deadlineLabel}).";
+        } else {
+            $intro = "Quedan {$daysBefore} días para que la entidad {$entityName} registre la devolución de las participaciones no vendidas del sorteo {$lotteryName} (fecha límite: {$deadlineLabel}).";
+        }
+
+        return $intro
+            ." Nuestro sistema indica que todavía existen {$pendingCount} participaciones pendientes de ser registradas como devueltas."
+            .' Importante: todas las participaciones que no se registren como devueltas al finalizar el día de fecha límite, serán automáticamente consideradas "vendidas" y generarán la deuda correspondiente.';
+    }
+
+    public function alertKey(int $entityId, int $lotteryId, int $daysBefore): string
+    {
+        return "{$entityId}:{$lotteryId}:{$daysBefore}";
+    }
+
+    private function userCanSeeModalAlerts(User $user): bool
+    {
+        if ($user->isSeller() || $user->isPrintShop()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin()
+            || $user->isAdministration()
+            || $user->isEntity();
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, string>
+     */
+    private function emailRecipientsForContext(array $context): array
+    {
+        /** @var Entity $entity */
+        $entity = $context['entity'];
+        $recipients = [];
+
+        $entityEmail = trim((string) ($entity->email ?? ''));
+        if ($entityEmail !== '') {
+            $recipients[LotteryDeadlineReminderLog::CHANNEL_EMAIL_ENTITY] = $entityEmail;
+        }
+
+        $managerEmail = trim((string) ($entity->manager?->user?->email ?? ''));
+        if ($managerEmail !== '' && $managerEmail !== $entityEmail) {
+            $recipients[LotteryDeadlineReminderLog::CHANNEL_EMAIL_MANAGER] = $managerEmail;
+        }
+
+        $administrationEmail = trim((string) ($entity->administration?->email ?? ''));
+        if ($administrationEmail !== '') {
+            $recipients[LotteryDeadlineReminderLog::CHANNEL_EMAIL_ADMINISTRATION] = $administrationEmail;
+        }
+
+        return $recipients;
+    }
+
+    private function wasAlreadySent(
+        int $entityId,
+        int $lotteryId,
+        int $daysBefore,
+        string $channel,
+        string $recipient,
+        Carbon $today
+    ): bool {
+        return LotteryDeadlineReminderLog::query()
+            ->where('entity_id', $entityId)
+            ->where('lottery_id', $lotteryId)
+            ->where('days_before', $daysBefore)
+            ->where('channel', $channel)
+            ->where('recipient', $recipient)
+            ->whereDate('reminded_on', $today->toDateString())
+            ->exists();
+    }
+}
