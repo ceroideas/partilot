@@ -19,6 +19,7 @@ use App\Jobs\ProcessDevolutionTask;
 use App\Models\BackgroundTask;
 use App\Services\CommunicationEmailService;
 use App\Services\BackgroundTaskService;
+use App\Services\SellerLiquidationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -349,6 +350,10 @@ class DevolutionsController extends Controller
         // Verificar si es una anulación ANTES de iniciar transacción
         if ($request->input('tipo_devolucion') === 'anulacion') {
             return $this->procesarAnulacion($request);
+        }
+
+        if ($warning = $this->sellerLiquidationWarningIfAny($request)) {
+            return $warning;
         }
 
         if ($resp = $this->jsonUnlessDevolutionsWebAccess()) {
@@ -2880,5 +2885,38 @@ class DevolutionsController extends Controller
                 'message' => 'Error al procesar la anulación: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function sellerLiquidationWarningIfAny(Request $request): ?\Illuminate\Http\JsonResponse
+    {
+        if ($request->boolean('acknowledge_seller_liquidation_warning')) {
+            return null;
+        }
+
+        $tipo = (string) $request->input('tipo_devolucion', 'administracion');
+        if ($tipo === 'vendedor' || $tipo === 'anulacion') {
+            return null;
+        }
+
+        $entityId = (int) $request->input('entity_id', 0);
+        $lotteryId = (int) $request->input('lottery_id', 0);
+        if ($entityId <= 0 || $lotteryId <= 0) {
+            return null;
+        }
+
+        $pending = app(SellerLiquidationService::class)
+            ->sumPendingLiquidationForEntityLottery($entityId, $lotteryId);
+
+        if ($pending <= 0) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'requires_confirmation' => true,
+            'warning_code' => 'seller_liquidation_pending',
+            'message' => 'Hay vendedores con liquidación pendiente para este sorteo ('.number_format($pending, 2, ',', '.').' €). Puedes continuar, pero conviene que liquiden antes.',
+            'seller_pending_amount' => round($pending, 2),
+        ], 409);
     }
 }

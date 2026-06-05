@@ -148,6 +148,10 @@ Route::middleware(['auth', 'active_entity.context', 'entity_panel.readonly', 'en
         ->name('panel.switch-entity');
     Route::post('lottery-deadline-reminders/dismiss', [\App\Http\Controllers\LotteryDeadlineReminderController::class, 'dismiss'])
         ->name('lottery-deadline-reminders.dismiss');
+    Route::post('lottery-deadline-decisions/assume-debt', [\App\Http\Controllers\LotteryDeadlineAdminDecisionController::class, 'assumeDebt'])
+        ->name('lottery-deadline-decisions.assume-debt');
+    Route::post('lottery-deadline-decisions/annul', [\App\Http\Controllers\LotteryDeadlineAdminDecisionController::class, 'annul'])
+        ->name('lottery-deadline-decisions.annul');
 
     Route::prefix('print-shop')->middleware('role:super_admin,print_shop')->group(function () {
         Route::get('/', [\App\Http\Controllers\PrintShopController::class, 'index'])->name('print-shop.index');

@@ -12,9 +12,11 @@ use App\Models\Lottery;
 use App\Models\SellerSettlement;
 use App\Models\SellerSettlementPayment;
 use App\Models\ParticipationActivityLog;
+use App\Models\PendingDigitalSale;
 use App\Models\DesignFormat;
 use App\Models\BackgroundTask;
 use App\Jobs\ProcessParticipationAssignmentTask;
+use App\Services\SellerLiquidationService;
 use App\Services\SellerService;
 use App\Services\BackgroundTaskService;
 use Illuminate\Http\Request;
@@ -33,7 +35,7 @@ class SellerController extends Controller
     /**
      * Display a listing of the resource.
      * Carga conteos de participaciones (asignadas, vendidas, devueltas) y deuda.
-     * La deuda = pendiente por liquidar: (participaciones asignadas+vendidas × precio) − lo ya pagado por sorteo (misma lógica que Liquidación de Vendedor).
+     * La deuda = pendiente por liquidar: (participaciones liquidables × precio) − lo ya pagado por sorteo (misma lógica que Liquidación de Vendedor).
      */
     public function index()
     {
@@ -78,49 +80,30 @@ class SellerController extends Controller
 
     /**
      * Calcula el pendiente por liquidar por vendedor (igual lógica que getSettlementSummary, agregado por todos los sorteos).
-     * Para cada sorteo: total a liquidar = suma(played_amount) de participaciones asignada+vendida; pendiente = total − suma(paid_amount) de liquidaciones.
+     * Para cada sorteo: total a liquidar = suma(total_participation_amount) de participaciones liquidables; pendiente = total − suma(paid_amount) de liquidaciones.
      *
      * @param int[] $sellerIds
      * @return array<int, float> seller_id => deuda
      */
     private function getPendingLiquidationBySellers(array $sellerIds): array
     {
-        if (empty($sellerIds)) {
-            return [];
+        return app(SellerLiquidationService::class)->getPendingLiquidationBySellers($sellerIds);
+    }
+
+    /**
+     * Participaciones que cuentan para liquidar a un vendedor (opcionalmente filtradas por sorteo).
+     */
+    private function settlementEligibleParticipationsQuery(int $sellerId, ?int $lotteryId = null)
+    {
+        $query = Participation::query()
+            ->eligibleForSellerSettlement($sellerId)
+            ->with('set');
+
+        if ($lotteryId) {
+            $query->whereHas('set.reserve', fn ($q) => $q->where('lottery_id', $lotteryId));
         }
 
-        $placeholders = implode(',', array_fill(0, count($sellerIds), '?'));
-        $sql = "
-            SELECT seller_id, SUM(pending) as deuda
-            FROM (
-                SELECT t.seller_id, (t.total_to_liquidate - COALESCE(ss.total_paid, 0)) as pending
-                FROM (
-                    SELECT p.seller_id, r.lottery_id, SUM(s.total_participation_amount) as total_to_liquidate
-                    FROM participations p
-                    INNER JOIN sets s ON p.set_id = s.id
-                    INNER JOIN reserves r ON s.reserve_id = r.id
-                    WHERE p.status IN ('asignada', 'vendida')
-                    AND p.seller_id IN ({$placeholders})
-                    GROUP BY p.seller_id, r.lottery_id
-                ) t
-                LEFT JOIN (
-                    SELECT seller_id, lottery_id, SUM(paid_amount) as total_paid
-                    FROM seller_settlements
-                    WHERE seller_id IN ({$placeholders})
-                    GROUP BY seller_id, lottery_id
-                ) ss ON ss.seller_id = t.seller_id AND ss.lottery_id = t.lottery_id
-            ) x
-            GROUP BY seller_id
-        ";
-
-        $params = array_merge($sellerIds, $sellerIds);
-        $rows = DB::select($sql, $params);
-
-        $result = [];
-        foreach ($rows as $row) {
-            $result[(int) $row->seller_id] = (float) $row->deuda;
-        }
-        return $result;
+        return $query;
     }
 
     /**
@@ -1318,46 +1301,49 @@ class SellerController extends Controller
 
     /**
      * Para un vendedor y una entidad, devuelve las loterías que tienen pendiente por liquidar.
-     * Solo participaciones asignada+vendida; no se toca participaciones.
      *
      * @return array<int, array{lottery_id: int, lottery_name: string, pending_amount: float}>
      */
     private function getLotteriesWithPendingForSeller(int $sellerId, int $entityId): array
     {
-        $byLottery = DB::table('participations as p')
-            ->join('sets as s', 'p.set_id', '=', 's.id')
-            ->join('reserves as r', 's.reserve_id', '=', 'r.id')
-            ->where('r.entity_id', $entityId)
-            ->where('p.seller_id', $sellerId)
-            ->whereIn('p.status', ['asignada', 'vendida'])
-            ->selectRaw('r.lottery_id, COALESCE(SUM(s.total_participation_amount), 0) as total_to_liquidate')
-            ->groupBy('r.lottery_id')
+        $participations = Participation::query()
+            ->eligibleForSellerSettlement($sellerId)
+            ->whereHas('set.reserve', fn ($q) => $q->where('entity_id', $entityId))
+            ->with('set.reserve')
             ->get();
 
+        $byLottery = [];
+        foreach ($participations as $participation) {
+            $lotteryId = (int) ($participation->set->reserve->lottery_id ?? 0);
+            if ($lotteryId <= 0) {
+                continue;
+            }
+            $byLottery[$lotteryId] = ($byLottery[$lotteryId] ?? 0)
+                + (float) ($participation->set->total_participation_amount ?? 0);
+        }
+
         $paidByLottery = SellerSettlement::where('seller_id', $sellerId)
-            ->whereIn('lottery_id', $byLottery->pluck('lottery_id'))
+            ->whereIn('lottery_id', array_keys($byLottery))
             ->selectRaw('lottery_id, SUM(paid_amount) as total_paid')
             ->groupBy('lottery_id')
             ->pluck('total_paid', 'lottery_id');
 
-        $lotteryIds = $byLottery->pluck('lottery_id')->unique()->filter()->values()->all();
-        $lotteries = $lotteryIds ? Lottery::whereIn('id', $lotteryIds)->pluck('name', 'id') : collect();
+        $lotteries = $byLottery ? Lottery::whereIn('id', array_keys($byLottery))->pluck('name', 'id') : collect();
 
         $result = [];
-        foreach ($byLottery as $row) {
-            $lid = (int) $row->lottery_id;
-            $totalToLiquidate = (float) $row->total_to_liquidate;
-            $totalPaid = (float) ($paidByLottery[$lid] ?? 0);
+        foreach ($byLottery as $lotteryId => $totalToLiquidate) {
+            $totalPaid = (float) ($paidByLottery[$lotteryId] ?? 0);
             $pending = $totalToLiquidate - $totalPaid;
             if ($pending > 0.001) {
                 $result[] = [
-                    'lottery_id' => $lid,
-                    'lottery_name' => $lotteries[$lid] ?? 'Sorteo #' . $lid,
+                    'lottery_id' => (int) $lotteryId,
+                    'lottery_name' => $lotteries[$lotteryId] ?? 'Sorteo #' . $lotteryId,
                     'pending_amount' => round($pending, 2),
                 ];
             }
         }
         usort($result, fn ($a, $b) => $b['pending_amount'] <=> $a['pending_amount']);
+
         return $result;
     }
 
@@ -1394,11 +1380,7 @@ class SellerController extends Controller
 
             $totalPagoNuevo = collect($data['pagos'])->sum('amount');
 
-            $participations = Participation::where('seller_id', $seller->id)
-                ->whereHas('set.reserve', fn ($q) => $q->where('lottery_id', $data['lottery_id']))
-                ->whereIn('status', ['asignada', 'vendida'])
-                ->with('set')
-                ->get();
+            $participations = $this->settlementEligibleParticipationsQuery($seller->id, (int) $data['lottery_id'])->get();
 
             $totalParticipations = $participations->count();
             $pricePerParticipation = $participations->first()->set->total_participation_amount ?? 0;
@@ -2264,27 +2246,70 @@ class SellerController extends Controller
     }
 
     /**
+     * Participaciones digitales vinculadas a un vendedor (vendidas o reservadas en venta pendiente).
+     */
+    private function applySellerDigitalParticipationsScope($query, int $sellerId): void
+    {
+        $query->where(function ($q) use ($sellerId) {
+            $q->where('seller_id', $sellerId)
+                ->whereIn('status', ['vendida', 'pagada', 'devuelta'])
+                ->orWhere(function ($q2) use ($sellerId) {
+                    $q2->where('status', 'reserva_venta_digital')
+                        ->whereHas('pendingDigitalSales', function ($pds) use ($sellerId) {
+                            $pds->where('pending_digital_sales.seller_id', $sellerId)
+                                ->where('pending_digital_sales.status', PendingDigitalSale::STATUS_PENDING);
+                        });
+                });
+        });
+    }
+
+    /**
      * Obtener sets por reserva
      */
     public function getSetsByReserve(Request $request)
     {
         $request->validate([
-            'reserve_id' => 'required|integer|exists:reserves,id'
+            'reserve_id' => 'required|integer|exists:reserves,id',
+            'include_digital' => 'nullable|boolean',
+            'seller_id' => 'nullable|integer|exists:sellers,id',
         ]);
 
         $reserve = Reserve::forUser(auth()->user())->with('lottery:id,name')->findOrFail($request->reserve_id);
 
-        // Solo sets FÍSICOS (asignación: no se muestran sets digitales)
-        $sets = Set::forUser(auth()->user())
+        $includeDigital = $request->boolean('include_digital');
+        $sellerId = $request->integer('seller_id');
+
+        if ($includeDigital) {
+            if (! $sellerId || ! auth()->user()->canAccessSeller($sellerId)) {
+                abort(403, 'No tienes permisos para consultar las participaciones de este vendedor.');
+            }
+        }
+
+        $setsQuery = Set::forUser(auth()->user())
             ->where('reserve_id', $reserve->id)
             ->where('status', 1)
-            ->where('physical_participations', '>', 0)
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                       ->from('participations')
                       ->whereRaw('participations.set_id = sets.id');
-            })
-            ->get();
+            });
+
+        if ($includeDigital && $sellerId) {
+            // Tab participaciones: físicos asignados + digitales vendidos por el vendedor
+            $setsQuery->where(function ($q) use ($sellerId) {
+                $q->where('physical_participations', '>', 0)
+                    ->orWhere(function ($q2) use ($sellerId) {
+                        $q2->where('physical_participations', '<=', 0)
+                            ->whereRaw('sets.digital_participations > 0')
+                            ->whereHas('participations', fn ($p) => $this->applySellerDigitalParticipationsScope($p, $sellerId));
+                    });
+            });
+        } else {
+            // Tab asignación: solo sets FÍSICOS (las digitales no se asignan)
+            $setsQuery->where('physical_participations', '>', 0);
+        }
+
+        $sets = $setsQuery->get();
 
         return response()->json(['sets' => $sets, 'reserve' => $reserve]);
     }
@@ -2777,10 +2802,20 @@ class SellerController extends Controller
 
             $set = Set::forUser(auth()->user())->findOrFail($request->set_id);
 
-            $participations = Participation::with('activityLogs')
-                ->where('seller_id', $request->seller_id)
-                ->where('set_id', $request->set_id)
-                ->whereIn('status', ['asignada', 'vendida', 'devuelta', 'pagada', 'disponible'])
+            $isDigitalOnly = ($set->digital_participations ?? 0) > 0 && (int) ($set->physical_participations ?? 0) === 0;
+
+            $participationsQuery = Participation::with('activityLogs')
+                ->where('set_id', $request->set_id);
+
+            if ($isDigitalOnly) {
+                $this->applySellerDigitalParticipationsScope($participationsQuery, (int) $request->seller_id);
+            } else {
+                $participationsQuery
+                    ->where('seller_id', $request->seller_id)
+                    ->whereIn('status', ['asignada', 'vendida', 'devuelta', 'pagada', 'disponible']);
+            }
+
+            $participations = $participationsQuery
                 ->orderBy('participation_number')
                 ->get()
                 ->map(function ($p) {
@@ -2800,7 +2835,6 @@ class SellerController extends Controller
 
             $payload = ['success' => true, 'participations' => $participations];
             // Para sets digitales: incluir cantidad de participaciones disponibles (sin asignar) en el set
-            $isDigitalOnly = $set->digital_participations > 0 && (int) ($set->physical_participations ?? 0) === 0;
             if ($isDigitalOnly) {
                 $payload['set_disponibles'] = DB::table('participations')
                     ->where('set_id', $request->set_id)
@@ -3030,14 +3064,8 @@ class SellerController extends Controller
         \Log::info('Seller ID:', [$sellerId]);
         \Log::info('Lottery ID:', [$lotteryId]);
 
-        // Obtener todas las participaciones asignadas al vendedor para este sorteo
-        $participations = Participation::where('seller_id', $sellerId)
-            ->whereHas('set.reserve', function($query) use ($lotteryId) {
-                $query->where('lottery_id', $lotteryId);
-            })
-            ->whereIn('status', ['asignada', 'vendida'])
-            ->with('set')
-            ->get();
+        // Obtener participaciones liquidables del vendedor para este sorteo
+        $participations = $this->settlementEligibleParticipationsQuery((int) $sellerId, (int) $lotteryId)->get();
 
         \Log::info('Participaciones asignadas encontradas:', [$participations->count()]);
 
@@ -3058,7 +3086,9 @@ class SellerController extends Controller
         $pendingAmount = $totalAmount - $totalPaid;
 
         // Calcular participaciones liquidadas (pagos / precio por participación)
-        $pricePerParticipation = $participations->first()->set->total_participation_amount ?? 1;
+        $pricePerParticipation = $participations->isNotEmpty()
+            ? (float) ($participations->first()->set->total_participation_amount ?? 0)
+            : 0;
         $liquidatedParticipations = $pricePerParticipation > 0 ? ($totalPaid / $pricePerParticipation) : 0;
 
         \Log::info('Resumen calculado:', [
@@ -3106,14 +3136,8 @@ class SellerController extends Controller
             // Calcular totales
             $totalPagoNuevo = collect($data['pagos'])->sum('amount');
 
-            // Obtener participaciones asignadas al vendedor para este sorteo
-            $participations = Participation::where('seller_id', $data['seller_id'])
-                ->whereHas('set.reserve', function($query) use ($data) {
-                    $query->where('lottery_id', $data['lottery_id']);
-                })
-                ->whereIn('status', ['asignada', 'vendida'])
-                ->with('set')
-                ->get();
+            // Obtener participaciones liquidables del vendedor para este sorteo
+            $participations = $this->settlementEligibleParticipationsQuery((int) $data['seller_id'], (int) $data['lottery_id'])->get();
 
             $totalParticipations = $participations->count();
             $pricePerParticipation = $participations->first()->set->total_participation_amount ?? 0;

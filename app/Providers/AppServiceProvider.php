@@ -41,13 +41,20 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             if (! $user) {
                 $view->with('lotteryDeadlineModalAlerts', []);
+                $view->with('lotteryDeadlineAdminDecisionAlerts', []);
 
                 return;
             }
 
+            $reminderService = app(LotteryDeadlineReminderService::class);
+
             $view->with(
                 'lotteryDeadlineModalAlerts',
-                app(LotteryDeadlineReminderService::class)->getModalAlertsForUser($user)
+                $reminderService->getModalAlertsForUser($user)
+            );
+            $view->with(
+                'lotteryDeadlineAdminDecisionAlerts',
+                $reminderService->getAdminDecisionModalsForUser($user)
             );
         });
     }

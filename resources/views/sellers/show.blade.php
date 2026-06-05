@@ -949,7 +949,7 @@
                                                         <div class="card">
                                                             <div class="card-header">Resumen de Participaciones</div>
                                                             <div class="card-body">
-                                                                <p><strong>Total Participaciones Asignadas:</strong> <span id="settlement-total-participations" class="fw-bold fs-4">0</span></p>
+                                                                <p><strong>Total Participaciones a Liquidar:</strong> <span id="settlement-total-participations" class="fw-bold fs-4">0</span></p>
                                                                 <p><strong>Precio por Participación:</strong> <span id="settlement-price-per-participation">0.00€</span></p>
                                                                 <p><strong>Total a Liquidar:</strong> <span id="settlement-total-amount" class="text-danger fw-bold">0.00€</span></p>
                                                             </div>
@@ -2102,6 +2102,8 @@ function initDatatable()
           method: 'POST',
           data: {
             reserve_id: reservaId,
+            include_digital: 1,
+            seller_id: {{ $seller->id }},
             _token: '{{ csrf_token() }}'
           },
           success: function(response) {
@@ -2135,7 +2137,7 @@ function initDatatable()
                       if (html) {
                         $('#contenedor-tacos').html(html);
                       } else {
-                        $('#contenedor-tacos').html('<div class="alert alert-info">No hay participaciones asignadas en ningún set de esta reserva</div>');
+                        $('#contenedor-tacos').html('<div class="alert alert-info">No hay participaciones asignadas ni digitales vendidas en ningún set de esta reserva</div>');
                       }
                     }
                   },
@@ -2201,7 +2203,7 @@ function initDatatable()
        const setNombre = set.set_name || ('Set #' + set.id);
        let salesRegistered = 0, returnedParticipations = 0, availableParticipations = 0;
        participations.forEach(p => {
-         if (p.status === 'vendida' || p.status === 'pagada') salesRegistered++;
+         if (p.status === 'vendida' || p.status === 'pagada' || p.status === 'reserva_venta_digital') salesRegistered++;
          else if (p.status === 'devuelta') returnedParticipations++;
          else availableParticipations++;
        });
@@ -2403,8 +2405,18 @@ function initDatatable()
               }
               const saleTime = participation.sale_time ? participation.sale_time : 'N/A';
               const status = participation.status || 'asignada';
-              const statusLabel = participation.status_text || (status === 'pagada' ? 'Pagada' : status === 'vendida' ? 'Vendida' : status === 'devuelta' ? 'Devuelta' : 'Asignada');
-              const statusClass = status === 'pagada' ? 'bg-info' : status === 'vendida' ? 'bg-primary' : status === 'devuelta' ? 'bg-warning text-dark' : (participation.status_text === 'DISPONIBLE DV' ? 'bg-info' : 'bg-success');
+              const statusLabel = participation.status_text || (
+                status === 'pagada' ? 'Pagada'
+                : status === 'vendida' ? 'Vendida'
+                : status === 'devuelta' ? 'Devuelta'
+                : status === 'reserva_venta_digital' ? 'Venta digital pendiente'
+                : 'Asignada'
+              );
+              const statusClass = status === 'pagada' ? 'bg-info'
+                : status === 'vendida' ? 'bg-primary'
+                : status === 'devuelta' ? 'bg-warning text-dark'
+                : status === 'reserva_venta_digital' ? 'bg-secondary'
+                : (participation.status_text === 'DISPONIBLE DV' ? 'bg-info' : 'bg-success');
               
               tbody.append(`
                 <tr style="font-size: 12px; font-weight: bolder; border-color: transparent;">

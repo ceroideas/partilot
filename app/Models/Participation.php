@@ -153,6 +153,28 @@ class Participation extends Model
         });
     }
 
+    /**
+     * Participaciones que cuentan para liquidar al vendedor.
+     * Incluye: asignada, vendida, pagada, reserva_venta_digital (venta digital pendiente).
+     * Excluye: disponible, devuelta, anulada, perdida, reservada.
+     * Las donadas siguen como vendida en BD.
+     */
+    public function scopeEligibleForSellerSettlement($query, int $sellerId)
+    {
+        return $query->where(function ($q) use ($sellerId) {
+            $q->where(function ($q2) use ($sellerId) {
+                $q2->where('seller_id', $sellerId)
+                    ->whereIn('status', ['asignada', 'vendida', 'pagada']);
+            })->orWhere(function ($q2) use ($sellerId) {
+                $q2->where('status', 'reserva_venta_digital')
+                    ->whereHas('pendingDigitalSales', function ($pds) use ($sellerId) {
+                        $pds->where('pending_digital_sales.seller_id', $sellerId)
+                            ->where('pending_digital_sales.status', PendingDigitalSale::STATUS_PENDING);
+                    });
+            });
+        });
+    }
+
     public function scopeReturned($query)
     {
         return $query->where('status', 'devuelta');

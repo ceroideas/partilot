@@ -31,4 +31,15 @@ return [
         'system_user_id' => env('LOTTERY_AUTO_DEADLINE_CLOSURE_USER_ID'),
         'return_reason' => 'Cierre automático por fecha límite de devolución',
     ],
+
+    /*
+    | Avisos modal 3/2/1/0 días: superadmin no los recibe por defecto (spec cliente).
+    | true = mostrar también a superadmin (depuración / entornos legacy).
+    */
+    'deadline_reminders' => [
+        'superadmin_modal' => filter_var(
+            env('LOTTERY_DEADLINE_REMINDER_SUPERADMIN_MODAL', false),
+            FILTER_VALIDATE_BOOLEAN
+        ),
+    ],
 ];

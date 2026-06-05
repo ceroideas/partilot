@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\LotteryDeadlineReminderMail;
 use App\Models\Entity;
 use App\Models\Lottery;
+use App\Models\LotteryDeadlineAdminDecision;
 use App\Models\LotteryDeadlineReminderLog;
 use App\Models\Participation;
 use App\Models\Set;
@@ -16,6 +17,10 @@ use Illuminate\Support\Facades\Mail;
 class LotteryDeadlineReminderService
 {
     public const REMINDER_DAYS = [3, 2, 1, 0];
+
+    public function __construct(
+        private SellerLiquidationService $sellerLiquidationService
+    ) {}
 
     public function resolveEffectiveDeadline(Entity $entity, Lottery $lottery): ?Carbon
     {
@@ -88,7 +93,10 @@ class LotteryDeadlineReminderService
                 }
 
                 $pendingCount = $this->countPendingDevolutionParticipations($entity->id, $lottery->id);
-                if ($pendingCount <= 0) {
+                $sellerPendingAmount = $this->sellerLiquidationService
+                    ->sumPendingLiquidationForEntityLottery($entity->id, $lottery->id);
+
+                if ($pendingCount <= 0 && $sellerPendingAmount <= 0) {
                     continue;
                 }
 
@@ -101,6 +109,7 @@ class LotteryDeadlineReminderService
                     'days_before' => $daysBefore,
                     'deadline' => $deadline,
                     'pending_count' => $pendingCount,
+                    'seller_pending_amount' => round($sellerPendingAmount, 2),
                     'entity' => $entity,
                     'lottery' => $lottery,
                 ]);
@@ -210,11 +219,70 @@ class LotteryDeadlineReminderService
                     'days_before' => $context['days_before'],
                     'deadline_label' => $context['deadline']->format('d/m/Y'),
                     'pending_count' => $context['pending_count'],
+                    'seller_pending_amount' => $context['seller_pending_amount'] ?? 0,
                     'message' => $this->buildMessage($context),
                 ];
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Modal día 0: decisión admin (anular / asumir deuda). Solo administración, no superadmin.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAdminDecisionModalsForUser(User $user): array
+    {
+        if (! $user->isAdministration() || $user->isSuperAdmin()) {
+            return [];
+        }
+
+        $accessibleEntityIds = $user->accessibleEntityIds();
+        if ($accessibleEntityIds === []) {
+            return [];
+        }
+
+        $today = now()->startOfDay();
+
+        return $this->collectReminderContexts($today)
+            ->filter(fn (array $context) => (int) $context['days_before'] === 0)
+            ->filter(fn (array $context) => in_array((int) $context['entity_id'], $accessibleEntityIds, true))
+            ->filter(fn (array $context) => ! LotteryDeadlineAdminDecision::hasDecision(
+                (int) $context['entity_id'],
+                (int) $context['lottery_id']
+            ))
+            ->map(function (array $context) {
+                return [
+                    'key' => $context['key'],
+                    'entity_id' => $context['entity_id'],
+                    'lottery_id' => $context['lottery_id'],
+                    'entity_name' => $context['entity_name'],
+                    'lottery_name' => $context['lottery_name'],
+                    'deadline_label' => $context['deadline']->format('d/m/Y'),
+                    'pending_count' => $context['pending_count'],
+                    'seller_pending_amount' => $context['seller_pending_amount'] ?? 0,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    public function isAdminDecisionRequired(int $entityId, int $lotteryId): bool
+    {
+        $today = now()->startOfDay();
+
+        $context = $this->collectReminderContexts($today)->first(
+            fn (array $c) => (int) $c['entity_id'] === $entityId
+                && (int) $c['lottery_id'] === $lotteryId
+                && (int) $c['days_before'] === 0
+        );
+
+        if (! $context) {
+            return false;
+        }
+
+        return ! LotteryDeadlineAdminDecision::hasDecision($entityId, $lotteryId);
     }
 
     /**
@@ -264,6 +332,7 @@ class LotteryDeadlineReminderService
         $entityName = (string) $context['entity_name'];
         $lotteryName = (string) $context['lottery_name'];
         $pendingCount = (int) $context['pending_count'];
+        $sellerPendingAmount = (float) ($context['seller_pending_amount'] ?? 0);
         $deadlineLabel = $context['deadline']->format('d/m/Y');
 
         if ($daysBefore === 0) {
@@ -274,8 +343,20 @@ class LotteryDeadlineReminderService
             $intro = "Quedan {$daysBefore} días para que la entidad {$entityName} registre la devolución de las participaciones no vendidas del sorteo {$lotteryName} (fecha límite: {$deadlineLabel}).";
         }
 
+        $details = [];
+        if ($pendingCount > 0) {
+            $details[] = "{$pendingCount} participaciones pendientes de devolución";
+        }
+        if ($sellerPendingAmount > 0) {
+            $details[] = 'deuda de liquidación de vendedores pendiente ('.number_format($sellerPendingAmount, 2, ',', '.').' €)';
+        }
+
+        $body = $details !== []
+            ? ' Nuestro sistema indica: '.implode(' y ', $details).'.'
+            : '';
+
         return $intro
-            ." Nuestro sistema indica que todavía existen {$pendingCount} participaciones pendientes de ser registradas como devueltas."
+            .$body
             .' Importante: todas las participaciones que no se registren como devueltas al finalizar el día de fecha límite, serán automáticamente consideradas "vendidas" y generarán la deuda correspondiente.';
     }
 
@@ -290,9 +371,11 @@ class LotteryDeadlineReminderService
             return false;
         }
 
-        return $user->isSuperAdmin()
-            || $user->isAdministration()
-            || $user->isEntity();
+        if ($user->isSuperAdmin()) {
+            return (bool) config('lottery.deadline_reminders.superadmin_modal', false);
+        }
+
+        return $user->isAdministration() || $user->isEntity();
     }
 
     /**

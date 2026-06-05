@@ -1896,19 +1896,41 @@
             });
         </script>
         @include('partials.lottery-deadline-reminder-modal')
+        @include('partials.lottery-deadline-admin-decision-modal')
 
         @auth
+        @if(!empty($lotteryDeadlineAdminDecisionAlerts))
+        <script>
+            function showLotteryDeadlineAdminDecisionModalIfAny() {
+                var adminModalEl = document.getElementById('lotteryDeadlineAdminDecisionModal');
+                if (!adminModalEl || typeof bootstrap === 'undefined') return;
+                bootstrap.Modal.getOrCreateInstance(adminModalEl).show();
+            }
+        </script>
+        @endif
         @if(!empty($lotteryDeadlineModalAlerts))
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 var modalEl = document.getElementById('lotteryDeadlineReminderModal');
-                if (!modalEl || typeof bootstrap === 'undefined') return;
+                if (!modalEl || typeof bootstrap === 'undefined') {
+                    if (typeof showLotteryDeadlineAdminDecisionModalIfAny === 'function') {
+                        showLotteryDeadlineAdminDecisionModalIfAny();
+                    }
+                    return;
+                }
 
                 var modal = new bootstrap.Modal(modalEl);
                 modal.show();
 
                 var dismissBtn = document.getElementById('lotteryDeadlineReminderDismiss');
-                if (!dismissBtn) return;
+                if (!dismissBtn) {
+                    modalEl.addEventListener('hidden.bs.modal', function () {
+                        if (typeof showLotteryDeadlineAdminDecisionModalIfAny === 'function') {
+                            showLotteryDeadlineAdminDecisionModalIfAny();
+                        }
+                    });
+                    return;
+                }
 
                 dismissBtn.addEventListener('click', function () {
                     var alertKeys = Array.from(modalEl.querySelectorAll('[data-alert-key]'))
@@ -1925,8 +1947,90 @@
                         body: JSON.stringify({ alerts: alertKeys })
                     }).finally(function () {
                         modal.hide();
+                        if (typeof showLotteryDeadlineAdminDecisionModalIfAny === 'function') {
+                            showLotteryDeadlineAdminDecisionModalIfAny();
+                        }
                     });
                 });
+            });
+        </script>
+        @elseif(!empty($lotteryDeadlineAdminDecisionAlerts))
+        <script>
+            document.addEventListener('DOMContentLoaded', showLotteryDeadlineAdminDecisionModalIfAny);
+        </script>
+        @endif
+        @if(!empty($lotteryDeadlineAdminDecisionAlerts))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var adminModalEl = document.getElementById('lotteryDeadlineAdminDecisionModal');
+                if (!adminModalEl) return;
+
+                var csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                var firstItem = adminModalEl.querySelector('.lottery-deadline-admin-decision-item');
+                if (!firstItem) return;
+
+                var entityId = firstItem.getAttribute('data-entity-id');
+                var lotteryId = firstItem.getAttribute('data-lottery-id');
+
+                function postDecision(url, confirmMessage) {
+                    if (!window.confirm(confirmMessage)) return;
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrf,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            entity_id: parseInt(entityId, 10),
+                            lottery_id: parseInt(lotteryId, 10),
+                            confirm: true
+                        })
+                    })
+                    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                    .then(function (result) {
+                        if (result.ok && result.data.ok) {
+                            bootstrap.Modal.getInstance(adminModalEl).hide();
+                            if (typeof PNotify !== 'undefined') {
+                                new PNotify({
+                                    title: 'Decisión registrada',
+                                    text: result.data.message || '',
+                                    type: 'success',
+                                    addclass: 'partilot-notify'
+                                });
+                            } else {
+                                alert(result.data.message || 'Decisión registrada.');
+                            }
+                        } else {
+                            alert(result.data.message || 'No se pudo registrar la decisión.');
+                        }
+                    })
+                    .catch(function () {
+                        alert('Error de conexión al registrar la decisión.');
+                    });
+                }
+
+                var assumeBtn = document.getElementById('lotteryDeadlineAdminAssumeDebtBtn');
+                var annulBtn = document.getElementById('lotteryDeadlineAdminAnnulBtn');
+
+                if (assumeBtn) {
+                    assumeBtn.addEventListener('click', function () {
+                        postDecision(
+                            @json(route('lottery-deadline-decisions.assume-debt')),
+                            '¿Confirmas que deseas ASUMIR LA DEUDA? Las participaciones seguirán activas y la administración asumirá el riesgo si la entidad no paga.'
+                        );
+                    });
+                }
+
+                if (annulBtn) {
+                    annulBtn.addEventListener('click', function () {
+                        postDecision(
+                            @json(route('lottery-deadline-decisions.annul')),
+                            '¿Confirmas que deseas ANULAR LAS PARTICIPACIONES? Esta acción es irreversible y se notificará a los compradores cuando el proceso esté completo.'
+                        );
+                    });
+                }
             });
         </script>
         @endif

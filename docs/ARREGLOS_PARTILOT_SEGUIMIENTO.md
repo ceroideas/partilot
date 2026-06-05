@@ -6,6 +6,52 @@ Leyenda: `[ ]` pendiente · `[~]` en curso / parcial · `[x]` hecho · `[—]` d
 
 ---
 
+## Modales deadline sorteo (spec acordada)
+
+### Visibilidad por rol
+
+| Acción | Superadmin | Administración | Entidad |
+|--------|:----------:|:--------------:|:-------:|
+| Aviso días 3/2/1/0 (modal + email) | No* | Sí | Sí (condicionado) |
+| Decisión día 0: Anular / Asumir deuda | No | Sí (solo ellos) | No |
+
+\* Superadmin: código soporta modal vía `LOTTERY_DEADLINE_REMINDER_SUPERADMIN_MODAL=false` (default). No recibe emails de este flujo.
+
+### Modal 1 — Aviso de plazo (días 3, 2, 1, 0)
+
+**Administración:** aviso informativo (quedan X días; entidad con pendientes).
+
+**Entidad:** solo si hay **pendiente real**:
+- Participaciones sin devolver (`disponible` / `asignada`), **o**
+- Vendedores con **deuda de liquidación** pendiente para ese sorteo (`deuda_pendiente` en listado vendedores / pestaña Liquidación).
+
+**No mostrar a entidad** si vendedores liquidados **y** no quedan participaciones por devolver.
+
+**Cadena liquidación:** vendedor liquida → entidad puede devolver a administración. Si algún vendedor no ha liquidado, la devolución entidad→admin puede continuar con **advertencia** (confirmación), no bloqueo duro.
+
+### Modal 2 — Decisión administración (solo día 0 del deadline)
+
+**Quién:** solo **administración de loterías** (ni superadmin ni entidad ven esta decisión).
+
+**Cuándo:** día **0** del deadline (no día del sorteo).
+
+**Opciones (confirmación Sí/No cada una):**
+
+1. **Anular participaciones** — irreversible: anula set, participaciones (físicas + digitales), emails a compradores. *(Proceso en implementación.)*
+2. **Asumir deuda** — participaciones siguen habilitadas; si la entidad no paga, la admin asume el costo. **Registro en BD** (`lottery_deadline_admin_decisions`). **No bloquea** cierre automático 00:30 salvo prórroga explícita (futuro: checkbox/fecha).
+
+**Compromiso verbal entidad:** fuera del sistema (teléfono/acuerdo previo). **No** hay UI ni registro web; solo contexto de negocio para que la admin asuma responsabilidad.
+
+### Variables `.env`
+
+```env
+LOTTERY_DEADLINE_REMINDER_SUPERADMIN_MODAL=false
+LOTTERY_ENFORCE_DRAW_DATE_RULES=true
+LOTTERY_AUTO_DEADLINE_CLOSURE_ENABLED=false
+```
+
+---
+
 ## Rol entidad
 
 | Estado | Tarea | Notas / prueba |
@@ -42,7 +88,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso / parcial · `[x]` hecho · `[—]` d
 | [~] | Admin: solo editar fecha/hora límite (tope Partilot) | Botón editar admin en índice; falta formulario acotado + validación tope |
 | [x] | Avisos automáticos 3/2/1/0 días (modal + email) | `LotteryDeadlineReminderService`, cron 09:00, modal en layout, log anti-duplicados |
 | [x] | Cierre: no devueltas → vendidas + deuda | `LotteryDeadlineClosureService`, cron 00:30 si `LOTTERY_AUTO_DEADLINE_CLOSURE_ENABLED=true` |
-| [—] | Modales 2 pasos al cerrar sorteo + mails compradores | Pendiente confirmación cliente (diseños en capturas) |
+| [x] | Modales deadline: avisos + decisión admin día 0 | Spec en este doc; `SellerLiquidationService`, modal admin, `LOTTERY_DEADLINE_REMINDER_SUPERADMIN_MODAL` |
 | [~] | Admin: solo escrutinio; flujo simplificado | Solo «Lista Resultados» (sin botón Escrutinio duplicado) |
 | [~] | Restricción vistas sorteos por rol | `LotteryPanelAccess` + `lottery/index`; falta `show`/`edit`/middleware |
 

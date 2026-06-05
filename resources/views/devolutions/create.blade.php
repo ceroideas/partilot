@@ -1271,6 +1271,20 @@
 @section('scripts')
 
 <script>
+function manejarAdvertenciaLiquidacionVendedores(xhr, payload, reenviarFn) {
+    var data = xhr.responseJSON;
+    if (xhr.status === 409 && data && data.requires_confirmation
+        && data.warning_code === 'seller_liquidation_pending'
+        && !payload.acknowledge_seller_liquidation_warning) {
+        if (window.confirm((data.message || 'Hay vendedores con liquidación pendiente.') + '\n\n¿Deseas continuar de todas formas?')) {
+            payload.acknowledge_seller_liquidation_warning = true;
+            reenviarFn(payload);
+        }
+        return true;
+    }
+    return false;
+}
+
 $(document).ready(function() {
     // Variables globales
     let entidadSeleccionada = null;
@@ -2534,38 +2548,44 @@ $(document).ready(function() {
         if (reservaSeleccionada) payload.reserve_id = reservaSeleccionada.id;
         // El backend exige liquidacion.pagos con al menos un pago con importe; si no hay, enviar array vacío y el backend puede rechazar
         if (!payload.liquidacion.pagos) payload.liquidacion.pagos = [];
-        $.ajax({
-            url: "{{ route('devolutions.store') }}",
-            method: 'POST',
-            data: payload,
-            success: function(response) {
-                if (response.queued && response.success) {
-                    try {
-                        sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
-                            title: 'Tramitación en segundo plano',
-                            text: 'La operación está en cola. Puedes seguir navegando; al terminar verás un aviso y el listado se actualizará.',
-                            type: 'notice'
-                        }));
-                    } catch (e) {}
-                    window.location.href = "{{ route('devolutions.index') }}";
-                    return;
-                }
-                if (response.success) {
-                    mostrarMensaje('Liquidación procesada correctamente', 'success');
-                    setTimeout(() => {
+        function enviarLiquidacionEntidad(payloadData) {
+            $.ajax({
+                url: "{{ route('devolutions.store') }}",
+                method: 'POST',
+                data: payloadData,
+                success: function(response) {
+                    if (response.queued && response.success) {
+                        try {
+                            sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                                title: 'Tramitación en segundo plano',
+                                text: 'La operación está en cola. Puedes seguir navegando; al terminar verás un aviso y el listado se actualizará.',
+                                type: 'notice'
+                            }));
+                        } catch (e) {}
                         window.location.href = "{{ route('devolutions.index') }}";
-                    }, 2000);
-                } else {
-                    mostrarMensaje(response.message || 'Error al procesar la liquidación', 'error');
+                        return;
+                    }
+                    if (response.success) {
+                        mostrarMensaje('Liquidación procesada correctamente', 'success');
+                        setTimeout(() => {
+                            window.location.href = "{{ route('devolutions.index') }}";
+                        }, 2000);
+                    } else {
+                        mostrarMensaje(response.message || 'Error al procesar la liquidación', 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    if (manejarAdvertenciaLiquidacionVendedores(xhr, payloadData, enviarLiquidacionEntidad)) {
+                        return;
+                    }
+                    mostrarMensaje(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error de conexión al procesar la liquidación', 'error');
+                },
+                complete: function() {
+                    $('#btn-procesar-liquidacion').prop('disabled', false).text('Procesar Liquidación');
                 }
-            },
-            error: function(xhr, status, error) {
-                mostrarMensaje('Error de conexión al procesar la liquidación', 'error');
-            },
-            complete: function() {
-                $('#btn-procesar-liquidacion').prop('disabled', false).text('Procesar Liquidación');
-            }
-        });
+            });
+        }
+        enviarLiquidacionEntidad(payload);
     });
 
     // Función para mostrar mensajes
@@ -2885,41 +2905,47 @@ $(document).ready(function() {
             liquidacionData.seller_id = vendedorSeleccionado.id;
         }
         $(this).prop('disabled', true).text('Procesando...');
-        $.ajax({
-            url: "{{ route('devolutions.store') }}",
-            method: 'POST',
-            data: liquidacionData,
-            success: function(response) {
-                if (response.queued && response.success) {
-                    try {
-                        sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
-                            title: 'Tramitación en segundo plano',
-                            text: 'La operación está en cola. Te llevamos al listado; al terminar verás un aviso.',
-                            type: 'notice'
-                        }));
-                    } catch (e) {}
-                    window.location.href = "{{ route('devolutions.index') }}";
-                    return;
-                }
-                if (response.success) {
-                    mostrarMensaje('Devolución registrada correctamente (sin liquidar)', 'success');
-                    if (response.devolution_id) {
-                        window.location.href = "{{ route('devolutions.index') }}/" + response.devolution_id;
-                    } else {
-                        setTimeout(() => { window.location.href = "{{ route('devolutions.index') }}"; }, 1500);
+        function enviarSoloDevolucion(payloadData) {
+            $.ajax({
+                url: "{{ route('devolutions.store') }}",
+                method: 'POST',
+                data: payloadData,
+                success: function(response) {
+                    if (response.queued && response.success) {
+                        try {
+                            sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                                title: 'Tramitación en segundo plano',
+                                text: 'La operación está en cola. Te llevamos al listado; al terminar verás un aviso.',
+                                type: 'notice'
+                            }));
+                        } catch (e) {}
+                        window.location.href = "{{ route('devolutions.index') }}";
+                        return;
                     }
-                } else {
-                    mostrarMensaje(response.message || 'Error al registrar la devolución', 'error');
+                    if (response.success) {
+                        mostrarMensaje('Devolución registrada correctamente (sin liquidar)', 'success');
+                        if (response.devolution_id) {
+                            window.location.href = "{{ route('devolutions.index') }}/" + response.devolution_id;
+                        } else {
+                            setTimeout(() => { window.location.href = "{{ route('devolutions.index') }}"; }, 1500);
+                        }
+                    } else {
+                        mostrarMensaje(response.message || 'Error al registrar la devolución', 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    if (manejarAdvertenciaLiquidacionVendedores(xhr, payloadData, enviarSoloDevolucion)) {
+                        return;
+                    }
+                    console.error('Error en solo devolución:', error);
+                    mostrarMensaje(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error al registrar la devolución', 'error');
+                },
+                complete: function() {
+                    $('#btn-aceptar-solo-devolucion').prop('disabled', false).text('Aceptar');
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error en solo devolución:', error);
-                mostrarMensaje(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error al registrar la devolución', 'error');
-            },
-            complete: function() {
-                $('#btn-aceptar-solo-devolucion').prop('disabled', false).text('Aceptar');
-            }
-        });
+            });
+        }
+        enviarSoloDevolucion(liquidacionData);
     });
 
     // Event listener para aceptar liquidación
@@ -2994,39 +3020,45 @@ $(document).ready(function() {
 
         $(this).prop('disabled', true).text('Procesando...');
 
-        $.ajax({
-            url: "{{ route('devolutions.store') }}",
-            method: 'POST',
-            data: liquidacionData,
-            success: function(response) {
-                if (response.queued && response.success) {
-                    try {
-                        sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
-                            title: 'Tramitación en segundo plano',
-                            text: 'La operación está en cola. Te llevamos al listado; al terminar verás un aviso.',
-                            type: 'notice'
-                        }));
-                    } catch (e) {}
-                    window.location.href = "{{ route('devolutions.index') }}";
-                    return;
-                }
-                if (response.success) {
-                    mostrarMensaje('Liquidación procesada correctamente', 'success');
-                    setTimeout(() => {
+        function enviarLiquidacionCompleta(payloadData) {
+            $.ajax({
+                url: "{{ route('devolutions.store') }}",
+                method: 'POST',
+                data: payloadData,
+                success: function(response) {
+                    if (response.queued && response.success) {
+                        try {
+                            sessionStorage.setItem('partilot_bg_job_started', JSON.stringify({
+                                title: 'Tramitación en segundo plano',
+                                text: 'La operación está en cola. Te llevamos al listado; al terminar verás un aviso.',
+                                type: 'notice'
+                            }));
+                        } catch (e) {}
                         window.location.href = "{{ route('devolutions.index') }}";
-                    }, 2000);
-                } else {
-                    mostrarMensaje(response.message || 'Error al procesar la liquidación', 'error');
+                        return;
+                    }
+                    if (response.success) {
+                        mostrarMensaje('Liquidación procesada correctamente', 'success');
+                        setTimeout(() => {
+                            window.location.href = "{{ route('devolutions.index') }}";
+                        }, 2000);
+                    } else {
+                        mostrarMensaje(response.message || 'Error al procesar la liquidación', 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    if (manejarAdvertenciaLiquidacionVendedores(xhr, payloadData, enviarLiquidacionCompleta)) {
+                        return;
+                    }
+                    console.error('Error en liquidación:', error);
+                    mostrarMensaje(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error al procesar la liquidación', 'error');
+                },
+                complete: function() {
+                    $('#btn-aceptar-liquidacion').prop('disabled', false).text('Aceptar');
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error en liquidación:', error);
-                mostrarMensaje('Error al procesar la liquidación', 'error');
-            },
-            complete: function() {
-                $('#btn-aceptar-liquidacion').prop('disabled', false).text('Aceptar');
-            }
-        });
+            });
+        }
+        enviarLiquidacionCompleta(liquidacionData);
     });
 
     // Event listener para cerrar liquidación
