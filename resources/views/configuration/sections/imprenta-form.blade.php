@@ -31,9 +31,10 @@
 
         <div class="form-check form-switch mt-3">
             <input class="form-check-input" type="checkbox" name="status" value="1" id="print-config-status"
-                {{ old('status', $printConfiguration->status ?? 1) == \App\Models\PrintConfiguration::STATUS_ACTIVE ? 'checked' : '' }}>
-            <label class="form-check-label" for="print-config-status">Imprenta activa (visible al enviar pedidos)</label>
+                {{ old('status', $printConfiguration->status ?? 0) == \App\Models\PrintConfiguration::STATUS_DEFAULT ? 'checked' : '' }}>
+            <label class="form-check-label" for="print-config-status">Imprenta por defecto (diseño e impresión)</label>
         </div>
+        <div class="form-text small">Solo puede haber una imprenta por defecto. Al marcar esta, las demás dejan de serlo.</div>
 
         <div class="row mt-3">
             <div class="col-lg-12">

@@ -67,6 +67,7 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         'auth.api' => \App\Http\Middleware\AuthenticateApiToken::class,
         'entity.permission' => \App\Http\Middleware\EnsureEntityManagerPermission::class,
+        'active_entity.context' => \App\Http\Middleware\EnsureActiveEntityContext::class,
         'entity_panel.readonly' => \App\Http\Middleware\EntityPanelReadOnly::class,
         'entity_manager.legacy_password' => \App\Http\Middleware\RedirectIfEntityManagerLegacyPassword::class,
         'print_shop.scope' => \App\Http\Middleware\EnsurePrintShopPanelScope::class,

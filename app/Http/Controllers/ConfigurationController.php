@@ -315,7 +315,11 @@ class ConfigurationController extends Controller
                 $orderId = $request->get('order_id');
                 if ($orderId && $entity->administration_id) {
                     $sepaOrder = SepaPaymentOrder::where('administration_id', $entity->administration_id)
-                        ->with(['beneficiaries' => fn ($q) => $q->with('participationCollection')])
+                        ->with([
+                            'beneficiaries' => fn ($q) => $q->with([
+                                'participationCollection.items.participation.set.reserve.lottery',
+                            ]),
+                        ])
                         ->find($orderId);
                 }
                 if (!$sepaOrder) {
@@ -352,8 +356,11 @@ class ConfigurationController extends Controller
             $printShopPanelUser = null;
             $printConfigParam = $request->query('print_config_id');
             if ($printConfigParam === 'new') {
+                $hasDefault = PrintConfiguration::query()->default()->exists();
                 $printConfiguration = new PrintConfiguration([
-                    'status' => PrintConfiguration::STATUS_ACTIVE,
+                    'status' => $hasDefault
+                        ? PrintConfiguration::STATUS_NOT_DEFAULT
+                        : PrintConfiguration::STATUS_DEFAULT,
                 ]);
                 [$provinces, $provinceCityMap] = $this->getProvinceCityData();
             } elseif (is_numeric($printConfigParam) && (int) $printConfigParam > 0) {
@@ -669,11 +676,30 @@ class ConfigurationController extends Controller
             $config = PrintConfiguration::findOrFail((int) $data['print_configuration_id']);
         }
         unset($data['print_configuration_id']);
-        $config->status = $request->boolean('status')
-            ? PrintConfiguration::STATUS_ACTIVE
-            : PrintConfiguration::STATUS_INACTIVE;
         $config->fill($data);
         $config->save();
+
+        $makeDefault = $request->boolean('status');
+        if (! $makeDefault && $isNew && ! PrintConfiguration::query()->default()->exists()) {
+            $makeDefault = true;
+        }
+
+        if ($makeDefault) {
+            PrintConfiguration::assignDefault($config);
+        } else {
+            $config->status = PrintConfiguration::STATUS_NOT_DEFAULT;
+            $config->save();
+
+            if (! PrintConfiguration::query()->default()->exists()) {
+                $fallback = PrintConfiguration::query()
+                    ->where('id', '!=', $config->id)
+                    ->orderedOldestFirst()
+                    ->first();
+                if ($fallback) {
+                    PrintConfiguration::assignDefault($fallback);
+                }
+            }
+        }
 
         $message = $isNew
             ? 'Imprenta creada correctamente.'

@@ -49,7 +49,10 @@ class EntityPanelReadOnly
 
     private function isAllowedReadOnlyMutation(Request $request): bool
     {
-        return $request->route()?->getName() === 'lottery-deadline-reminders.dismiss';
+        return in_array($request->route()?->getName(), [
+            'lottery-deadline-reminders.dismiss',
+            'panel.switch-entity',
+        ], true);
     }
 
     private function isAllowedConfigurationMutation(Request $request): bool

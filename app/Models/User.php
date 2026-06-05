@@ -159,6 +159,11 @@ class User extends Authenticatable
         }
 
         if ($this->isEntity() && ! $this->isPanelAccount()) {
+            $activeLabel = \App\Support\ActiveEntityContext::headerContextLabel($this);
+            if ($activeLabel !== null) {
+                return $activeLabel;
+            }
+
             $entityId = $this->implicitEntityId();
             if ($entityId) {
                 $entity = Entity::query()->find($entityId);
@@ -463,15 +468,9 @@ class User extends Authenticatable
         }
 
         if ($this->isEntity()) {
-            $entityIds = Manager::query()
-                ->where('user_id', $this->id)
-                ->whereNotNull('entity_id')
-                ->pluck('entity_id')
-                ->unique()
-                ->values()
-                ->all();
+            $entityIds = \App\Support\ActiveEntityContext::allManagedEntityIds($this);
 
-            return $this->cachedEntityIds = $entityIds;
+            return $this->cachedEntityIds = \App\Support\ActiveEntityContext::scopeEntityIds($this, $entityIds);
         }
 
         if ($this->isSeller()) {
@@ -628,11 +627,11 @@ class User extends Authenticatable
         }
 
         $column = $this->managerPermissionColumn($permission);
-        if (!$column || !$this->isEntity()) {
+        if (! $column || ! $this->isEntity()) {
             return [];
         }
 
-        return $this->managers()
+        $permittedIds = $this->managers()
             ->whereNotNull('entity_id')
             ->where('status', 1)
             ->where($column, true)
@@ -641,8 +640,14 @@ class User extends Authenticatable
             })
             ->pluck('entity_id')
             ->unique()
+            ->map(fn ($id) => (int) $id)
             ->values()
             ->all();
+
+        return array_values(array_intersect(
+            $permittedIds,
+            $this->accessibleEntityIds()
+        ));
     }
 
     /**
@@ -926,6 +931,12 @@ class User extends Authenticatable
             return true;
         }
 
+        if (\App\Support\ActiveEntityContext::usesActiveEntityScope($this)) {
+            $activeId = \App\Support\ActiveEntityContext::activeEntityId($this);
+
+            return $activeId !== null && $this->canManageEntityDevolutions($activeId);
+        }
+
         return $this->managers()
             ->whereNotNull('entity_id')
             ->where('is_primary', true)
@@ -971,7 +982,7 @@ class User extends Authenticatable
     public function hasEntityManagerPermission(string $permission)
     {
         $column = $this->managerPermissionColumn($permission);
-        if (!$column) {
+        if (! $column) {
             return false;
         }
 
@@ -979,8 +990,14 @@ class User extends Authenticatable
             return true;
         }
 
-        if (!$this->isEntity()) {
+        if (! $this->isEntity()) {
             return false;
+        }
+
+        if (\App\Support\ActiveEntityContext::usesActiveEntityScope($this)) {
+            $activeId = \App\Support\ActiveEntityContext::activeEntityId($this);
+
+            return $activeId !== null && $this->hasEntityManagerPermissionForEntity($activeId, $permission);
         }
 
         return $this->managers()
@@ -991,6 +1008,48 @@ class User extends Authenticatable
                 $q->where('status', 1);
             })
             ->exists();
+    }
+
+    public function hasEntityManagerPermissionForEntity(int $entityId, string $permission): bool
+    {
+        $column = $this->managerPermissionColumn($permission);
+        if (! $column) {
+            return false;
+        }
+
+        return $this->managers()
+            ->where('entity_id', $entityId)
+            ->where('status', 1)
+            ->where($column, true)
+            ->exists();
+    }
+
+    public function isPrimaryManagerOfActiveEntity(): bool
+    {
+        if (! \App\Support\ActiveEntityContext::usesActiveEntityScope($this)) {
+            return $this->managers()
+                ->whereNotNull('entity_id')
+                ->where('is_primary', true)
+                ->where('status', 1)
+                ->exists();
+        }
+
+        $activeId = \App\Support\ActiveEntityContext::activeEntityId($this);
+        if (! $activeId) {
+            return false;
+        }
+
+        return $this->managers()
+            ->where('entity_id', $activeId)
+            ->where('is_primary', true)
+            ->where('status', 1)
+            ->exists();
+    }
+
+    public function clearPanelScopeCache(): void
+    {
+        $this->cachedEntityIds = null;
+        $this->cachedAdministrationIds = null;
     }
 
     /**

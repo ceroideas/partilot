@@ -170,9 +170,15 @@ class SepaPaymentOrderController extends Controller
     {
         try {
             $sepaPaymentOrder->load('beneficiaries');
-            
-            if ($sepaPaymentOrder->beneficiaries->isEmpty()) {
-                return back()->withErrors(['error' => 'La orden no tiene beneficiarios.']);
+
+            $exportableCount = $sepaPaymentOrder->beneficiaries
+                ->filter(fn ($beneficiary) => $beneficiary->isExportableToSepa())
+                ->count();
+
+            if ($exportableCount === 0) {
+                return back()->withErrors([
+                    'error' => 'No hay beneficiarios para incluir en el XML. Las solicitudes revertidas se excluyen.',
+                ]);
             }
 
             $filePath = $this->xmlGenerator->generateAndSave($sepaPaymentOrder);
@@ -233,8 +239,8 @@ class SepaPaymentOrderController extends Controller
     }
 
     /**
-     * Revertir beneficiarios con error bancario: la solicitud de cobro vuelve a pendientes
-     * y las participaciones quedan de nuevo cobrables (collected_at = null, status vendida).
+     * Revertir beneficiarios con error bancario: las participaciones quedan de nuevo cobrables
+     * y la solicitud de cobro se cierra (no vuelve a pendientes de gestionar).
      */
     public function revertBeneficiariesToCobrable(Request $request, SepaPaymentOrder $sepaPaymentOrder)
     {
@@ -254,7 +260,7 @@ class SepaPaymentOrderController extends Controller
         }
 
         return $this->redirectAfterBeneficiaryAction($request, $sepaPaymentOrder)
-            ->with('success', "Se revirtieron {$count} beneficiario(s). Las participaciones vuelven a estar cobrables.");
+            ->with('success', "Se revirtieron {$count} beneficiario(s). Las participaciones vuelven a estar cobrables y la solicitud ya no aparece en pendientes de gestionar.");
     }
 
     private function markBeneficiariesAsPaid(SepaPaymentOrder $order, array $beneficiaryIds): int
@@ -344,27 +350,7 @@ class SepaPaymentOrderController extends Controller
             return;
         }
 
-        if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
-            $collection->update(['sepa_payment_order_id' => null]);
-        }
-
-        $ids = $collection->items()
-            ->pluck('participation_id')
-            ->unique()
-            ->filter()
-            ->values()
-            ->all();
-
-        if (empty($ids)) {
-            return;
-        }
-
-        $updates = ['collected_at' => null];
-        if (Schema::hasColumn('participations', 'status')) {
-            Participation::whereIn('id', $ids)->update(array_merge($updates, ['status' => 'vendida']));
-        } else {
-            Participation::whereIn('id', $ids)->update($updates);
-        }
+        $collection->revertAsCobrable();
     }
 
     private function beneficiaryParticipationsArePaid(SepaPaymentBeneficiary $beneficiary): bool

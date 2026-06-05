@@ -36,25 +36,10 @@
                         <h5 class="mb-2">Configuración del envío</h5>
                         <p class="text-muted small mb-3">La misma imprenta diseña e imprime el pedido. El presupuesto se calcula con sus tarifas.</p>
 
-                        @if(($activePrintShops ?? collect())->count() > 1)
-                            <div class="mb-3">
-                                <label class="form-label">Imprenta</label>
-                                <select name="print_configuration_id" id="print_configuration_id" class="form-select" required>
-                                    @foreach($activePrintShops as $shop)
-                                        <option value="{{ $shop->id }}"
-                                            data-stripe-enabled="{{ $shop->hasStripeConfigured() ? '1' : '0' }}"
-                                            {{ (int) old('print_configuration_id', $defaults['print_configuration_id'] ?? $selectedPrintShop->id ?? 0) === (int) $shop->id ? 'selected' : '' }}>
-                                            {{ $shop->displayName() }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @else
-                            <input type="hidden" name="print_configuration_id" value="{{ $selectedPrintShop->id }}">
-                            <div class="alert alert-light border small mb-3 py-2">
-                                <i class="ri-printer-line me-1"></i> Imprenta: <strong>{{ $selectedPrintShop->displayName() }}</strong>
-                            </div>
-                        @endif
+                        <input type="hidden" name="print_configuration_id" value="{{ $selectedPrintShop->id }}">
+                        <div class="alert alert-light border small mb-3 py-2">
+                            <i class="ri-printer-line me-1"></i> Imprenta: <strong>{{ $selectedPrintShop->displayName() }}</strong>
+                        </div>
 
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -123,7 +108,7 @@
                                 <h6 class="mb-2">Pago con tarjeta</h6>
                                 <div id="stripe-card-element" class="form-control" style="padding-top: 12px; min-height: 46px;"></div>
                                 <div id="stripe-card-errors" class="text-danger small mt-2 d-none"></div>
-                                <p class="form-text small mb-0 mt-2">El importe se actualiza al cambiar imprenta u opciones del formulario.</p>
+                                <p class="form-text small mb-0 mt-2">El importe se actualiza al cambiar las opciones del formulario.</p>
                             </div>
                         </div>
 
@@ -157,8 +142,6 @@
     const form = document.getElementById('sendToPrintForm');
     const cardContainer = document.getElementById('stripe-card-element');
     const quoteUrl = @json(route('design.previewPrintOrderQuote', $design->id));
-    const shopSelect = document.getElementById('print_configuration_id');
-
     if (!form) return;
 
     let stripe = null;
@@ -278,8 +261,6 @@
         el.addEventListener('change', scheduleQuoteRefresh);
         el.addEventListener('input', scheduleQuoteRefresh);
     });
-    shopSelect?.addEventListener('change', scheduleQuoteRefresh);
-
     payBtn?.addEventListener('click', async () => {
         try {
             clearError();

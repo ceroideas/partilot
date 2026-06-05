@@ -2,7 +2,7 @@
 
 Leyenda: `[ ]` pendiente · `[~]` en curso / parcial · `[x]` hecho · `[—]` descartado / para más adelante
 
-**Última actualización:** 2026-06-03
+**Última actualización:** 2026-06-04
 
 ---
 
@@ -42,9 +42,44 @@ Leyenda: `[ ]` pendiente · `[~]` en curso / parcial · `[x]` hecho · `[—]` d
 | [~] | Admin: solo editar fecha/hora límite (tope Partilot) | Botón editar admin en índice; falta formulario acotado + validación tope |
 | [x] | Avisos automáticos 3/2/1/0 días (modal + email) | `LotteryDeadlineReminderService`, cron 09:00, modal en layout, log anti-duplicados |
 | [x] | Cierre: no devueltas → vendidas + deuda | `LotteryDeadlineClosureService`, cron 00:30 si `LOTTERY_AUTO_DEADLINE_CLOSURE_ENABLED=true` |
-| [ ] | Modales 2 pasos al cerrar sorteo + mails compradores | Pendiente |
+| [—] | Modales 2 pasos al cerrar sorteo + mails compradores | Pendiente confirmación cliente (diseños en capturas) |
 | [~] | Admin: solo escrutinio; flujo simplificado | Solo «Lista Resultados» (sin botón Escrutinio duplicado) |
 | [~] | Restricción vistas sorteos por rol | `LotteryPanelAccess` + `lottery/index`; falta `show`/`edit`/middleware |
+
+---
+
+## Gestor multi-entidad (contexto activo)
+
+| Estado | Tarea | Notas |
+|--------|-------|-------|
+| [x] | Selector entidad activa (sesión) + menú por permisos | `ActiveEntityContext`, desplegable topbar, `panel.switch-entity` |
+
+### Spec acordada — entidad activa en sesión
+
+**Alcance:** gestores con 2..N entidades (`managers.entity_id`). No aplica a cuenta panel `panel_account_type=entity` (una entidad fija).
+
+**UI**
+- Desplegable **permanente** en cabecera (y/o tarjetas en dashboard al entrar si aún no hay selección).
+- Muestra nombre entidad + rol: **Gestor responsable** o **Gestor** (permisos parciales según `Manager` de esa entidad).
+- Al cambiar entidad: **reset de pantalla** → redirigir a dashboard (o home del panel).
+
+**Persistencia**
+- Solo **sesión** (`active_entity_id`), no tabla BD.
+- **Nuevo login:** no recordar selección anterior; volver a elegir / auto-asignar.
+
+**Auto-selección al login (prioridad)**
+1. Si es gestor **principal** (`is_primary`) de una o más entidades → primera entidad principal (orden estable, p. ej. `managers.id` o nombre).
+2. Si **solo** es gestor secundario en todas → primera entidad gestionada (misma orden).
+3. El usuario puede cambiar después al resto (secundarias u otras principales si tiene varias).
+
+**Menú y datos**
+- Vendedores, diseño, pagos, etc. visibles según permisos del `Manager` **de la entidad activa** (no OR global entre entidades).
+- Listados y flujos (devoluciones, reservas, sets…) filtrados por entidad activa; sin paso extra de elegir entidad cuando hay contexto.
+
+**Piezas técnicas previstas**
+- Extender `PanelSelectionResolver` / `ActiveEntityContext` + middleware.
+- `POST panel/switch-entity` → sesión + redirect dashboard.
+- Ajustar `hasEntityManagerPermission()`, `layout.blade.php` (menú), controladores que usan `accessibleEntityIds()`.
 
 ---
 
@@ -53,7 +88,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso / parcial · `[x]` hecho · `[—]` d
 | Estado | Tarea | Notas |
 |--------|-------|-------|
 | [—] | DataTables en castellano | Revisar después |
-| [—] | Dashboard cuadrados acceso rápido | Feature nueva |
+| [—] | Dashboard cuadrados acceso rápido | Puede integrarse con selector multi-entidad |
 | [—] | Sección Administración en panel | Feature nueva |
 | [—] | Flujo invitación gestor/vendedor ampliado (aceptar/rechazar, condiciones) | Feature grande |
 | [—] | Icono cerrar sesión junto a notificaciones (Figma) | UI menor |
@@ -69,7 +104,8 @@ Leyenda: `[ ]` pendiente · `[~]` en curso / parcial · `[x]` hecho · `[—]` d
 - `resources/views/entities/show.blade.php`
 - `resources/views/sellers/show.blade.php`
 - `resources/views/lottery/index.blade.php`
-- `routes/web.php` — `sellers.update-comment`
+- `routes/web.php` — `sellers.update-comment`, `panel.switch-entity`
+- `app/Support/ActiveEntityContext.php` — gestor multi-entidad
 
 ---
 
@@ -82,6 +118,4 @@ Leyenda: `[ ]` pendiente · `[~]` en curso / parcial · `[x]` hecho · `[—]` d
 | | | Admin: sin pestaña gestores / sin col. administración | |
 | | | Vendedor: grupo / observaciones / admin sin datos personales | |
 | | | Sorteos: listado por rol | |
-
-correr comando en servidor
-* * * * * cd /ruta/al/proyecto/sipart && php artisan schedule:run >> /dev/null 2>&1
+| | | Gestor multi-entidad: selector / menú por permisos | |

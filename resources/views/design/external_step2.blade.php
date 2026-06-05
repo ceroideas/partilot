@@ -118,23 +118,12 @@
                                     <div class="row g-3 mt-4">
                                         <div class="col-lg-6">
                                             <label class="partilot-field-label mb-2">Imprenta (diseño e impresión)</label>
-                                            @if(($activePrintShops ?? collect())->count() > 1)
-                                                <select name="print_configuration_id" id="external_print_configuration_id" class="form-select" required>
-                                                    @foreach($activePrintShops as $shop)
-                                                        <option value="{{ $shop->id }}"
-                                                            {{ (int) old('print_configuration_id', $selectedPrintShop->id ?? 0) === (int) $shop->id ? 'selected' : '' }}>
-                                                            {{ $shop->displayName() }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                <div class="form-text small">La misma imprenta elaborará el diseño e imprimirá el pedido.</div>
-                                            @else
-                                                <input type="hidden" name="print_configuration_id" value="{{ $selectedPrintShop->id }}">
-                                                <div class="partilot-field-value border-0 pb-0">
-                                                    <i class="ri-printer-line"></i>
-                                                    <span id="quote-shop-name">{{ $selectedPrintShop->displayName() }}</span>
-                                                </div>
-                                            @endif
+                                            <input type="hidden" name="print_configuration_id" value="{{ $selectedPrintShop->id }}">
+                                            <div class="partilot-field-value border-0 pb-0">
+                                                <i class="ri-printer-line"></i>
+                                                <span id="quote-shop-name">{{ $selectedPrintShop->displayName() }}</span>
+                                            </div>
+                                            <div class="form-text small">La imprenta por defecto elaborará el diseño e imprimirá el pedido.</div>
                                         </div>
                                         <div class="col-lg-6">
                                             <div id="external-stripe-hint" class="alert alert-warning small py-2 mb-0 d-none">
@@ -148,9 +137,7 @@
                                             <div><b>Participaciones:</b> <span id="quote-participations-count">{{ (int)($set->total_participations ?? 0) }}</span></div>
                                             <div><b>Tacos:</b> <span id="quote-books-count">{{ $quote['books'] ?? 0 }}</span></div>
                                             <div><b>Traseras:</b> {{ ($invitation->back_mode ?? 'bw') === 'color' ? 'Color' : 'B/N' }}</div>
-                                            @if(($activePrintShops ?? collect())->count() > 1)
-                                                <div class="mt-1"><b>Imprenta:</b> <span id="quote-shop-name-inline">{{ $quote['print_configuration_name'] ?? ($selectedPrintShop->displayName() ?? '') }}</span></div>
-                                            @endif
+                                            <div class="mt-1"><b>Imprenta:</b> <span id="quote-shop-name-inline">{{ $quote['print_configuration_name'] ?? ($selectedPrintShop->displayName() ?? '') }}</span></div>
                                         </div>
                                         <div class="partilot-total-box">
                                             <span class="partilot-total-label">IMPORTE TOTAL:</span>
@@ -314,10 +301,9 @@
 <script>
 (() => {
     const form = document.getElementById('partilotSummaryForm');
-    const shopSelect = document.getElementById('external_print_configuration_id');
     const quoteUrl = @json(route('design.external.previewQuote'));
     const stripeHint = document.getElementById('external-stripe-hint');
-    if (!form || !shopSelect) return;
+    if (!form) return;
 
     const fmtMoney = (n) => (Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '€';
     let quoteRefreshTimer = null;
@@ -353,13 +339,6 @@
         }
         updateQuoteDisplay(data);
     }
-
-    shopSelect.addEventListener('change', () => {
-        clearTimeout(quoteRefreshTimer);
-        quoteRefreshTimer = setTimeout(() => {
-            refreshQuote().catch((e) => alert(e.message || 'Error al actualizar el presupuesto.'));
-        }, 300);
-    });
 
     refreshQuote().catch(() => {});
 })();

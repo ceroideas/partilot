@@ -141,9 +141,11 @@ Route::get('/design/external/thank-you', [\App\Http\Controllers\DesignController
 Route::get('/design/external/file/{id}/download', [\App\Http\Controllers\DesignController::class, 'externalDownloadFileSession'])->name('design.external.downloadFile');
 
 // Rutas protegidas por autenticación (cuenta panel entidad: solo lectura vía entity_panel.readonly)
-Route::middleware(['auth', 'entity_panel.readonly', 'entity_manager.legacy_password', 'print_shop.scope'])->group(function () {
+Route::middleware(['auth', 'active_entity.context', 'entity_panel.readonly', 'entity_manager.legacy_password', 'print_shop.scope'])->group(function () {
     
     Route::get('dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+    Route::post('panel/switch-entity', [\App\Http\Controllers\PanelEntitySwitchController::class, 'switch'])
+        ->name('panel.switch-entity');
     Route::post('lottery-deadline-reminders/dismiss', [\App\Http\Controllers\LotteryDeadlineReminderController::class, 'dismiss'])
         ->name('lottery-deadline-reminders.dismiss');
 

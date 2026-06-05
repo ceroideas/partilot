@@ -667,12 +667,14 @@
                             $currentUser
                             && $currentUser->isEntity()
                             && ! $currentUser->isPanelAccount()
-                            && $currentUser->managers()
-                                ->whereNotNull('entity_id')
-                                ->where('is_primary', true)
-                                ->where('status', 1)
-                                ->exists()
+                            && $currentUser->isPrimaryManagerOfActiveEntity()
                         );
+                        $entitySwitcherOptions = ($currentUser && \App\Support\ActiveEntityContext::usesActiveEntityScope($currentUser))
+                            ? \App\Support\ActiveEntityContext::switcherOptions($currentUser)
+                            : [];
+                        $activeEntitySwitcherId = ($currentUser && \App\Support\ActiveEntityContext::usesActiveEntityScope($currentUser))
+                            ? \App\Support\ActiveEntityContext::activeEntityId($currentUser)
+                            : null;
                         $canSeeEntityModules = $currentUser && ($currentUser->isSuperAdmin() || $currentUser->isAdministration() || $currentUser->isEntity());
 
                         $isRestrictedEntityUser = $currentUser && $currentUser->isEntity() && !$currentUser->isSuperAdmin() && !$currentUser->isAdministration();
@@ -1015,6 +1017,29 @@
                                     <div class="notification-list" id="search-results"></div>
                                 </div>
                             </li>
+
+                            @if(!empty($entitySwitcherOptions))
+                            <li class="dropdown d-none d-md-block partilot-entity-switcher">
+                                <a class="nav-link dropdown-toggle waves-effect waves-light arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false" title="Cambiar entidad activa">
+                                    <i class="ri-building-2-line font-22"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated shadow partilot-entity-switcher__menu">
+                                    <div class="dropdown-header noti-title">
+                                        <h6 class="mb-0">Entidad activa</h6>
+                                    </div>
+                                    @foreach($entitySwitcherOptions as $option)
+                                        <form method="POST" action="{{ route('panel.switch-entity') }}" class="d-block m-0">
+                                            @csrf
+                                            <input type="hidden" name="entity_id" value="{{ $option['id'] }}">
+                                            <button type="submit" class="dropdown-item notify-item d-flex flex-column align-items-start gap-0 py-2 {{ (int) $activeEntitySwitcherId === (int) $option['id'] ? 'active fw-semibold' : '' }}">
+                                                <span class="partilot-entity-switcher__name">{{ $option['name'] }}</span>
+                                                <small class="text-muted">{{ $option['role_label'] }}</small>
+                                            </button>
+                                        </form>
+                                    @endforeach
+                                </div>
+                            </li>
+                            @endif
 
                             <!-- Fullscreen Button -->
                             {{-- <li class="d-none d-md-inline-block">

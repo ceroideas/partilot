@@ -17,6 +17,7 @@ class ParticipationCollection extends Model
     public const STATUS_VERIFIED = 'verified';
     public const STATUS_EXPIRED = 'expired';
     public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_REVERTED = 'reverted';
 
     protected $fillable = [
         'user_id',
@@ -75,12 +76,21 @@ class ParticipationCollection extends Model
         return $query->where('status', self::STATUS_VERIFIED);
     }
 
-    /** Verificadas y sin orden SEPA asignada (pendientes de gestionar). */
+    /** Verificadas, sin orden SEPA asignada y no revertidas (pendientes de gestionar). */
     public function scopePending($query)
     {
         $query = $query->verified();
         if (Schema::hasColumn('participation_collections', 'sepa_payment_order_id')) {
             $query->whereNull('sepa_payment_order_id');
+        }
+
+        if (Schema::hasTable('sepa_payment_beneficiaries')) {
+            $query->whereNotIn('participation_collections.id', function ($sub) {
+                $sub->select('participation_collection_id')
+                    ->from('sepa_payment_beneficiaries')
+                    ->where('status', 'reverted')
+                    ->whereNotNull('participation_collection_id');
+            });
         }
 
         return $query;
@@ -108,6 +118,7 @@ class ParticipationCollection extends Model
             self::STATUS_VERIFIED => 'Pendiente de gestionar',
             self::STATUS_EXPIRED => 'Expirada',
             self::STATUS_CANCELLED => 'Cancelada',
+            self::STATUS_REVERTED => 'Revertida (cobrable)',
             default => $this->status ?? '—',
         };
     }
@@ -164,6 +175,36 @@ class ParticipationCollection extends Model
         }
 
         $this->update(['status' => self::STATUS_CANCELLED, 'confirmation_token' => null]);
+        $this->delete();
+    }
+
+    /**
+     * Error bancario / revertir a cobrable: libera participaciones y cierra la solicitud
+     * para que no vuelva a aparecer en pendientes de gestionar.
+     */
+    public function revertAsCobrable(): void
+    {
+        $participationIds = $this->items()
+            ->pluck('participation_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($participationIds !== []) {
+            $updates = ['collected_at' => null];
+            if (Schema::hasColumn('participations', 'status')) {
+                Participation::whereIn('id', $participationIds)->update(array_merge($updates, ['status' => 'vendida']));
+            } else {
+                Participation::whereIn('id', $participationIds)->update($updates);
+            }
+        }
+
+        $this->update([
+            'status' => self::STATUS_REVERTED,
+            'sepa_payment_order_id' => null,
+            'confirmation_token' => null,
+        ]);
         $this->delete();
     }
 

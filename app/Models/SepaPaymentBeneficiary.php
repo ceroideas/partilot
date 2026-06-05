@@ -57,6 +57,16 @@ class SepaPaymentBeneficiary extends Model
         };
     }
 
+    public function isExportableToSepa(): bool
+    {
+        return ($this->status ?? self::STATUS_PENDING) !== self::STATUS_REVERTED;
+    }
+
+    public function scopeExportableToSepa($query)
+    {
+        return $query->where('status', '!=', self::STATUS_REVERTED);
+    }
+
     /**
      * Relación con SepaPaymentOrder
      */

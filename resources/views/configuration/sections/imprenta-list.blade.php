@@ -34,7 +34,7 @@
                     <tr>
                         <th>Empresa</th>
                         <th>Email</th>
-                        <th>Estado</th>
+                        <th class="text-center">Por defecto</th>
                         <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
@@ -43,11 +43,9 @@
                         <tr>
                             <td>{{ $shop->displayName() }}</td>
                             <td>{{ $shop->email ?: '—' }}</td>
-                            <td>
-                                @if($shop->isActive())
-                                    <span class="badge bg-success">Activa</span>
-                                @else
-                                    <span class="badge bg-secondary">Inactiva</span>
+                            <td class="text-center">
+                                @if($shop->isDefault())
+                                    <i class="ri-checkbox-circle-fill text-success fs-5" title="Imprenta por defecto"></i>
                                 @endif
                             </td>
                             <td class="text-end">

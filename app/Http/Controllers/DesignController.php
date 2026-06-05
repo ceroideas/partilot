@@ -176,21 +176,12 @@ class DesignController extends Controller
         $lottery = $invitation->lottery;
         $set = $invitation->set;
 
-        $activePrintShops = collect();
         $selectedPrintShop = null;
         $quote = null;
 
         if ($mode === 'partilot') {
-            $activePrintShops = PrintConfiguration::query()->active()->orderedOldestFirst()->get();
-            if ($activePrintShops->isEmpty()) {
-                return redirect()->route('design.external.step1', ['mode' => 'partilot'])
-                    ->with('error', 'No hay imprentas activas. Configúralas en Ajustes → Imprenta.');
-            }
-            $selectedPrintShop = $activePrintShops->firstWhere('id', (int) $invitation->print_configuration_id)
-                ?? $activePrintShops->first();
-            if (! $invitation->print_configuration_id && $selectedPrintShop) {
-                $invitation->update(['print_configuration_id' => $selectedPrintShop->id]);
-            }
+            $selectedPrintShop = PrintConfiguration::resolveDefault();
+            $invitation->update(['print_configuration_id' => $selectedPrintShop->id]);
             $quote = $this->calculateExternalInvitationQuote($set, $invitation);
         }
 
@@ -201,7 +192,6 @@ class DesignController extends Controller
             'invitation',
             'quote',
             'mode',
-            'activePrintShops',
             'selectedPrintShop'
         ));
     }
@@ -213,17 +203,13 @@ class DesignController extends Controller
             return response()->json(['ok' => false, 'message' => 'Modo inválido.'], 422);
         }
 
-        $data = $request->validate([
-            'print_configuration_id' => [
-                'required',
-                'integer',
-                Rule::exists('print_configurations', 'id')->where('status', PrintConfiguration::STATUS_ACTIVE),
-            ],
+        $request->validate([
+            'print_configuration_id' => ['nullable', 'integer', 'exists:print_configurations,id'],
         ]);
 
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())
             ->findOrFail(session('design_external_invitation_id'));
-        $cfg = $this->resolveActivePrintConfiguration((int) $data['print_configuration_id']);
+        $cfg = PrintConfiguration::resolveDefault();
         $invitation->print_configuration_id = $cfg->id;
         $quote = $this->calculateExternalInvitationQuote($invitation->set, $invitation);
         [$publishableKey, $secretKey] = $this->resolveStripeKeys($cfg);
@@ -242,18 +228,13 @@ class DesignController extends Controller
             return redirect()->route('design.external.step2');
         }
 
-        $data = $request->validate([
-            'print_configuration_id' => [
-                'required',
-                'integer',
-                Rule::exists('print_configurations', 'id')->where('status', PrintConfiguration::STATUS_ACTIVE),
-            ],
+        $request->validate([
+            'print_configuration_id' => ['nullable', 'integer', 'exists:print_configurations,id'],
         ]);
 
         $invitation = DesignExternalInvitation::where('created_by_user_id', auth()->id())
             ->findOrFail(session('design_external_invitation_id'));
-        $cfg = $this->resolveActivePrintConfiguration((int) $data['print_configuration_id']);
-        $invitation->print_configuration_id = $cfg->id;
+        $cfg = PrintConfiguration::resolveDefault();
         $quote = $this->calculateExternalInvitationQuote($invitation->set, $invitation);
         $invitation->update([
             'print_configuration_id' => $cfg->id,
@@ -286,7 +267,7 @@ class DesignController extends Controller
 
         if (! $invitation->print_configuration_id) {
             return redirect()->route('design.external.step2')
-                ->with('error', 'Selecciona la imprenta en el resumen antes de continuar al pago.');
+                ->with('error', 'No hay imprenta por defecto configurada. Revisa Ajustes → Imprenta.');
         }
 
         $entity = $invitation->entity;
@@ -614,10 +595,6 @@ class DesignController extends Controller
 
     private function resolveActivePrintConfiguration(?int $id = null): PrintConfiguration
     {
-        if ($id) {
-            return PrintConfiguration::query()->active()->findOrFail($id);
-        }
-
         return PrintConfiguration::resolveDefault();
     }
 
@@ -634,10 +611,6 @@ class DesignController extends Controller
 
     private function printConfigurationForInvitation(DesignExternalInvitation $invitation): PrintConfiguration
     {
-        if ($invitation->print_configuration_id) {
-            return $this->resolveActivePrintConfiguration((int) $invitation->print_configuration_id);
-        }
-
         return PrintConfiguration::resolveDefault();
     }
 
@@ -2456,13 +2429,7 @@ class DesignController extends Controller
                 ->with('warning', $printOrderLock['message']);
         }
 
-        $activePrintShops = PrintConfiguration::query()->active()->orderedOldestFirst()->get();
-        if ($activePrintShops->isEmpty()) {
-            return redirect()->route('design.summary', $design->id)
-                ->with('warning', 'No hay imprentas activas. Configúralas en Ajustes → Imprenta.');
-        }
-
-        $selectedPrintShop = $activePrintShops->first();
+        $selectedPrintShop = PrintConfiguration::resolveDefault();
         $output = is_array($design->output ?? null) ? $design->output : [];
         $defaults = [
             'print_size' => (string) ($output['format'] ?? 'custom'),
@@ -2480,7 +2447,6 @@ class DesignController extends Controller
             'quote',
             'stripePublishableKey',
             'stripePaymentEnabled',
-            'activePrintShops',
             'selectedPrintShop'
         ));
     }
@@ -2496,7 +2462,8 @@ class DesignController extends Controller
         }
 
         $data = $request->validate($this->printOrderSubmissionRules());
-        $cfg = $this->resolveActivePrintConfiguration((int) $data['print_configuration_id']);
+        $cfg = PrintConfiguration::resolveDefault();
+        $data['print_configuration_id'] = $cfg->id;
         $quote = $this->calculatePrintOrderQuote($design->set, $data, chargeDesignFee: false);
         [$publishableKey, $secretKey] = $this->resolveStripeKeys($cfg);
 
@@ -2522,7 +2489,8 @@ class DesignController extends Controller
         }
 
         $data = $request->validate($this->printOrderSubmissionRules());
-        $cfg = $this->resolveActivePrintConfiguration((int) $data['print_configuration_id']);
+        $cfg = PrintConfiguration::resolveDefault();
+        $data['print_configuration_id'] = $cfg->id;
         $quote = $this->calculatePrintOrderQuote($design->set, $data, chargeDesignFee: false);
         $total = (float) ($quote['total'] ?? 0);
         if ($total <= 0) {
@@ -2584,7 +2552,8 @@ class DesignController extends Controller
             'stripe_payment_intent_id.required' => 'No se encontró el pago de Stripe confirmado.',
         ]);
 
-        $cfg = $this->resolveActivePrintConfiguration((int) $data['print_configuration_id']);
+        $cfg = PrintConfiguration::resolveDefault();
+        $data['print_configuration_id'] = $cfg->id;
         $quote = $this->calculatePrintOrderQuote($design->set, $data, chargeDesignFee: false);
         $expectedTotal = round((float) ($quote['total'] ?? 0), 2);
         if ($expectedTotal <= 0) {
@@ -2686,11 +2655,7 @@ class DesignController extends Controller
     private function printOrderSubmissionRules(): array
     {
         return [
-            'print_configuration_id' => [
-                'required',
-                'integer',
-                Rule::exists('print_configurations', 'id')->where('status', PrintConfiguration::STATUS_ACTIVE),
-            ],
+            'print_configuration_id' => ['nullable', 'integer', 'exists:print_configurations,id'],
             'print_size' => 'required|string|in:a3_6,a3_8,custom',
             'participations_per_book' => 'required|integer|min:1|max:1000',
             'back_mode' => 'required|string|in:bw,color',

@@ -258,12 +258,22 @@
                             <th>Moneda</th>
                             <th>Remesa</th>
                             <th>Estado pago</th>
+                            <th style="width: 48px;"></th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($sepaOrder->beneficiaries as $beneficiary)
-                            @php $isPending = ($beneficiary->status ?? 'pending') === 'pending'; @endphp
+                            @php
+                                $isPending = ($beneficiary->status ?? 'pending') === 'pending';
+                                $participations = $beneficiary->participationCollection
+                                    ? $beneficiary->participationCollection->items
+                                        ->map(fn ($item) => $item->participation)
+                                        ->filter()
+                                        ->values()
+                                    : collect();
+                                $detailColspan = ($canManagePayments ? 12 : 11);
+                            @endphp
                             <tr>
                                 @if($canManagePayments)
                                     <td>
@@ -282,6 +292,21 @@
                                 <td>
                                     <span class="badge bg-{{ $beneficiary->statusBadgeClass() }}">{{ $beneficiary->statusLabel() }}</span>
                                 </td>
+                                <td class="text-center">
+                                    @if($participations->isNotEmpty())
+                                        <button type="button"
+                                            class="btn btn-sm btn-light border-0 p-1 beneficiary-parts-toggle"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#beneficiary-parts-{{ $beneficiary->id }}"
+                                            aria-expanded="false"
+                                            aria-controls="beneficiary-parts-{{ $beneficiary->id }}"
+                                            title="Ver participaciones">
+                                            <i class="ri-arrow-down-s-line fs-5"></i>
+                                        </button>
+                                    @else
+                                        <span class="text-muted small">—</span>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($isPending)
                                         <button type="button" class="btn btn-sm btn-light text-danger btn-eliminar-beneficiary"
@@ -296,13 +321,66 @@
                                     @endif
                                 </td>
                             </tr>
+                            @if($participations->isNotEmpty())
+                            <tr class="beneficiary-parts-row">
+                                <td colspan="{{ $detailColspan }}" class="p-0 border-0 bg-light">
+                                    <div class="collapse" id="beneficiary-parts-{{ $beneficiary->id }}">
+                                        <div class="p-3 ps-4">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <span class="small fw-semibold text-muted">
+                                                    Participaciones incluidas en esta solicitud ({{ $participations->count() }})
+                                                </span>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered bg-white mb-0 beneficiary-parts-table">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Código</th>
+                                                            <th>Set</th>
+                                                            <th>Sorteo</th>
+                                                            <th>Estado</th>
+                                                            <th class="text-end">Importe venta</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($participations as $participation)
+                                                            <tr>
+                                                                <td><code class="small">{{ $participation->participation_code ?? ('#'.$participation->id) }}</code></td>
+                                                                <td>{{ $participation->set->set_name ?? ('Set #'.$participation->set_id) }}</td>
+                                                                <td>{{ $participation->set->reserve->lottery->name ?? '—' }}</td>
+                                                                <td>{{ ucfirst($participation->status ?? '—') }}</td>
+                                                                <td class="text-end">
+                                                                    @if($participation->sale_amount !== null)
+                                                                        {{ number_format((float) $participation->sale_amount, 2, ',', '.') }} €
+                                                                    @else
+                                                                        —
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            @elseif(($beneficiary->status ?? '') === 'reverted')
+                            <tr class="beneficiary-parts-row">
+                                <td colspan="{{ $detailColspan }}" class="p-0 border-0 bg-light">
+                                    <div class="px-4 py-2 small text-muted">
+                                        Solicitud revertida a cobrable: las participaciones ya no están vinculadas a esta orden.
+                                    </div>
+                                </td>
+                            </tr>
+                            @endif
                         @endforeach
                     </tbody>
                     <tfoot class="table-light">
                         <tr>
-                            <th colspan="{{ $canManagePayments ? 5 : 4 }}" class="text-end">Total:</th>
+                            <th colspan="{{ $canManagePayments ? 6 : 5 }}" class="text-end">Total:</th>
                             <th>{{ number_format($sepaOrder->control_sum ?? 0, 2, ',', '.') }} €</th>
-                            <th colspan="4"></th>
+                            <th colspan="5"></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -341,7 +419,7 @@
             <a href="{{ url('/configuration?section=ordenes-pago-entidades&step=2&entity_id=' . $entity->id) }}" class="btn btn-md btn-dark" style="border-radius: 30px;">
                 <i class="ri-arrow-left-line me-1"></i> Volver a órdenes
             </a>
-            @if($sepaOrder->beneficiaries->isNotEmpty())
+            @if($sepaOrder->beneficiaries->contains(fn ($b) => $b->isExportableToSepa()))
                 <a href="{{ route('sepa-payments.generate-xml', $sepaOrder->id) }}" class="btn btn-md btn-light" style="border-radius: 30px;"><i class="fe-download me-1"></i> Descargar XML</a>
             @endif
             @if($canManagePayments)
@@ -569,10 +647,30 @@ document.addEventListener('DOMContentLoaded', function() {
         btnRevertir.addEventListener('click', function() {
             submitBeneficiaryAction(
                 '{{ route("sepa-payments.revert-beneficiaries", $sepaOrder->id) }}',
-                '¿Revertir los beneficiarios seleccionados? Las participaciones volverán a estar cobrables y la solicitud reaparecerá en pagos pendientes.'
+                '¿Revertir los beneficiarios seleccionados? Las participaciones volverán a estar cobrables y la solicitud dejará de aparecer en pendientes de gestionar.'
             );
         });
     }
+
+    document.querySelectorAll('.beneficiary-parts-toggle').forEach(function(btn) {
+        var targetSelector = btn.getAttribute('data-bs-target');
+        var target = targetSelector ? document.querySelector(targetSelector) : null;
+        if (!target) return;
+        target.addEventListener('show.bs.collapse', function() {
+            var icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('ri-arrow-down-s-line');
+                icon.classList.add('ri-arrow-up-s-line');
+            }
+        });
+        target.addEventListener('hide.bs.collapse', function() {
+            var icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('ri-arrow-up-s-line');
+                icon.classList.add('ri-arrow-down-s-line');
+            }
+        });
+    });
 });
 </script>
 @endif

@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnRevertir.addEventListener('click', function() {
             submitBeneficiaryAction(
                 '{{ route("sepa-payments.revert-beneficiaries", $sepaPaymentOrder->id) }}',
-                '¿Revertir los beneficiarios seleccionados? Las participaciones volverán a estar cobrables.'
+                '¿Revertir los beneficiarios seleccionados? Las participaciones volverán a estar cobrables y la solicitud dejará de aparecer en pendientes de gestionar.'
             );
         });
     }

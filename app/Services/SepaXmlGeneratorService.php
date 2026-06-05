@@ -13,6 +13,17 @@ class SepaXmlGeneratorService
      */
     public function generateXml(SepaPaymentOrder $order): string
     {
+        $beneficiaries = $order->beneficiaries
+            ->filter(fn ($beneficiary) => $beneficiary->isExportableToSepa())
+            ->values();
+
+        if ($beneficiaries->isEmpty()) {
+            throw new \RuntimeException('No hay beneficiarios para incluir en el XML.');
+        }
+
+        $controlSum = (float) $beneficiaries->sum('amount');
+        $numberOfTransactions = $beneficiaries->count();
+
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->formatOutput = true;
 
@@ -31,8 +42,8 @@ class SepaXmlGeneratorService
 
         $grpHdr->appendChild($dom->createElement('MsgId', $order->message_id));
         $grpHdr->appendChild($dom->createElement('CreDtTm', $order->creation_date->format('Y-m-d\TH:i:s')));
-        $grpHdr->appendChild($dom->createElement('NbOfTxs', (string)$order->number_of_transactions));
-        $grpHdr->appendChild($dom->createElement('CtrlSum', number_format($order->control_sum, 2, '.', '')));
+        $grpHdr->appendChild($dom->createElement('NbOfTxs', (string) $numberOfTransactions));
+        $grpHdr->appendChild($dom->createElement('CtrlSum', number_format($controlSum, 2, '.', '')));
 
         // InitgPty (Initiating Party)
         $initgPty = $dom->createElement('InitgPty');
@@ -102,8 +113,8 @@ class SepaXmlGeneratorService
         // ChrgBr
         $pmtInf->appendChild($dom->createElement('ChrgBr', $order->charge_bearer));
 
-        // CdtTrfTxInf (Credit Transfer Transaction Information) - Para cada beneficiario
-        foreach ($order->beneficiaries as $beneficiary) {
+        // CdtTrfTxInf (Credit Transfer Transaction Information) - Para cada beneficiario exportable
+        foreach ($beneficiaries as $beneficiary) {
             $cdtTrfTxInf = $dom->createElement('CdtTrfTxInf');
             $pmtInf->appendChild($cdtTrfTxInf);
 

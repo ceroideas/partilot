@@ -7,9 +7,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PrintConfiguration extends Model
 {
-    public const STATUS_ACTIVE = 1;
+    /** Imprenta por defecto para diseño e impresión. */
+    public const STATUS_DEFAULT = 1;
 
-    public const STATUS_INACTIVE = 0;
+    public const STATUS_NOT_DEFAULT = 0;
+
+    /** @deprecated Usar STATUS_DEFAULT */
+    public const STATUS_ACTIVE = self::STATUS_DEFAULT;
+
+    /** @deprecated Usar STATUS_NOT_DEFAULT */
+    public const STATUS_INACTIVE = self::STATUS_NOT_DEFAULT;
 
     protected $fillable = [
         'status',
@@ -45,9 +52,15 @@ class PrintConfiguration extends Model
         'price_taco_100' => 'decimal:4',
     ];
 
+    public function scopeDefault($query)
+    {
+        return $query->where('status', self::STATUS_DEFAULT);
+    }
+
+    /** @deprecated Usar scopeDefault() */
     public function scopeActive($query)
     {
-        return $query->where('status', self::STATUS_ACTIVE);
+        return $this->scopeDefault($query);
     }
 
     /** Más antigua primero. */
@@ -56,9 +69,15 @@ class PrintConfiguration extends Model
         return $query->orderBy('id');
     }
 
+    public function isDefault(): bool
+    {
+        return (int) $this->status === self::STATUS_DEFAULT;
+    }
+
+    /** @deprecated Usar isDefault() */
     public function isActive(): bool
     {
-        return (int) $this->status === self::STATUS_ACTIVE;
+        return $this->isDefault();
     }
 
     public function displayName(): string
@@ -68,25 +87,34 @@ class PrintConfiguration extends Model
         return $name !== '' ? $name : ('Imprenta #'.$this->id);
     }
 
+    public static function assignDefault(self $config): void
+    {
+        static::query()
+            ->where('id', '!=', $config->id)
+            ->update(['status' => self::STATUS_NOT_DEFAULT]);
+
+        if (! $config->isDefault()) {
+            $config->status = self::STATUS_DEFAULT;
+            $config->save();
+        }
+    }
+
     public static function resolveDefault(): self
     {
-        $cfg = static::query()->active()->orderedOldestFirst()->first();
+        $cfg = static::query()->default()->orderedOldestFirst()->first();
         if ($cfg) {
             return $cfg;
         }
 
         $any = static::query()->orderedOldestFirst()->first();
         if ($any) {
-            if (! $any->isActive()) {
-                $any->status = self::STATUS_ACTIVE;
-                $any->save();
-            }
+            static::assignDefault($any);
 
-            return $any;
+            return $any->fresh();
         }
 
         return static::create([
-            'status' => self::STATUS_ACTIVE,
+            'status' => self::STATUS_DEFAULT,
             'company_name' => 'Imprenta',
         ]);
     }
@@ -117,4 +145,3 @@ class PrintConfiguration extends Model
         return $this->hasMany(PrintOrder::class);
     }
 }
-

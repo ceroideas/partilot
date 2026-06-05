@@ -13,6 +13,7 @@ use App\Mail\UserWelcomeMail;
 use App\Models\ParticipationGift;
 use App\Services\CommunicationEmailService;
 use App\Services\ParticipationGiftService;
+use App\Support\ActiveEntityContext;
 
 class AuthController extends Controller
 {
@@ -126,6 +127,8 @@ class AuthController extends Controller
             return redirect()->intended(route('print-shop.index'));
         }
 
+        ActiveEntityContext::bootstrapSession($request, $user);
+
         return redirect()->intended('/dashboard');
     }
 
@@ -188,6 +191,7 @@ class AuthController extends Controller
         $user->refresh();
 
         Auth::login($user);
+        ActiveEntityContext::bootstrapSession($request, $user);
 
         return redirect()->route('dashboard')->with('success', 'Contraseña actualizada correctamente.');
     }

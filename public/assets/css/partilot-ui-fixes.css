@@ -228,3 +228,37 @@ small.text-muted,
 .col-md-3 .form-card .form-check.form-switch .form-check-label {
     font-size: 0.84rem;
 }
+
+/* Selector entidad activa (gestor multi-entidad) */
+.partilot-entity-switcher__menu {
+    min-width: 280px;
+    max-width: min(420px, calc(100vw - 24px));
+    white-space: normal;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+.partilot-entity-switcher__menu .dropdown-header h6 {
+    white-space: normal;
+}
+.partilot-entity-switcher__menu .dropdown-item.active {
+    background-color: #f0f2f8;
+}
+.partilot-entity-switcher__menu button.dropdown-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    white-space: normal;
+}
+.partilot-entity-switcher__name {
+    display: block;
+    width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.35;
+}
+@media (max-width: 991.98px) {
+    .partilot-entity-switcher {
+        display: list-item !important;
+    }
+}

@@ -17,6 +17,19 @@ class PanelSelectionResolver
             return null;
         }
 
+        if (ActiveEntityContext::usesActiveEntityScope($user)) {
+            $activeId = ActiveEntityContext::activeEntityId($user);
+            if ($activeId === null) {
+                return null;
+            }
+
+            if ($permission !== null && ! $user->hasEntityManagerPermissionForEntity($activeId, $permission)) {
+                return null;
+            }
+
+            return $activeId;
+        }
+
         $ids = $permission !== null
             ? $user->accessibleEntityIdsByPermission($permission)
             : $user->accessibleEntityIds();
