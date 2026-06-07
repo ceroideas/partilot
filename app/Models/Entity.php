@@ -25,10 +25,14 @@ class Entity extends Model
         'comments',
         'status',
         'billing_iban',
+        'entity_pays_management_fee',
+        'entity_pays_print_fee',
     ];
 
     protected $casts = [
         'status' => 'integer',
+        'entity_pays_management_fee' => 'boolean',
+        'entity_pays_print_fee' => 'boolean',
     ];
 
     protected function name(): Attribute
@@ -168,5 +172,17 @@ class Entity extends Model
         }
 
         return $query->whereIn('id', $entityIds);
+    }
+
+    /** Etiqueta del pagador de la cuota de gestión PARTILOT según Switch 1. */
+    public function managementFeePayerLabel(): string
+    {
+        return $this->entity_pays_management_fee ? 'Entidad' : 'Administración';
+    }
+
+    /** Etiqueta del pagador de diseño e impresión según Switch 2. */
+    public function printFeePayerLabel(): string
+    {
+        return $this->entity_pays_print_fee ? 'Entidad' : 'Administración';
     }
 }

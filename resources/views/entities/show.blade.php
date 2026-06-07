@@ -139,19 +139,9 @@
                     			</div>
                     		</div>
 
-                    		<div class="form-card mb-3 bs @if($entityPanelReadOnly ?? false) entity-config-locked @endif">
-                    			
-                    			<div class="form-check form-switch mt-2 mb-2">
-									<input class="form-check-input bg-dark" type="checkbox" role="switch" id="fin" checked @if($entityPanelReadOnly ?? false) disabled @endif>
-									<label class="form-check-label" for="fin"><b>Entidad sin fin lucrativo</b></label>
-								</div>
-
-								<div class="form-check form-switch mt-2 mb-2">
-									<input class="form-check-input bg-dark" type="checkbox" role="switch" id="coste" checked @if($entityPanelReadOnly ?? false) disabled @endif>
-									<label class="form-check-label" for="coste"><b>Coste gestión</b></label>
-								</div>
-
-                    		</div>
+                    		@if($canManageBillingSwitches ?? false)
+                    		@include('entities.partials.billing_switches_card', ['entity' => $entity, 'readonly' => true])
+                    		@endif
 
                     		<a href="{{url('entities?table=1')}}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>

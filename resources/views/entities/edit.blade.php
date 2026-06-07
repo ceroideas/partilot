@@ -45,7 +45,7 @@
 
                     <br>
 
-                    <form action="{{ route('entities.update', $entity->id) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('entities.update', $entity->id) }}" method="POST" enctype="multipart/form-data" id="entity-edit-form">
                         @csrf
                         @method('PUT')
                         <div class="row">
@@ -119,19 +119,7 @@
                     			</div>
                     		</div>
 
-                    		<div class="form-card mb-3 bs">
-                    			
-                    			<div class="form-check form-switch mt-2 mb-2">
-									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="fin" checked>
-									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="fin"><b>Entidad sin fin lucrativo</b></label>
-								</div>
-
-								<div class="form-check form-switch mt-2 mb-2">
-									<input class="form-check-input bg-dark" style="float: right;" type="checkbox" role="switch" id="coste" checked>
-									<label class="form-check-label" style="float: right; margin-right: 50px; width: 100%; padding-left: 16px;" for="coste"><b>Coste gestión</b></label>
-								</div>
-
-                    		</div>
+                    		@include('entities.partials.billing_switches_card', ['entity' => $entity, 'readonly' => false])
 
                     		<a href="{{ route('entities.show', $entity->id) }}" style="border-radius: 30px; width: 200px; background-color: #333; color: #fff; padding: 8px; font-weight: bolder; position: absolute; bottom: 16px;" class="btn btn-md btn-light mt-2">
                     						<i style="top: 6px; left: 32%; font-size: 18px; position: absolute;" class="ri-arrow-left-circle-line"></i> <span style="display: block; margin-left: 16px;">Atrás</span></a>
@@ -354,7 +342,7 @@
 	                    				</div>
 
 	                    				<div class="col-4 text-end">
-	                    					<button type="submit" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">
+	                    					<button type="submit" id="entity-edit-submit-btn" style="border-radius: 30px; width: 200px; background-color: #e78307; color: #333; padding: 8px; font-weight: bolder; position: relative; top: calc(100% - 51px);" class="btn btn-md btn-light mt-2">
 	                    						Guardar
 	                    						<i style="top: 6px; margin-left: 6px; font-size: 18px; position: absolute;" class="ri-arrow-right-circle-line"></i>
 	                    					</button>
@@ -377,6 +365,8 @@
     <!-- end row-->
 
 </div> <!-- container -->
+
+@include('entities.partials.billing_switches_confirm_modal')
 
 @endsection
 
@@ -532,6 +522,79 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const entityEditForm = document.getElementById('entity-edit-form');
+    const hideBillingModal = @json($hideBillingSwitchesModal ?? false);
+    const dismissModalUrl = @json(route('entities.dismiss-billing-switches-modal'));
+
+    if (!entityEditForm) {
+        return;
+    }
+
+    entityEditForm.addEventListener('submit', function(e) {
+        if (entityEditForm.dataset.billingConfirmed === '1' || hideBillingModal) {
+            return;
+        }
+        e.preventDefault();
+
+        const paysManagement = document.getElementById('entity_pays_management_fee')?.checked ?? false;
+        const paysPrint = document.getElementById('entity_pays_print_fee')?.checked ?? false;
+
+        document.getElementById('billing-modal-management-payer').textContent =
+            paysManagement ? 'Entidad' : 'Administración';
+        document.getElementById('billing-modal-print-payer').textContent =
+            paysPrint ? 'Entidad' : 'Administración';
+
+        const modalEl = document.getElementById('entityBillingSwitchesModal');
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+
+    document.getElementById('billing-modal-confirm-btn')?.addEventListener('click', async function() {
+        const hideAgain = document.getElementById('billing-modal-hide-again')?.checked ?? false;
+        if (hideAgain) {
+            try {
+                await fetch(dismissModalUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ hide: true }),
+                });
+            } catch (err) {
+                console.warn('No se pudo guardar la preferencia del modal', err);
+            }
+        }
+
+        entityEditForm.dataset.billingConfirmed = '1';
+        bootstrap.Modal.getInstance(document.getElementById('entityBillingSwitchesModal'))?.hide();
+        entityEditForm.submit();
+    });
+
+    function updateBillingSwitchHints() {
+        const paysManagement = document.getElementById('entity_pays_management_fee')?.checked ?? false;
+        const paysPrint = document.getElementById('entity_pays_print_fee')?.checked ?? false;
+        const mgmtLabel = document.querySelector('label[for="entity_pays_management_fee"] small');
+        const printLabel = document.querySelector('label[for="entity_pays_print_fee"] small');
+        if (mgmtLabel) {
+            mgmtLabel.innerHTML = paysManagement
+                ? 'ON — La <strong>Entidad</strong> paga la cuota de gestión.'
+                : 'OFF — La <strong>Administración</strong> paga la cuota de gestión.';
+        }
+        if (printLabel) {
+            printLabel.innerHTML = paysPrint
+                ? 'ON — La <strong>Entidad</strong> paga diseño e impresión en imprenta PARTILOT.'
+                : 'OFF — La <strong>Administración</strong> paga diseño e impresión.';
+        }
+    }
+
+    document.getElementById('entity_pays_management_fee')?.addEventListener('change', updateBillingSwitchHints);
+    document.getElementById('entity_pays_print_fee')?.addEventListener('change', updateBillingSwitchHints);
 });
 </script>
 

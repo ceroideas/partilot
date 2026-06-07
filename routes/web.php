@@ -235,6 +235,7 @@ Route::group(['prefix' => 'entities'], function() {
     Route::get('/view/{id}', [EntityController::class, 'show'])->name('entities.show');
     Route::get('/edit/{id}', [EntityController::class, 'edit'])->name('entities.edit');
     Route::put('/update/{id}', [EntityController::class, 'update'])->name('entities.update');
+    Route::post('/dismiss-billing-switches-modal', [EntityController::class, 'dismissBillingSwitchesModal'])->name('entities.dismiss-billing-switches-modal');
     Route::post('/{entity}/toggle-status', [EntityController::class, 'toggleStatus'])->name('entities.toggle-status');
     Route::post('/check-email', [EntityController::class, 'checkEmail'])->name('entities.check-email');
     Route::delete('/destroy/{id}', [EntityController::class, 'destroy']);

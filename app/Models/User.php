@@ -59,6 +59,7 @@ class User extends Authenticatable
         'panel_account_id',
         'panel_login_username',
         'password',
+        'hide_entity_billing_switches_modal',
     ];
 
     /**
@@ -81,6 +82,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'status' => 'boolean',
         'birthday' => 'date',
+        'hide_entity_billing_switches_modal' => 'boolean',
     ];
 
     /**

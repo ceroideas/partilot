@@ -858,6 +858,7 @@ class EntityController extends Controller
             $entityPanelReadOnly
             || $isEntityRole
         );
+        $canManageBillingSwitches = $user && ($user->isSuperAdmin() || $user->isAdministration());
 
         return view('entities.show', compact(
             'entity',
@@ -873,7 +874,8 @@ class EntityController extends Controller
             'canSeeAdminComments',
             'hideRegisterManager',
             'managerTabLabel',
-            'isEntityRole'
+            'isEntityRole',
+            'canManageBillingSwitches'
         ));
     }
 
@@ -888,8 +890,16 @@ class EntityController extends Controller
         $administrations = Administration::forUser(auth()->user())->get();
         $users = User::whereNull('panel_account_type')->orderBy('name')->get();
         [$provinces, $provinceCityMap] = $this->getProvinceCityData();
+        $hideBillingSwitchesModal = (bool) (auth()->user()->hide_entity_billing_switches_modal ?? false);
 
-        return view('entities.edit', compact('entity', 'administrations', 'users', 'provinces', 'provinceCityMap'));
+        return view('entities.edit', compact(
+            'entity',
+            'administrations',
+            'users',
+            'provinces',
+            'provinceCityMap',
+            'hideBillingSwitchesModal'
+        ));
     }
 
     private function getProvinceCityData(): array
@@ -1025,10 +1035,14 @@ class EntityController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'remove_image' => 'nullable|in:0,1',
             'panel_password' => 'nullable|string|min:8|confirmed',
+            'entity_pays_management_fee' => 'nullable|boolean',
+            'entity_pays_print_fee' => 'nullable|boolean',
         ]);
 
         // Convertir status: -1 = null (pendiente), 1 = activo, 0 = inactivo
         $validated['status'] = $validated['status'] === '-1' ? null : ($validated['status'] ?? null);
+        $validated['entity_pays_management_fee'] = $request->boolean('entity_pays_management_fee');
+        $validated['entity_pays_print_fee'] = $request->boolean('entity_pays_print_fee');
 
         // Eliminar imagen si el usuario pulsó "Eliminar imagen"
         if ($request->input('remove_image') === '1') {
@@ -1805,5 +1819,21 @@ class EntityController extends Controller
         if (! $user || (! $user->isSuperAdmin() && ! $user->isAdministration())) {
             abort(403, 'No tienes permiso para editar los datos de la entidad.');
         }
+    }
+
+    /**
+     * Guardar preferencia del usuario para no mostrar el modal de switches comerciales al guardar entidad.
+     */
+    public function dismissBillingSwitchesModal(Request $request)
+    {
+        $this->assertCanEditEntityData();
+
+        $user = auth()->user();
+        if ($request->boolean('hide')) {
+            $user->hide_entity_billing_switches_modal = true;
+            $user->save();
+        }
+
+        return response()->json(['success' => true]);
     }
 }
